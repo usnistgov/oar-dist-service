@@ -1,0 +1,4 @@
+oar-dist-service:
+    image: ubuntu-base
+    ports:
+      - "8080:8080"
