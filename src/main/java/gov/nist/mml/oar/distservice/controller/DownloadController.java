@@ -6,6 +6,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import gov.nist.mml.oar.distservice.s3.S3Wrapper;
 import gov.nist.mml.oar.distservice.service.DownloadService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +24,8 @@ import java.util.List;
 @RequestMapping("/od/ds")
 public class DownloadController {
  
+	Logger logger = LoggerFactory.getLogger(DownloadController.class);
+
 	
 	@Autowired
 	private DownloadService downloadService;
@@ -37,14 +41,26 @@ public class DownloadController {
 	
 	@RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,@PathVariable("distId") String distId) throws IOException {
+	    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
 		return downloadService.downloadDistFile(dsId, distId);
 	} 
 	
+	@RequestMapping(value = "/cache/{dsId}", method = RequestMethod.POST)
+	public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
+		return null;
+	} 
+	
+	@RequestMapping(value = "/listBags/{dsId}", method = RequestMethod.POST)
+	public ResponseEntity<byte[]> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
+		return null;
+	} 
+	
+	
 
-	@RequestMapping(value = "/cacheFiles", method = RequestMethod.POST)
-	public List<PutObjectResult> uploadToCache(@RequestParam("file") MultipartFile[] multipartFiles) {
-		return downloadService.uploadToCache(multipartFiles);
-	}
+//	@RequestMapping(value = "/cacheFiles", method = RequestMethod.POST)
+//	public List<PutObjectResult> uploadToCache(@RequestParam("file") MultipartFile[] multipartFiles) {
+//		return downloadService.uploadToCache(multipartFiles);
+//	}
 
 	@RequestMapping(value = "/downloadFiles", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> downloadFile(@RequestParam String key) throws IOException {
