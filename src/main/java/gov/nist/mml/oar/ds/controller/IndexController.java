@@ -1,4 +1,4 @@
-package gov.nist.mml.oar.distservice.controller;
+package gov.nist.mml.oar.ds.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

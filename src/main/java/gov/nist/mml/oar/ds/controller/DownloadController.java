@@ -1,10 +1,10 @@
-package gov.nist.mml.oar.distservice.controller;
+package gov.nist.mml.oar.ds.controller;
 
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
-import gov.nist.mml.oar.distservice.s3.S3Wrapper;
-import gov.nist.mml.oar.distservice.service.DownloadService;
+import gov.nist.mml.oar.ds.s3.S3Wrapper;
+import gov.nist.mml.oar.ds.service.DownloadService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,19 +39,20 @@ public class DownloadController {
 	}
 	
 	
-	@RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
+	@RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,@PathVariable("distId") String distId) throws IOException {
 	    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
-		return downloadService.downloadDistFile(dsId, distId);
+		return downloadService.downloadDistributionFile(dsId, distId);
+	} 
+
+	
+	@RequestMapping(value = "/{dsId}/listBags", method = RequestMethod.GET)
+	public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
+		return downloadService.findDataSetBagsById(dsId);
 	} 
 	
-	@RequestMapping(value = "/cache/{dsId}", method = RequestMethod.POST)
+	@RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
 	public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
-		return null;
-	} 
-	
-	@RequestMapping(value = "/listBags/{dsId}", method = RequestMethod.POST)
-	public ResponseEntity<byte[]> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
 		return null;
 	} 
 	
@@ -62,31 +63,8 @@ public class DownloadController {
 //		return downloadService.uploadToCache(multipartFiles);
 //	}
 
-	@RequestMapping(value = "/downloadFiles", method = RequestMethod.GET)
-	public ResponseEntity<byte[]> downloadFile(@RequestParam String key) throws IOException {
-		return downloadService.downloadFile(key);
-	} 
-	
-	/**
-	 * TODO: remove.
-	 * @return
-	 * @throws IOException
-	 */
-	@RequestMapping(value = "/listCached", method = RequestMethod.GET)
-	public List<S3ObjectSummary> listCached() throws IOException {
-		return downloadService.listCached();
-	}
-	 
-	/**
-	 * TODO: remove.
-	 * @return
-	 * @throws IOException
-	 */
-	@RequestMapping(value = "/listPreserved", method = RequestMethod.GET)
-	public List<S3ObjectSummary> listPreserved() throws IOException {
-		return downloadService.listCached();
-	}
-	
+ 
+ 
 	
 	
 

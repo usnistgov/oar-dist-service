@@ -1,4 +1,4 @@
-package gov.nist.mml.oar.distservice.service;
+package gov.nist.mml.oar.ds.service;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -28,35 +28,23 @@ public interface DownloadService {
 	 */
 	public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles);
 	
+
 	/**
-	 * Download a file. If the file exist in the cache then download it from the cache. If the file does not exist in the cache then  download it from the preservation bucket
-	 * @param key
+	 * Return a summary list of bags of a data set
+	 * @param dsId: id of the data set
+	 * @return the 
+	 * @throws IOException
+	 */
+	ResponseEntity<List<String>> findDataSetBagsById(String dsId) throws IOException;
+
+	/**
+	 * 
+	 * @param dsId
+	 * @param distId
 	 * @return
 	 * @throws IOException
 	 */
-	public ResponseEntity<byte[]> downloadFile(String key) throws IOException; 
-	
-	
-	/**
-	 * Download a distribution file
-	 * @param key
-	 * @return
-	 * @throws IOException
-	 */
-	public ResponseEntity<byte[]> downloadDistFile(String dsId, String distId) throws IOException; 
-	
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public List<S3ObjectSummary> listCached();
-	
-	/**
-	 * 
-	 * @return
-	 */
-	public List<S3ObjectSummary> listPreserved();
+	ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId) throws IOException;
 	
 	
 

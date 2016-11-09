@@ -1,4 +1,4 @@
-package gov.nist.mml.oar.distservice.service;
+package gov.nist.mml.oar.ds.service;
 
 public interface CacheManager {
 

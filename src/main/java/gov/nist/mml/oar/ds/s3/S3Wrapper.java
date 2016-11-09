@@ -1,4 +1,4 @@
-package gov.nist.mml.oar.distservice.s3;
+package gov.nist.mml.oar.ds.s3;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
@@ -81,12 +81,17 @@ public class S3Wrapper {
 
 	public List<S3ObjectSummary> list(String bucket) {
 		ObjectListing objectListing = amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
-
 		List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();
-
 		return s3ObjectSummaries;
 	}
 	
+	/**
+	 * 
+	 * @param bucket
+	 * @param prefix
+	 * @param suffix
+	 * @return
+	 */
 	public List<S3ObjectSummary> list(String bucket, String prefix) {
 		ObjectListing objectListing = amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
 		List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();

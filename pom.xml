@@ -55,11 +55,11 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-aws-context</artifactId>
- 		</dependency>
+		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
- 		</dependency>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -73,145 +73,148 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-config</artifactId>
- 		</dependency>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-config-client</artifactId>
- 		</dependency>
+		</dependency>
 
-	</dependencies>
-
-	<build>
-		<finalName>oar-dist-service</finalName>
-		<pluginManagement>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-eureka</artifactId>
+		</dependency>
+</dependencies>
+		<build>
+			<finalName>oar-dist-service</finalName>
+			<pluginManagement>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<source>${java.version}</source>
+							<target>${java.version}</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.sonarsource.scanner.maven</groupId>
+						<artifactId>sonar-maven-plugin</artifactId>
+						<version>3.0.1</version>
+					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>0.7.6.201602180812</version>
+					</plugin>
+					<plugin>
+						<groupId>org.springframework.boot</groupId>
+						<artifactId>spring-boot-maven-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</pluginManagement>
 			<plugins>
 				<plugin>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-maven-plugin</artifactId>
+					<executions>
+						<execution>
+							<goals>
+								<goal>repackage</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
+					<artifactId>maven-surefire-plugin</artifactId>
 					<configuration>
-						<source>${java.version}</source>
-						<target>${java.version}</target>
+						<argLine>${surefireArgLine}</argLine>
+						<includes>
+							<include>**/*Test.java</include>
+						</includes>
+						<forkMode>once</forkMode>
+						<systemPropertyVariables>
+							<conf.path>${user.home}/spm</conf.path>
+						</systemPropertyVariables>
 					</configuration>
 				</plugin>
 				<plugin>
-					<groupId>org.sonarsource.scanner.maven</groupId>
-					<artifactId>sonar-maven-plugin</artifactId>
-					<version>3.0.1</version>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<configuration>
+						<argLine>${failsafeArgLine}</argLine>
+						<includes>
+							<include>**/*IT.java</include>
+						</includes>
+						<forkMode>once</forkMode>
+					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.7.6.201602180812</version>
+					<executions>
+						<execution>
+							<id>jacoco-initialize-ut</id>
+							<goals>
+								<goal>prepare-agent</goal>
+							</goals>
+							<configuration>
+								<destFile>${sonar.jacoco.reportPath}</destFile>
+								<propertyName>surefireArgLine</propertyName>
+								<append>true</append>
+							</configuration>
+						</execution>
+						<execution>
+							<id>jacoco-site-ut</id>
+							<phase>package</phase>
+							<goals>
+								<goal>report</goal>
+							</goals>
+							<configuration>
+								<dataFile>${sonar.jacoco.reportPath}</dataFile>
+								<outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+							</configuration>
+						</execution>
+						<execution>
+							<id>jacoco-initialize-it</id>
+							<phase>pre-integration-test</phase>
+							<goals>
+								<goal>prepare-agent</goal>
+							</goals>
+							<configuration>
+								<destFile>${sonar.jacoco.itReportPath}</destFile>
+								<propertyName>failsafeArgLine</propertyName>
+								<append>true</append>
+							</configuration>
+						</execution>
+						<execution>
+							<id>jacoco-site-it</id>
+							<phase>post-integration-test</phase>
+							<goals>
+								<goal>report</goal>
+							</goals>
+							<configuration>
+								<dataFile>${sonar.jacoco.itReportPath}</dataFile>
+								<outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
-				<plugin>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-maven-plugin</artifactId>
-				</plugin>
-			</plugins>
-		</pluginManagement>
-		<plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>			
-				<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<argLine>${surefireArgLine}</argLine>
-					<includes>
-						<include>**/*Test.java</include>
-					</includes>
-					<forkMode>once</forkMode>
-					<systemPropertyVariables>
-						<conf.path>${user.home}/spm</conf.path>
-					</systemPropertyVariables>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-failsafe-plugin</artifactId>
-				<configuration>
-					<argLine>${failsafeArgLine}</argLine>
-					<includes>
-						<include>**/*IT.java</include>
-					</includes>
-					<forkMode>once</forkMode>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>jacoco-initialize-ut</id>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-						<configuration>
-							<destFile>${sonar.jacoco.reportPath}</destFile>
-							<propertyName>surefireArgLine</propertyName>
-							<append>true</append>
-						</configuration>
-					</execution>
-					<execution>
-						<id>jacoco-site-ut</id>
-						<phase>package</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-						<configuration>
-							<dataFile>${sonar.jacoco.reportPath}</dataFile>
-							<outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
-						</configuration>
-					</execution>
-					<execution>
-						<id>jacoco-initialize-it</id>
-						<phase>pre-integration-test</phase>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-						<configuration>
-							<destFile>${sonar.jacoco.itReportPath}</destFile>
-							<propertyName>failsafeArgLine</propertyName>
-							<append>true</append>
-						</configuration>
-					</execution>
-					<execution>
-						<id>jacoco-site-it</id>
-						<phase>post-integration-test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-						<configuration>
-							<dataFile>${sonar.jacoco.itReportPath}</dataFile>
-							<outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			
-    </plugins>
-	</build>
 
-	<repositories>
-		<repository>
-			<id>spring-snapshots</id>
-			<name>Spring Snapshots</name>
-			<url>https://repo.spring.io/libs-snapshot</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
+			</plugins>
+		</build>
+
+		<repositories>
+			<repository>
+				<id>spring-snapshots</id>
+				<name>Spring Snapshots</name>
+				<url>https://repo.spring.io/libs-snapshot</url>
+				<snapshots>
+					<enabled>true</enabled>
+				</snapshots>
+			</repository>
+		</repositories>
 
 
 </project>
