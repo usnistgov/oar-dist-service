@@ -1,4 +1,4 @@
-package gov.nist.mml.oar.distservice.config;
+package gov.nist.mml.oar.ds.config;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
