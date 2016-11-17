@@ -68,15 +68,14 @@ public class DownloadServiceImpl implements DownloadService{
 	
 	
 	@Override
-	public ResponseEntity<List<String>> findDataSetBagsById(String dsId) throws IOException {
- 			List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+"-ore");
+	public ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException {
+ 			List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+".bag.");
 			Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
  			List<String> results = new ArrayList<String>();
  			for(S3ObjectSummary sum: bagSummaries){
  				results.add(sum.getKey());
  			}
  			return new ResponseEntity<>(results, HttpStatus.OK);
-
 	}
 	
 	

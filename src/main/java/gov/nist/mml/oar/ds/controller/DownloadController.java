@@ -46,9 +46,15 @@ public class DownloadController {
 	} 
 
 	
-	@RequestMapping(value = "/{dsId}/listBags", method = RequestMethod.GET)
+	/**
+	 * Return the list of bags of a data sets
+	 * @param dsId
+	 * @return
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
 	public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
-		return downloadService.findDataSetBagsById(dsId);
+		return downloadService.findDataSetBags(dsId);
 	} 
 	
 	@RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)

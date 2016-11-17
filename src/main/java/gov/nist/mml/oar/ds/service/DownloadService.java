@@ -35,7 +35,7 @@ public interface DownloadService {
 	 * @return the 
 	 * @throws IOException
 	 */
-	ResponseEntity<List<String>> findDataSetBagsById(String dsId) throws IOException;
+	ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException;
 
 	/**
 	 * 
