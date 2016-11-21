@@ -39,10 +39,17 @@ public class DownloadController {
 	}
 	
 	
+	/**
+	 * 
+	 * @param dsId
+	 * @param distId
+	 * @return
+	 * @throws IOException
+	 */
 	@RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,@PathVariable("distId") String distId) throws IOException {
 	    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
-		return downloadService.downloadDistributionFile(dsId, distId);
+		return downloadService.downloadDistFile(dsId, distId);
 	} 
 
 	
@@ -57,6 +64,12 @@ public class DownloadController {
 		return downloadService.findDataSetBags(dsId);
 	} 
 	
+	/**
+	 * Cache a data set file located in the preservation package  
+	 * @param dsId: the id of the data set
+	 * @return
+	 * @throws IOException
+	 */
 	@RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
 	public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
 		return null;
