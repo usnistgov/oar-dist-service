@@ -44,7 +44,7 @@ public interface DownloadService {
 	 * @return
 	 * @throws IOException
 	 */
-	ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId) throws IOException;
+	ResponseEntity<byte[]> downloadDistFile(String dsId, String distId) throws IOException;
 	
 	
 
