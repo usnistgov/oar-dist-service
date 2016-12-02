@@ -32,7 +32,7 @@ public interface DownloadService {
 	/**
 	 * Return a summary list of bags of a data set
 	 * @param dsId: id of the data set
-	 * @return the 
+	 * @return the list of keys of the bags
 	 * @throws IOException
 	 */
 	ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException;
@@ -41,10 +41,18 @@ public interface DownloadService {
 	 * 
 	 * @param dsId
 	 * @param distId
-	 * @return
+	 * @return 
 	 * @throws IOException
 	 */
 	ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId) throws IOException;
+
+	/**
+	 * Find the head bag of a data set by its id
+	 * @param dsId: id of the data set
+	 * @return the head bag key 
+	 * @throws IOException
+	 */
+	ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException;
 	
 	
 

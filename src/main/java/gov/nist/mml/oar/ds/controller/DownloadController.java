@@ -55,7 +55,19 @@ public class DownloadController {
 	@RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
 	public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
 		return downloadService.findDataSetBags(dsId);
+	}  
+	
+	/**
+	 * Return the head bag key of a data set
+	 * @param dsId: id of the data set
+	 * @return the head bag key of a data set
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
+	public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
+		return downloadService.findDataSetHeadBag(dsId);
 	} 
+	
 	
 	@RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
 	public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {

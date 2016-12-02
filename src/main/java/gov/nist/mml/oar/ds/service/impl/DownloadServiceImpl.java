@@ -66,17 +66,32 @@ public class DownloadServiceImpl implements DownloadService{
 		return null;
 	}
 	
+	private List<String> findBagsById(String dsId){
+		List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+".bag.");
+		Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
+			List<String> results = new ArrayList<String>();
+			for(S3ObjectSummary sum: bagSummaries){
+				results.add(sum.getKey());
+			}
+			
+		return results;	
+	}
+	
 	
 	@Override
 	public ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException {
- 			List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+".bag.");
-			Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
- 			List<String> results = new ArrayList<String>();
- 			for(S3ObjectSummary sum: bagSummaries){
- 				results.add(sum.getKey());
- 			}
- 			return new ResponseEntity<>(results, HttpStatus.OK);
+ 			return new ResponseEntity<>(findBagsById(dsId), HttpStatus.OK);
 	}
+	
+	@Override
+	public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
+		List<String> results = findBagsById(dsId);
+		String headBag = null;
+		if(results != null && !results.isEmpty()){
+ 			new ResponseEntity<>(results.get(0), HttpStatus.OK);
+		}
+		return new ResponseEntity<>(null, HttpStatus.OK);			
+ 	}
 	
 	
 	private  String  getMappingFile(String dsId) throws IOException {
