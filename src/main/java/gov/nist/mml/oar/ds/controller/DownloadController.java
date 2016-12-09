@@ -8,6 +8,7 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
+ * 
  * @author:Harold Affo
  */
 package gov.nist.mml.oar.ds.controller;
@@ -35,68 +36,69 @@ import java.util.List;
 @RestController
 @RequestMapping("/od/ds")
 public class DownloadController {
- 
-	Logger logger = LoggerFactory.getLogger(DownloadController.class);
 
-	
-	@Autowired
-	private DownloadService downloadService;
-	
-	public DownloadService getDownloadService() {
-		return downloadService;
-	}
+  Logger logger = LoggerFactory.getLogger(DownloadController.class);
 
-	public void setDownloadService(DownloadService downloadService) {
-		this.downloadService = downloadService;
-	}
-	
-	
-	@RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
-	public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,@PathVariable("distId") String distId) throws IOException {
-	    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
-		return downloadService.downloadDistributionFile(dsId, distId);
-	} 
 
-	
-	/**
-	 * Return the list of bags of a data sets
-	 * @param dsId
-	 * @return
-	 * @throws IOException
-	 */
-	@RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
-	public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId) throws IOException {
-		return downloadService.findDataSetBags(dsId);
-	}  
-	
-	/**
-	 * Return the head bag key of a data set
-	 * @param dsId: id of the data set
-	 * @return the head bag key of a data set
-	 * @throws IOException
-	 */
-	@RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
-	public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
-		return downloadService.findDataSetHeadBag(dsId);
-	} 
-	
-	
-	@RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
-	public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
-		return null;
-	} 
-	
-	
+  @Autowired
+  private DownloadService downloadService;
 
-//	@RequestMapping(value = "/cacheFiles", method = RequestMethod.POST)
-//	public List<PutObjectResult> uploadToCache(@RequestParam("file") MultipartFile[] multipartFiles) {
-//		return downloadService.uploadToCache(multipartFiles);
-//	}
+  public DownloadService getDownloadService() {
+    return downloadService;
+  }
 
- 
- 
-	
-	
+  public void setDownloadService(DownloadService downloadService) {
+    this.downloadService = downloadService;
+  }
+
+
+  @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
+  public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,
+      @PathVariable("distId") String distId) throws IOException {
+    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
+    return downloadService.downloadDistributionFile(dsId, distId);
+  }
+
+
+  /**
+   * Return the list of bags of a data sets
+   * 
+   * @param dsId
+   * @return
+   * @throws IOException
+   */
+  @RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
+  public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId)
+      throws IOException {
+    return downloadService.findDataSetBags(dsId);
+  }
+
+  /**
+   * Return the head bag key of a data set
+   * 
+   * @param dsId: id of the data set
+   * @return the head bag key of a data set
+   * @throws IOException
+   */
+  @RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
+  public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
+    return downloadService.findDataSetHeadBag(dsId);
+  }
+
+
+  @RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
+  public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
+    return null;
+  }
+
+
+
+  // @RequestMapping(value = "/cacheFiles", method = RequestMethod.POST)
+  // public List<PutObjectResult> uploadToCache(@RequestParam("file") MultipartFile[]
+  // multipartFiles) {
+  // return downloadService.uploadToCache(multipartFiles);
+  // }
+
+
 
 }
- 

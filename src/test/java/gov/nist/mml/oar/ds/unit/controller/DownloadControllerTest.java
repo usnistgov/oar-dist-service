@@ -11,11 +11,8 @@
  * 
  * @author:Harold Affo
  */
-package gov.nist.mml.oar.ds.service;
+package gov.nist.mml.oar.ds.unit.controller;
 
-public interface CacheManager {
-
-  public boolean isCached(String dsId, String distId);
-
+public class DownloadControllerTest {
 
 }

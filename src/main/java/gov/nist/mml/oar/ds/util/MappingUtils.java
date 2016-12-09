@@ -11,11 +11,26 @@
  * 
  * @author:Harold Affo
  */
-package gov.nist.mml.oar.ds.service;
+package gov.nist.mml.oar.ds.util;
 
-public interface CacheManager {
+import java.io.IOException;
 
-  public boolean isCached(String dsId, String distId);
+import org.apache.commons.io.IOUtils;
+import org.springframework.http.ResponseEntity;
+
+public class MappingUtils {
+
+  /**
+   * Return the distribution file key from the ore mapping file
+   * 
+   * @param dsId: the id of the distribution
+   * @param oreContent: content of the mapping file
+   * @return the key of the distribution file
+   * @throws IOException
+   */
+  public static String findDistFileKey(String distId, String oreContent) throws IOException {
+    return "001-" + distId + ".png";
+  }
 
 
 }

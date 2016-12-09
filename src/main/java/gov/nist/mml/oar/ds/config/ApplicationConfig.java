@@ -11,11 +11,27 @@
  * 
  * @author:Harold Affo
  */
-package gov.nist.mml.oar.ds.service;
+package gov.nist.mml.oar.ds.config;
 
-public interface CacheManager {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.ComponentScan;
 
-  public boolean isCached(String dsId, String distId);
 
+@SpringBootApplication
+@RefreshScope
+@ComponentScan(basePackages = {"gov.nist.mml.oar.ds"})
+@EnableEurekaClient
+public class ApplicationConfig {
 
+  private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
+
+  public static void main(String... args) {
+    log.info("########## Starting oar distribution service ########");
+    SpringApplication.run(ApplicationConfig.class, args);
+  }
 }

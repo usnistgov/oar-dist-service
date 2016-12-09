@@ -8,6 +8,7 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
+ * 
  * @author:Harold Affo
  */
 package gov.nist.mml.oar.ds.s3;
@@ -37,77 +38,82 @@ import java.util.List;
 @Service
 public class S3Wrapper {
 
-	@Autowired
-	private AmazonS3Client amazonS3Client;
- 
-	private PutObjectResult upload(String bucket,String filePath, String uploadKey) throws FileNotFoundException {
-		return upload(bucket, new FileInputStream(filePath), uploadKey);
-	}
+  @Autowired
+  private AmazonS3Client amazonS3Client;
 
-	private PutObjectResult upload(String bucket, InputStream inputStream, String uploadKey) {
-		PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, uploadKey, inputStream, new ObjectMetadata());
+  private PutObjectResult upload(String bucket, String filePath, String uploadKey)
+      throws FileNotFoundException {
+    return upload(bucket, new FileInputStream(filePath), uploadKey);
+  }
 
-		putObjectRequest.setCannedAcl(CannedAccessControlList.PublicRead);
+  private PutObjectResult upload(String bucket, InputStream inputStream, String uploadKey) {
+    PutObjectRequest putObjectRequest =
+        new PutObjectRequest(bucket, uploadKey, inputStream, new ObjectMetadata());
 
-		PutObjectResult putObjectResult = amazonS3Client.putObject(putObjectRequest);
+    putObjectRequest.setCannedAcl(CannedAccessControlList.PublicRead);
 
-		IOUtils.closeQuietly(inputStream);
+    PutObjectResult putObjectResult = amazonS3Client.putObject(putObjectRequest);
 
-		return putObjectResult;
-	}
+    IOUtils.closeQuietly(inputStream);
 
-	public List<PutObjectResult> upload(String bucket, MultipartFile[] multipartFiles) {
-		List<PutObjectResult> putObjectResults = new ArrayList<>();
+    return putObjectResult;
+  }
 
-		Arrays.stream(multipartFiles)
-				.filter(multipartFile -> !StringUtils.isEmpty(multipartFile.getOriginalFilename()))
-				.forEach(multipartFile -> {
-					try {
-						putObjectResults.add(upload(bucket, multipartFile.getInputStream(), multipartFile.getOriginalFilename()));
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				});
+  public List<PutObjectResult> upload(String bucket, MultipartFile[] multipartFiles) {
+    List<PutObjectResult> putObjectResults = new ArrayList<>();
 
-		return putObjectResults;
-	}
+    Arrays.stream(multipartFiles)
+        .filter(multipartFile -> !StringUtils.isEmpty(multipartFile.getOriginalFilename()))
+        .forEach(multipartFile -> {
+          try {
+            putObjectResults.add(upload(bucket, multipartFile.getInputStream(),
+                multipartFile.getOriginalFilename()));
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        });
 
-	public ResponseEntity<byte[]> download(String bucket, String key) throws IOException {
-		GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
+    return putObjectResults;
+  }
 
-		S3Object s3Object = amazonS3Client.getObject(getObjectRequest);
+  public ResponseEntity<byte[]> download(String bucket, String key) throws IOException {
+    GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
 
-		S3ObjectInputStream objectInputStream = s3Object.getObjectContent();
+    S3Object s3Object = amazonS3Client.getObject(getObjectRequest);
 
-		byte[] bytes = IOUtils.toByteArray(objectInputStream);
+    S3ObjectInputStream objectInputStream = s3Object.getObjectContent();
 
-		String fileName = URLEncoder.encode(key, "UTF-8").replaceAll("\\+", "%20");
+    byte[] bytes = IOUtils.toByteArray(objectInputStream);
 
-		HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-		httpHeaders.setContentLength(bytes.length);
-		httpHeaders.setContentDispositionFormData("attachment", fileName);
+    String fileName = URLEncoder.encode(key, "UTF-8").replaceAll("\\+", "%20");
 
-		return new ResponseEntity<>(bytes, httpHeaders, HttpStatus.OK);
-	}
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+    httpHeaders.setContentLength(bytes.length);
+    httpHeaders.setContentDispositionFormData("attachment", fileName);
 
-	public List<S3ObjectSummary> list(String bucket) {
-		ObjectListing objectListing = amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
-		List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();
-		return s3ObjectSummaries;
-	}
-	
-	/**
-	 * 
-	 * @param bucket
-	 * @param prefix
-	 * @param suffix
-	 * @return
-	 */
-	public List<S3ObjectSummary> list(String bucket, String prefix) {
-		ObjectListing objectListing = amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
-		List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();
-		return s3ObjectSummaries;
-	}
-	
+    return new ResponseEntity<>(bytes, httpHeaders, HttpStatus.OK);
+  }
+
+  public List<S3ObjectSummary> list(String bucket) {
+    ObjectListing objectListing =
+        amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
+    List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();
+    return s3ObjectSummaries;
+  }
+
+  /**
+   * 
+   * @param bucket
+   * @param prefix
+   * @param suffix
+   * @return
+   */
+  public List<S3ObjectSummary> list(String bucket, String prefix) {
+    ObjectListing objectListing = amazonS3Client
+        .listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
+    List<S3ObjectSummary> s3ObjectSummaries = objectListing.getObjectSummaries();
+    return s3ObjectSummaries;
+  }
+
 }
