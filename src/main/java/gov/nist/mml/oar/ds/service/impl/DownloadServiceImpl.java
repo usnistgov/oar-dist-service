@@ -23,7 +23,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import gov.nist.mml.oar.ds.s3.S3Wrapper;
 import gov.nist.mml.oar.ds.service.CacheManager;
 import gov.nist.mml.oar.ds.service.DownloadService;
-import gov.nist.mml.oar.ds.service.MappingUtils;
 
 @Service
 public class DownloadServiceImpl implements DownloadService{
@@ -42,9 +41,8 @@ public class DownloadServiceImpl implements DownloadService{
 	private CacheManager cacheManager;
 	
 	
-	private static final String ORE_FILE_PATTERN = "ore.jsonld";
-	private static final String BAG_FILE_ID = ".bag.";
-
+	private static final String MAPPING_FILE_PREFIX = "ore.json";
+	
  
 	public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
 		return s3Wrapper.upload(cacheBucket, multipartFiles);
@@ -52,41 +50,58 @@ public class DownloadServiceImpl implements DownloadService{
 
  
 	@Override
-	public ResponseEntity<byte[]> downloadDistFile(String dsId, String distId) throws IOException {
- 			String fileKey = getDistFileKey(dsId,distId);
+	public ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId) throws IOException {
+ 			String fileKey = getDistributionFileKey(dsId,distId);
 			if(fileKey != null){
 				return s3Wrapper.download(cacheBucket, fileKey);
  			}
 			return null;
 	}
 	
-	private String getDistFileKey(String dsId, String distId) throws IOException {
+	private String getDistributionFileKey(String dsId, String distId) throws IOException {
 		String mappingFile = getMappingFile(dsId);
 		if(!StringUtils.isEmpty(mappingFile)){
-			return  MappingUtils.findDistFileKey(distId, mappingFile);
+			return "Dist001-1.png";//TODO
 		}
 		return null;
+	}
+	
+	private List<String> findBagsById(String dsId){
+		List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+".bag.");
+		Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
+			List<String> results = new ArrayList<String>();
+			for(S3ObjectSummary sum: bagSummaries){
+				results.add(sum.getKey());
+			}
+			
+		return results;	
 	}
 	
 	
 	@Override
 	public ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException {
- 			List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId+BAG_FILE_ID);
-			Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
- 			List<String> results = new ArrayList<String>();
- 			for(S3ObjectSummary sum: bagSummaries){
- 				results.add(sum.getKey());
- 			}
- 			return new ResponseEntity<>(results, HttpStatus.OK);
+ 			return new ResponseEntity<>(findBagsById(dsId), HttpStatus.OK);
 	}
+	
+	@Override
+	public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
+		List<String> results = findBagsById(dsId);
+		String headBag = null;
+		if(results != null && !results.isEmpty()){
+ 			new ResponseEntity<>(results.get(0), HttpStatus.OK);
+		}
+		return new ResponseEntity<>(null, HttpStatus.OK);			
+ 	}
 	
 	
 	private  String  getMappingFile(String dsId) throws IOException {
-		ResponseEntity<byte[]> mappingFile = s3Wrapper.download(cacheBucket, dsId+"."+ ORE_FILE_PATTERN);
+		ResponseEntity<byte[]> mappingFile = s3Wrapper.download(cacheBucket, dsId+"-"+ MAPPING_FILE_PREFIX);
 		byte[] result = mappingFile.getBody();
 		return IOUtils.toString(result, "UTF-8");
 	}
 	
-
+	
+ 
+	
 	
 }
