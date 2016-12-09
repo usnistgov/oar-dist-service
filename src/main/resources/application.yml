@@ -3,13 +3,13 @@ spring:
     name: oar-dist-service
   profiles:
     active:
-      default
+      dev
   cloud:
     config:
-      uri: http://localhost:8888       
+      uri: http://localhost:8888   
       
 server:
-    port: 8081
+    port: 9081
     contextPath: /oar-dist-service
     
 eureka:
