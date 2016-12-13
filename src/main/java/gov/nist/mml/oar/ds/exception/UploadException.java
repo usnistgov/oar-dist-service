@@ -9,10 +9,29 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.mml.oar.ds.unit.controller;
+package gov.nist.mml.oar.ds.exception;
 
-public class DownloadControllerTest {
 
+/**
+ * This is the upload exception class
+ * 
+ * @author haffo
+ *
+ */
+public class UploadException extends Exception {
+
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+
+  public UploadException(Exception e) {
+    super(e);
+  }
+
+  public UploadException(String e) {
+    super(e);
+  }
 }

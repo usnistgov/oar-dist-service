@@ -9,32 +9,26 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.service;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+/**
+ * This is the download service class responsible of handling download request
+ *
+ */
 public interface DownloadService {
 
   /**
+   * Upload distribution files to the cache s3
    * 
    * @param multipartFiles
    * @return

@@ -9,15 +9,12 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.controller;
 
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
-import gov.nist.mml.oar.ds.s3.S3Wrapper;
-import gov.nist.mml.oar.ds.service.DownloadService;
+import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,13 +23,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.List;
+import gov.nist.mml.oar.ds.service.DownloadService;
 
+/**
+ * This is the download controller class responsible of handling the download restful http requests
+ *
+ */
 @RestController
 @RequestMapping("/od/ds")
 public class DownloadController {
@@ -51,7 +49,14 @@ public class DownloadController {
     this.downloadService = downloadService;
   }
 
-
+  /**
+   * Download a distribution file by its id
+   * 
+   * @param dsId
+   * @param distId
+   * @return
+   * @throws IOException
+   */
   @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
   public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,
       @PathVariable("distId") String distId) throws IOException {
@@ -61,7 +66,7 @@ public class DownloadController {
 
 
   /**
-   * Return the list of bags of a data sets
+   * Return the list of bags of a data set
    * 
    * @param dsId
    * @return
@@ -86,19 +91,17 @@ public class DownloadController {
   }
 
 
+  /**
+   * Cache a data set
+   * 
+   * @param dsId
+   * @return
+   * @throws IOException
+   */
   @RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
   public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
     return null;
   }
-
-
-
-  // @RequestMapping(value = "/cacheFiles", method = RequestMethod.POST)
-  // public List<PutObjectResult> uploadToCache(@RequestParam("file") MultipartFile[]
-  // multipartFiles) {
-  // return downloadService.uploadToCache(multipartFiles);
-  // }
-
 
 
 }

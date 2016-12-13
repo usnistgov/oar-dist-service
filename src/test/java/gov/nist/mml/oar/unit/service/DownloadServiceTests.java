@@ -13,6 +13,6 @@
  */
 package gov.nist.mml.oar.unit.service;
 
-public class DownloadServiceTest {
+public class DownloadServiceTests {
 
 }

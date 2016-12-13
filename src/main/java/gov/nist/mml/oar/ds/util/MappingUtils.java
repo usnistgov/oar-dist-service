@@ -9,16 +9,21 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.util;
 
 import java.io.IOException;
 
-import org.apache.commons.io.IOUtils;
-import org.springframework.http.ResponseEntity;
-
+/**
+ * This is the mapping utility class providing functions to handle the ORE mapping content
+ *
+ */
 public class MappingUtils {
+
+  private MappingUtils() {
+
+  }
 
   /**
    * Return the distribution file key from the ore mapping file
@@ -29,7 +34,7 @@ public class MappingUtils {
    * @throws IOException
    */
   public static String findDistFileKey(String distId, String oreContent) throws IOException {
-    return "001-" + distId + ".png";
+    return null;
   }
 
 

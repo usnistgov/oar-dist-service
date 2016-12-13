@@ -14,6 +14,6 @@
 package gov.nist.mml.oar.unit.service;
 
 
-public class CacheManagerTest {
+public class CacheManagerTests {
 
 }

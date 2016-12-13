@@ -13,8 +13,6 @@
  */
 package gov.nist.mml.oar.ds.unit.controller;
 
-public class IndexControllerTests {
-
-
+public class DownloadControllerTests {
 
 }

@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.service.impl;
 
@@ -17,12 +17,17 @@ import org.springframework.stereotype.Service;
 
 import gov.nist.mml.oar.ds.service.CacheManager;
 
+/**
+ * 
+ * This is the is the default implementation of the cache manager class responsible of handling
+ * caching requests
+ *
+ */
 @Service
 public class CacheManagerImpl implements CacheManager {
 
   @Override
   public boolean isCached(String dsId, String distId) {
-    // TODO Auto-generated method stub
     return false;
   }
 

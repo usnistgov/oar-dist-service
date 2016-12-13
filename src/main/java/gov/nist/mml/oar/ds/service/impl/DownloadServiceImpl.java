@@ -9,12 +9,11 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.service.impl;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,17 +25,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import gov.nist.mml.oar.ds.s3.S3Wrapper;
-import gov.nist.mml.oar.ds.service.CacheManager;
 import gov.nist.mml.oar.ds.service.DownloadService;
 
+/**
+ * This is the default implementation of the download service class responsible of handling download
+ * requests
+ * 
+ */
 @Service
 public class DownloadServiceImpl implements DownloadService {
 
@@ -50,13 +51,10 @@ public class DownloadServiceImpl implements DownloadService {
   @Value("${cloud.aws.cache.s3.bucket}")
   private String cacheBucket;
 
-  @Autowired
-  private CacheManager cacheManager;
-
-
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
 
+  @Override
   public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
     return s3Wrapper.upload(cacheBucket, multipartFiles);
   }
@@ -72,18 +70,26 @@ public class DownloadServiceImpl implements DownloadService {
     return null;
   }
 
+  /**
+   * 
+   * @param dsId
+   * @param distId
+   * @return
+   * @throws IOException
+   */
   private String getDistributionFileKey(String dsId, String distId) throws IOException {
-    String mappingFile = getMappingFile(dsId);
-    if (!StringUtils.isEmpty(mappingFile)) {
-      return "Dist001-1.png";// TODO
-    }
-    return null;
+    return distId;
   }
 
+  /**
+   * 
+   * @param dsId
+   * @return
+   */
   private List<String> findBagsById(String dsId) {
     List<S3ObjectSummary> bagSummaries = s3Wrapper.list(cacheBucket, dsId + ".bag.");
     Collections.sort(bagSummaries, (bag1, bag2) -> bag2.getKey().compareTo(bag1.getKey()));
-    List<String> results = new ArrayList<String>();
+    List<String> results = new ArrayList<>();
     for (S3ObjectSummary sum : bagSummaries) {
       results.add(sum.getKey());
     }
@@ -97,17 +103,23 @@ public class DownloadServiceImpl implements DownloadService {
     return new ResponseEntity<>(findBagsById(dsId), HttpStatus.OK);
   }
 
+
   @Override
   public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
     List<String> results = findBagsById(dsId);
-    String headBag = null;
     if (results != null && !results.isEmpty()) {
       new ResponseEntity<>(results.get(0), HttpStatus.OK);
     }
     return new ResponseEntity<>(null, HttpStatus.OK);
   }
 
-
+  /**
+   * 
+   * @param dsId
+   * @return
+   * @throws IOException
+   */
+  @SuppressWarnings("unused")
   private String getMappingFile(String dsId) throws IOException {
     ResponseEntity<byte[]> mappingFile =
         s3Wrapper.download(cacheBucket, dsId + "-" + MAPPING_FILE_PREFIX);

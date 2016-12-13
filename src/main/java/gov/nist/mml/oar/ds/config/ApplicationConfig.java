@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.config;
 
@@ -22,6 +22,10 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.context.annotation.ComponentScan;
 
 
+/**
+ * This is the configuration class responsible of starting the spring-boot application
+ *
+ */
 @SpringBootApplication
 @RefreshScope
 @ComponentScan(basePackages = {"gov.nist.mml.oar.ds"})
@@ -30,6 +34,14 @@ public class ApplicationConfig {
 
   private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
 
+  private ApplicationConfig() {}
+
+  /**
+   * Main runner of the spring-boot class
+   * 
+   * @param args
+   */
+  @SuppressWarnings("squid:S2095")
   public static void main(String... args) {
     log.info("########## Starting oar distribution service ########");
     SpringApplication.run(ApplicationConfig.class, args);

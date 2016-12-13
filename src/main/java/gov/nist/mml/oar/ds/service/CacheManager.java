@@ -9,12 +9,24 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  * 
- * @author:Harold Affo
+ * @author:Harold Affo (Prometheus Computing, LLC)
  */
 package gov.nist.mml.oar.ds.service;
 
+/**
+ * This is the cache manager class responsible of handling caching requests
+ *
+ */
+@FunctionalInterface
 public interface CacheManager {
 
+  /**
+   * Check if a distribution file is cached
+   * 
+   * @param dsId
+   * @param distId
+   * @return
+   */
   public boolean isCached(String dsId, String distId);
 
 
