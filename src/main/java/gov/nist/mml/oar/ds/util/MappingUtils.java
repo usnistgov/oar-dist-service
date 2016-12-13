@@ -11,24 +11,31 @@
  * 
  * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.mml.oar.ds.service.impl;
+package gov.nist.mml.oar.ds.util;
 
-import org.springframework.stereotype.Service;
-
-import gov.nist.mml.oar.ds.service.CacheManager;
+import java.io.IOException;
 
 /**
- * 
- * This is the is the default implementation of the cache manager class responsible of handling
- * caching requests
+ * This is the mapping utility class providing functions to handle the ORE mapping content
  *
  */
-@Service
-public class CacheManagerImpl implements CacheManager {
+public class MappingUtils {
 
-  @Override
-  public boolean isCached(String dsId, String distId) {
-    return false;
+  private MappingUtils() {
+
   }
+
+  /**
+   * Return the distribution file key from the ore mapping file
+   * 
+   * @param dsId: the id of the distribution
+   * @param oreContent: content of the mapping file
+   * @return the key of the distribution file
+   * @throws IOException
+   */
+  public static String findDistFileKey(String distId, String oreContent) throws IOException {
+    return null;
+  }
+
 
 }

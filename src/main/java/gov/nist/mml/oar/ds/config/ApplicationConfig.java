@@ -11,31 +11,39 @@
  * 
  * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.mml.oar.ds.controller;
+package gov.nist.mml.oar.ds.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.ComponentScan;
+
 
 /**
- * This is the index restful controller class
+ * This is the configuration class responsible of starting the spring-boot application
  *
  */
-@Controller
-public class IndexController {
+@SpringBootApplication
+@RefreshScope
+@ComponentScan(basePackages = {"gov.nist.mml.oar.ds"})
+@EnableEurekaClient
+public class ApplicationConfig {
 
-  Logger logger = LoggerFactory.getLogger(IndexController.class);
+  private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
 
-  public final static String CONTENT = "Welcome to the OAR distribution service api";
+  private ApplicationConfig() {}
 
   /**
+   * Main runner of the spring-boot class
    * 
-   * @return
+   * @param args
    */
-  @RequestMapping("/")
-  public String index() {
-    logger.info("Loading index page");
-    return CONTENT;
+  @SuppressWarnings("squid:S2095")
+  public static void main(String... args) {
+    log.info("########## Starting oar distribution service ########");
+    SpringApplication.run(ApplicationConfig.class, args);
   }
 }

@@ -11,24 +11,27 @@
  * 
  * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.mml.oar.ds.service.impl;
+package gov.nist.mml.oar.ds.exception;
 
-import org.springframework.stereotype.Service;
-
-import gov.nist.mml.oar.ds.service.CacheManager;
 
 /**
+ * This is the upload exception class
  * 
- * This is the is the default implementation of the cache manager class responsible of handling
- * caching requests
+ * @author haffo
  *
  */
-@Service
-public class CacheManagerImpl implements CacheManager {
+public class UploadException extends Exception {
 
-  @Override
-  public boolean isCached(String dsId, String distId) {
-    return false;
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+
+  public UploadException(Exception e) {
+    super(e);
   }
 
+  public UploadException(String e) {
+    super(e);
+  }
 }
