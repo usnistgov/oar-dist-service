@@ -78,7 +78,13 @@ public class DownloadServiceImpl implements DownloadService {
    * @throws IOException
    */
   private String getDistributionFileKey(String dsId, String distId) throws IOException {
-    return distId;
+    String prefix = dsId + "-" + distId;
+    List<S3ObjectSummary> files = s3Wrapper.list(cacheBucket, prefix);
+    if (files != null && !files.isEmpty()) {
+      return files.get(0).getKey();
+    }
+
+    return null;
   }
 
   /**
@@ -108,7 +114,7 @@ public class DownloadServiceImpl implements DownloadService {
   public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
     List<String> results = findBagsById(dsId);
     if (results != null && !results.isEmpty()) {
-      new ResponseEntity<>(results.get(0), HttpStatus.OK);
+      return new ResponseEntity<>(results.get(0), HttpStatus.OK);
     }
     return new ResponseEntity<>(null, HttpStatus.OK);
   }

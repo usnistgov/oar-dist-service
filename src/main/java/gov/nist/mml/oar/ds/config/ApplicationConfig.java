@@ -34,8 +34,6 @@ public class ApplicationConfig {
 
   private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
 
-  private ApplicationConfig() {}
-
   /**
    * Main runner of the spring-boot class
    * 

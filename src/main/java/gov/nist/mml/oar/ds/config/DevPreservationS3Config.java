@@ -11,33 +11,30 @@
  * 
  * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.mml.oar.ds.controller;
+package gov.nist.mml.oar.ds.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
- * This is the index restful controller class
+ * This is the preservation S3 Config class responsible of starting the s3 client
  *
  */
-@RestController
-public class IndexController {
+@Configuration
+@Profile("dev")
+public class DevPreservationS3Config {
 
-  Logger logger = LoggerFactory.getLogger(IndexController.class);
+  @Value("${cloud.aws.preservation.region}")
+  private String region;
 
-  public static final String CONTENT = "Welcome to the OAR distribution service api";
+  @Bean
+  public AmazonS3Client amazonS3Client() {
+    AmazonS3Client amazonS3Client = new AmazonS3Client();
 
-  /**
-   * 
-   * @return
-   */
-  @RequestMapping("/")
-  public ResponseEntity<String> index() {
-    logger.info("Loading index page");
-    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
+    return amazonS3Client;
   }
 }
