@@ -13,30 +13,34 @@
  */
 package gov.nist.mml.oar.ds.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 /**
- * This is the preservation S3 Config class responsible of starting the s3 client
+ * This is the Cache S3 Config class responsible of starting the s3 client
  *
  */
 @Configuration
-@Profile("prod")
-public class ProdPreservationS3Config {
+@Profile(value = {"dev", "prod"})
+public class S3Config {
 
-  @Value("${cloud.aws.preservation.region}")
-  private String region;
-
-
+  private static Logger log = LoggerFactory.getLogger(S3Config.class);
 
   @Bean
-  public AmazonS3Client amazonS3Client() {
-    AmazonS3Client amazonS3Client = new AmazonS3Client();
-
-    return amazonS3Client;
+  public AmazonS3Client s3Client() {
+    log.info("Creating the s3 client instance");
+    InstanceProfileCredentialsProvider provider = new InstanceProfileCredentialsProvider();
+    AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withCredentials(provider).build();
+    log.info("AWSAccessKey=" + provider.getCredentials().getAWSAccessKeyId() + ", AWSSecretKey="
+        + provider.getCredentials().getAWSSecretKey());
+    return (AmazonS3Client) s3Client;
   }
 }

@@ -16,8 +16,6 @@ package gov.nist.mml.oar.ds.config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -29,8 +27,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
  * This is the Cache S3 Config class responsible of starting the s3 client
  *
  */
-@Configuration
-@Profile("local")
+// @Configuration
+// @Profile("local")
 public class LocalCacheS3Config {
 
   @Value("${cloud.aws.cache.credentials.accessKey}")
