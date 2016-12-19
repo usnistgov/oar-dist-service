@@ -56,7 +56,7 @@ public class S3Wrapper {
 
 
   @Autowired
-  private AmazonS3Client amazonS3Client;
+  private AmazonS3Client s3Client;
 
 
   /**
@@ -73,7 +73,7 @@ public class S3Wrapper {
 
     putObjectRequest.setCannedAcl(CannedAccessControlList.PublicRead);
 
-    PutObjectResult putObjectResult = amazonS3Client.putObject(putObjectRequest);
+    PutObjectResult putObjectResult = s3Client.putObject(putObjectRequest);
 
     IOUtils.closeQuietly(inputStream);
 
@@ -115,7 +115,7 @@ public class S3Wrapper {
   public ResponseEntity<byte[]> download(String bucket, String key) throws IOException {
     GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
 
-    S3Object s3Object = amazonS3Client.getObject(getObjectRequest);
+    S3Object s3Object = s3Client.getObject(getObjectRequest);
 
     S3ObjectInputStream objectInputStream = s3Object.getObjectContent();
 
@@ -139,7 +139,7 @@ public class S3Wrapper {
    */
   public List<S3ObjectSummary> list(String bucket) {
     ObjectListing objectListing =
-        amazonS3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
+        s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
     return objectListing.getObjectSummaries();
   }
 
@@ -152,8 +152,8 @@ public class S3Wrapper {
    * @return
    */
   public List<S3ObjectSummary> list(String bucket, String prefix) {
-    ObjectListing objectListing = amazonS3Client
-        .listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
+    ObjectListing objectListing =
+        s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
     return objectListing.getObjectSummaries();
   }
 

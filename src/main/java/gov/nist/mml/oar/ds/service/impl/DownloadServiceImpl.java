@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -41,6 +43,7 @@ import gov.nist.mml.oar.ds.service.DownloadService;
 @Service
 public class DownloadServiceImpl implements DownloadService {
 
+  Logger logger = LoggerFactory.getLogger(DownloadServiceImpl.class);
 
   @Autowired
   private S3Wrapper s3Wrapper;
@@ -63,6 +66,7 @@ public class DownloadServiceImpl implements DownloadService {
   @Override
   public ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId)
       throws IOException {
+    logger.info("Downloading dsId=" + dsId + ",distId=" + distId + " from " + cacheBucket);
     String fileKey = getDistributionFileKey(dsId, distId);
     if (fileKey != null) {
       return s3Wrapper.download(cacheBucket, fileKey);
