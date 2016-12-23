@@ -5,7 +5,7 @@
 	<artifactId>oar-dist-service</artifactId>
 	<name>oar-dist-service</name>
 	<description>OAR distribution service</description>
-	<groupId>gov.nist.mml.oar</groupId>
+	<groupId>gov.nist.oar</groupId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<parent>
@@ -55,11 +55,11 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-aws-context</artifactId>
- 		</dependency>
+		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
- 		</dependency>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -73,15 +73,21 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-config</artifactId>
- 		</dependency>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-config-client</artifactId>
- 		</dependency>
+		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-eureka</artifactId>
+		</dependency>
+		 
+		
+		
 	</dependencies>
-
 	<build>
 		<finalName>oar-dist-service</finalName>
 		<pluginManagement>
@@ -111,18 +117,18 @@
 			</plugins>
 		</pluginManagement>
 		<plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>			
-				<plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
@@ -198,8 +204,8 @@
 					</execution>
 				</executions>
 			</plugin>
-			
-    </plugins>
+
+		</plugins>
 	</build>
 
 	<repositories>

@@ -6,4 +6,17 @@ spring:
       dev
   cloud:
     config:
-      uri: http://localhost:8888
+      uri: http://localhost:8082   
+      
+server:
+    port: 8083
+    contextPath: /oar-dist-service
+    
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+        defaultZone: http://localhost:8081/eureka/
