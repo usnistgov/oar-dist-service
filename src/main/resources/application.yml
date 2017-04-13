@@ -3,10 +3,10 @@ spring:
     name: oar-dist-service
   profiles:
     active:
-      dev
+      local
   cloud:
     config:
-      uri: http://localhost:8082   
+      uri: http://localhost:8084   
       
 server:
     port: 8083
