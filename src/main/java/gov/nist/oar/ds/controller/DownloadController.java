@@ -57,7 +57,7 @@ public class DownloadController {
    * @return
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
   public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,
       @PathVariable("distId") String distId) throws IOException {
     logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
@@ -75,6 +75,7 @@ public class DownloadController {
   @RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
   public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId)
       throws IOException {
+    logger.info("Returning data set bags of dsId=" + dsId);
     return downloadService.findDataSetBags(dsId);
   }
 
@@ -85,11 +86,11 @@ public class DownloadController {
    * @return the head bag key of a data set
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/head-bag", method = RequestMethod.GET)
   public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
+    logger.info("Returning data set head bag of dsId=" + dsId);
     return downloadService.findDataSetHeadBag(dsId);
   }
-
 
   /**
    * Cache a data set
@@ -100,6 +101,7 @@ public class DownloadController {
    */
   @RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
   public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
+    logger.info("Caching data set with dsId=" + dsId);
     return null;
   }
 
