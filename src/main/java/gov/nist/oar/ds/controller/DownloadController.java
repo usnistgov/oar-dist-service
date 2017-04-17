@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.ds.service.DownloadService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * This is the download controller class responsible of handling the download restful http requests
@@ -33,10 +35,10 @@ import gov.nist.oar.ds.service.DownloadService;
  */
 @RestController
 @RequestMapping("/od/ds")
+@Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
 public class DownloadController {
 
   Logger logger = LoggerFactory.getLogger(DownloadController.class);
-
 
   @Autowired
   private DownloadService downloadService;
@@ -57,7 +59,10 @@ public class DownloadController {
    * @return
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
+  @ApiOperation(value = "Get data for given distribution with distribution id.",nickname = "distById",
+  notes = "distID is data collection id and distId is actual data id.")
+
   public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,
       @PathVariable("distId") String distId) throws IOException {
     logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
@@ -73,9 +78,10 @@ public class DownloadController {
    * @throws IOException
    */
   @RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
+  @ApiOperation(value = "Get bags for given distribution",nickname = "get bags",
+  notes = "Find Data Set bags for given disId")
   public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId)
       throws IOException {
-    logger.info("Returning data set bags of dsId=" + dsId);
     return downloadService.findDataSetBags(dsId);
   }
 
@@ -86,11 +92,14 @@ public class DownloadController {
    * @return the head bag key of a data set
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/head-bag", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
+  @ApiOperation(value = "Get HeadBag for given distribution Id.",nickname = "get headbag",
+  notes = "Get Headbag for given distribution with distID")
+
   public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
-    logger.info("Returning data set head bag of dsId=" + dsId);
     return downloadService.findDataSetHeadBag(dsId);
   }
+
 
   /**
    * Cache a data set
@@ -100,8 +109,10 @@ public class DownloadController {
    * @throws IOException
    */
   @RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
+  @ApiOperation(value = "Get Cache for given distribution",nickname = "get cache",
+  notes = "Get data cache for given distribution by distribution ID.")
+
   public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
-    logger.info("Caching data set with dsId=" + dsId);
     return null;
   }
 
