@@ -20,6 +20,7 @@
 		<java.version>1.8</java.version>
 		<spring.boot.version>1.4.1.RELEASE</spring.boot.version>
 		<spring.cloud.version>1.0.2.RELEASE</spring.cloud.version>
+		<springfox.version>2.6.1</springfox.version>
 		<!-- Sonar -->
 		<sonar.languages>java,xml,css,web</sonar.languages>
 		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -84,7 +85,22 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-eureka</artifactId>
 		</dependency>
-		 
+		 <!-- swagger docs -->
+		<dependency>
+    		<groupId>io.springfox</groupId>
+    		<artifactId>springfox-swagger-ui</artifactId>
+    		<version>${springfox.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>io.springfox</groupId>
+    		<artifactId>springfox-staticdocs</artifactId>
+    		<version>${springfox.version}</version>
+		</dependency> 
+ 		<dependency>
+   			 <groupId>io.springfox</groupId>
+    		<artifactId>springfox-swagger2</artifactId>
+    		<version>${springfox.version}</version>
+		</dependency>
 		
 		
 	</dependencies>
