@@ -20,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.annotations.ApiOperation;
+
 /**
  * This is the index restful controller class
  *
@@ -36,6 +38,9 @@ public class IndexController {
    * @return
    */
   @RequestMapping("/")
+  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
+  notes = "Index Controller.")
+
   public ResponseEntity<String> index() {
     logger.info("Loading index page");
     return new ResponseEntity<>(CONTENT, HttpStatus.OK);
