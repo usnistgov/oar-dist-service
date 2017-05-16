@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: oar-dist-service
+  profiles:
+    active: default
+  cloud:
+    config:
+      uri: http://localhost:8084
+       
+server:
+    port: 8083
+    contextPath: /oar-dist-service

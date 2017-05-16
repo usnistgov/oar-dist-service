@@ -15,46 +15,26 @@ package gov.nist.oar.ds.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 /**
- * This is the config class responsible of starting the s3 client in local environment
+ * This is the config class responsible of starting the s3 client in dev and prod environment
  *
  */
 @Configuration
-@Profile("local")
-public class LocalS3Config {
+public class S3Config {
 
-  private static Logger log = LoggerFactory.getLogger(LocalS3Config.class);
-
-  @Value("${cloud.aws.credentials.accessKey}")
-  private String accessKey;
-
-  @Value("${cloud.aws.credentials.secretKey}")
-  private String secretKey;
-
-  @Value("${cloud.aws.region}")
-  private String region;
+  private static Logger log = LoggerFactory.getLogger(S3Config.class);
 
   @Bean
-  public BasicAWSCredentials basicAWSCredentials() {
-    return new BasicAWSCredentials(accessKey, secretKey);
-  }
-
-  @Bean
-  public AmazonS3Client amazonS3Client(AWSCredentials awsCredentials) {
+  public AmazonS3Client s3Client() {
     log.info("Creating s3 client instance");
-    AmazonS3Client amazonS3Client = new AmazonS3Client(awsCredentials);
-    amazonS3Client.setRegion(Region.getRegion(Regions.fromName(region)));
-    return amazonS3Client;
+    InstanceProfileCredentialsProvider provider = new InstanceProfileCredentialsProvider();
+    return (AmazonS3Client) AmazonS3ClientBuilder.standard().withCredentials(provider).build();
   }
 }
