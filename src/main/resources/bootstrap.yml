@@ -2,12 +2,11 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active:
-      local
+    active: default
   cloud:
     config:
-      uri: http://localhost:8084   
-      
+      uri: http://localhost:8084
+       
 server:
     port: 8083
     contextPath: /oar-dist-service
@@ -19,15 +18,6 @@ server:
       accesslog:
         directory: logs
         enabled: false
-    
-eureka:
-  instance:
-    preferIpAddress: true
-  client:
-    registerWithEureka: true
-    fetchRegistry: true
-    serviceUrl:
-        defaultZone: http://localhost:8085/eureka/
         
 security:
     headers:
@@ -35,3 +25,6 @@ security:
       xss: true
       hsts: all
     enable-csrf: false
+    
+    
+    
