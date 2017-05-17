@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.context.annotation.ComponentScan;
 
 
@@ -28,8 +27,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 @RefreshScope
-@ComponentScan(basePackages = {"gov.nist.mml.oar.ds"})
-@EnableEurekaClient
+@ComponentScan(basePackages = {"gov.nist.oar.ds"})
 public class ApplicationConfig {
 
   private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
