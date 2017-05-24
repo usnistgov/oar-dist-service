@@ -13,8 +13,21 @@
  */
 package gov.nist.oar.ds.controller;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.URL;
 import java.util.List;
+import java.util.zip.ZipOutputStream;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +46,7 @@ import io.swagger.annotations.ApiOperation;
  * This is the download controller class responsible of handling the download restful http requests
  *
  */
+
 @RestController
 @RequestMapping("/od/ds")
 @Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
@@ -114,6 +128,22 @@ public class DownloadController {
 
   public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
     return null;
+  }
+
+  /**
+   * Download zip file
+   * 
+   * @param Id
+   * @return 
+   * @return
+   * @throws Exception 
+   */
+  @RequestMapping(value = "/zip", method = RequestMethod.GET)
+
+  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
+    logger.info("Loading zip page" + id);
+    return downloadService.downloadZipFile(id);
+       
   }
 
 

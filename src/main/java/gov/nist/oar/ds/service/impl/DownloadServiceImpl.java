@@ -14,23 +14,62 @@
 package gov.nist.oar.ds.service.impl;
 
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.jayway.jsonpath.JsonPath;
 
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
@@ -53,6 +92,10 @@ public class DownloadServiceImpl implements DownloadService {
 
   @Value("${cloud.aws.cache.s3.bucket}")
   private String cacheBucket;
+  
+  @Value("${rmmapi}")
+  private String rmmApi;
+  
 
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
@@ -137,6 +180,106 @@ public class DownloadServiceImpl implements DownloadService {
     return IOUtils.toString(result, "UTF-8");
   }
 
+  public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
+    
+    try {    
+      HttpServletRequest request = null;
+     
+      RestTemplate restTemplate = new RestTemplate();
+      ResponseEntity<JSONObject> response = restTemplate.getForEntity(
+              rmmApi + "records?@id="+ id + "&include=components",
+              JSONObject.class);
+      
+      String dzId = id;
+      logger.info(rmmApi + "records?@id="+ id + "&include=components");
+      String fileName = dzId.split("/")[2];
+      JSONObject jsonRecord = response.getBody();
+      String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
+      JSONParser parser = new JSONParser(); 
+      
+      JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
 
+      JSONObject object = (JSONObject) jsonArrayResultData.get(0);
 
+      String jsonComponents= new Gson().toJson(object.get("components"));
+
+      JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
+      
+      byte[] myBytes = null;
+      myBytes = getCompressed(jsonArrayComponents,fileName);
+           
+      HttpHeaders httpHeaders = new HttpHeaders();
+      httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+      httpHeaders.setContentLength(myBytes.length);
+      httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
+      return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
+      
+  } catch (Exception e) {
+      e.printStackTrace();
+  }
+    return null;
+  }
+  
+  public byte[] getCompressed( JSONArray json, String fileName)
+      throws IOException
+  {
+    
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    ZipOutputStream zos = new ZipOutputStream(bos);
+    InputStream in = null;
+    BufferedInputStream entryStream = null;
+    for (int i = 0; i < json.size(); i++) {
+      JSONObject jsonObjComp = (JSONObject) json.get(i);
+      if (jsonObjComp.containsKey("@type"))
+        if(jsonObjComp.get("@type").toString().contains("nrdp:DataFile"))
+          {
+            if (jsonObjComp.containsKey("downloadURL"))
+            {
+              logger.info("Title -" + jsonObjComp.get("title").toString());
+              logger.info("DownloadURL - " + jsonObjComp.get("downloadURL").toString());
+              
+              URL url = new URL(jsonObjComp.get("downloadURL").toString());
+              HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+              
+              boolean redirect = false;
+  
+              // normally, 3xx is redirect
+              int status = conn.getResponseCode();
+              if (status != HttpURLConnection.HTTP_OK) {
+                  if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                      || status == HttpURLConnection.HTTP_MOVED_PERM
+                          || status == HttpURLConnection.HTTP_SEE_OTHER)
+                  redirect = true;
+              }
+              
+              if (redirect) {
+                // get redirect url from "location" header field
+                String newUrl = conn.getHeaderField("Location");
+                // open the new connnection again
+                logger.info("Redirect URL - " + newUrl);
+                HttpsURLConnection connHTTPS = (HttpsURLConnection) new URL(newUrl).openConnection();
+                in = connHTTPS.getInputStream();
+              }
+              else 
+              {
+                in = conn.getInputStream();
+              }
+              
+              if (in != null)
+              {
+                byte[] bytes = IOUtils.toByteArray(in);
+                ZipEntry entry = new ZipEntry(fileName + "/" + jsonObjComp.get("filepath").toString());
+                zos.putNextEntry( entry );
+                zos.write(bytes);
+                zos.closeEntry();
+                in.close();
+              }
+            }
+          }
+      }
+      zos.close();
+      
+      return bos.toByteArray();
+  }
+  
 }
