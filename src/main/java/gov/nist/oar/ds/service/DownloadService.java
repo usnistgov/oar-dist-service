@@ -13,8 +13,12 @@
  */
 package gov.nist.oar.ds.service;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
 import java.util.List;
+import java.util.zip.ZipOutputStream;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,8 +65,14 @@ public interface DownloadService {
    * @return the head bag key
    * @throws IOException
    */
-  ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException;
+  ResponseEntity<String> findDataSetHeadBag(String id) throws IOException;
 
-
-
+  /**
+   * 
+   * @param Id
+   * @return zip byte[] 
+   * @throws IOException
+   */
+  ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
+  
 }
