@@ -69,7 +69,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.jayway.jsonpath.JsonPath;
 
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
