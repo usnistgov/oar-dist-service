@@ -48,7 +48,7 @@ import io.swagger.annotations.ApiOperation;
  */
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/api")
 @Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
 public class DownloadController {
 
