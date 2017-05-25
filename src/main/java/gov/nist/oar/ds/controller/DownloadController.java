@@ -48,7 +48,7 @@ import io.swagger.annotations.ApiOperation;
  */
 
 @RestController
-@RequestMapping("/od/ds")
+@RequestMapping("/")
 @Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
 public class DownloadController {
 
@@ -73,7 +73,7 @@ public class DownloadController {
    * @return
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
   @ApiOperation(value = "Get data for given distribution with distribution id.",nickname = "distById",
   notes = "distID is data collection id and distId is actual data id.")
 
