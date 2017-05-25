@@ -48,11 +48,12 @@ import io.swagger.annotations.ApiOperation;
  */
 
 @RestController
-@RequestMapping("/api")
 @Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
 public class DownloadController {
 
   Logger logger = LoggerFactory.getLogger(DownloadController.class);
+
+  public static final String CONTENT = "Welcome to the OAR distribution service api";
 
   @Autowired
   private DownloadService downloadService;
@@ -64,6 +65,19 @@ public class DownloadController {
   public void setDownloadService(DownloadService downloadService) {
     this.downloadService = downloadService;
   }
+  
+
+  /**
+   * 
+   * @return
+   */
+  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
+  notes = "Index Controller.")
+  public ResponseEntity<String> index() {
+    logger.info("Loading index page");
+    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
+  }
+  
 
   /**
    * Download a distribution file by its id
