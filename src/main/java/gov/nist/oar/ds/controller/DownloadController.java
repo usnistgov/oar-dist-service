@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.http.HttpStatus;
 import gov.nist.oar.ds.service.DownloadService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -48,11 +48,12 @@ import io.swagger.annotations.ApiOperation;
  */
 
 @RestController
-@RequestMapping("/od/ds")
 @Api(value = "Api endpoints to access/download data", tags = "Data Distribution API")
 public class DownloadController {
 
   Logger logger = LoggerFactory.getLogger(DownloadController.class);
+
+  public static final String CONTENT = "Welcome to the OAR distribution service api";
 
   @Autowired
   private DownloadService downloadService;
@@ -64,6 +65,19 @@ public class DownloadController {
   public void setDownloadService(DownloadService downloadService) {
     this.downloadService = downloadService;
   }
+  
+
+  /**
+   * 
+   * @return
+   */
+  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
+  notes = "Index Controller.")
+  public ResponseEntity<String> index() {
+    logger.info("Loading index page");
+    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
+  }
+  
 
   /**
    * Download a distribution file by its id
@@ -73,7 +87,7 @@ public class DownloadController {
    * @return
    * @throws IOException
    */
-  @RequestMapping(value = "/{dsId}/dist/{distId}", method = RequestMethod.GET)
+  @RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
   @ApiOperation(value = "Get data for given distribution with distribution id.",nickname = "distById",
   notes = "distID is data collection id and distId is actual data id.")
 
