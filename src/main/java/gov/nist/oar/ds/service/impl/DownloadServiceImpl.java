@@ -201,10 +201,14 @@ public class DownloadServiceImpl implements DownloadService {
       HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
       factory.setBufferRequestBody(false);
       RestTemplate restTemplate = new RestTemplate(factory);
-      ResponseEntity<JSONObject> response = restTemplate.getForEntity(
-              rmmApi + "records?@id="+ id + "&include=components",
-              JSONObject.class);
-      
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+      HttpEntity<String> entity = new HttpEntity<String>(headers);
+      ResponseEntity<JSONObject> response = restTemplate.exchange(
+          rmmApi + "records?@id="+ id + "&include=components",
+              HttpMethod.GET, entity, JSONObject.class, "1");
+ 
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
       String fileName = dzId.split("/")[2];
