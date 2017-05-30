@@ -28,11 +28,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +47,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -50,10 +56,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -183,8 +194,13 @@ public class DownloadServiceImpl implements DownloadService {
     
     try {    
       HttpServletRequest request = null;
-     
-      RestTemplate restTemplate = new RestTemplate();
+      
+      CloseableHttpClient httpClient = HttpClientBuilder
+          .create()
+          .build();
+      HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+      factory.setBufferRequestBody(false);
+      RestTemplate restTemplate = new RestTemplate(factory);
       ResponseEntity<JSONObject> response = restTemplate.getForEntity(
               rmmApi + "records?@id="+ id + "&include=components",
               JSONObject.class);
@@ -227,6 +243,19 @@ public class DownloadServiceImpl implements DownloadService {
     ZipOutputStream zos = new ZipOutputStream(bos);
     InputStream in = null;
     BufferedInputStream entryStream = null;
+
+    CloseableHttpClient httpClient = HttpClientBuilder
+        .create()
+        .build();
+    HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+    factory.setBufferRequestBody(false);
+    RestTemplate restTemplate = new RestTemplate(factory);
+    restTemplate.getMessageConverters().add(
+            new ByteArrayHttpMessageConverter());
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+    HttpEntity<String> entity = new HttpEntity<String>(headers);
     for (int i = 0; i < json.size(); i++) {
       JSONObject jsonObjComp = (JSONObject) json.get(i);
       if (jsonObjComp.containsKey("@type"))
@@ -236,43 +265,17 @@ public class DownloadServiceImpl implements DownloadService {
             {
               logger.info("Title -" + jsonObjComp.get("title").toString());
               logger.info("DownloadURL - " + jsonObjComp.get("downloadURL").toString());
+              ResponseEntity<byte[]> response = restTemplate.exchange(
+                  jsonObjComp.get("downloadURL").toString(),
+                      HttpMethod.GET, entity, byte[].class, "1");
               
-              URL url = new URL(jsonObjComp.get("downloadURL").toString());
-              HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-              
-              boolean redirect = false;
-  
-              // normally, 3xx is redirect
-              int status = conn.getResponseCode();
-              if (status != HttpURLConnection.HTTP_OK) {
-                  if (status == HttpURLConnection.HTTP_MOVED_TEMP
-                      || status == HttpURLConnection.HTTP_MOVED_PERM
-                          || status == HttpURLConnection.HTTP_SEE_OTHER)
-                  redirect = true;
-              }
-              
-              if (redirect) {
-                // get redirect url from "location" header field
-                String newUrl = conn.getHeaderField("Location");
-                // open the new connnection again
-                logger.info("Redirect URL - " + newUrl);
-                HttpsURLConnection connHTTPS = (HttpsURLConnection) new URL(newUrl).openConnection();
-                in = connHTTPS.getInputStream();
-              }
-              else 
-              {
-                in = conn.getInputStream();
-              }
-              
-              if (in != null)
-              {
-                byte[] bytes = IOUtils.toByteArray(in);
-                ZipEntry entry = new ZipEntry(fileName + "/" + jsonObjComp.get("filepath").toString());
-                zos.putNextEntry( entry );
-                zos.write(bytes);
-                zos.closeEntry();
-                in.close();
-              }
+              ZipEntry entry = new ZipEntry(fileName + "/" + jsonObjComp.get("filepath").toString());
+              if (response.getStatusCode() == HttpStatus.OK) 
+                {
+                  zos.putNextEntry( entry );
+                  zos.write(response.getBody());
+                  zos.closeEntry();
+                }
             }
           }
       }
