@@ -17,15 +17,13 @@ package gov.nist.oar.ds.service.impl;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -50,6 +48,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.Gson;
@@ -163,6 +162,12 @@ public class DownloadServiceImpl implements DownloadService {
     return IOUtils.toString(result, "UTF-8");
   }
 
+  /**
+   * 
+   * @param Id
+   * @return
+   * @throws Exception
+   */
   public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
     
     try {    
@@ -179,7 +184,6 @@ public class DownloadServiceImpl implements DownloadService {
       ResponseEntity<JSONObject> response = restTemplate.exchange(
           rmmApi + "records?@id="+ id + "&include=components",
               HttpMethod.GET, entity, JSONObject.class, "1");
- 
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
       String fileName = dzId.split("/")[2];
@@ -204,20 +208,26 @@ public class DownloadServiceImpl implements DownloadService {
     return null;
   }
   
+  /**
+   * 
+   * @param json array, file name
+   * @return
+   * @throws IOException, URISyntaxException
+   */
   public byte[] getCompressed( JSONArray json, String fileName)
-      throws IOException
+      throws IOException, URISyntaxException
   {
     
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ZipOutputStream zos = new ZipOutputStream(bos);
+
     CloseableHttpClient httpclient = HttpClients.createDefault();
+    try{
     for (int i = 0; i < json.size(); i++) {
       JSONObject jsonObjComp = (JSONObject) json.get(i);
       if (jsonObjComp.containsKey("@type"))
         if(jsonObjComp.get("@type").toString().contains("nrdp:DataFile"))
           {
-            logger.info("after json object--" + jsonObjComp.get("downloadURL"));
-            logger.info("after json object--" + jsonObjComp.get("title"));
             if (jsonObjComp.containsKey("downloadURL"))
             {
               HttpGet request = new HttpGet(jsonObjComp.get("downloadURL").toString());
@@ -236,9 +246,12 @@ public class DownloadServiceImpl implements DownloadService {
                   zos.closeEntry();
                 }
             }
+           }
           }
-      }
+    } finally {
       zos.close();
-      return bos.toByteArray();
+      httpclient.close();
+    }
+    return bos.toByteArray() ;
   }
 }
