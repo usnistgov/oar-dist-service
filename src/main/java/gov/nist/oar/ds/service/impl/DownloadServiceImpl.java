@@ -223,31 +223,33 @@ public class DownloadServiceImpl implements DownloadService {
 
     CloseableHttpClient httpclient = HttpClients.createDefault();
     try{
-    for (int i = 0; i < json.size(); i++) {
-      JSONObject jsonObjComp = (JSONObject) json.get(i);
-      if (jsonObjComp.containsKey("@type"))
-        if(jsonObjComp.get("@type").toString().contains("nrdp:DataFile"))
-          {
-            if (jsonObjComp.containsKey("downloadURL"))
+      for (int i = 0; i < json.size(); i++) {
+        JSONObject jsonObjComp = (JSONObject) json.get(i);
+        if (jsonObjComp.containsKey("@type"))
+          if(jsonObjComp.get("@type").toString().contains("nrdp:DataFile"))
             {
-              HttpGet request = new HttpGet(jsonObjComp.get("downloadURL").toString());
-              CloseableHttpResponse response = httpclient.execute(request);
-              try {
-                BufferedInputStream bis = new BufferedInputStream(response.getEntity().getContent());
-                  ZipEntry entry = new ZipEntry(fileName + "/" + jsonObjComp.get("filepath").toString());
-                  zos.putNextEntry( entry );
-                  int inByte;
-                  while((inByte = bis.read()) != -1) {
-                    zos.write(inByte);
-                  }
-                  bis.close();
-                } finally {
-                  response.close();
-                  zos.closeEntry();
+              if (jsonObjComp.containsKey("downloadURL"))
+              {
+                HttpGet request = new HttpGet(jsonObjComp.get("downloadURL").toString());
+                CloseableHttpResponse response = httpclient.execute(request);
+                  try 
+                    {
+                      BufferedInputStream bis = new BufferedInputStream(response.getEntity().getContent());
+                      ZipEntry entry = new ZipEntry(fileName + "/" + jsonObjComp.get("filepath").toString());
+                      zos.putNextEntry( entry );
+                      int inByte;
+                      while((inByte = bis.read()) != -1) 
+                      {
+                        zos.write(inByte);
+                      }
+                      bis.close();
+                    } finally {
+                      response.close();
+                      zos.closeEntry();
+                    }
                 }
             }
-           }
-          }
+        }
     } finally {
       zos.close();
       httpclient.close();
