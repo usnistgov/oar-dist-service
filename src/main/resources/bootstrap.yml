@@ -9,7 +9,7 @@ spring:
        
 server:
     port: 8083
-    contextPath: /od/ds
+    contextPath: /oar-dist-service
     error:
       include-stacktrace: never
     connection-timeout: 60000
