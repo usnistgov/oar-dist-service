@@ -18,6 +18,10 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,12 +29,20 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -171,10 +183,12 @@ public class DownloadServiceImpl implements DownloadService {
   public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
     
     try {    
-      
-      CloseableHttpClient httpClient = HttpClientBuilder
-          .create()
-          .build();
+
+      //CloseableHttpClient httpClient = HttpClientBuilder
+        //  .create()
+        //  .build();
+      CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
+     
       HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
       factory.setBufferRequestBody(false);
       RestTemplate restTemplate = new RestTemplate(factory);
@@ -213,15 +227,20 @@ public class DownloadServiceImpl implements DownloadService {
    * @param json array, file name
    * @return
    * @throws IOException, URISyntaxException
+   * @throws KeyStoreException 
+   * @throws NoSuchAlgorithmException 
+   * @throws KeyManagementException 
    */
   public byte[] getCompressed( JSONArray json, String fileName)
-      throws IOException, URISyntaxException
+      throws IOException, URISyntaxException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException
   {
     
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ZipOutputStream zos = new ZipOutputStream(bos);
 
-    CloseableHttpClient httpclient = HttpClients.createDefault();
+    //CloseableHttpClient httpclient = HttpClients.createDefault();
+    CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
+
     try{
       for (int i = 0; i < json.size(); i++) {
         JSONObject jsonObjComp = (JSONObject) json.get(i);
@@ -231,7 +250,8 @@ public class DownloadServiceImpl implements DownloadService {
               if (jsonObjComp.containsKey("downloadURL"))
               {
                 HttpGet request = new HttpGet(jsonObjComp.get("downloadURL").toString());
-                CloseableHttpResponse response = httpclient.execute(request);
+                CloseableHttpResponse response = httpClient.execute(request);
+                logger.info("return code" + response.getStatusLine().getStatusCode());
                   try 
                     {
                       BufferedInputStream bis = new BufferedInputStream(response.getEntity().getContent());
@@ -252,8 +272,39 @@ public class DownloadServiceImpl implements DownloadService {
         }
     } finally {
       zos.close();
-      httpclient.close();
+      httpClient.close();
     }
     return bos.toByteArray() ;
+  }
+  /**
+   * 
+   * @return httpclient
+   * @throws IOException, URISyntaxException
+   * @throws KeyStoreException 
+   * @throws NoSuchAlgorithmException 
+   * @throws KeyManagementException 
+   */
+  private static CloseableHttpClient createAcceptSelfSignedCertificateClient()
+      throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+
+  // use the TrustSelfSignedStrategy to allow Self Signed Certificates
+  SSLContext sslContext = SSLContextBuilder
+          .create()
+          .loadTrustMaterial(new TrustSelfSignedStrategy())
+          .build();
+
+  // we can optionally disable hostname verification. 
+  // if you don't want to further weaken the security, you don't have to include this.
+  HostnameVerifier allowAllHosts = new NoopHostnameVerifier();
+  
+  // create an SSL Socket Factory to use the SSLContext with the trust self signed certificate strategy
+  // and allow all hosts verifier.
+  SSLConnectionSocketFactory connectionFactory = new SSLConnectionSocketFactory(sslContext, allowAllHosts);
+  
+  // finally create the HttpClient using HttpClient factory methods and assign the ssl socket factory
+  return HttpClients
+          .custom()
+          .setSSLSocketFactory(connectionFactory)
+          .build();
   }
 }
