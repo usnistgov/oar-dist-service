@@ -1,0 +1,8 @@
+version: 0.0
+
+os: linux
+hooks:
+
+ AfterInstall:
+   - location:  scripts/dev/aftercicd.sh
+     runas: root
