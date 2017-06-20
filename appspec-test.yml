@@ -8,8 +8,8 @@ files:
     
 hooks:
  BeforeInstall:
-   - location:  scripts/beforecicd-test.sh
+   - location:  scripts/test/beforecicd.sh
      runas: root
  AfterInstall:
-   - location:  scripts/aftercicd-test.sh
+   - location:  scripts/test/aftercicd.sh
      runas: root
