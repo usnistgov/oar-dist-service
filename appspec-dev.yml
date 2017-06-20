@@ -4,5 +4,5 @@ os: linux
 hooks:
 
  AfterInstall:
-   - location:  scripts/aftercicd-dev.sh
+   - location:  scripts/dev/aftercicd.sh
      runas: root
