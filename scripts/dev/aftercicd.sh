@@ -7,4 +7,5 @@ if [[ $(sudo docker images dist-service -aq) ]]; then
    sudo docker rmi -f $(sudo docker images dist-service -aq)
 fi
 
-sudo docker-compose up -d --build
+sudo docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build 
+
