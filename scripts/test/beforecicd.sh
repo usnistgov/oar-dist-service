@@ -1,5 +1,4 @@
 #!/bin/bash
-sudo rm -r /opt/data/backup/oar-dist-service/
 if [ -f /home/ubuntu/oar-docker/apps/dist-service/oar-dist-service.jar ];
 then
   #backup previous build
