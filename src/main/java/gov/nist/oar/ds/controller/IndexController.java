@@ -26,23 +26,7 @@ import io.swagger.annotations.ApiOperation;
  * This is the index restful controller class
  *
  */
-@RestController
+//@RestController
 public class IndexController {
 
-  Logger logger = LoggerFactory.getLogger(IndexController.class);
-
-  public static final String CONTENT = "Welcome to the OAR distribution service api";
-
-  /**
-   * 
-   * @return
-   */
-  @RequestMapping("/")
-  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
-  notes = "Index Controller.")
-
-  public ResponseEntity<String> index() {
-    logger.info("Loading index page");
-    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
-  }
 }
