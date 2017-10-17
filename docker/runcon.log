@@ -1,0 +1,21 @@
+Sending build context to Docker daemon   7.68kB
+Step 1/6 : FROM maven:3.5-jdk-8-alpine
+ ---> 41adb9297c68
+Step 2/6 : RUN apk add --no-cache zip git
+ ---> Using cache
+ ---> 8b732e4da89a
+Step 3/6 : COPY entrypoint.sh /home/entrypoint.sh
+ ---> Using cache
+ ---> 4c9c69672e9b
+Step 4/6 : VOLUME /home/build
+ ---> Using cache
+ ---> 7a7e9c011aae
+Step 5/6 : WORKDIR /home/build
+ ---> Using cache
+ ---> edab7f10b5cb
+Step 6/6 : ENTRYPOINT /bin/bash /home/entrypoint.sh
+ ---> Using cache
+ ---> 809aa83bda01
+Successfully built 809aa83bda01
+Successfully tagged oar-dist-service/build-test:latest
++ docker run -ti --rm -v /home/rlp3/NIST/ODI/OAR/dev/oar-dist-service:/home/build oar-dist-service/build-test shell
