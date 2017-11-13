@@ -8,28 +8,28 @@ The project is a maven based java project. To build:
 
 ## Layout
 ```
-oar-config/                    							--> main folder
-	oar-config-server/		   							--> folder of the configuration server module
-  		src/											--> application sources folder
-  			main/java/             			    		--> java classes
-  				gov/nist/oar/ds/             			--> main java classes folder
-  					config/             				--> config classes 
-  				 	controller/             			--> rest api classes 
-  				 	exception/             				--> config classes 
-  				 	s3/             					--> s3 utlities and services classes
-  				 	service/             				--> interfaces of the services
-  				 		impl/  							--> implementation of the services interface classes
-  				 	util/             					--> utilities classes
-    		main/resources/								--> resources folder
-      			application.yml							--> configuration file of the project
-      			logback.xml								--> logging configuration file of the project 
-  			/test/java/             			    	--> unit and integration test classes
-  				gov/nist/oar/ds/             			--> main test classes folder
-  					unit/             					--> junit classes
-  				 		controller/             		--> junit classes of the controllers
-  				 		service/             			--> junit classes of the services 
-   			/test/resources/							--> unit and integration test resources 
-    	pom.xml 										--> maven pom file
+oar-config/                    						--> main folder
+	oar-config-server/		   				--> folder of the configuration server module
+  		src/							--> application sources folder
+  			main/java/             			    	--> java classes
+  				gov/nist/oar/ds/             		--> main java classes folder
+  					config/             		--> config classes 
+  				 	controller/             	--> rest api classes 
+  				 	exception/             		--> Exception classes 
+  				 	s3/             		--> s3 utlities and services classes
+  				 	service/             		--> interfaces of the services
+  				 	   impl/  			--> implementation of the services interface classes
+  				 	util/             		--> utilities classes
+    			main/resources/					--> resources folder
+      			application.yml					--> configuration file of the project
+      			logback.xml					--> logging configuration file of the project 
+  			/test/java/             			--> unit and integration test classes
+  				gov/nist/oar/ds/             		--> main test classes folder
+  					unit/             		--> junit classes
+  				 		controller/             --> junit classes of the controllers
+  				 		service/             	--> junit classes of the services 
+   			/test/resources/				--> unit and integration test resources 
+    	pom.xml 							--> maven pom file
 ```
 ## Contributing
 
@@ -42,6 +42,9 @@ oar-config/                    							--> main folder
 ## History
 
 TODO: Write history
+
+Distribution service is written to download files from the bags stored at amazon s3 storage.
+This is restful service which uses S3Client to connect and download data.
 
 ## Credits
 
