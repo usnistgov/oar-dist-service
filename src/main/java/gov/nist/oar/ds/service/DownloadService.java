@@ -13,17 +13,10 @@
  */
 package gov.nist.oar.ds.service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URL;
 import java.util.List;
-import java.util.zip.ZipOutputStream;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.amazonaws.services.s3.model.PutObjectResult;
 
 /**
  * This is the download service class responsible of handling download request
@@ -31,52 +24,53 @@ import com.amazonaws.services.s3.model.PutObjectResult;
  */
 public interface DownloadService {
 
-//  /**
-//   * Upload distribution files to the cache s3
-//   * 
-//   * @param multipartFiles
-//   * @return
-//   */
-//  public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles);
-//
-//
-//  /**
-//   * Return a summary list of bags of a data set
-//   * 
-//   * @param dsId: id of the data set
-//   * @return the list of keys of the bags
-//   * @throws IOException
-//   */
-//  ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException;
-//
-//  /**
-//   * 
-//   * @param dsId
-//   * @param distId
-//   * @return
-//   * @throws IOException
-//   */
-//  ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId) throws IOException;
-//
-//  /**
-//   * Find the head bag of a data set by its id
-//   * 
-//   * @param dsId: id of the data set
-//   * @return the head bag key
-//   * @throws IOException
-//   */
-//  ResponseEntity<String> findDataSetHeadBag(String id) throws IOException;
+  /**
+   * Return a summary list of bags of a data set
+   * 
+   * @param dsId: id of the data set
+   * @return the list of keys of the bags
+   * @throws IOException
+   */
+	ResponseEntity<List<String>> findDataSetBags(String bucket, String dsId) throws IOException;
 
-//  /**
-//   * 
-//   * @param Id
-//   * @return zip byte[] 
-//   * @throws IOException
-//   */
-//  ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
+   /* Find the head bag of a data set by its id
+   * 
+   * @param dsId: id of the data set
+   * @return the head bag key
+   * @throws IOException
+   */
+
+  	ResponseEntity<String> findDataSetHeadBag(String bucket, String id) throws IOException;
+
+  /**
+   * Download all the data in zip format
+   * @param Id
+   * @return zip byte[] 
+   * @throws IOException
+   */
+  	ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
 	
-	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
-	
+  	/***
+  	 * Download individual file for given data
+  	 * @param recordid
+  	 * @param filepath
+  	 * @return
+  	 * @throws Exception
+  	 */
 	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws Exception;
-  
+	
+	/***
+	 * Extract and load cache for given id
+	 * @param id
+	 * @throws Exception
+	 */
+	void extractAlltoCache(String id) throws Exception;
+   
+	/**
+	 * Test data
+	 * @return
+	 * @throws Exception
+	 */
+	ResponseEntity<byte[]> getdownloadtest() throws Exception;
+//	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
 }

@@ -13,13 +13,18 @@
  */
 package gov.nist.oar.ds.s3;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+//import java.util.Base64;
 import java.util.List;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +37,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListBucketsRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -44,7 +53,7 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-
+//import com.amazonaws.util.Base64;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 
 /**
@@ -69,18 +78,31 @@ public class S3Wrapper {
    * @param inputStream
    * @param uploadKey
    * @return
+ * @throws IOException 
    */
-  private PutObjectResult upload(String bucket, InputStream inputStream, String uploadKey) {
-    PutObjectRequest putObjectRequest =
-        new PutObjectRequest(bucket, uploadKey, inputStream, new ObjectMetadata());
+  public PutObjectResult upload(String bucket, InputStream inputStream, String uploadKey) throws IOException {
+	  try{
+		  
+		  ObjectMetadata metadata = new ObjectMetadata();
+		  //metadata.setContentLength(IOUtils.toByteArray(inputStream).length);
+		  PutObjectRequest putObjectRequest =
+				  new PutObjectRequest(bucket, uploadKey, inputStream, metadata);
 
-    putObjectRequest.setCannedAcl(CannedAccessControlList.PublicRead);
+		  putObjectRequest.setCannedAcl(CannedAccessControlList.PublicRead);
 
-    PutObjectResult putObjectResult = s3Client.putObject(putObjectRequest);
-
-    IOUtils.closeQuietly(inputStream);
-
-    return putObjectResult;
+		  return s3Client.putObject(putObjectRequest);
+	  }catch(AmazonServiceException ae){
+		 throw ae;  
+	  } 
+	  catch(AmazonClientException ace){
+		  throw ace;
+	  }
+	  finally {
+		   
+		    if (inputStream != null) {
+		        inputStream.close();
+		    }
+	  }
   }
 
   /**
@@ -116,12 +138,13 @@ public class S3Wrapper {
    * @throws IOException
    */
   public ResponseEntity<byte[]> download(String bucket, String key) throws IOException {
+	 
     GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
 
     S3Object s3Object = s3Client.getObject(getObjectRequest);
 
     S3ObjectInputStream objectInputStream = s3Object.getObjectContent();
-
+   
     byte[] bytes = IOUtils.toByteArray(objectInputStream);
 
     String fileName = URLEncoder.encode(key, "UTF-8").replaceAll("\\+", "%20");
@@ -134,6 +157,16 @@ public class S3Wrapper {
     return new ResponseEntity<>(bytes, httpHeaders, HttpStatus.OK);
   }
   
+  
+  public InputStream getS3Object(String bucket, String key){
+	    
+	    GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
+	    
+	    S3Object s3Object = s3Client.getObject(getObjectRequest);
+
+	    return s3Object.getObjectContent();
+  }
+  
   public void copytocache(String hostbucket, String hostkey, String destBucket, String destKey){
 	  CopyObjectRequest copyObjRequest = new CopyObjectRequest(hostbucket, hostkey, destBucket, destKey);
 	  s3Client.copyObject(copyObjRequest);
@@ -143,6 +176,20 @@ public class S3Wrapper {
 	  return s3Client.doesObjectExist(cachebucket,key);
   }
 
+  
+  /**
+   * List all buckets
+   */
+  public List<String> listBuckets(){
+	  
+	 List<Bucket> lBucket = s3Client.listBuckets();
+	 List<String> listBucket = new ArrayList<String>();
+	 for(int i =0; i<lBucket.size(); i++)
+		 listBucket.add(lBucket.get(i).getName());
+	 
+	 return listBucket;
+  }
+  
   /**
    * List the files contained in a bucket
    * 
@@ -150,6 +197,7 @@ public class S3Wrapper {
    * @return
    */
   public List<S3ObjectSummary> list(String bucket) {
+	  
     ObjectListing objectListing =
         s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket));
     return objectListing.getObjectSummaries();
@@ -164,9 +212,33 @@ public class S3Wrapper {
    * @return
    */
   public List<S3ObjectSummary> list(String bucket, String prefix) {
-    ObjectListing objectListing =
-        s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
-    return objectListing.getObjectSummaries();
+   
+	  ObjectListing objectListing =
+			  s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
+
+      return objectListing.getObjectSummaries();
   }
 
+  
+      
+  public void putObject (String bucket, String key, ByteArrayInputStream input, int l) throws IOException{
+	  
+      ObjectMetadata metadata = new ObjectMetadata();	
+//      byte[] resultByte = DigestUtils.md5(input);
+//      String streamMD5 = new String(Base64.encodeBase64(resultByte));
+//      metadata.setContentMD5(streamMD5);
+      metadata.setContentLength(l);
+    
+      s3Client.putObject(bucket, key, input, metadata);
+  }
+  
+  public void putObject (String bucket, String key, File f) throws IOException{
+	  
+      s3Client.putObject(bucket, key, f);
+  }
+  
+  public void putObject (String bucket, String key, String content) throws IOException{
+	  
+    s3Client.putObject(bucket, key,content);
+  }
 }

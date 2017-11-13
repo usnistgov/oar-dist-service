@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.http.HttpStatus;
@@ -57,139 +58,106 @@ public class DownloadController {
   }
   
 
-//  /**
-//   * 
-//   * @return
-//   */
-//  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
-//  notes = "Index Controller.")
-//  public ResponseEntity<String> index() {
-//    logger.info("Loading index page");
-//    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
-//  }
-//  
-//
-//  /**
-//   * Download a distribution file by its id
-//   * 
-//   * @param dsId
-//   * @param distId
-//   * @return
-//   * @throws IOException
-//   */
-//  @RequestMapping(value = "/{dsId}/{distId}", method = RequestMethod.GET)
-//  @ApiOperation(value = "Get data for given distribution with distribution id.",nickname = "distById",
-//  notes = "distID is data collection id and distId is actual data id.")
-//
-//  public ResponseEntity<byte[]> download(@PathVariable("dsId") String dsId,
-//      @PathVariable("distId") String distId) throws IOException {
-//    logger.info("Downloading distribution file with distId=" + distId + " dsId=" + dsId);
-//    return downloadService.downloadDistributionFile(dsId, distId);
-//  }
-//
-//
-//  /**
-//   * Return the list of bags of a data set
-//   * 
-//   * @param dsId
-//   * @return
-//   * @throws IOException
-//   */
-//  @RequestMapping(value = "/{dsId}/bags", method = RequestMethod.GET)
-//  @ApiOperation(value = "Get bags for given distribution",nickname = "get bags",
-//  notes = "Find Data Set bags for given disId")
-//  public ResponseEntity<List<String>> listDataSetBags(@PathVariable("dsId") String dsId)
-//      throws IOException {
-//    return downloadService.findDataSetBags(dsId);
-//  }
-//
-//  /**
-//   * Return the head bag key of a data set
-//   * 
-//   * @param dsId: id of the data set
-//   * @return the head bag key of a data set
-//   * @throws IOException
-//   */
-//  @RequestMapping(value = "/{dsId}/headBag", method = RequestMethod.GET)
-//  @ApiOperation(value = "Get HeadBag for given distribution Id.",nickname = "get headbag",
-//  notes = "Get Headbag for given distribution with distID")
-//
-//  public ResponseEntity<String> headBag(@PathVariable("dsId") String dsId) throws IOException {
-//    return downloadService.findDataSetHeadBag(dsId);
-//  }
-//
-//
-//  /**
-//   * Cache a data set
-//   * 
-//   * @param dsId
-//   * @return
-//   * @throws IOException
-//   */
-//  @RequestMapping(value = "/{dsId}/cache", method = RequestMethod.POST)
-//  @ApiOperation(value = "Get Cache for given distribution",nickname = "get cache",
-//  notes = "Get data cache for given distribution by distribution ID.")
-//
-//  public ResponseEntity<byte[]> cacheDataSet(@PathVariable("dsId") String dsId) throws IOException {
-//    return null;
-//  }
-//
-//  /**
-//   * Download zip file
-//   * 
-//   * @param Id
-//   * @return 
-//   * @return
-//   * @throws Exception 
-//   */
-//  @RequestMapping(value = "/zip", method = RequestMethod.GET)
-//
-//  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
-//    logger.info("Loading zip page" + id);
-//    return downloadService.downloadZipFile(id);
-//       
-//  }
+  /**
+   * 
+   * @return
+   */
+  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
+  notes = "Index Controller.")
+  public ResponseEntity<String> index() {
+    logger.info("Loading index page");
+    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
+  }
+
+
+  /**
+   * Return the list of bags of a data set
+   * 
+   * @param dsId
+   * @return
+   * @throws IOException
+   */
+  @RequestMapping(value = "/{bucket}/{dsId}/listbags", method = RequestMethod.GET)
+  @ApiOperation(value = "Get bags for given distribution",nickname = "get bags",
+  notes = "Find Data Set bags for given disId")
+  public ResponseEntity<List<String>> listDataSetBags(@PathVariable("bucket") String bucket, @PathVariable("dsId") String dsId)
+      throws IOException {
+    return downloadService.findDataSetBags(bucket,dsId);
+  }
+
+  /**
+   * Return the head bag key of a data set
+   * 
+   * @param dsId: id of the data set
+   * @return the head bag key of a data set
+   * @throws IOException
+   */
+  @RequestMapping(value = "/{bucket}/{dsId}/headBag", method = RequestMethod.GET)
+  @ApiOperation(value = "Get HeadBag for given distribution Id.",nickname = "get headbag",
+  notes = "Get Headbag for given distribution with distID")
+
+  public ResponseEntity<String> headBag(@PathVariable("bucket") String bucket,@PathVariable("dsId") String dsId) throws IOException {
+    return downloadService.findDataSetHeadBag(bucket,dsId);
+  }
   
-@RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
-
-public ResponseEntity<byte[]> downloadAlldata(@PathVariable("dsId") String dsid) throws Exception {
-  logger.info("Loading zip page" + dsid);
-  return downloadService.downloadAllData(dsid);
-     
-}
-
-//@RequestMapping(value = "/{dsId}/{filepath:.+}", method = RequestMethod.GET)
-//
-//public ResponseEntity<byte[]> downloadAlldata(@PathVariable("dsId") String dsid, @PathVariable("filepath") String filepath) throws Exception {
-//  logger.info("Loading zip page" + dsid);
-//  return downloadService.downloadData(dsid,filepath);
-//     
-//}
-
+  
+  /**
+   * Download a Zip file.
+   * @param dsid
+   * @param format
+   * @return
+   * @throws Exception
+   */
+  @RequestMapping(value = "/{dsid}", method = RequestMethod.GET)
+  public ResponseEntity<byte[]> downloadZipFile(@PathVariable("dsid") String dsid, @RequestParam(value = "format", required = true) String format) throws Exception {
+    logger.info("Loading zip page" + dsid);
+    return downloadService.downloadZipFile(dsid);    
+  }
+  
+  /**
+   * Download file.
+   */
 @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
-
 public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws Exception {
   logger.info("Loading zip page" + dsid);
   try{
-	  String restOfTheUrl = (String) request.getAttribute(
-	        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
+	    String restOfTheUrl = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+	    restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
 	    logger.info(restOfTheUrl);
 	  return downloadService.downloadData(dsid,restOfTheUrl);
+	  
   }catch(Exception e){
 	  throw e;
   }
-	
-     
+	     
+}
+/**
+ * LOad and extract data in the cache.
+ * @param dsid
+ * @throws Exception
+ */
+@RequestMapping(value="/loadcache/{dsid}", method = RequestMethod.GET)
+public void loadcache (@PathVariable("dsid") String dsid) throws Exception {
+	downloadService.extractAlltoCache(dsid); 
 }
 
-//@RequestMapping(value="/{id}/**", method = RequestMethod.GET)
-//public void foo(@PathVariable("id") int id, HttpServletRequest request) {
-//    String restOfTheUrl = (String) request.getAttribute(
-//        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-//    logger.info(restOfTheUrl);
-//   
+/**
+ * Just for testing
+ * @return
+ * @throws Exception
+ */
+@RequestMapping(value="/testdownload", method = RequestMethod.GET)
+public ResponseEntity<byte[]> testdownlaod () throws Exception {
+	return downloadService.getdownloadtest(); 
+}
+//@RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
+//public ResponseEntity<byte[]> downloadAlldata(@PathVariable("dsId") String dsid) throws Exception {
+//  logger.info("Loading zip page" + dsid);
+//  return downloadService.downloadAllData(dsid);
+//     
 //}
+//To let the user add filepath with . and extensions
+//@RequestMapping(value = "/{dsId}/{filepath:.+}", method = RequestMethod.GET)
 
 
 }
