@@ -134,29 +134,29 @@ public class DownloadController {
 //    return null;
 //  }
 //
-//  /**
-//   * Download zip file
-//   * 
-//   * @param Id
-//   * @return 
-//   * @return
-//   * @throws Exception 
-//   */
-//  @RequestMapping(value = "/zip", method = RequestMethod.GET)
-//
-//  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
-//    logger.info("Loading zip page" + id);
-//    return downloadService.downloadZipFile(id);
-//       
-//  }
-  
-@RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
+  /**
+   * Download zip file
+   * 
+   * @param Id
+   * @return 
+   * @return
+   * @throws Exception 
+   */
+  @RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
 
-public ResponseEntity<byte[]> downloadAlldata(@PathVariable("dsId") String dsid) throws Exception {
-  logger.info("Loading zip page" + dsid);
-  return downloadService.downloadAllData(dsid);
-     
-}
+  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
+    logger.info("Loading zip page" + id);
+    return downloadService.downloadZipFile(id);
+       
+  }
+  
+//@RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
+//
+//public ResponseEntity<byte[]> downloadAlldata(@PathVariable("dsId") String dsid) throws Exception {
+//  logger.info("Loading zip page" + dsid);
+//  return downloadService.downloadAllData(dsid);
+//     
+//}
 
 //@RequestMapping(value = "/{dsId}/{filepath:.+}", method = RequestMethod.GET)
 //

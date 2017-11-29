@@ -184,6 +184,7 @@ public class DownloadServiceImpl implements DownloadService {
    * @return
    * @throws Exception
    */
+  @Override
   public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
     
     try {    
@@ -355,7 +356,6 @@ public class DownloadServiceImpl implements DownloadService {
   }
   
   ////Deoyani Adding new methods:
-  @Override
   public ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception{
 	  try{
 	   
@@ -400,10 +400,10 @@ public class DownloadServiceImpl implements DownloadService {
 		  
 		  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
 		  ByteArrayOutputStream out = new ByteArrayOutputStream();
-		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
-			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
+//		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
+//			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
 		  
-		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(cacheBucket,recordBagKey);
+		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
 		  while((entry = zis.getNextEntry()) != null)  {

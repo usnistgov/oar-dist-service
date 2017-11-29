@@ -67,15 +67,15 @@ public interface DownloadService {
 //   */
 //  ResponseEntity<String> findDataSetHeadBag(String id) throws IOException;
 
-//  /**
-//   * 
-//   * @param Id
-//   * @return zip byte[] 
-//   * @throws IOException
-//   */
-//  ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
+  /**
+   * 
+   * @param Id
+   * @return zip byte[] 
+   * @throws IOException
+   */
+  ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
 	
-	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
+//	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
 	
 	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws Exception;
   
