@@ -145,7 +145,7 @@ public class DownloadController {
   @RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
 
   public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
-    logger.info("Loading zip page" + id);
+    logger.info("Handling zip download for dsid=" + id);
     return downloadService.downloadZipFile(id);
        
   }
@@ -169,12 +169,12 @@ public class DownloadController {
 @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
 
 public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws Exception {
-  logger.info("Loading zip page" + dsid);
+  logger.debug("Handling file request from dataset with id=" + dsid);
   try{
 	  String restOfTheUrl = (String) request.getAttribute(
 	        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
-	    logger.info(restOfTheUrl);
+            logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
 	  return downloadService.downloadData(dsid,restOfTheUrl);
   }catch(Exception e){
 	  throw e;
