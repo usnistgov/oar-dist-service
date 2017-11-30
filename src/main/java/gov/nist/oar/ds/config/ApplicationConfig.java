@@ -36,7 +36,7 @@ public class ApplicationConfig {
    * Main runner of the spring-boot class
    * 
    * @param args
-   */
+   */	
   @SuppressWarnings("squid:S2095")
   public static void main(String... args) {
     log.info("########## Starting oar distribution service ########");

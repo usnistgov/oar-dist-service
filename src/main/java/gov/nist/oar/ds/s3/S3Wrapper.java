@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -43,6 +44,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+
+import com.amazonaws.services.s3.model.CopyObjectRequest;
 
 /**
  * This is the wrapper around the s3 client handling the connection to an s3 bucket
@@ -56,7 +59,7 @@ public class S3Wrapper {
 
 
   @Autowired
-  private AmazonS3Client s3Client;
+  private AmazonS3 s3Client;
 
 
   /**
@@ -129,6 +132,15 @@ public class S3Wrapper {
     httpHeaders.setContentDispositionFormData("attachment", fileName);
 
     return new ResponseEntity<>(bytes, httpHeaders, HttpStatus.OK);
+  }
+  
+  public void copytocache(String hostbucket, String hostkey, String destBucket, String destKey){
+	  CopyObjectRequest copyObjRequest = new CopyObjectRequest(hostbucket, hostkey, destBucket, destKey);
+	  s3Client.copyObject(copyObjRequest);
+  }
+  
+  public boolean doesObjectExistInCache(String cachebucket, String key){
+	  return s3Client.doesObjectExist(cachebucket,key);
   }
 
   /**
