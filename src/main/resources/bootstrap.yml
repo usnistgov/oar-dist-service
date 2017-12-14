@@ -26,5 +26,9 @@ security:
       hsts: all
     enable-csrf: false
     
+     
+logging:
+  path : /tmp/dist-api/
+    
     
     
