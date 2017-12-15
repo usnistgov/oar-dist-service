@@ -144,7 +144,7 @@ public class DownloadController {
    */
   @RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
 
-  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
+  public ResponseEntity<byte[]> downloadZipFile(@PathVariable("dsId") String id) throws Exception {
     logger.info("Handling zip download for dsid=" + id);
     return downloadService.downloadZipFile(id);
        
