@@ -216,9 +216,9 @@ public class DownloadServiceImpl implements DownloadService {
           throw new NoSuchResourceException(id);
 
       JSONObject object = (JSONObject) jsonArrayResultData.get(0);
-      String arkid = object.getString("@id"));
+      String arkid = object.getString("@id");
       String fileName = arkid.split("/")[2];
-      logger.info("Will send zip file with name="+fileName+".zip")
+      logger.info("Will send zip file with name="+fileName+".zip");
       
       String jsonComponents= new Gson().toJson(object.get("components"));
       JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
