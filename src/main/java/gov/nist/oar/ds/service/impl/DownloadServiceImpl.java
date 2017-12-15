@@ -68,6 +68,7 @@ import com.google.gson.Gson;
 
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
+import gov.nist.oar.ds.service.NoSuchResourceException;
 
 import java.io.ByteArrayInputStream;
 import java.util.zip.ZipEntry;
