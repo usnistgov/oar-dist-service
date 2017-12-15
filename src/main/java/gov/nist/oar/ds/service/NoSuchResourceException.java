@@ -31,9 +31,16 @@ public class NoSuchResourceException extends RuntimeException {
      * create the exception
      * @param id     the identifier used to locate the resource
      */
-    public NoSuchResourceException(String id=null) {
+    public NoSuchResourceException(String id) {
         super("No such data resource found" + ((id != null) ? (" with id=" + id) : ""));
         this.id = id;
+    }
+
+    /**
+     * create the exception
+     */
+    public NoSuchResourceException() {
+        this(null);
     }
 
 }
