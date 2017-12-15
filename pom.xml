@@ -37,7 +37,7 @@
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>Brixton.SR6</version>
+				<version>Camden.SR7</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -53,10 +53,16 @@
 		</dependency>
 		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-freemarker</artifactId> 
 			<version>${spring.boot.version}</version> </dependency> -->
-		<dependency>
+		 <dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-aws-context</artifactId>
-		</dependency>
+		</dependency> 
+		<!-- <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-aws-context</artifactId>
+    <version>2.0.0.M1</version>
+</dependency> -->
+
 		<dependency>
 		    <groupId>com.googlecode.json-simple</groupId>
 		    <artifactId>json-simple</artifactId>
@@ -64,7 +70,8 @@
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
+    		<artifactId>commons-io</artifactId>
+    		<version>2.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -105,6 +112,8 @@
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 		</dependency>
+		
+	
 	</dependencies>
 	<build>
 		<finalName>oar-dist-service</finalName>
@@ -236,6 +245,5 @@
 			</snapshots>
 		</repository>
 	</repositories>
-
 
 </project>

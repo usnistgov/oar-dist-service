@@ -17,6 +17,7 @@ package gov.nist.oar.ds.service.impl;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
@@ -68,6 +69,9 @@ import com.google.gson.Gson;
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
 
+import java.io.ByteArrayInputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 /**
  * This is the default implementation of the download service class responsible of handling download
  * requests
@@ -94,22 +98,22 @@ public class DownloadServiceImpl implements DownloadService {
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
 
-  @Override
-  public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
-    return s3Wrapper.upload(cacheBucket, multipartFiles);
-  }
-
-
-  @Override
-  public ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId)
-      throws IOException {
-    logger.info("Downloading dsId=" + dsId + ",distId=" + distId + " from " + cacheBucket);
-    String fileKey = getDistributionFileKey(dsId, distId);
-    if (fileKey != null) {
-      return s3Wrapper.download(cacheBucket, fileKey);
-    }
-    return null;
-  }
+//  @Override
+//  public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
+//    return s3Wrapper.upload(cacheBucket, multipartFiles);
+//  }
+//
+//
+//  @Override
+//  public ResponseEntity<byte[]> downloadDistributionFile(String dsId, String distId)
+//      throws IOException {
+//    logger.info("Downloading dsId=" + dsId + ",distId=" + distId + " from " + cacheBucket);
+//    String fileKey = getDistributionFileKey(dsId, distId);
+//    if (fileKey != null) {
+//      return s3Wrapper.download(cacheBucket, fileKey);
+//    }
+//    return null;
+//  }
 
   /**
    * 
@@ -144,21 +148,21 @@ public class DownloadServiceImpl implements DownloadService {
     return results;
   }
 
+//
+//  @Override
+//  public ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException {
+//    return new ResponseEntity<>(findBagsById(dsId), HttpStatus.OK);
+//  }
 
-  @Override
-  public ResponseEntity<List<String>> findDataSetBags(String dsId) throws IOException {
-    return new ResponseEntity<>(findBagsById(dsId), HttpStatus.OK);
-  }
-
-
-  @Override
-  public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
-    List<String> results = findBagsById(dsId);
-    if (results != null && !results.isEmpty()) {
-      return new ResponseEntity<>(results.get(0), HttpStatus.OK);
-    }
-    return new ResponseEntity<>(null, HttpStatus.OK);
-  }
+//
+//  @Override
+//  public ResponseEntity<String> findDataSetHeadBag(String dsId) throws IOException {
+//    List<String> results = findBagsById(dsId);
+//    if (results != null && !results.isEmpty()) {
+//      return new ResponseEntity<>(results.get(0), HttpStatus.OK);
+//    }
+//    return new ResponseEntity<>(null, HttpStatus.OK);
+//  }
 
   /**
    * 
@@ -180,6 +184,7 @@ public class DownloadServiceImpl implements DownloadService {
    * @return
    * @throws Exception
    */
+  @Override
   public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
     
     try {    
@@ -307,4 +312,128 @@ public class DownloadServiceImpl implements DownloadService {
           .setSSLSocketFactory(connectionFactory)
           .build();
   }
+  	
+  
+  
+  public ResponseEntity<byte[]> getResponsEntity(String filename, byte[] outdata){
+		
+	  HttpHeaders httpHeaders = new HttpHeaders();
+	    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+	    httpHeaders.setContentLength(outdata.length); 
+	    httpHeaders.setContentDispositionFormData("attachment", filename);
+	    return new ResponseEntity<>(outdata, httpHeaders, HttpStatus.OK);
+  }
+
+  public ResponseEntity<byte[]> downloadAllZiponlyData(String bucket, String key) throws Exception{
+	  
+	  try{
+		  byte[] outdata = new byte[ 9000];
+		  ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		  ZipOutputStream zos = new ZipOutputStream(bos);
+		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(bucket,key);
+		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
+		  ZipEntry entry; 
+		  while((entry = zis.getNextEntry()) != null)  {
+			  if (entry.getName().contains("/data/")) {
+				  zos.putNextEntry(entry);
+				  int len;
+				  while ((len = zis.read(outdata)) != -1) {
+					  zos.write(outdata, 0, len);
+				  }
+				  zos.closeEntry();
+			  }
+			    
+			}
+		  zis.close();
+		  zos.close();
+		  return getResponsEntity(key.substring(0, key.length()-14)+".zip", bos.toByteArray());
+		  
+		 
+	  }
+	  catch(Exception e){
+		  throw e;
+	  }
+  }
+  
+  ////Deoyani Adding new methods:
+  public ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception{
+	  try{
+	   
+		  
+	   List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+	   
+	   
+	   if (files != null && !files.isEmpty()) {
+		  
+		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, files.get(files.size()-1).getKey()))
+			  s3Wrapper.copytocache(preservationBucket, files.get(files.size()-1).getKey(), cacheBucket,files.get(files.size()-1).getKey());
+		  //return s3Wrapper.download(cacheBucket, files.get(files.size()-1).getKey());
+		  return downloadAllZiponlyData(cacheBucket,files.get(files.size()-1).getKey());
+	   }
+	   else return null;
+	  
+
+	  }catch(Exception e){
+	    throw e;
+	  }
+	 
+  }
+  
+
+  
+  
+  @Override
+  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws Exception{
+	  try{
+	   
+	  
+	   List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+	   
+//	    
+//	  if (files != null && !files.isEmpty())
+//		  return null ;
+	  
+	  
+	     String recordBagKey = files.get(files.size()-1).getKey();
+		  
+	     byte[] outdata = new byte[ 9000];
+		  
+		  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
+		  ByteArrayOutputStream out = new ByteArrayOutputStream();
+//		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
+//			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
+
+                  logger.debug("Pulling data from bucket="+preservationBucket);
+		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
+		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
+		  ZipEntry entry; 
+		  while((entry = zis.getNextEntry()) != null)  {
+			  if (entry.getName().equals(filename)) {
+				  int len;
+				  while ((len = zis.read(outdata)) != -1) {
+					  out.write(outdata, 0, len);
+				  }
+				  out.close();
+			  }
+			    
+			}
+		  zis.close();
+		  HttpHeaders httpHeaders = new HttpHeaders();
+		    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+		    httpHeaders.setContentLength(out.toByteArray().length);
+		    httpHeaders.setContentDispositionFormData("attachment", filepath);
+		    return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
+	
+	  
+
+	  }catch(NullPointerException ne){
+		  throw ne;
+	  }
+	  catch(Exception e){
+	    throw e;
+	  }
+	 
+  }
+  
+  
 }
