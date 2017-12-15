@@ -68,6 +68,7 @@ import com.google.gson.Gson;
 
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
+import gov.nist.oar.ds.service.NoSuchResourceException;
 
 import java.io.ByteArrayInputStream;
 import java.util.zip.ZipEntry;
@@ -200,17 +201,25 @@ public class DownloadServiceImpl implements DownloadService {
       HttpHeaders headers = new HttpHeaders();
       headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
       HttpEntity<String> entity = new HttpEntity<String>(headers);
-      ResponseEntity<JSONObject> response = restTemplate.exchange(
-          rmmApi + "records?@id="+ id + "&include=components",
-              HttpMethod.GET, entity, JSONObject.class, "1");
-      String dzId = id;
-      logger.info(rmmApi + "records?@id="+ id + "&include=components");
-      String fileName = dzId.split("/")[2];
+
+
+      String idfield = (id.startsWith("ark:")) ? "@id" : "ediid";
+      String qurl = rmmApi + "records?" + idfield +"="+ id;
+      logger.info(qurl);
+      ResponseEntity<JSONObject> response = restTemplate.exchange(qurl, HttpMethod.GET, entity,
+                                                                  JSONObject.class, "1");
       JSONObject jsonRecord = response.getBody();
       String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
       JSONParser parser = new JSONParser(); 
       JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
+      if (jsonArrayResultData.size() == 0)
+          throw new NoSuchResourceException(id);
+
       JSONObject object = (JSONObject) jsonArrayResultData.get(0);
+      String arkid = object.getString("@id");
+      String fileName = arkid.split("/")[2];
+      logger.info("Will send zip file with name="+fileName+".zip");
+      
       String jsonComponents= new Gson().toJson(object.get("components"));
       JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
       byte[] myBytes = null;
