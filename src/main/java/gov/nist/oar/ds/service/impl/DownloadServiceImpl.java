@@ -208,20 +208,17 @@ public class DownloadServiceImpl implements DownloadService {
       logger.info(qurl);
       ResponseEntity<JSONObject> response = restTemplate.exchange(qurl, HttpMethod.GET, entity,
                                                                   JSONObject.class, "1");
-      JSONObject jsonRecord = response.getBody();
-      String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
-      JSONParser parser = new JSONParser(); 
-      JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
-      if (jsonArrayResultData.size() == 0)
+      JSONObject resultsRecord = response.getBody();
+      JSONArray resultsdata = (JSONArray) resultsRecord.get("ResultData");
+      if (resultsdata.size() == 0)
           throw new NoSuchResourceException(id);
 
-      JSONObject object = (JSONObject) jsonArrayResultData.get(0);
-      String arkid = object.getString("@id");
+      JSONObject nerdmrec = (JSONObject) resultsdata.get(0);
+      String arkid = (String) nerdmrec.get("@id");
       String fileName = arkid.split("/")[2];
       logger.info("Will send zip file with name="+fileName+".zip");
       
-      String jsonComponents= new Gson().toJson(object.get("components"));
-      JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
+      JSONArray jsonArrayComponents = (JSONArray) nerdmrec.get("components");
       byte[] myBytes = null;
       myBytes = getCompressed(jsonArrayComponents,fileName);
       HttpHeaders httpHeaders = new HttpHeaders();
