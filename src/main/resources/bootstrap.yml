@@ -28,7 +28,7 @@ security:
     
      
 logging:
-  path : /var/log/dist-api/
+  path : /var/log/dist-service/
     
     
     
