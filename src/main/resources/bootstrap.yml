@@ -12,7 +12,7 @@ server:
     contextPath: /oar-dist-service
     error:
       include-stacktrace: never
-    connection-timeout: 60000
+    connection-timeout: 120000
     max-http-header-size: 8192
     tomcat:
       accesslog:
