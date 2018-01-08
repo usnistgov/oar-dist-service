@@ -59,6 +59,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -94,7 +95,7 @@ public class DownloadServiceImpl implements DownloadService {
   @Value("${rmmapi}")
   private String rmmApi;
   
-
+  
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
 
@@ -177,7 +178,7 @@ public class DownloadServiceImpl implements DownloadService {
     byte[] result = mappingFile.getBody();
     return IOUtils.toString(result, "UTF-8");
   }
-
+  
   /**
    * 
    * @param Id
@@ -189,11 +190,7 @@ public class DownloadServiceImpl implements DownloadService {
     
     try {    
 
-      //CloseableHttpClient httpClient = HttpClientBuilder
-        //  .create()
-        //  .build();
       CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
-     
       HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
       factory.setBufferRequestBody(false);
       RestTemplate restTemplate = new RestTemplate(factory);
@@ -203,28 +200,34 @@ public class DownloadServiceImpl implements DownloadService {
       ResponseEntity<JSONObject> response = restTemplate.exchange(
           rmmApi + "records?@id="+ id + "&include=components",
               HttpMethod.GET, entity, JSONObject.class, "1");
-      String dzId = id;
-      logger.info(rmmApi + "records?@id="+ id + "&include=components");
-      String fileName = dzId.split("/")[2];
+      logger.info("response" + response);
       JSONObject jsonRecord = response.getBody();
-      String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
-      JSONParser parser = new JSONParser(); 
-      JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
-      JSONObject object = (JSONObject) jsonArrayResultData.get(0);
-      String jsonComponents= new Gson().toJson(object.get("components"));
-      JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
-      byte[] myBytes = null;
-      myBytes = getCompressed(jsonArrayComponents,fileName);
-      HttpHeaders httpHeaders = new HttpHeaders();
-      httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-      httpHeaders.setContentLength(myBytes.length);
-      httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
-      return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
+      int recordCount = (int) jsonRecord.get("ResultCount");
+      if (recordCount == 0) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+      } else {
+        String dzId = id;
+        logger.info(rmmApi + "records?@id="+ id + "&include=components");
+        String fileName = dzId.split("/")[2];
+        String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
+        JSONParser parser = new JSONParser(); 
+        JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
+        JSONObject object = (JSONObject) jsonArrayResultData.get(0);
+        String jsonComponents= new Gson().toJson(object.get("components"));
+        JSONArray jsonArrayComponents = (JSONArray) parser.parse(jsonComponents);
+        byte[] myBytes = null;
+        myBytes = getCompressed(jsonArrayComponents,fileName);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        httpHeaders.setContentLength(myBytes.length);
+        httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
+        return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
+      }
       
   } catch (Exception e) {
-      e.printStackTrace();
-  }
-    return null;
+    logger.error("Error occured while downloading zip file" + e.toString());
+    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
   
   /**
@@ -243,7 +246,6 @@ public class DownloadServiceImpl implements DownloadService {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ZipOutputStream zos = new ZipOutputStream(bos);
 
-    //CloseableHttpClient httpclient = HttpClients.createDefault();
     CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
 
     try{
