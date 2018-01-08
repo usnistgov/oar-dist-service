@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.http.HttpStatus;
+
+import gov.nist.oar.ds.exception.DistributionException;
 import gov.nist.oar.ds.service.DownloadService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -144,7 +146,7 @@ public class DownloadController {
    */
   @RequestMapping(value = "/{dsId}", method = RequestMethod.GET)
 
-  public ResponseEntity<byte[]> downloadZipFile(String id) throws Exception {
+  public ResponseEntity<byte[]> downloadZipFile(String id) throws DistributionException {
     logger.info("Handling zip download for dsid=" + id);
     return downloadService.downloadZipFile(id);
        
@@ -168,17 +170,15 @@ public class DownloadController {
 
 @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
 
-public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws Exception {
+public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws IOException {
   logger.debug("Handling file request from dataset with id=" + dsid);
-  try{
+  
 	  String restOfTheUrl = (String) request.getAttribute(
 	        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
             logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
 	  return downloadService.downloadData(dsid,restOfTheUrl);
-  }catch(Exception e){
-	  throw e;
-  }
+  
 	
      
 }

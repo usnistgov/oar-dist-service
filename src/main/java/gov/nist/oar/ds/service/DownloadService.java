@@ -25,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.model.PutObjectResult;
 
+import gov.nist.oar.ds.exception.DistributionException;
+
 /**
  * This is the download service class responsible of handling download request
  *
@@ -73,10 +75,10 @@ public interface DownloadService {
    * @return zip byte[] 
    * @throws IOException
    */
-  ResponseEntity<byte[]> downloadZipFile(String id) throws Exception; 
+  ResponseEntity<byte[]> downloadZipFile(String id) throws DistributionException; 
 	
 //	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
 	
-	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws Exception;
+	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException;
   
 }
