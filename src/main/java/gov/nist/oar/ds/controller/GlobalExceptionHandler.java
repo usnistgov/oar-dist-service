@@ -116,7 +116,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo resourceNotFound(ResourceNotFoundException exception) {
             logger.info("----Caught KeywordNotFoundException----\n"+request.getDescription(false)+"\n Detail ResourceNotFoundException:"+exception.getMessage()+exception.getStackTrace());
-            return new ErrorInfo(request.getContextPath(), "ResourceNotFoundException",HttpStatus.NOT_FOUND.toString());
+            return new ErrorInfo(request.getContextPath(), "Requested record/data not found.",HttpStatus.NOT_FOUND.toString());
             
 	  }
 	  
@@ -171,18 +171,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
             logger.info("----Caught Distribution Service Exception----\n"+request.getDescription(false)+"\n Details of Exception:"+exception.getMessage()+exception.getStackTrace());
             return new ErrorInfo(request.getContextPath(), "Record/data Not found Error",HttpStatus.NOT_FOUND.toString());
       }
-//	  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-//	  @ExceptionHandler(DistributionException.class)
-//	  @ResponseBody
-//	  /***
-//	   * Handles BadRequest
-//	   * @param Exception
-//	   * @return ErrorInfo object with error details
-//	   */
-//	  public ErrorInfo distService(DistributionException exception) {
-//            logger.info("----Caught Distribution Service Exception----\n"+request.getDescription(false)+"\n Details of Exception:"+exception.getStackTrace());
-//            return new ErrorInfo(request.getContextPath(), "InternalServer Error",HttpStatus.INTERNAL_SERVER_ERROR.toString());
-//	  }
+	  
+	  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+	  @ExceptionHandler(DistributionException.class)
+	  @ResponseBody
+	  /***
+	   * Handles BadRequest
+	   * @param Exception
+	   * @return ErrorInfo object with error details
+	   */
+	  public ErrorInfo distService(DistributionException exception) {
+            logger.info("----Caught Distribution Service Exception----\n"+request.getDescription(false)+"\n Details of Exception:"+exception.getStackTrace());
+            return new ErrorInfo(request.getContextPath(), "Distribution service has Internal Error",HttpStatus.INTERNAL_SERVER_ERROR.toString());
+	  }
 	  
 	  
 } 

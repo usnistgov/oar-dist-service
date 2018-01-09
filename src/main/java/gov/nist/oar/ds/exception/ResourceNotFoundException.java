@@ -36,7 +36,7 @@ public class ResourceNotFoundException extends RuntimeException {
 	 * ResourceNotFoundException 
 	 */
 	public ResourceNotFoundException(){
-		super("Resource you are looking for is not available.");
+		super("Record you are looking for is not available.");
 	}
 	/***
 	 * ResourceNotFoundException for requestUrl

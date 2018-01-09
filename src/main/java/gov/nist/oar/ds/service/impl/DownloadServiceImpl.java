@@ -70,6 +70,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.Gson;
 
 import gov.nist.oar.ds.exception.DistributionException;
+import gov.nist.oar.ds.exception.ResourceNotFoundException;
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
 
@@ -214,10 +215,14 @@ public class DownloadServiceImpl implements DownloadService {
       ResponseEntity<JSONObject> response = restTemplate.exchange(
           rmmApi + "records?@id="+ id + "&include=components",
               HttpMethod.GET, entity, JSONObject.class, "1");
+      JSONObject jsonRecord = response.getBody();
+      if((int)jsonRecord.get("ResultCount") == 0) 
+    	  throw new ResourceNotFoundException("No data available for given record id.");
+      
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
       String fileName = dzId.split("/")[2];
-      JSONObject jsonRecord = response.getBody();
+      
       String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
       JSONParser parser = new JSONParser(); 
       JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
