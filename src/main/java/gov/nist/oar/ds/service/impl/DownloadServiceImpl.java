@@ -16,6 +16,7 @@ package gov.nist.oar.ds.service.impl;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
@@ -406,8 +407,10 @@ public class DownloadServiceImpl implements DownloadService {
 		  this.validateIds(recordid, "Record/Dataset Number");
 		  this.validateIds(filepath, "file path");
 	  
-	   List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
-
+	      List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+ 
+	      if(files.isEmpty()) 
+	    	  throw new FileNotFoundException("No data available for given id.");
 	  
 	     String recordBagKey = files.get(files.size()-1).getKey();
 		  
