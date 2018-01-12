@@ -16,6 +16,7 @@ package gov.nist.oar.ds.service.impl;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
@@ -34,6 +35,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -47,6 +49,7 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +69,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.Gson;
 
+import gov.nist.oar.ds.exception.DistributionException;
+import gov.nist.oar.ds.exception.ResourceNotFoundException;
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
 
@@ -98,6 +103,7 @@ public class DownloadServiceImpl implements DownloadService {
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
 
+  
 //  @Override
 //  public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
 //    return s3Wrapper.upload(cacheBucket, multipartFiles);
@@ -115,6 +121,11 @@ public class DownloadServiceImpl implements DownloadService {
 //    return null;
 //  }
 
+  private void validateIds(String anyID, String idName){
+	  if(anyID == "" || anyID == null) 
+		  throw new IllegalArgumentException(idName + " is either empty or null.");
+	  
+  }
   /**
    * 
    * @param dsId
@@ -185,13 +196,11 @@ public class DownloadServiceImpl implements DownloadService {
    * @throws Exception
    */
   @Override
-  public ResponseEntity<byte[]>  downloadZipFile(String id) throws Exception {
+  public ResponseEntity<byte[]>  downloadZipFile(String id) throws DistributionException  {
     
-    try {    
+	  this.validateIds(id, "Record/Dataset Number");
+    try{
 
-      //CloseableHttpClient httpClient = HttpClientBuilder
-        //  .create()
-        //  .build();
       CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
      
       HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
@@ -203,10 +212,14 @@ public class DownloadServiceImpl implements DownloadService {
       ResponseEntity<JSONObject> response = restTemplate.exchange(
           rmmApi + "records?@id="+ id + "&include=components",
               HttpMethod.GET, entity, JSONObject.class, "1");
+      JSONObject jsonRecord = response.getBody();
+      if((int)jsonRecord.get("ResultCount") == 0) 
+    	  throw new ResourceNotFoundException("No data available for given record id.");
+      
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
       String fileName = dzId.split("/")[2];
-      JSONObject jsonRecord = response.getBody();
+      
       String jsonResultData = new Gson().toJson(jsonRecord.get("ResultData"));
       JSONParser parser = new JSONParser(); 
       JSONArray jsonArrayResultData = (JSONArray) parser.parse(jsonResultData);
@@ -220,11 +233,11 @@ public class DownloadServiceImpl implements DownloadService {
       httpHeaders.setContentLength(myBytes.length);
       httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
       return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
-      
-  } catch (Exception e) {
-      e.printStackTrace();
-  }
-    return null;
+    } catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException  e) {
+    	logger.error("DownloadAll Errors:"+ e.getMessage());
+		throw new DistributionException(e.getMessage());
+	} 
+    
   }
   
   /**
@@ -237,16 +250,16 @@ public class DownloadServiceImpl implements DownloadService {
    * @throws KeyManagementException 
    */
   public byte[] getCompressed( JSONArray json, String fileName)
-      throws IOException, URISyntaxException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException
+      throws DistributionException
   {
     
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ZipOutputStream zos = new ZipOutputStream(bos);
 
-    //CloseableHttpClient httpclient = HttpClients.createDefault();
-    CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
-
-    try{
+    CloseableHttpClient httpClient = null;
+	try {
+		httpClient = createAcceptSelfSignedCertificateClient();
+	
       for (int i = 0; i < json.size(); i++) {
         JSONObject jsonObjComp = (JSONObject) json.get(i);
         if (jsonObjComp.containsKey("@type"))
@@ -275,9 +288,18 @@ public class DownloadServiceImpl implements DownloadService {
                 }
             }
         }
-    } finally {
-      zos.close();
-      httpClient.close();
+    } catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e) {
+    	logger.error("DownloadAll Errors:"+ e.getMessage());
+		throw new DistributionException(e.getMessage());
+	}
+	
+    finally {
+    	try{
+    		zos.close();
+    		httpClient.close();}
+    	catch(IOException e){
+    		logger.error("IOException while closing zip file connections"+e.getMessage());
+    	}
     }
     return bos.toByteArray() ;
   }
@@ -324,12 +346,15 @@ public class DownloadServiceImpl implements DownloadService {
 	    return new ResponseEntity<>(outdata, httpHeaders, HttpStatus.OK);
   }
 
-  public ResponseEntity<byte[]> downloadAllZiponlyData(String bucket, String key) throws Exception{
+  public ResponseEntity<byte[]> downloadAllZiponlyData(String bucket, String key) throws IOException {
 	  
-	  try{
+	  this.validateIds(bucket, "Bucket Number");
+	  this.validateIds(key, "Key Id");
+		 
 		  byte[] outdata = new byte[ 9000];
 		  ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		  ZipOutputStream zos = new ZipOutputStream(bos);
+		 
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(bucket,key);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
@@ -346,20 +371,17 @@ public class DownloadServiceImpl implements DownloadService {
 			}
 		  zis.close();
 		  zos.close();
+		 
 		  return getResponsEntity(key.substring(0, key.length()-14)+".zip", bos.toByteArray());
 		  
-		 
-	  }
-	  catch(Exception e){
-		  throw e;
-	  }
+	
   }
   
   ////Deoyani Adding new methods:
-  public ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception{
-	  try{
+  public ResponseEntity<byte[]> downloadAllData(String recordid) throws IOException{
+	
 	   
-		  
+		  this.validateIds(recordid, "Record / Ditribution number ");
 	   List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
 	   
 	   
@@ -373,9 +395,7 @@ public class DownloadServiceImpl implements DownloadService {
 	   else return null;
 	  
 
-	  }catch(Exception e){
-	    throw e;
-	  }
+	 
 	 
   }
   
@@ -383,32 +403,33 @@ public class DownloadServiceImpl implements DownloadService {
   
   
   @Override
-  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws Exception{
-	  try{
-	   
+  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException {
+	 	   
+		 this.validateIds(recordid, "Record/Dataset Number");
+		 this.validateIds(filepath, "file path");
 	  
-	   List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
-	   
-//	    
-//	  if (files != null && !files.isEmpty())
-//		  return null ;
-	  
+	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+ 
+	     if(files.isEmpty()) 
+	    	  throw new ResourceNotFoundException("No data available for given id.");
 	  
 	     String recordBagKey = files.get(files.size()-1).getKey();
 		  
 	     byte[] outdata = new byte[ 9000];
 		  
-		  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
-		  ByteArrayOutputStream out = new ByteArrayOutputStream();
+		 String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
+		 ByteArrayOutputStream out = new ByteArrayOutputStream();
 //		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
 
-                  logger.debug("Pulling data from bucket="+preservationBucket);
+          logger.debug("Pulling data from bucket="+preservationBucket);
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
+		  boolean isfile = false;
 		  while((entry = zis.getNextEntry()) != null)  {
 			  if (entry.getName().equals(filename)) {
+				  
 				  int len;
 				  while ((len = zis.read(outdata)) != -1) {
 					  out.write(outdata, 0, len);
@@ -418,22 +439,14 @@ public class DownloadServiceImpl implements DownloadService {
 			    
 			}
 		  zis.close();
+		 if(out.size() == 0) 
+			 throw new ResourceNotFoundException("Requested file is not in data bundle.");
 		  HttpHeaders httpHeaders = new HttpHeaders();
-		    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-		    httpHeaders.setContentLength(out.toByteArray().length);
-		    httpHeaders.setContentDispositionFormData("attachment", filepath);
-		    return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
-	
-	  
-
-	  }catch(NullPointerException ne){
-		  throw ne;
-	  }
-	  catch(Exception e){
-	    throw e;
-	  }
+		  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+		  httpHeaders.setContentLength(out.toByteArray().length);
+		  httpHeaders.setContentDispositionFormData("attachment", filepath);
+		  return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
 	 
   }
-  
   
 }
