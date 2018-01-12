@@ -201,9 +201,6 @@ public class DownloadServiceImpl implements DownloadService {
 	  this.validateIds(id, "Record/Dataset Number");
     try{
 
-      //CloseableHttpClient httpClient = HttpClientBuilder
-        //  .create()
-        //  .build();
       CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
      
       HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
@@ -406,32 +403,33 @@ public class DownloadServiceImpl implements DownloadService {
   
   
   @Override
-  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException{
-	 
-	   
-		  this.validateIds(recordid, "Record/Dataset Number");
-		  this.validateIds(filepath, "file path");
+  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException {
+	 	   
+		 this.validateIds(recordid, "Record/Dataset Number");
+		 this.validateIds(filepath, "file path");
 	  
-	      List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
  
-	      if(files.isEmpty()) 
-	    	  throw new FileNotFoundException("No data available for given id.");
+	     if(files.isEmpty()) 
+	    	  throw new ResourceNotFoundException("No data available for given id.");
 	  
 	     String recordBagKey = files.get(files.size()-1).getKey();
 		  
 	     byte[] outdata = new byte[ 9000];
 		  
-		  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
-		  ByteArrayOutputStream out = new ByteArrayOutputStream();
+		 String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
+		 ByteArrayOutputStream out = new ByteArrayOutputStream();
 //		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
 
-                  logger.debug("Pulling data from bucket="+preservationBucket);
+          logger.debug("Pulling data from bucket="+preservationBucket);
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
+		  boolean isfile = false;
 		  while((entry = zis.getNextEntry()) != null)  {
 			  if (entry.getName().equals(filename)) {
+				  
 				  int len;
 				  while ((len = zis.read(outdata)) != -1) {
 					  out.write(outdata, 0, len);
@@ -441,13 +439,14 @@ public class DownloadServiceImpl implements DownloadService {
 			    
 			}
 		  zis.close();
+		 if(out.size() == 0) 
+			 throw new ResourceNotFoundException("Requested file is not in data bundle.");
 		  HttpHeaders httpHeaders = new HttpHeaders();
-		    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-		    httpHeaders.setContentLength(out.toByteArray().length);
-		    httpHeaders.setContentDispositionFormData("attachment", filepath);
-		    return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
+		  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+		  httpHeaders.setContentLength(out.toByteArray().length);
+		  httpHeaders.setContentDispositionFormData("attachment", filepath);
+		  return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
 	 
   }
-  
   
 }

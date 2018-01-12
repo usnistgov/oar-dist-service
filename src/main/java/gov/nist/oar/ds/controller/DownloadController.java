@@ -22,9 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.http.HttpStatus;
@@ -62,13 +64,24 @@ public class DownloadController {
 //  /**
 //   * 
 //   * @return
+// * @throws Exception 
 //   */
 //  @ApiOperation(value = "Returns distriubution rest api info.",nickname = "get content",
 //  notes = "Index Controller.")
-//  public ResponseEntity<String> index() {
-//    logger.info("Loading index page");
-//    return new ResponseEntity<>(CONTENT, HttpStatus.OK);
+//  @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
+//  public ResponseEntity<byte[]> index(@PathVariable("dsId") String dsId, HttpServletRequest request)  {
+//   logger.info("Loading test page");
+////	  String path = (String) request.getAttribute(
+////    HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+////String bestMatchPattern = (String ) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+////
+////AntPathMatcher apm = new AntPathMatcher();
+////String finalPath = apm.extractPathWithinPattern(bestMatchPattern, path);
+//
+//    return downloadService.downloadData("test","test2.text");
 //  }
+  
+  
 //  
 //
 //  /**
@@ -169,17 +182,16 @@ public class DownloadController {
 //}
 
 @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
-
 public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws IOException {
   logger.debug("Handling file request from dataset with id=" + dsid);
   
 	  String restOfTheUrl = (String) request.getAttribute(
 	        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+	 
 	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
             logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
+      
 	  return downloadService.downloadData(dsid,restOfTheUrl);
-  
-	
      
 }
 

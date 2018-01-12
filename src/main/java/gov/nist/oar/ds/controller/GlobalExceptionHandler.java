@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -58,7 +58,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo  jsonErrors(JsonMappingException exception) {
 	    logger.info("----Caught JsonMappingException----\n"+request.getDescription(false)+"\n Detail JsonMappingException:"+exception.getMessage()+exception.getStackTrace());
-	    return new ErrorInfo(request.getContextPath(), "JsonMappingException",HttpStatus.CONFLICT.toString());
+	    return new ErrorInfo(request.getContextPath(), "There is some problem with JSON data.",HttpStatus.CONFLICT.toString());
       
 	  }
 
@@ -73,7 +73,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo  myError(Exception exception) {
 	    logger.info("----Caught Exception----\n"+request.getDescription(false)+"\n Detail General Exception:"+exception.getMessage()+exception.getStackTrace());
-	    return new ErrorInfo(request.getContextPath(), "General Exception",HttpStatus.CONFLICT.toString());
+	    return new ErrorInfo(request.getContextPath(), "There is an error with this request, check request proeprly.",HttpStatus.CONFLICT.toString());
         
 	  }
 	  
@@ -87,7 +87,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo illegal(IllegalArgumentException exception) {
             logger.info("----This is a illegal argument exception ----\n"+request.getDescription(false)+"\n Detail IllegalArgumentException:"+exception.getMessage()+exception.getStackTrace());
-            return new ErrorInfo(request.getContextPath(), "IllegalArgumentException",HttpStatus.BAD_REQUEST.toString());
+            return new ErrorInfo(request.getContextPath(), "Requested parameters/arguments are not valid.",HttpStatus.BAD_REQUEST.toString());
             
 	  }
 	  
@@ -101,7 +101,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo notFound(KeyWordNotFoundException exception) {
             logger.info("----Caught KeywordNotFoundException----\n"+request.getDescription(false)+"\n Detail NotFoundException:"+exception.getMessage()+exception.getStackTrace());
-            return new ErrorInfo(request.getContextPath(), "KeyWordNotFoundException",HttpStatus.NOT_FOUND.toString());
+            return new ErrorInfo(request.getContextPath(), "Requested Keyword is not valid.",HttpStatus.NOT_FOUND.toString());
             
 	  }
 	  
@@ -114,9 +114,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   * @param ResourceNotFoundException
 	   * @return ErrorInfo object with error details
 	   */
-	  public ErrorInfo resourceNotFound(ResourceNotFoundException exception) {
-            logger.info("----Caught KeywordNotFoundException----\n"+request.getDescription(false)+"\n Detail ResourceNotFoundException:"+exception.getMessage()+exception.getStackTrace());
-            return new ErrorInfo(request.getContextPath(), "Requested record/data not found.",HttpStatus.NOT_FOUND.toString());
+	  public ResponseEntity<ErrorInfo> resourceNotFound(ResourceNotFoundException exception) {
+            logger.info("----Caught ResourceNotFoundException----\n"+request.getDescription(false)+"\n Detail ResourceNotFoundException:"+exception.getMessage()+exception.getStackTrace());
+            return new ResponseEntity<>(new ErrorInfo(request.getContextPath(), exception.getMessage(),HttpStatus.NOT_FOUND.toString()), HttpStatus.NOT_FOUND) ;
             
 	  }
 	  
@@ -130,7 +130,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   */
 	  public ErrorInfo ioError(IOException exception) {
             logger.info("----Caught IOException----\n"+request.getDescription(false)+"\n Detail IOException:"+exception.getMessage()+exception.getStackTrace());
-            return new ErrorInfo(request.getContextPath(), "IOException",HttpStatus.INTERNAL_SERVER_ERROR.toString());
+            return new ErrorInfo(request.getContextPath(), "Requested resources have some internal error in application.",HttpStatus.INTERNAL_SERVER_ERROR.toString());
 	  }
 	  
 	  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -167,7 +167,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	   * @param Exception
 	   * @return ErrorInfo object with error details
 	   */
-	  public ErrorInfo distService(FileNotFoundException exception) {
+	  public ErrorInfo fileNotFound(FileNotFoundException exception) {
             logger.info("----Caught Distribution Service Exception----\n"+request.getDescription(false)+"\n Details of Exception:"+exception.getMessage()+exception.getStackTrace());
             return new ErrorInfo(request.getContextPath(), "Record/data Not found Error",HttpStatus.NOT_FOUND.toString());
       }
@@ -176,7 +176,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler  {
 	  @ExceptionHandler(DistributionException.class)
 	  @ResponseBody
 	  /***
-	   * Handles BadRequest
+	   * Handles DistributionException
 	   * @param Exception
 	   * @return ErrorInfo object with error details
 	   */
