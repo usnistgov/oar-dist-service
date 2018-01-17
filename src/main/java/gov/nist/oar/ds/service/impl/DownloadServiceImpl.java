@@ -407,7 +407,7 @@ public class DownloadServiceImpl implements DownloadService {
   @Override
   public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException {
 	 	   
-		 this.validateIds(recordid, this.recordNumber);
+		 this.validateIds(recordid, "Record or DataSet identifier");
 		 this.validateIds(filepath, "file path");
 	  
 	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
