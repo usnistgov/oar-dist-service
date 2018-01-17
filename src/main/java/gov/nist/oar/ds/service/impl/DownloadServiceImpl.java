@@ -102,7 +102,7 @@ public class DownloadServiceImpl implements DownloadService {
 
   private static final String MAPPING_FILE_PREFIX = "ore.json";
 
-
+  private String recordNumber = "Record/Dataset Number";
   
 //  @Override
 //  public List<PutObjectResult> uploadToCache(MultipartFile[] multipartFiles) {
@@ -124,6 +124,8 @@ public class DownloadServiceImpl implements DownloadService {
   private void validateIds(String anyID, String idName){
 	  if(anyID == "" || anyID == null) 
 		  throw new IllegalArgumentException(idName + " is either empty or null.");
+	  if(this.recordNumber.equals(idName) && !anyID.startsWith("ark:/"))
+			throw new IllegalArgumentException(idName + " is not in valid format.");  
 	  
   }
   /**
@@ -198,7 +200,7 @@ public class DownloadServiceImpl implements DownloadService {
   @Override
   public ResponseEntity<byte[]>  downloadZipFile(String id) throws DistributionException  {
     
-	  this.validateIds(id, "Record/Dataset Number");
+	  this.validateIds(id, this.recordNumber);
     try{
 
       CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
@@ -233,8 +235,8 @@ public class DownloadServiceImpl implements DownloadService {
       httpHeaders.setContentLength(myBytes.length);
       httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
       return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
-    } catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException  e) {
-    	logger.error("DownloadAll Errors:"+ e.getMessage());
+    } catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException | ArrayIndexOutOfBoundsException e) {
+    	logger.error("DownloadAll Errors:"+ e.getMessage(),e);
 		throw new DistributionException(e.getMessage());
 	} 
     
@@ -289,7 +291,7 @@ public class DownloadServiceImpl implements DownloadService {
             }
         }
     } catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e) {
-    	logger.error("DownloadAll Errors:"+ e.getMessage());
+    	logger.error("DownloadAll Errors:"+ e.getMessage(),e);
 		throw new DistributionException(e.getMessage());
 	}
 	
@@ -298,7 +300,7 @@ public class DownloadServiceImpl implements DownloadService {
     		zos.close();
     		httpClient.close();}
     	catch(IOException e){
-    		logger.error("IOException while closing zip file connections"+e.getMessage());
+    		logger.error("IOException while closing zip file connections"+e.getMessage(),e);
     	}
     }
     return bos.toByteArray() ;
@@ -405,7 +407,7 @@ public class DownloadServiceImpl implements DownloadService {
   @Override
   public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException {
 	 	   
-		 this.validateIds(recordid, "Record/Dataset Number");
+		 this.validateIds(recordid, "Record or DataSet identifier");
 		 this.validateIds(filepath, "file path");
 	  
 	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
