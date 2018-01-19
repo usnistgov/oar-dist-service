@@ -62,6 +62,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -450,5 +451,77 @@ public class DownloadServiceImpl implements DownloadService {
 		  return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
 	 
   }
+
+  /**
+   * 
+   * @param Id
+   * @return
+   * @throws Exception
+   */
+  public ResponseEntity<byte[]>  downloadDataCart(String[] folderName, String[] downloadURL,String[] fileName, String[] filePath, String[] resFilePath) throws Exception {
+    
+    try {    
+
+      byte[] myBytes = null;
+      myBytes = getCompressedDataCart(folderName, downloadURL, fileName, filePath, resFilePath);
+      HttpHeaders httpHeaders = new HttpHeaders();
+      httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+      httpHeaders.setContentLength(myBytes.length);
+      httpHeaders.setContentDispositionFormData("attachment", fileName + ".zip");
+      return new ResponseEntity<>(myBytes, httpHeaders, HttpStatus.OK);
+      
+  } catch (Exception e) {
+      e.printStackTrace();
+  }
+    return null;
+  }
   
+  /**
+   * 
+   * @param json array, file name
+   * @return
+   * @throws IOException, URISyntaxException
+   * @throws KeyStoreException 
+   * @throws NoSuchAlgorithmException 
+   * @throws KeyManagementException 
+   */
+  public byte[] getCompressedDataCart( String[] folderName, String[] downloadURL, String[] fileName, String[] filePath, String[] resFilePath)
+      throws IOException, URISyntaxException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException
+  {
+    int size = 1024*1024;
+    FastByteArrayOutputStream bos = new FastByteArrayOutputStream(size);
+    ZipOutputStream zos = new ZipOutputStream(bos);
+
+    CloseableHttpClient httpClient = createAcceptSelfSignedCertificateClient();
+
+    try{
+      for (int i = 0; i < downloadURL.length; i++) {
+        String strDownloadURL = downloadURL[i];
+        String strFileName = fileName[i];
+        String strFilePath = filePath[i];
+        logger.info("downloadurl" + strDownloadURL);
+        logger.info("file name" + strFileName);
+        logger.info("file path" + strFilePath);
+
+        HttpGet request = new HttpGet(strDownloadURL);
+        CloseableHttpResponse response = httpClient.execute(request);
+        try 
+        {
+          BufferedInputStream bis = new BufferedInputStream(response.getEntity().getContent());
+          ZipEntry entry = new ZipEntry(resFilePath[i]);
+          zos.putNextEntry( entry );
+          IOUtils.copy(bis, zos, size);
+          int inByte;
+          bis.close();
+          } finally {
+            response.close();
+            zos.closeEntry();
+          }
+       }
+    } finally {
+      zos.close();
+      httpClient.close();
+    }
+    return bos.toByteArrayUnsafe() ;
+  }
 }

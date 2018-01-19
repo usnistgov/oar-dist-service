@@ -203,5 +203,19 @@ public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, Ht
 //   
 //}
 
+/**
+ * Download zip file
+ * 
+ * @param Id
+ * @return 
+ * @return
+ * @throws Exception 
+ */
+@RequestMapping(value = "/cart", method = RequestMethod.GET)
+
+public ResponseEntity<byte[]> downloadDataCart(String[] folderName, String[] downloadURL, String[] fileName, String[] filePath, String[] resFilePath) throws Exception {
+  return downloadService.downloadDataCart(folderName, downloadURL, fileName, filePath, resFilePath);
+     
+}
 
 }

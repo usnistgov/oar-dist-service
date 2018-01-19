@@ -80,5 +80,12 @@ public interface DownloadService {
 //	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
 	
 	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException;
-  
+ 
+	/**
+     * 
+     * @param Id
+     * @return zip byte[] 
+     * @throws IOException
+     */
+    ResponseEntity<byte[]> downloadDataCart(String[] folderName, String[] downloadURL, String[] fileName, String[] filePath, String[] resFilePath) throws Exception; 
 }
