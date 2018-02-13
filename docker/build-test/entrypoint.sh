@@ -4,10 +4,12 @@
 
 case "$1" in
     makedist)
-        scripts/makedist
+        shift
+        scripts/makedist "$@"
         ;;
     testall)
-        scripts/testall
+        shift
+        scripts/testall "$@"
         ;;
     shell)
         exec /bin/bash

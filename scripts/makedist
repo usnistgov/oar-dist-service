@@ -7,7 +7,7 @@ prog=`basename $0`
 execdir=`dirname $0`
 [ "$execdir" = "" -o "$execdir" = "." ] && execdir=$PWD
 PACKAGE_DIR=`(cd $execdir/.. > /dev/null 2>&1; pwd)`
-distdir=$PACKAGE_DIR/dist
+DIST_DIR=$PACKAGE_DIR/dist
 targetdir=$PACKAGE_DIR/target
 
 # Update this list with the names of the individual component names
@@ -57,8 +57,6 @@ java_major_version=`echo $java_version | sed -re 's/^[0-9]+\.//' -e 's/[\.\-\_].
     false
 }
 
-mkdir -p $distdir
-
 # set the current version.  This will inject the version into the code, if 
 # needed.
 #
@@ -81,14 +79,14 @@ mvn clean package
 # ENTER COMMANDS for creating the dependency file(s)
 #
 # A dependency file should be called DISTNAME-${version}_dep.json
-mkdir -p $distdir
+mkdir -p $DIST_DIR
 mvn dependency:tree -DoutputType=dot -DoutputFile=target/deptree.dot
 $PACKAGE_DIR/scripts/record_deps.py ${DISTNAMES[0]} $version \
-                                 > $distdir/${DISTNAMES[0]}-${vers4fn}_dep.json
+                                 > $DIST_DIR/${DISTNAMES[0]}-${vers4fn}_dep.json
 
 # ENTER COMMANDS for bundling (or renaming) the distribution, if needed
 #
 # A distribution file should be called DISTNAME-${vers4fn}.DISTEXT
 #
-cp $targetdir/${DISTNAMES[0]}.jar $distdir/${DISTNAMES[0]}-$vers4fn.jar
+cp $targetdir/${DISTNAMES[0]}.jar $DIST_DIR/${DISTNAMES[0]}-$vers4fn.jar
 

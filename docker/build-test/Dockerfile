@@ -34,6 +34,7 @@ RUN grep -qs ":${devuid}:[[:digit:]]+:" /etc/passwd || \
 RUN mkdir /home/$devuser/.m2
 
 VOLUME /app/dev
+VOLUME /app/dist
 COPY settings.xml /app/mvn-user-settings.xml
 COPY settings.xml /home/$devuser/.m2/settings.xml
 RUN chown $devuser:$devuser /home/$devuser/.m2/settings.xml && \
