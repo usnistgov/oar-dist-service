@@ -11,32 +11,36 @@
  * 
  * @author:Harold Affo (Prometheus Computing, LLC)
  */
-package gov.nist.oar.ds.config;
+
+package gov.nist.oar.ds;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.annotation.ComponentScan;
 
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 /**
- * This is the config class responsible of starting the s3 client in dev and prod environment
+ * This is the configuration class responsible of starting the spring-boot application
  *
  */
-@Configuration
-@Profile(value = {"dev", "prod"})
-public class DevOrProdS3Config {
+@SpringBootApplication
+@RefreshScope
+//@ComponentScan(basePackages = {"gov.nist.oar.ds"})
+public class ApplicationConfig {
 
-  private static Logger log = LoggerFactory.getLogger(DevOrProdS3Config.class);
+  private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
 
-  @Bean
-  public AmazonS3Client s3Client() {
-    log.info("Creating s3 client instance");
-    InstanceProfileCredentialsProvider provider = new InstanceProfileCredentialsProvider();
-    return (AmazonS3Client) AmazonS3ClientBuilder.standard().withCredentials(provider).build();
+  /**
+   * Main runner of the spring-boot class
+   * 
+   * @param args
+   */	
+  @SuppressWarnings("squid:S2095")
+  public static void main(String... args) {
+    log.info("########## Starting oar distribution service ########");
+    SpringApplication.run(ApplicationConfig.class, args);
   }
 }

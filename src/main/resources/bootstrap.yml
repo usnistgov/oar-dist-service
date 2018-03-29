@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: oar-dist-service
+  profiles:
+    active: default
+  cloud:
+    config:
+      uri: http://localhost:8084
+       
+server:
+    port: 8083
+    contextPath: /oar-dist-service
+    error:
+      include-stacktrace: never
+    connection-timeout: 300000
+    max-http-header-size: 8192
+    tomcat:
+      accesslog:
+        directory: logs
+        enabled: false
+        
+security:
+    headers:
+      frame: true
+      xss: true
+      hsts: all
+    enable-csrf: false
+    
+     
+logging:
+  path : /var/log/dist-service/
+    
+    
+    

@@ -37,7 +37,7 @@
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>Brixton.SR6</version>
+				<version>Camden.SR7</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -53,19 +53,46 @@
 		</dependency>
 		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-freemarker</artifactId> 
 			<version>${spring.boot.version}</version> </dependency> -->
-		<dependency>
+		 <dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-aws-context</artifactId>
+		</dependency> 
+		<!-- <dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-aws-context</artifactId>
+    <version>2.0.0.M1</version>
+</dependency> -->
+
+		<dependency>
+		    <groupId>com.googlecode.json-simple</groupId>
+		    <artifactId>json-simple</artifactId>
+		    <version>1.1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
+    		<artifactId>commons-io</artifactId>
+    		<version>2.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+           <groupId>org.springframework</groupId>
+           <artifactId>spring-test</artifactId>
+           <scope>test</scope>
+        </dependency>
+       <dependency>
+           <groupId>javax.inject</groupId>
+           <artifactId>javax.inject</artifactId>
+           <version>1</version>
+       </dependency>
+       <dependency>
+          <groupId>org.springframework.data</groupId>
+          <artifactId>spring-data-commons</artifactId>
+          <version>1.6.1.RELEASE</version>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -79,11 +106,6 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-config-client</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-eureka</artifactId>
 		</dependency>
 		 <!-- swagger docs -->
 		<dependency>
@@ -101,8 +123,15 @@
     		<artifactId>springfox-swagger2</artifactId>
     		<version>${springfox.version}</version>
 		</dependency>
-		
-		
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+		</dependency>
+<!-- 		<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency> -->
+	
 	</dependencies>
 	<build>
 		<finalName>oar-dist-service</finalName>
@@ -234,6 +263,5 @@
 			</snapshots>
 		</repository>
 	</repositories>
-
 
 </project>
