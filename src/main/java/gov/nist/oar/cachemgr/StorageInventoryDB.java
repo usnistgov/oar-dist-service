@@ -24,4 +24,17 @@ public abstract class StorageInventoryDB {
     public abstract void addObject(String id, String volId, String objname,
                                    JsonObject metadata);
 
+    /**
+     * record the removal of the object with the given name from the given volume
+     */
+    public abstract void removeObject(String volId, String objname);
+
+    // need to add a method that returns records that can be used to create
+    // deletion plans.
+
+    /**
+     * return the names of checksumAlgorithms known to the database
+     */
+    public abstract String[] checksumAlgorithms();
+
 }
