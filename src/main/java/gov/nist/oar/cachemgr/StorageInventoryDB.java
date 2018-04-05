@@ -28,18 +28,25 @@ public interface StorageInventoryDB {
      * return all the known locations of an object with a given id in the volumes
      * managed by this database.  
      */
-    public CacheObject[] findObject(String id);
+    public CacheObject[] findObject(String id) throws InventoryException;
 
     /**
-     * record the addition of an object to a volume.  
+     * record the addition of an object to a volume.  The metadata stored with the 
+     * object can vary by application.  
+     * @param id       the identifier for the object being stored
+     * @param volname  the name of the volume where the object was added
+     * @param objname  the name of the object was given in that volume
+     * @param metadata the metadata to be associated with that object (can be null)
      */
-    public void addObject(String id, String volId, String objname,
-                                   JsonObject metadata);
+    public void addObject(String id, String volname, String objname, JsonObject metadata)
+        throws InventoryException;
 
     /**
      * record the removal of the object with the given name from the given volume
+     * @param volname  the name of the volume where the object was added
+     * @param objname  the name of the object was given in that volume
      */
-    public void removeObject(String volId, String objname);
+    public void removeObject(String volname, String objname) throws InventoryException;
 
     // need to add a method that returns records that can be used to create
     // deletion plans.
@@ -47,6 +54,10 @@ public interface StorageInventoryDB {
     /**
      * return the names of checksumAlgorithms known to the database
      */
-    public String[] checksumAlgorithms();
+    public String[] checksumAlgorithms() throws InventoryException;
 
+    /**
+     * return the names of cache volumes registered in the database
+     */
+    public String[] volumes() throws InventoryException;
 }
