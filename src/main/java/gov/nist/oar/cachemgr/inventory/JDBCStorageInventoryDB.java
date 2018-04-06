@@ -63,7 +63,7 @@ import java.io.StringReader;
  *    checksum  text,
  *    algorithm aid FOREIGN KEY,
  *    priority  integer,
- *    vid       integer FOREIGN KEY,
+ *    volume    integer FOREIGN KEY,
  *    since     integer,
  *    metadata  text
  * );
@@ -95,7 +95,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     static final String find_sql = "SELECT d.name as name, v.name as volume, d.metadata as metadata " +
-        "FROM datasets d, volumes v WHERE d.vid=v.id AND d.id='";
+        "FROM datasets d, volumes v WHERE d.volume=v.id AND d.id='";
 
     public CacheObject[] findObject(String id) throws InventoryException {
         String sql = find_sql + id + "';";
@@ -134,7 +134,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     String add_sql = "INSERT INTO objects(" +
-        "name,size,checksum,algorithm,priority,vid,since,metadata" +
+        "name,size,checksum,algorithm,priority,volume,since,metadata" +
         ") VALUES (?,?,?,?,?,?,?,?)";
     
     /**
@@ -315,5 +315,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-
+    protected void finalize() {
+        try { disconnect(); } catch (SQLException ex) {} 
+    }
 }
