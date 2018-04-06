@@ -412,9 +412,11 @@ public class DownloadServiceImpl implements DownloadService {
 	  
 	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
  
-	     if(files.isEmpty()) 
+	     if(files.isEmpty()) {
+	    	  logger.info("No files found in the bucket");
 	    	  throw new ResourceNotFoundException("No data available for given id.");
-	  
+	      }
+	     logger.info("checking file list in given bucket="+preservationBucket);
 	     String recordBagKey = files.get(files.size()-1).getKey();
 		  
 	     byte[] outdata = new byte[ 9000];
@@ -425,6 +427,7 @@ public class DownloadServiceImpl implements DownloadService {
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
 
           logger.debug("Pulling data from bucket="+preservationBucket);
+          logger.info("Pulling data from bucket="+preservationBucket + " with record id:"+recordid);
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
@@ -441,8 +444,10 @@ public class DownloadServiceImpl implements DownloadService {
 			    
 			}
 		  zis.close();
-		 if(out.size() == 0) 
+		 if(out.size() == 0) {
+			 logger.info("Could not write data in outputstream");
 			 throw new ResourceNotFoundException("Requested file is not in data bundle.");
+		 }
 		  HttpHeaders httpHeaders = new HttpHeaders();
 		  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 		  httpHeaders.setContentLength(out.toByteArray().length);
