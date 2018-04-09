@@ -29,7 +29,7 @@ security:
      
     
 logging:
-  file: dist-service.log
+  file: distservice.log
   path : /var/log/dist-service
   exception-conversion-word: '%wEx'
     
