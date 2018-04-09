@@ -34,6 +34,7 @@ import java.util.zip.ZipOutputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -410,23 +411,30 @@ public class DownloadServiceImpl implements DownloadService {
 		 this.validateIds(recordid, "Record or DataSet identifier");
 		 this.validateIds(filepath, "file path");
 	  
-	     List<S3ObjectSummary> files = new ArrayList<S3ObjectSummary>();
-	     logger.info("TEST HERE 1: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
-	     logger.error("TEST HERE 2: "+recordid +" :: "+filepath +" :: preservationBucket::"+preservationBucket);
-	     try{
-	    	 files = s3Wrapper.list(preservationBucket, recordid);
-	    	 
-	     }catch(Exception exp){
-	    	 logger.info("There is an error::"+exp.getMessage());
-	    	 logger.error("Exception here::"+exp.getMessage());
-	     }
+	     
+	     logger.info("Info : record id: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
+	     
+	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+	   
+	     String recordBagKey = "";
  
 	     if(files.isEmpty()) {
+	    	 
 	    	 logger.error("No data available for given id.");
 	    	 throw new ResourceNotFoundException("No data available for given id.");
+	    	 
+	     }else{
+	    	 for (int i=0; i<files.size();i++){
+	    		 String ext1 = FilenameUtils.getExtension(files.get(i).getKey());
+	    		 if(ext1.contains("zip")){
+	    			 recordBagKey = files.get(i).getKey(); 
+	    			 break;
+	    		 }
+	    	 }
 	     }
-	  
-	     String recordBagKey = files.get(files.size()-1).getKey();
+	     
+	     logger.info("Filename: "+ recordBagKey);
+
 		  
 	     byte[] outdata = new byte[ 9000];
 		  
@@ -434,29 +442,29 @@ public class DownloadServiceImpl implements DownloadService {
 		 ByteArrayOutputStream out = new ByteArrayOutputStream();
 //		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
-		 logger.info("Pulling data from bucket 1="+preservationBucket +" recordbagkey:"+recordBagKey + " :: "
-		 		+ " filename ::"+filename );
-          logger.debug("Pulling data from bucket 2="+preservationBucket+" recordbagkey:"+recordBagKey + " :: "
-  		 		+ " filename ::"+filename);
-          
+		 logger.info("Pulling data from preservationbucket: "+preservationBucket 
+				 		+" recordbagkey:"+recordBagKey + " :: "
+				 		+" filename ::"+filename );
+             
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
-		  boolean isfile = false;
+		 
 		  while((entry = zis.getNextEntry()) != null)  {
-			  if (entry.getName().equals(filename)) {
-				  
+			  if (entry.getName().equals(filename)) {  
 				  int len;
 				  while ((len = zis.read(outdata)) != -1) {
 					  out.write(outdata, 0, len);
 				  }
 				  out.close();
-			  }
-			    
+			  } 
 			}
 		  zis.close();
-		 if(out.size() == 0) 
+		  
+		  if(out.size() == 0){ 
 			 throw new ResourceNotFoundException("Requested file is not in data bundle.");
+		  }
+		 
 		  HttpHeaders httpHeaders = new HttpHeaders();
 		  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 		  httpHeaders.setContentLength(out.toByteArray().length);
