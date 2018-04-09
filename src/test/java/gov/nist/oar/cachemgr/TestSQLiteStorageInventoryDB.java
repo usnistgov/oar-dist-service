@@ -54,7 +54,7 @@ public class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
         try { disconnect(); } catch (SQLException ex) {} 
     }
 
-    String createDB() throws InventoryException {
+    String createDB() throws IOException, InventoryException {
         File tf = tempf.newFile("testdb.sqlite");
         String out = tf.getAbsolutePath();
         SQLiteStorageInventoryDB.initializeDB(out);
@@ -64,19 +64,19 @@ public class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
     }
 
     @Test
-    public void testInit() {
-        try {
-            File dbf = new File(createDB());
-            assertTrue(dbf.exists());
-            Connection conn = DriverManager.getConnection("jdbc:sqlite:"+dbf.toString());
-            DatabaseMetaData dmd = conn.getMetaData();
-            HashSet<String> types = new HashSet<String>((String[]) dmd.getTableTypes().getArray(1).getArray());
-            assertTrue(types.contains("TABLE"));
+    public void testInit() throws IOException, SQLException, InventoryException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+        Connection conn = DriverManager.getConnection("jdbc:sqlite:"+dbf.toString());
+        DatabaseMetaData dmd = conn.getMetaData();
+        String[] types = (String[]) dmd.getTableTypes().getArray(1).getArray();
+        int i = 0;
+        for (i=0; i < types.length; i++) {
+            if (types[i] == "TAOLE") break;
+        }
+        if (i >= types.length)
+            fail("No Tables defined in DB");
 
-        }
-        catch (SQLException ex) {
-            fail(ex.getMessage());
-        }
     }
 
 
