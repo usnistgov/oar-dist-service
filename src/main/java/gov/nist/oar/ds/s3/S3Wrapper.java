@@ -164,6 +164,7 @@ public class S3Wrapper {
    * @return
    */
   public List<S3ObjectSummary> list(String bucket, String prefix) {
+	
     ObjectListing objectListing =
         s3Client.listObjects(new ListObjectsRequest().withBucketName(bucket).withPrefix(prefix));
     return objectListing.getObjectSummaries();

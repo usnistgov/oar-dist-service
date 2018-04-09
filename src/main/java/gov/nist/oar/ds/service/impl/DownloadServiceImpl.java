@@ -410,10 +410,21 @@ public class DownloadServiceImpl implements DownloadService {
 		 this.validateIds(recordid, "Record or DataSet identifier");
 		 this.validateIds(filepath, "file path");
 	  
-	     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid);
+	     List<S3ObjectSummary> files = new ArrayList<S3ObjectSummary>();
+	     logger.info("TEST HERE 1: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
+	     logger.error("TEST HERE 2: "+recordid +" :: "+filepath +" :: preservationBucket::"+preservationBucket);
+	     try{
+	    	 files = s3Wrapper.list(preservationBucket, recordid);
+	    	 
+	     }catch(Exception exp){
+	    	 logger.info("There is an error::"+exp.getMessage());
+	    	 logger.error("Exception here::"+exp.getMessage());
+	     }
  
-	     if(files.isEmpty()) 
-	    	  throw new ResourceNotFoundException("No data available for given id.");
+	     if(files.isEmpty()) {
+	    	 logger.error("No data available for given id.");
+	    	 throw new ResourceNotFoundException("No data available for given id.");
+	     }
 	  
 	     String recordBagKey = files.get(files.size()-1).getKey();
 		  
@@ -423,8 +434,11 @@ public class DownloadServiceImpl implements DownloadService {
 		 ByteArrayOutputStream out = new ByteArrayOutputStream();
 //		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
-
-          logger.debug("Pulling data from bucket="+preservationBucket);
+		 logger.info("Pulling data from bucket 1="+preservationBucket +" recordbagkey:"+recordBagKey + " :: "
+		 		+ " filename ::"+filename );
+          logger.debug("Pulling data from bucket 2="+preservationBucket+" recordbagkey:"+recordBagKey + " :: "
+  		 		+ " filename ::"+filename);
+          
 		  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
 		  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
 		  ZipEntry entry; 
