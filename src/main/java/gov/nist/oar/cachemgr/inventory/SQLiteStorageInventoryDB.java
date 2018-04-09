@@ -41,8 +41,8 @@ public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
     public SQLiteStorageInventoryDB(String filepath) {
         // we're allowing the file path to include the jdbc URL prefix.
         super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
-        dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath
-                                                       : filepath.substring("jdbc:sqlite:".length());
+        dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length())
+                                                       : filepath;
     }
 
     /**

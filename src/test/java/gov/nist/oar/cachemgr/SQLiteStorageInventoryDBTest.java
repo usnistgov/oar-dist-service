@@ -27,7 +27,8 @@ import gov.nist.oar.cachemgr.inventory.SQLiteStorageInventoryDB;
 
 import java.io.IOException;
 import java.io.File;
-import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
@@ -63,20 +64,41 @@ public class SQLiteStorageInventoryDBTest extends SQLiteStorageInventoryDB {
         return out;
     }
 
+    List<String> getStringColumn(ResultSet rs, int colindex) throws SQLException {
+        ArrayList<String> out = new ArrayList<String>();
+        // rs.first();
+        while (rs.next()) {
+            out.add(rs.getString(colindex));
+        }
+        return out;
+    }
+
+    List<String> getStringColumn(ResultSet rs, String colname) throws SQLException {
+        ArrayList<String> out = new ArrayList<String>();
+        // rs.first();
+        while (rs.next()) {
+            out.add(rs.getString(colname));
+        }
+        return out;
+    }
+
     @Test
     public void testInit() throws IOException, SQLException, InventoryException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());
         Connection conn = DriverManager.getConnection("jdbc:sqlite:"+dbf.toString());
         DatabaseMetaData dmd = conn.getMetaData();
-        String[] types = (String[]) dmd.getTableTypes().getArray(1).getArray();
-        int i = 0;
-        for (i=0; i < types.length; i++) {
-            if (types[i] == "TABLE") break;
-        }
-        if (i >= types.length)
-            fail("No Tables defined in DB");
 
+        // check that we have tables defined
+        List<String> svals = getStringColumn(dmd.getTableTypes(), 1);
+        assertTrue(svals.contains("TABLE"));
+
+        // check that our tables are defined
+        String[] ss = { "TABLES" };
+        svals = getStringColumn(dmd.getTables(null, null, null, ss), "TABLE_NAME");
+        assertTrue("Missing volumes table", svals.contains("volumes"));
+        assertTrue("Missing algorithms table", svals.contains("algorithms"));
+        assertTrue("Missing objects table", svals.contains("objects"));
     }
 
 
