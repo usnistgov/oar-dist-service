@@ -43,7 +43,6 @@ public class ResourceNotFoundException extends RuntimeException {
 	 * @param requestUrl String
 	 */
 	public ResourceNotFoundException(String requestUrl){
-		
 		super("Resource you are looking for is not available.");
 		this.setRequestUrl(requestUrl);
 	}
