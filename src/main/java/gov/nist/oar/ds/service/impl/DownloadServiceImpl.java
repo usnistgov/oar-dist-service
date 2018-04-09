@@ -433,6 +433,13 @@ public class DownloadServiceImpl implements DownloadService {
 	    	 }
 	     }
 	     
+	     if(recordBagKey.isEmpty() || recordBagKey.equals("")) 
+	     {
+	    	 logger.info("recordBagKey is empty?:"+recordBagKey);
+	    	 logger.error("There is no bag available for given data id. Check the format/extension of bag.");
+	    	 throw new ResourceNotFoundException("There is no bag available for given data id.");
+	     } 
+	     
 	     logger.info("Filename: "+ recordBagKey);
 
 		  
