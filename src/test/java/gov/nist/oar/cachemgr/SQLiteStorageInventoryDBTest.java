@@ -39,12 +39,12 @@ import java.sql.SQLException;
 /**
  * this test also tests the JDBCStorageInventoryDB implementation
  */
-public class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
+public class SQLiteStorageInventoryDBTest extends SQLiteStorageInventoryDB {
 
     @Rule
     public final TemporaryFolder tempf = new TemporaryFolder();
 
-    public TestSQLiteStorageInventoryDB() {
+    public SQLiteStorageInventoryDBTest() {
         super("");
         _dburl = null;
     }
@@ -72,7 +72,7 @@ public class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
         String[] types = (String[]) dmd.getTableTypes().getArray(1).getArray();
         int i = 0;
         for (i=0; i < types.length; i++) {
-            if (types[i] == "TAOLE") break;
+            if (types[i] == "TABLE") break;
         }
         if (i >= types.length)
             fail("No Tables defined in DB");
