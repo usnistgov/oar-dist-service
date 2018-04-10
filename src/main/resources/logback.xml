@@ -30,12 +30,12 @@
 
 </appender>
     <logger name="org.springframework.web" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
     </logger>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
     </root>
