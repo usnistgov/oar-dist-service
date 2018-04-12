@@ -94,7 +94,7 @@ public class SQLiteStorageInventoryDBTest extends SQLiteStorageInventoryDB {
         assertTrue(svals.contains("TABLE"));
 
         // check that our tables are defined
-        String[] ss = { "TABLES" };
+        String[] ss = { "TABLE" };
         svals = getStringColumn(dmd.getTables(null, null, null, ss), "TABLE_NAME");
         assertTrue("Missing volumes table", svals.contains("volumes"));
         assertTrue("Missing algorithms table", svals.contains("algorithms"));
