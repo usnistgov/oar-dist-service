@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS volumes (
    id        integer PRIMARY KEY,
    name      text NOT NULL,
    priority  integer, 
-   capacity  integer
+   capacity  integer,
+   metadata  text
 );
 
 CREATE TABLE IF NOT EXISTS objects (
