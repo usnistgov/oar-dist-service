@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.util.function.Consumer;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -74,6 +75,7 @@ import gov.nist.oar.ds.exception.DistributionException;
 import gov.nist.oar.ds.exception.ResourceNotFoundException;
 import gov.nist.oar.ds.s3.S3Wrapper;
 import gov.nist.oar.ds.service.DownloadService;
+import gov.nist.oar.ds.service.BagUtils;
 
 import java.io.ByteArrayInputStream;
 import java.util.zip.ZipEntry;
@@ -402,31 +404,33 @@ public class DownloadServiceImpl implements DownloadService {
 	 
   }
   
- public String extractRecordkey(String recordid){
-	 List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid); 
-	 String recordBagKey = "";
+  public String extractRecordkey(String recordid){
+     List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid); 
+     String recordBagKey = "";
 
-	 if(files.isEmpty()) {
-		 logger.error("No data available for given id.");
-		 throw new ResourceNotFoundException("No data available for given id.");
-	 }else{
-		 for (int i=0; i<files.size();i++){
-			 String ext = FilenameUtils.getExtension(files.get(i).getKey());
-			 if(ext.contains("zip")){
-				 recordBagKey = files.get(i).getKey(); 
-				 break;
-			 }
-		 }
-	 }
-	 if(recordBagKey.isEmpty() || recordBagKey.equals("")) 
-	 {
-		 logger.info("recordBagKey is empty?:"+recordBagKey);
-		 logger.error("There is no bag available for given data id. Check the format/extension of bag.");
-		 throw new ResourceNotFoundException("There is no bag available for given data id.");
-	 } 
-	 logger.info("Filename: "+ recordBagKey);
-	 return recordBagKey;
- }
+     if (files.isEmpty()) {
+         logger.error("No data available for given id.");
+         throw new ResourceNotFoundException("No data available for given id.");
+     } else {
+         ArrayList<String> bags = new ArrayList<String>(files.size());
+         files.forEach(new Consumer<S3ObjectSummary>() {
+                 public void accept(S3ObjectSummary f) {
+                     String name = f.getKey();
+                     if (name.endsWith(".zip") && BagUtils.isLegalBagName(name))
+                         bags.add(name);
+                 }
+             }
+         );
+         recordBagKey = BagUtils.findLatestHeadBag(bags);
+     }
+     if (recordBagKey.isEmpty() || recordBagKey.equals("")) {
+         logger.info("recordBagKey is empty?:"+recordBagKey);
+         logger.error("There is no bag available for given data id. Check the format/extension of bag.");
+         throw new ResourceNotFoundException(recordid);
+     } 
+     logger.info("Extracting file from bag: "+ recordBagKey);
+     return recordBagKey;
+  }
   
   
   @Override
