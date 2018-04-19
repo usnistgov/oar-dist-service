@@ -19,7 +19,7 @@ import java.io.InputStream;
 
 /**
  * a simple container class used to deliver an InputStream along with 
- * metadata about the stream.  This is metadata that is useful a web 
+ * metadata about the stream.  This is metadata that is useful to a web 
  * service interface, including number of bytes that can/should be read 
  * and an appropriate content-type string.  
  */
