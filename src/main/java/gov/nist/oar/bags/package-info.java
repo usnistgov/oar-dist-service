@@ -29,6 +29,10 @@
  *   <dt> <code>{@link gov.nist.oar.bags.preservation preservation}</code> </dt>
  *   <dd> provides support for bags complying with the NIST preservation bag file. </dd>
  * </dl>
+ * 
+ * This package (and all its subpackages) are independent of all other sibling packages 
+ * under the <code>oar</code> parent package.  In particular, it contains no dependencies 
+ * on the {@link gov.nist.oar.distrib distrib} package.  
  */
 package gov.nist.oar.bags;
 
