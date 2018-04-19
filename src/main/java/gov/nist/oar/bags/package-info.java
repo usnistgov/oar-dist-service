@@ -26,7 +26,7 @@
  * This package provides the OAR system's support for data bags.  It segregates that 
  * support into the following subpackages:
  * <dl>
- *   <dt> preservation </dt>
+ *   <dt> <code>{@link gov.nist.oar.bags.preservation preservation}</code> </dt>
  *   <dd> provides support for bags complying with the NIST preservation bag file. </dd>
  * </dl>
  */
