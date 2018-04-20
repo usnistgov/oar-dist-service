@@ -57,6 +57,11 @@ public class StreamHandle {
     /**
      * initialize this handle with all available data.  The stream and any String may
      * be null, and size should be negative if not known.
+     * @param strm         the InputStream to transport
+     * @param size         the expected number of bytes available on the stream
+     * @param name         a (file) name for the bytes on the stream
+     * @param contentType  the MIME type to associate with the bytes
+     * @param cs           a Checksum for the bytes on the stream
      */
     public StreamHandle(InputStream strm, long size, String name, String contentType,
                         Checksum cs)
@@ -71,7 +76,12 @@ public class StreamHandle {
     /**
      * initialize this handle with all available data.  The stream and any String may
      * be null, and size should be negative if not known.  The algorithm will be set 
-     * to a default for the system
+     * to a default for the system.
+     * @param strm         the InputStream to transport
+     * @param size         the expected number of bytes available on the stream
+     * @param name         a (file) name for the bytes on the stream
+     * @param contentType  the MIME type to associate with the bytes
+     * @param hash         a Checksum hash value for the bytes on the stream
      */
     public StreamHandle(InputStream strm, long size, String name, String contentType,
                         String hash)
@@ -83,7 +93,9 @@ public class StreamHandle {
     /**
      * initialize this handle with all available data.  The stream and may
      * be null, and size should be negative if not known.  The name, contentType, 
-     * hash, and algorithm will be set to null.
+     * and checksum will be set to null.
+     * @param strm         the InputStream to transport
+     * @param size         the expected number of bytes available on the stream
      */
     public StreamHandle(InputStream strm, long size) {
         this(strm, size, null, null, (Checksum) null);
@@ -91,17 +103,17 @@ public class StreamHandle {
 
     /**
      * initialize this handle with all available data.  The stream may be null.  The
-     * name, contentType, hash, and algorithm will all be set to null, and the 
+     * name, contentType, and checksum will all be set to null, and the 
      * size will be set to -1.
+     * @param strm         the InputStream to transport
      */
     public StreamHandle(InputStream strm) {
         this(strm, -1L, null, null, (Checksum) null);
     }
 
     /**
-     * initialize this handle with all available data.  The stream and any String may
-     * be null, and size should be negative if not known.  The algorithm will be set 
-     * to null.
+     * initialize an empty handle.  The size will be set to -1, and all other data will 
+     * be set to null.
      */
     public StreamHandle() { }
 }
