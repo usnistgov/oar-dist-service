@@ -43,18 +43,10 @@ public class StreamHandle {
     public String name = null;
 
     /**
-     * the checksum hash for the bytes on the output data stream.  If null, the 
+     * the checksum calculated for the bytes on the output data stream.  If null, the 
      * hash is not available for this deliverable.
      */
-    public String hash = null;
-
-    /**
-     * the checksum algorithm used to create checksum hash value.  If null, the 
-     * algorithm is intended to known to the system through some other mechanism.
-     * This value should be the string used as a file extension for a file that
-     * holds such a hash.
-     */
-    public String algorithm = null;
+    public Checksum checksum = null;
 
     /**
      * the content type appropriate for the contents of the data stream.  If null,
@@ -63,34 +55,29 @@ public class StreamHandle {
     public String contentType = null;
 
     /**
-     * the name for the SHA-256 hash algorithm.  
-     */
-    public static String SHA256 = "sha256";
-
-    /**
      * initialize this handle with all available data.  The stream and any String may
      * be null, and size should be negative if not known.
      */
     public StreamHandle(InputStream strm, long size, String name, String contentType,
-                        String hash, String algorithm)
+                        Checksum cs)
     {
         dataStream = strm;
         this.size = size;
         this.name = name;
         this.contentType = contentType;
-        this.hash = hash;
-        this.algorithm = algorithm;
+        this.checksum = cs;
     }
 
     /**
      * initialize this handle with all available data.  The stream and any String may
      * be null, and size should be negative if not known.  The algorithm will be set 
-     * to null.
+     * to a default for the system
      */
     public StreamHandle(InputStream strm, long size, String name, String contentType,
                         String hash)
     {
-        this(strm, size, name, contentType, hash, null);
+        this(strm, size, name, contentType,
+             (hash == null) ? null : Checksum.sha256(hash));
     }
 
     /**
@@ -99,7 +86,7 @@ public class StreamHandle {
      * hash, and algorithm will be set to null.
      */
     public StreamHandle(InputStream strm, long size) {
-        this(strm, size, null, null, null, null);
+        this(strm, size, null, null, (Checksum) null);
     }
 
     /**
@@ -108,7 +95,7 @@ public class StreamHandle {
      * size will be set to -1.
      */
     public StreamHandle(InputStream strm) {
-        this(strm, -1L, null, null, null, null);
+        this(strm, -1L, null, null, (Checksum) null);
     }
 
     /**

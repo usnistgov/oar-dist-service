@@ -30,16 +30,14 @@ public class StreamHandleTest {
         assertEquals(sh.dataStream, null);
         assertEquals(sh.name, null);
         assertEquals(sh.contentType, null);
-        assertEquals(sh.hash, null);
-        assertEquals(sh.algorithm, null);
+        assertEquals(sh.checksum, null);
         assertEquals(sh.size, -1L);
 
         sh = new StreamHandle(null);
         assertEquals(sh.dataStream, null);
         assertEquals(sh.name, null);
         assertEquals(sh.contentType, null);
-        assertEquals(sh.hash, null);
-        assertEquals(sh.algorithm, null);
+        assertEquals(sh.checksum, null);
         assertEquals(sh.size, -1L);
     }
 
@@ -49,22 +47,21 @@ public class StreamHandleTest {
         String data = "Hello world";
         InputStream strm = new StringBufferInputStream(data);
 
-        StreamHandle sh = new StreamHandle(null, -3, null, null, null, null);
-        assertEquals(sh.dataStream,  null);
-        assertEquals(sh.name,        null);
-        assertEquals(sh.contentType, null);
-        assertEquals(sh.hash,        null);
-        assertEquals(sh.algorithm,   null);
-        assertEquals(sh.size,        -3L);
+        StreamHandle sh = new StreamHandle(null, -3, null, null, (String) null);
+        assertEquals(null, sh.dataStream  );
+        assertEquals(null, sh.name        );
+        assertEquals(null, sh.contentType );
+        assertEquals(null, sh.checksum    );
+        assertEquals( -3L, sh.size        );
 
         sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
-                              "abcdef12345", StreamHandle.SHA256);
-        assertSame(sh.dataStream,    strm);
-        assertEquals(sh.name,        "greeting.txt");
-        assertEquals(sh.contentType, "text/plain");
-        assertEquals(sh.hash,        "abcdef12345");
-        assertEquals(sh.algorithm,   "sha256");
-        assertEquals(sh.size,        11L);
+                              Checksum.sha256("abcdef12345"));
+        assertSame(sh.dataStream, strm);
+        assertEquals("greeting.txt", sh.name);
+        assertEquals("text/plain",   sh.contentType);
+        assertEquals("abcdef12345",  sh.checksum.hash);
+        assertEquals("sha256", sh.checksum.algorithm);
+        assertEquals(11L, sh.size);
     }
 
     @Test
@@ -77,24 +74,22 @@ public class StreamHandleTest {
         assertSame(sh.dataStream,    strm);
         assertEquals(sh.name,        "greeting.txt");
         assertEquals(sh.contentType, "text/plain");
-        assertEquals(sh.hash,        "abcdef12345");
-        assertEquals(sh.algorithm,   null);
+        assertEquals(sh.checksum.hash, "abcdef12345");
+        assertEquals(sh.checksum.algorithm, Checksum.SHA256);
         assertEquals(sh.size,        11L);
 
         sh = new StreamHandle(strm, data.length());
         assertSame(sh.dataStream,    strm);
         assertEquals(sh.name,        null);
         assertEquals(sh.contentType, null);
-        assertEquals(sh.hash,        null);
-        assertEquals(sh.algorithm,   null);
+        assertEquals(sh.checksum, null);
         assertEquals(sh.size,        11L);
 
         sh = new StreamHandle(strm);
         assertSame(sh.dataStream,    strm);
         assertEquals(sh.name,        null);
         assertEquals(sh.contentType, null);
-        assertEquals(sh.hash,        null);
-        assertEquals(sh.algorithm,   null);
+        assertEquals(sh.checksum,    null);
         assertEquals(sh.size,        -1L);
     }
 
