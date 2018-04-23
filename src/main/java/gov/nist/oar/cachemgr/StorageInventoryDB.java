@@ -28,6 +28,10 @@ public interface StorageInventoryDB {
     /**
      * return all the known locations of an object with a given id in the volumes
      * managed by this database.  
+     * @param id   the identifier for the desired object
+     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.
+     * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id) throws InventoryException;
 

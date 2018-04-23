@@ -93,8 +93,37 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     static final String find_sql = "SELECT d.name as name, v.name as volume, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id AND d.objid='";
 
+    /**
+     * return all the known locations of an object with a given id in a specific
+     * volume
+     * @param id      the identifier for the desired object
+     * @param volume  the name of the volume
+     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.  Typically, there should 
+     *                             only be one item in the returned list.  The list will be empty
+     *                             the object is not found.  
+     * @throws InventoryException  if the named volume is not currently registered or if there is
+     *                             an error accessing the underlying database.
+     */
+    public List<CacheObject> findObject(String id, String volume) throws InventoryException {
+        String sql = find_sql + id + "' AND d.volume='" + volume + "';";
+        return _findObject(sql);
+    }
+    
+    /**
+     * return all the known locations of an object with a given id in the volumes
+     * managed by this database.  
+     * @param id   the identifier for the desired object
+     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
     public List<CacheObject> findObject(String id) throws InventoryException {
         String sql = find_sql + id + "';";
+        return _findObject(sql);
+    }
+
+    private List<CacheObject> _findObject(String sql) throws InventoryException {
         String jmd = null;
         JSONObject md = null;
         
@@ -169,6 +198,16 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (algid < 0)
             throw new InventoryException("Not a registered algorithm: " + alg);
 
+        // check to see if we have this record in the database already
+        StringBuilder sb = new StringBuilder(find_sql);
+        sb.append(id).append("' AND d.volume='").append(volname);
+        sb.append("' AND d.name='").append(objname).append("';");
+        List<CacheObject> found = _findObject(sb.toString());
+        for(CacheObject co : found)
+            // remove these entries with the same name
+            removeObject(co.volume, co.name);
+
+        // add the new object name to the database
         try {
             if (_conn == null) connect();
             PreparedStatement stmt = _conn.prepareStatement(add_sql);
