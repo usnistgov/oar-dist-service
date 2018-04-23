@@ -30,6 +30,9 @@ import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 
+import org.json.JSONObject;
+import org.json.JSONException;
+
 import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -40,27 +43,23 @@ import java.sql.SQLException;
 /**
  * this test also tests the JDBCStorageInventoryDB implementation
  */
-public class SQLiteStorageInventoryDBTest extends SQLiteStorageInventoryDB {
+public class SQLiteStorageInventoryDBTest {
 
     @Rule
     public final TemporaryFolder tempf = new TemporaryFolder();
 
-    public SQLiteStorageInventoryDBTest() {
-        super("");
-        _dburl = null;
-    }
-
-    @After
-    public void tearDown() {
-        try { disconnect(); } catch (SQLException ex) {} 
+    class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
+        public TestSQLiteStorageInventoryDB(String fn) { super(fn); }
+        public int do_getVolumeID(String name) throws InventoryException { return getVolumeID(name); }
+        public int do_getAlgorithmID(String name) throws InventoryException {
+            return getAlgorithmID(name);
+        }
     }
 
     String createDB() throws IOException, InventoryException {
         File tf = tempf.newFile("testdb.sqlite");
         String out = tf.getAbsolutePath();
         SQLiteStorageInventoryDB.initializeDB(out);
-        dbfile = out;
-        _dburl = "jdbc:sqlite:"+dbfile;
         return out;
     }
 
@@ -101,6 +100,92 @@ public class SQLiteStorageInventoryDBTest extends SQLiteStorageInventoryDB {
         assertTrue("Missing objects table", svals.contains("objects"));
     }
 
+    @Test
+    public void testCtor() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
 
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        String[] mt = new String[0];
+        assertArrayEquals(mt, sidb.volumes());
+        assertArrayEquals(mt, sidb.checksumAlgorithms());
+    }
+
+    @Test
+    public void testRegisterVolume() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        try {
+            sidb.getVolumeInfo("fundrum");
+            fail("getVolumeInfo() did not throw exception for non-existant volume request");
+        } catch (InventoryException ex) { }
+
+        String[] aneed = new String[] { "fundrum" };
+        sidb.registerVolume("fundrum", 150000, null);
+        assertArrayEquals(aneed, sidb.volumes());
+        JSONObject md = sidb.getVolumeInfo("fundrum");
+        assertEquals(150000, md.getInt("capacity"));
+        assertEquals(null, md.opt("priority"));
+
+        md.put("priority", 5);
+        md.put("color", "red");
+        sidb.registerVolume("fundrum", 200000, md);
+        assertArrayEquals(aneed, sidb.volumes());
+        md = sidb.getVolumeInfo("fundrum");
+        assertEquals(200000, md.getInt("capacity"));
+        assertEquals(5, md.getInt("priority"));
+
+        sidb.registerVolume("foobar", 450000, md);
+        String[] got = sidb.volumes();
+        assertIn("foobar", got);
+        assertIn("fundrum", got);
+        assertEquals(2, got.length);
+        md = sidb.getVolumeInfo("fundrum");
+        assertEquals(200000, md.getInt("capacity"));
+        assertEquals(5, md.getInt("priority"));
+        md = sidb.getVolumeInfo("foobar");
+        assertEquals(450000, md.getInt("capacity"));
+        assertEquals(5, md.getInt("priority"));
+    }
+
+    private <T extends Object> void assertIn(T el, T[] ary) {
+        int i=0;
+        for(i=0; i < ary.length; i++) {
+            if (el.equals(ary[i])) return;
+        }
+        StringBuilder msg = new StringBuilder("\"");
+        msg.append(el.toString()).append('"').append(" is not in {");
+        for(i=0; i < ary.length && i < 3; i++) {
+            msg.append('"').append(ary[i].toString()).append('"');
+            if (i < ary.length-1) msg.append(", ");
+        }
+        if (i < ary.length) msg.append("...");
+        msg.append("}");
+        fail(msg.toString());
+    }
+            
+
+    @Test
+    public void testRegisterAlgorithm() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("sha256");
+        sidb.registerAlgorithm("md5");
+
+        assertEquals(1, sidb.do_getAlgorithmID("sha256"));
+        assertEquals(2, sidb.do_getAlgorithmID("md5"));
+
+        sidb.registerAlgorithm("sha256");
+        assertEquals(1, sidb.do_getAlgorithmID("sha256"));
+        assertEquals(2, sidb.do_getAlgorithmID("md5"));
+
+        String[] algs = sidb.checksumAlgorithms();
+        assertEquals("sha256", algs[0]);
+        assertEquals("md5", algs[1]);
+    }
 }
 

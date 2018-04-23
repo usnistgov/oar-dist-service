@@ -1,4 +1,4 @@
-/**
+/*
  * This software was developed at the National Institute of Standards and Technology by employees of
  * the Federal Government in the course of their official duties. Pursuant to title 17 Section 105
  * of the United States Code this software is not subject to copyright protection and is in the
@@ -13,7 +13,7 @@
  */
 package gov.nist.oar.cachemgr;
 
-import javax.json.JsonObject;
+import org.json.JSONObject;
 
 /**
  * an interface for storing metadata about objects in the cache, including
@@ -38,7 +38,7 @@ public interface StorageInventoryDB {
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
      */
-    public void addObject(String id, String volname, String objname, JsonObject metadata)
+    public void addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException;
 
     /**
@@ -60,4 +60,21 @@ public interface StorageInventoryDB {
      * return the names of cache volumes registered in the database
      */
     public String[] volumes() throws InventoryException;
+
+    /**
+     * create an entry for the given checksum algorithm in the database, making it a recognised 
+     * algorithm.
+     */
+    public void registerAlgorithm(String algname) throws InventoryException;
+
+    /**
+     * add a cache volume that is available for storage to the database.  
+     * @param name      the name to refer to the cache volume as.  This is used as 
+     *                  the volume name in any CacheObject instances returned by 
+     *                  findObject()
+     * @param capacity  the number of bytes of data that this volume can hold.
+     * @param metadata  arbitrary metadata describing this volume.  
+     */
+    public void registerVolume(String name, long capacity, JSONObject metadata)
+        throws InventoryException;
 }

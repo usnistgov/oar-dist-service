@@ -14,9 +14,8 @@
 package gov.nist.oar.cachemgr;
 
 import java.util.Set;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonNumber;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 /**
  * a simple container class representing an object that can be stored in a
@@ -47,7 +46,7 @@ public class CacheObject {
     /**
      * the object metadata
      */
-    protected JsonObject _md = null;
+    protected JSONObject _md = null;
 
     /**
      * initialize the CacheObject with a name and a null volume ID
@@ -70,7 +69,7 @@ public class CacheObject {
     public CacheObject(String name, String vol) {
         this.volume = vol;
         this.name = name;
-        this._md = Json.createObjectBuilder().build();
+        this._md = new JSONObject();
     }
 
     /**
@@ -82,7 +81,7 @@ public class CacheObject {
      * @param vol   the identifer of the volume where the object is located
      *                (may be null)
      */
-    public CacheObject(String name, JsonObject md, String vol) {
+    public CacheObject(String name, JSONObject md, String vol) {
         this.volume = vol;
         this.name = name;
         this._md = md;
@@ -101,7 +100,7 @@ public class CacheObject {
      * @param name   the name of the metadatum
      */
     public boolean hasMetadatum(String name) {
-        return _md.containsKey(name);
+        return _md.has(name);
     }
 
     /**
@@ -110,7 +109,7 @@ public class CacheObject {
     public long getSize() {
         try {
             return getMetadatumLong("size", -1L);
-        } catch (ClassCastException ex) {
+        } catch (JSONException ex) {
             return -1L;
         }
     }
@@ -120,11 +119,13 @@ public class CacheObject {
      * @param name   the name of the metadatum
      * @param defval the value to return if a value is not set for name
      * @returns int  the value of the metadatum
-     * @throws ClassCastException  if the metadatum with the given name is 
+     * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */
     public int getMetadatumInt(String name, int defval) {
-        return _md.getInt(name, defval);
+        if (! _md.has(name))
+            return defval;
+        return _md.getInt(name);
     }
 
     /**
@@ -132,12 +133,13 @@ public class CacheObject {
      * @param name    the name of the metadatum
      * @param defval  the value to return if the name does not have a value.
      * @returns int   the value of the metadatum
-     * @throws ClassCastException  if the metadatum with the given name is 
+     * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */
     public long getMetadatumLong(String name, long defval) {
-        JsonNumber out = _md.getJsonNumber(name);
-        return (out == null) ? defval : out.longValueExact();
+        if (! _md.has(name))
+            return defval;
+        return _md.getLong(name);
     }
 
     /**
@@ -145,10 +147,12 @@ public class CacheObject {
      * @param name   the name of the metadatum
      * @param defval the value to return if a value is not set for name
      * @returns int  the value of the metadatum
-     * @throws ClassCastException  if the metadatum with the given name is 
+     * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */
     public String getMetadatumString(String name, String defval) {
-        return _md.getString(name, defval);
+        if (! _md.has(name))
+            return defval;
+        return _md.getString(name);
     }
 }

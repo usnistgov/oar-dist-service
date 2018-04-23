@@ -14,36 +14,45 @@
 package gov.nist.oar.cachemgr;
 
 /**
- * an exception indicating that something went wrong while accessing the storage inventory.
+ * an exception indicating that something went wrong using the data caching system
  */
-public class InventoryException extends CacheManagementException {
+public class CacheManagementException extends Exception {
 
     /**
      * create an exception with a custom message
      */
-    public InventoryException(String msg, Throwable ex) {
+    public CacheManagementException(String msg, Throwable ex) {
         super(msg, ex);
     }
 
     /**
      * create an exception with a custom message
      */
-    public InventoryException(String msg) {
+    public CacheManagementException(String msg) {
         this(msg, null);
     }
 
     /**
      * create an exception that wraps another exception
      */
-    public InventoryException(Throwable ex) {
-        super(ex);
+    public CacheManagementException(Throwable ex) {
+        super(messageFor(ex), ex);
     }
 
     /**
      * return a message prefix that can introduce a more specific message
      */
     public static String getMessagePrefix() {
-        return "Problem accessing the storage inventory: ";
+        return "Cache management exception encountered: ";
+    }
+
+    protected static String messageFor(Throwable cause) {
+        StringBuilder sb = new StringBuilder(getMessagePrefix());
+        String name = cause.getClass().getSimpleName();
+        if (name != null)
+            sb.append('(').append(name).append(") ");
+        sb.append(cause.getMessage());
+        return sb.toString();
     }
 
 }

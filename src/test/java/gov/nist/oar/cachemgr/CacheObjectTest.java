@@ -21,10 +21,8 @@ import static org.junit.Assert.*;
 import gov.nist.oar.cachemgr.CacheObject;
 
 import java.util.Set;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonNumber;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class CacheObjectTest {
 
@@ -58,13 +56,13 @@ public class CacheObjectTest {
 
     @Test
     public void testMetadata() {
-        JsonObjectBuilder job = Json.createObjectBuilder();
-        job.add("size", 31L);
-        job.add("checksum", "s2h56a256");
-        job.add("checksumAlgorithm", "sha256");
-        job.add("refcount", 3);
+        JSONObject job = new JSONObject();
+        job.put("size", 31L);
+        job.put("checksum", "s2h56a256");
+        job.put("checksumAlgorithm", "sha256");
+        job.put("refcount", 3);
 
-        CacheObject co = new CacheObject("hank", job.build(), null);
+        CacheObject co = new CacheObject("hank", job, null);
 
         assertEquals(co.name, "hank");
         assertNull(co.volume);

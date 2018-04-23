@@ -19,15 +19,9 @@ import gov.nist.oar.cachemgr.InventorySearchException;
 import gov.nist.oar.cachemgr.InventoryMetadataException;
 import gov.nist.oar.cachemgr.CacheObject;
 
-import javax.json.Json;
-import javax.json.JsonReader;
-import javax.json.JsonReaderFactory;
-import javax.json.JsonException;
-import javax.json.stream.JsonParsingException;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReaderFactory;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+import org.json.JSONException;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
@@ -35,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.IOException;
@@ -73,7 +68,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     protected String _dburl = null;
     protected Connection _conn = null;
-    protected JsonReaderFactory jfac = Json.createReaderFactory(null);
+    // protected JsonReaderFactory jfac = Json.createReaderFactory(null);
 
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
@@ -100,7 +95,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public CacheObject[] findObject(String id) throws InventoryException {
         String sql = find_sql + id + "';";
         String jmd = null;
-        JsonObject md = null;
+        JSONObject md = null;
         
         try {
             if (_conn == null) connect();
@@ -109,21 +104,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             ArrayList<CacheObject> out = new ArrayList<CacheObject>();
             while (rs.next()) {
                 jmd = rs.getString("metadata");
-                if (jmd != null) {
-                    try {
-                        md = jfac.createReader(new StringReader(jmd)).readObject();
-                    } catch (JsonParsingException ex) {
-                        throw new InventoryException(ex);
-                    } catch (JsonException ex) {
-                        Throwable cex = ex.getCause();
-                        if (cex != null)
-                            throw new InventoryException(cex);
-                        else
-                            throw new InventoryException(ex);
-                    }
-                } else {
+                if (jmd != null)
+                    md = parseMetadata(jmd);
+                else 
                     md = null;
-                }
                 out.add(new CacheObject(rs.getString("name"), md, rs.getString("volume")));
             }
             return out.toArray(new CacheObject[out.size()]);
@@ -145,7 +129,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
      */
-    public void addObject(String id, String volname, String objname, JsonObject metadata)
+    public void addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException
     {
         // the time the file was added.  It is assumed that the file will actually be copied into the
@@ -169,13 +153,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             try {
                 size = getMetadatumLong(metadata, nm, size);
                 nm = "checksum";
-                csum = metadata.getString(nm, csum);
+                csum = getMetadatumString(metadata, nm, csum);
                 nm = "checksumAlgorithm";
-                alg = metadata.getString(nm, alg);
+                alg = getMetadatumString(metadata, nm, csum);
                 nm = "priority";
-                priority = metadata.getInt(nm, priority);
+                priority = getMetadatumInt(metadata, nm, priority);
             }
-            catch (ClassCastException ex) {
+            catch (JSONException ex) {
                 throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
                                                      ex.getMessage(), nm, ex);
             }
@@ -202,9 +186,20 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-    private long getMetadatumLong(JsonObject md, String name, long defval) {
-        JsonNumber out = md.getJsonNumber(name);
-        return (out == null) ? defval : out.longValueExact();
+    private long getMetadatumLong(JSONObject md, String name, long defval) {
+        if (! md.has(name))
+            return defval;
+        return md.getLong(name);
+    }
+    private int getMetadatumInt(JSONObject md, String name, int defval) {
+        if (! md.has(name))
+            return defval;
+        return md.getInt(name);
+    }
+    private String getMetadatumString(JSONObject md, String name, String defval) {
+        if (! md.has(name))
+            return defval;
+        return md.getString(name);
     }
     
     /**
@@ -212,7 +207,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      */
     public String[] checksumAlgorithms() throws InventoryException {
         if (_algids == null) loadAlgorithms();
-        return _algids.keySet().toArray(new String[_volids.size()]);
+        return _algids.keySet().toArray(new String[_algids.size()]);
     }
 
     private void loadAlgorithms() throws InventoryException {
@@ -312,6 +307,153 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to remove object " + objname + " from volume " +
                                          volname + ": " + ex.getMessage(), ex);
+        }
+    }
+
+    String add_alg_sql = "INSERT INTO algorithms(name) VALUES (?)";
+
+    /**
+     * create an entry for the given checksum algorithm in the database, making it a recognised 
+     * algorithm.
+     */
+    public void registerAlgorithm(String algname) throws InventoryException {
+        if (getAlgorithmID(algname) >= 0)
+            // the name is already registered; don't add again
+            return;
+        
+        try {
+            if (_conn == null) connect();
+            PreparedStatement stmt = _conn.prepareStatement(add_alg_sql);
+            stmt.setString(1, algname);
+
+            stmt.executeUpdate();
+            loadAlgorithms();
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failed to register new algorithm into DB ("+algname+
+                                         "): "+ex.getMessage(), ex);
+        }
+    }
+
+    String add_vol_sql = "INSERT INTO volumes(name,capacity,priority,metadata) VALUES (?,?,?,?)";
+    String upd_vol_sql = "UPDATE volumes SET capacity=?, priority=?, metadata=? where name=?";
+
+    /**
+     * add a cache volume that is available for storage to the database.  
+     * @param name      the name to refer to the cache volume as.  This is used as 
+     *                  the volume name in any CacheObject instances returned by 
+     *                  findObject()
+     * @param capacity  the number of bytes of data that this volume can hold.
+     * @param metadata  arbitrary metadata describing this volume.  This can be null.
+     */
+    public void registerVolume(String name, long capacity, JSONObject metadata)
+        throws InventoryException
+    {
+        int id = getVolumeID(name);
+        
+        Integer priority = null;
+        String nm = "priority", jmd = null;
+        if (metadata != null) {
+            try {
+                priority = (Integer) metadata.get(nm);
+            }
+            catch (JSONException ex) {
+                throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
+                                                     ex.getMessage(), nm, ex);
+            }
+            jmd = metadata.toString();
+        }
+        
+        if (id < 0) {
+            try {
+                // not registered yet
+                if (_conn == null) connect();
+                PreparedStatement stmt = _conn.prepareStatement(add_vol_sql);
+                stmt.setString(1, name);
+                stmt.setLong(2, capacity);
+                if (priority == null)
+                    stmt.setNull(3, Types.INTEGER);
+                else
+                    stmt.setInt(3, priority.intValue());
+                if (jmd == null)
+                    stmt.setNull(4, Types.VARCHAR);
+                else
+                    stmt.setString(4, jmd);
+
+                stmt.executeUpdate();
+            }
+            catch (SQLException ex) {
+                throw new InventoryException("Failed to register new volume in DB ("+name+
+                                             "): "+ex.getMessage(), ex);
+            }
+        }
+        else {
+            try {
+                // not registered yet
+                if (_conn == null) connect();
+                PreparedStatement stmt = _conn.prepareStatement(upd_vol_sql);
+                stmt.setLong(1, capacity);
+                if (priority == null)
+                    stmt.setNull(2, Types.INTEGER);
+                else
+                    stmt.setInt(2, priority.intValue());
+                stmt.setString(3, jmd);
+                stmt.setString(4, name);
+
+                stmt.executeUpdate();
+            }
+            catch (SQLException ex) {
+                throw new InventoryException("Failed to update info for registered volume ("+name+
+                                             "): "+ex.getMessage(), ex);
+            }
+        }
+        loadVolumes();
+    }
+
+    String get_vol_info = "SELECT metadata,capacity,priority FROM volumes WHERE name=?";
+
+    /**
+     * return the information associated with the registered storage volume
+     * with the given name.
+     */
+    public JSONObject getVolumeInfo(String name) throws InventoryException {
+        try {
+            if (_conn == null) connect();
+            PreparedStatement stmt = _conn.prepareStatement(get_vol_info);
+            stmt.setString(1, name);
+            ResultSet rs = stmt.executeQuery();
+            if (! rs.next())
+                throw new InventoryException("No volume registered with name="+name);
+
+            JSONObject md = null;
+            String jmd = rs.getString("metadata");
+            if (jmd != null)
+                md = parseMetadata(jmd);
+            if (md == null)
+                md = new JSONObject();
+            if (rs.getObject("capacity") != null)
+                md.put("capacity", rs.getLong("capacity"));
+            if (rs.getObject("priority") != null)
+                md.put("priority", rs.getInt("priority"));
+
+            return md;
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failed to pull info for volume "+name+
+                                         ": "+ex.getMessage(), ex);
+        }
+    }
+
+    private JSONObject parseMetadata(String jencoded) throws InventoryException {
+        try {
+            return new JSONObject(new JSONTokener(jencoded));
+        } catch (JSONException ex) {
+            Throwable cex = ex.getCause();
+            String pfx = "JSON Parsing error: ";
+            if (cex != null)
+                throw new InventoryException(pfx+cex);
+            else
+                throw new InventoryException(pfx+ex);
         }
     }
 
