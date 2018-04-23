@@ -20,6 +20,7 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.*;
 
+import gov.nist.oar.cachemgr.CacheObject;
 import gov.nist.oar.cachemgr.InventoryException;
 import gov.nist.oar.cachemgr.StorageInventoryDB;
 import gov.nist.oar.cachemgr.inventory.JDBCStorageInventoryDB;
@@ -148,6 +149,47 @@ public class SQLiteStorageInventoryDBTest {
         md = sidb.getVolumeInfo("foobar");
         assertEquals(450000, md.getInt("capacity"));
         assertEquals(5, md.getInt("priority"));
+    }
+
+    @Test
+    public void testAddObject() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
+        
+        List<CacheObject> cos = sidb.findObject("1234/goober.json");
+        assertEquals(1, cos.size());
+        assertEquals("1234_goober.json", cos.get(0).name);
+        assertEquals(-1L, cos.get(0).getSize());
+        assertEquals(0, cos.get(0).metadatumNames().size());
+
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
+        cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        assertEquals(-1L, cos.get(0).getSize());
+        assertEquals(0, cos.get(0).metadatumNames().size());
+        assertEquals(-1L, cos.get(0).getSize());
+        assertEquals(0, cos.get(0).metadatumNames().size());
+    }
+
+    @Test
+    public void testFailAddObject() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        
+        try {
+            sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
+            fail("addObject() did not throw exception for non-existant volume request");
+        } catch (InventoryException ex) { }
+
     }
 
     private <T extends Object> void assertIn(T el, T[] ary) {

@@ -30,6 +30,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.IOException;
@@ -90,9 +91,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     static final String find_sql = "SELECT d.name as name, v.name as volume, d.metadata as metadata " +
-        "FROM datasets d, volumes v WHERE d.volume=v.id AND d.id='";
+        "FROM objects d, volumes v WHERE d.volume=v.id AND d.objid='";
 
-    public CacheObject[] findObject(String id) throws InventoryException {
+    public List<CacheObject> findObject(String id) throws InventoryException {
         String sql = find_sql + id + "';";
         String jmd = null;
         JSONObject md = null;
@@ -110,7 +111,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     md = null;
                 out.add(new CacheObject(rs.getString("name"), md, rs.getString("volume")));
             }
-            return out.toArray(new CacheObject[out.size()]);
+            return out;
         }
         catch (SQLException ex) {
             throw new InventorySearchException(ex);
@@ -118,8 +119,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     String add_sql = "INSERT INTO objects(" +
-        "name,size,checksum,algorithm,priority,volume,since,metadata" +
-        ") VALUES (?,?,?,?,?,?,?,?)";
+        "objid,name,size,checksum,algorithm,priority,volume,since,metadata" +
+        ") VALUES (?,?,?,?,?,?,?,?,?)";
     
     /**
      * record the addition of an object to a volume.  The metadata stored with the 
@@ -164,20 +165,21 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                      ex.getMessage(), nm, ex);
             }
         }
-        int algid = getAlgorithmID(volname);
+        int algid = getAlgorithmID(alg);
         if (algid < 0)
             throw new InventoryException("Not a registered algorithm: " + alg);
 
         try {
             if (_conn == null) connect();
             PreparedStatement stmt = _conn.prepareStatement(add_sql);
-            stmt.setString(1, objname);
-            stmt.setLong(2, size);
-            stmt.setString(3, csum);
-            stmt.setInt(4, algid);
-            stmt.setInt(5, priority);
-            stmt.setInt(6, volid);
-            stmt.setString(7, jmd);
+            stmt.setString(1, id);
+            stmt.setString(2, objname);
+            stmt.setLong(3, size);
+            stmt.setString(4, csum);
+            stmt.setInt(5, algid);
+            stmt.setInt(6, priority);
+            stmt.setInt(7, volid);
+            stmt.setString(8, jmd);
 
             stmt.executeUpdate();
         }

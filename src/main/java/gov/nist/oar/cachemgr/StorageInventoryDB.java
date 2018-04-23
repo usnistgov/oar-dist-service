@@ -14,6 +14,7 @@
 package gov.nist.oar.cachemgr;
 
 import org.json.JSONObject;
+import java.util.List;
 
 /**
  * an interface for storing metadata about objects in the cache, including
@@ -28,7 +29,7 @@ public interface StorageInventoryDB {
      * return all the known locations of an object with a given id in the volumes
      * managed by this database.  
      */
-    public CacheObject[] findObject(String id) throws InventoryException;
+    public List<CacheObject> findObject(String id) throws InventoryException;
 
     /**
      * record the addition of an object to a volume.  The metadata stored with the 

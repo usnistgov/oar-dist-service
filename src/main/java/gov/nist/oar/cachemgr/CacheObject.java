@@ -84,7 +84,9 @@ public class CacheObject {
     public CacheObject(String name, JSONObject md, String vol) {
         this.volume = vol;
         this.name = name;
-        this._md = md;
+        _md = md;
+        if (_md == null)
+            _md = new JSONObject();
     }
 
     /**

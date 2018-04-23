@@ -12,11 +12,12 @@ CREATE TABLE IF NOT EXISTS volumes (
 );
 
 CREATE TABLE IF NOT EXISTS objects (
-   name      text NOT NULL,
+   objid     text NOT NULL,
    size      integer,
    checksum  text,
    algorithm integer,
    priority  integer,
+   name      text NOT NULL,
    volume    integer,
    since     integer,
    metadata  text,
