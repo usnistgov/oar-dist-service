@@ -157,6 +157,7 @@ public class SQLiteStorageInventoryDBTest {
         assertTrue(dbf.exists());
 
         TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
         sidb.registerAlgorithm("sha256");
         sidb.registerVolume("foobar", 450000, null);
         sidb.registerVolume("fundrum", 450000, null);
@@ -167,15 +168,54 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(0, cos.get(0).metadatumNames().size());
+        assertEquals(2, cos.get(0).metadatumNames().size());
+        assertTrue("size not in metadata properties",
+                   cos.get(0).metadatumNames().contains("size"));
+        assertTrue("priority not in metadata properties",
+                   cos.get(0).metadatumNames().contains("priority"));
 
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
         cos = sidb.findObject("1234/goober.json");
         assertEquals(2, cos.size());
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(0, cos.get(0).metadatumNames().size());
-        assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(0, cos.get(0).metadatumNames().size());
+        assertEquals(2, cos.get(0).metadatumNames().size());
+        assertEquals(-1L, cos.get(1).getSize());
+        assertEquals(2, cos.get(1).metadatumNames().size());
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+        md.put("checksum", "abcdef123456");
+        md.put("checksumAlgorithm", "md5");
+        md.put("color", "red");
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", md);
+        cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        CacheObject first=null, second=null;
+        for(CacheObject co : cos) {
+            if (co.name.equals("1234_goober.json"))
+                first = co;
+            else if (co.name.equals("1234_goober_2.json"))
+                second = co;
+        }
+        assertNotNull("Failed to find first registered object", first);
+        assertNotNull("Failed to find 2nd (updated) registered object", second);
+        assertEquals(456L, second.getSize());
+        assertEquals(5, second.metadatumNames().size());
+        assertTrue("size not in metadata properties",
+                   second.metadatumNames().contains("size"));
+        assertTrue("priority not in metadata properties",
+                   second.metadatumNames().contains("priority"));
+        assertTrue("color not in metadata properties",
+                   second.metadatumNames().contains("color"));
+        assertTrue("checksum not in metadata properties",
+                   second.metadatumNames().contains("checksum"));
+        assertTrue("checksumAlgorithm not in metadata properties",
+                   second.metadatumNames().contains("checksumAlgorithm"));
+        assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
+        assertEquals(-1L, first.getSize());
+        assertEquals(2, first.metadatumNames().size());
+        
     }
 
     @Test

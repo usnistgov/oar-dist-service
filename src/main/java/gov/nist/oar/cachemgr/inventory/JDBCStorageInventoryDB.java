@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * an abstract class representing a JDBC-based implementation of a StorageInventoryDB database.
@@ -90,7 +92,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-    static final String find_sql = "SELECT d.name as name, v.name as volume, d.metadata as metadata " +
+    static final String find_sql = "SELECT d.name as name, v.name as volume, d.size as size, "+
+        "d.priority as priority, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id AND d.objid='";
 
     /**
@@ -137,7 +140,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 if (jmd != null)
                     md = parseMetadata(jmd);
                 else 
-                    md = null;
+                    md = new JSONObject();
+                if (rs.getObject("size") != null)
+                    md.put("size", rs.getLong("size"));
+                if (rs.getObject("priority") != null)
+                    md.put("priority", rs.getInt("priority"));
                 out.add(new CacheObject(rs.getString("name"), md, rs.getString("volume")));
             }
             return out;
@@ -185,7 +192,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 nm = "checksum";
                 csum = getMetadatumString(metadata, nm, csum);
                 nm = "checksumAlgorithm";
-                alg = getMetadatumString(metadata, nm, csum);
+                alg = getMetadatumString(metadata, nm, alg);
                 nm = "priority";
                 priority = getMetadatumInt(metadata, nm, priority);
             }
@@ -200,7 +207,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
         // check to see if we have this record in the database already
         StringBuilder sb = new StringBuilder(find_sql);
-        sb.append(id).append("' AND d.volume='").append(volname);
+        sb.append(id).append("' AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
         List<CacheObject> found = _findObject(sb.toString());
         for(CacheObject co : found)
@@ -218,8 +225,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             stmt.setInt(5, algid);
             stmt.setInt(6, priority);
             stmt.setInt(7, volid);
-            stmt.setString(8, jmd);
-
+            stmt.setString(8, ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
+            stmt.setString(9, jmd);
+            
             stmt.executeUpdate();
         }
         catch (SQLException ex) {
@@ -327,7 +335,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         return out.intValue();
     }
 
-    String rm_sql = "DELETE FROM objects WHERE volid=? AND name=?";
+    String rm_sql = "DELETE FROM objects WHERE volume=? AND name=?";
         
     /**
      * record the removal of the object with the given name from the given volume
@@ -344,6 +352,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             PreparedStatement stmt = _conn.prepareStatement(rm_sql);
             stmt.setInt(1, volid);
             stmt.setString(2, objname);
+            stmt.executeUpdate();
         }
         catch (SQLException ex) {
             throw new InventoryException("Failed to remove object " + objname + " from volume " +
