@@ -109,7 +109,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *                             an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id, String volume) throws InventoryException {
-        String sql = find_sql + id + "' AND d.volume='" + volume + "';";
+        String sql = find_sql + id + "' AND v.name='" + volume + "';";
         return _findObject(sql);
     }
     

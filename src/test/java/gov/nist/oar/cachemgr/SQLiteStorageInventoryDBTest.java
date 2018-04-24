@@ -215,6 +215,40 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
         assertEquals(-1L, first.getSize());
         assertEquals(2, first.metadatumNames().size());
+
+        md.put("size", 3196429990L);
+        sidb.addObject("gurn.fits", "foobar", "a9ej_gurn.fits", md);
+        cos = sidb.findObject("gurn.fits");
+        assertEquals(1, cos.size());
+        assertEquals("a9ej_gurn.fits", cos.get(0).name);
+        assertEquals("foobar", cos.get(0).volume);
+        assertEquals(3196429990L, cos.get(0).getSize());
+        assertEquals(4, cos.get(0).getMetadatumInt("priority", 10));
+    }
+
+    @Test
+    public void testFindObjectVolume() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", null);
+
+        List<CacheObject> cos = sidb.findObject("1234/goober.json", "fundrum");
+        assertEquals(1, cos.size());
+        assertEquals("1234_goober.json", cos.get(0).name);
+        assertEquals("fundrum", cos.get(0).volume);
+        
+        cos = sidb.findObject("1234/goober.json", "foobar");
+        assertEquals(1, cos.size());
+        assertEquals("1234_goober.json", cos.get(0).name);
+        assertEquals("foobar", cos.get(0).volume);
         
     }
 
