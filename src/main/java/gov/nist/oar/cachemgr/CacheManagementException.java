@@ -50,7 +50,7 @@ public class CacheManagementException extends Exception {
         StringBuilder sb = new StringBuilder(getMessagePrefix());
         String name = cause.getClass().getSimpleName();
         if (name != null)
-            sb.append('(').append(name).append(") ");
+            sb.append('[').append(name).append("] ");
         sb.append(cause.getMessage());
         return sb.toString();
     }

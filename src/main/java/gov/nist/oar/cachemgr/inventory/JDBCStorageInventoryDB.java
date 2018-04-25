@@ -71,7 +71,6 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     protected String _dburl = null;
     protected Connection _conn = null;
-    // protected JsonReaderFactory jfac = Json.createReaderFactory(null);
 
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
