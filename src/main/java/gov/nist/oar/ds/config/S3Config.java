@@ -39,7 +39,7 @@ public class S3Config {
   private static Logger log = LoggerFactory.getLogger(S3Config.class);
 
   @Bean
-  @Profile({"prod", "test", "dev"})
+  @Profile({"prod",  "dev"})
   public AmazonS3Client s3Client() {
     log.info("Creating s3 client instance");
     InstanceProfileCredentialsProvider provider = new InstanceProfileCredentialsProvider();
@@ -47,7 +47,7 @@ public class S3Config {
   }
   
   @Bean
-  @Profile("default")
+  @Profile({"default","test"})
   public AmazonS3 s3Clientlocal() {
 	    log.info("Creating s3 client instance");
 	   
