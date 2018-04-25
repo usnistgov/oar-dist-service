@@ -30,12 +30,18 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+
 import gov.nist.oar.ds.config.S3Config;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 
-@SpringBootTest
-//@SpringBootConfiguration
-@ContextConfiguration(classes = {S3Config.class})
+//@SpringBootTest
+////@SpringBootConfiguration
+//@ContextConfiguration(classes = {S3Config.class})
 @RunWith(SpringJUnit4ClassRunner.class)
 @TestPropertySource(properties = {
                                   "test.bucket=nist-oar-dev-pres",})
@@ -56,21 +62,27 @@ public class AWSS3LongTermStorageTest {
   
   private AWSS3LongTermStorage s3Storage;// = new AWSS3LongTermStorage();
   
- @Before
-  public void setBefore(){
-
-   org.springframework.test.util.ReflectionTestUtils.setField(AWSS3LongTermStorage.class, "preservationBucket", dataDir);
-   s3Storage = new AWSS3LongTermStorage();
-   s3Storage.preservationBucket = this.dataDir;
+  @Before
+  public void beforeSetup()
+  {
+    s3Storage = new AWSS3LongTermStorage();
+    s3Storage.preservationBucket = dataDir;
+    s3Storage.s3Client = this.beforeEverything();
   }
   
-  @Test
-  public void testValueSetup() {
-    assertEquals("nist-oar-dev-pres", "nist-oar-dev-pres");
+  public AmazonS3 beforeEverything(){
+    return AmazonS3ClientBuilder
+    .standard()
+    .withPathStyleAccessEnabled(true)
+    .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:8001", "us-east-1"))
+    .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
+    .build();
   }
+
   
   @Test
   public void testFileList() throws IDNotFoundException {
+    
     List<String> filenames = new ArrayList<>();
          filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
     assertEquals(s3Storage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);

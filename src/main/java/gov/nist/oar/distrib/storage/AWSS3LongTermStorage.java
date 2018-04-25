@@ -83,7 +83,7 @@ public class AWSS3LongTermStorage implements LongTermStorage {
   @Override
   public Checksum getChecksum(String filename) throws FileNotFoundException {
     logger.info(" get the checksum from s3 bucket file."+preservationBucket);
-    GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename);
+    GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename+".sha256");
 
     S3Object s3Object = s3Client.getObject(getObjectRequest);
     BufferedReader reader = new BufferedReader(new InputStreamReader(s3Object.getObjectContent()));

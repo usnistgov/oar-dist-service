@@ -25,18 +25,12 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import gov.nist.oar.ds.config.S3Config;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 
-@SpringBootTest
-@SpringBootConfiguration
-@ContextConfiguration(classes = {S3Config.class})
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @TestPropertySource(properties = {
     "distservice.ec2storage=/tmp/ec2/",
@@ -54,9 +48,9 @@ public class FilesystemLongTermStorageTest {
   
   @Before
   public void setDir(){
-    logger.info("THIS::"+this.dataDir);
+    logger.info("THIS dir::"+ dataDir);
     fStorage = new FilesystemLongTermStorage();
-    fStorage.dataDir = this.dataDir;
+    fStorage.dataDir = "/tmp/ec2/";
   }
   
   @Test
