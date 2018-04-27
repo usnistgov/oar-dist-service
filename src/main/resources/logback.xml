@@ -29,8 +29,12 @@
   </triggeringPolicy>
 
 </appender>
-    <logger name="org.springframework.web" additivity="false">
-        <level value="DEBUG"/>
+    <logger name="org.springframework" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="SAVE-TO-FILE"/>
+    </logger>
+
+    <logger name="gov.nist.oar.ds" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
     </logger>
@@ -41,4 +45,3 @@
     </root>
 
 </configuration>
-

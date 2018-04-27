@@ -27,8 +27,11 @@ security:
     enable-csrf: false
     
      
+    
 logging:
-  path : /var/log/dist-service/
+  file: distservice.log
+  path : /var/log/dist-service
+  exception-conversion-word: '%wEx'
     
     
     

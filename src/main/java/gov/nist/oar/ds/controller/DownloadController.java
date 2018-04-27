@@ -33,6 +33,7 @@ import org.springframework.http.HttpStatus;
 
 import gov.nist.oar.ds.exception.DistributionException;
 import gov.nist.oar.ds.service.DownloadService;
+import gov.nist.oar.ds.service.BagUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -191,7 +192,7 @@ public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, Ht
 	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
             logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
       
-	  return downloadService.downloadData(dsid,restOfTheUrl);
+          return downloadService.downloadData(dsid, BagUtils.urlDecode(restOfTheUrl));
      
 }
 
