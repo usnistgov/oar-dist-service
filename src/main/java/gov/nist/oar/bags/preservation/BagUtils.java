@@ -28,7 +28,7 @@ import java.io.UnsupportedEncodingException;
 public class BagUtils {
 
     static Pattern bagnamere = Pattern.compile("^(\\w+).mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
-
+    static Pattern bagnamenew = Pattern.compile("^(\\w+).(\\d+).mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
     /**
      * parse a bag name into its meaningful components: id, multibag profile version, 
      * multibag sequence number, and serialization extension (if present).  
@@ -42,7 +42,7 @@ public class BagUtils {
      * @throws ParseException  if the given name does not match the accepted pattern 
      *                         for bag names
      */
-    public static List<String> parseBagName(String name) throws ParseException {
+    public static List<String> parseBagNameWithoutVersion(String name) throws ParseException {
         Matcher m = bagnamere.matcher(name);
         if (! m.find())
             throw new ParseException("Not a legal bag name: "+name, 0);
@@ -52,46 +52,122 @@ public class BagUtils {
         out.add(m.group(3));
 
         String ext = m.group(4);
-        if (m.group(4) == null)  ext = "";
+        if (m.group(4) == null) 
+          ext = "";
         out.add(ext);
 
         if (out.get(3).startsWith("."))
             out.set(3, out.get(3).substring(1));
         return out;
     }
+    
+    public static List<String> parseBagNameWithVersion(String name) throws ParseException {
+      Matcher m = bagnamenew.matcher(name);
+      if (! m.find())
+          throw new ParseException("Not a legal bag name: "+name, 0);
+      ArrayList<String> out = new ArrayList<String>(5);
+      out.add(m.group(1));
+      out.add(m.group(2));
+      out.add(m.group(3));
+      out.add(m.group(4));
 
+      String ext = m.group(5);
+      if (m.group(5) == null) 
+          ext = "";
+      out.add(ext);
+
+      if (out.get(4).startsWith("."))
+          out.set(4, out.get(4).substring(1));
+      return out;
+  }
+    public static List<String> parseBagName(String name) throws ParseException {
+      
+      Matcher m = bagnamere.matcher(name);
+      if(m.matches())
+          return  parseBagNameWithoutVersion(name);
+      else {
+        
+        m = bagnamenew.matcher(name);
+        if(m.matches())
+          return parseBagNameWithVersion(name);
+      }
+      return new ArrayList<>();
+    }
     /**
      * return true if the file is a legal bag name.  The name may or may not contain a 
      * serialization extension (e.g. ".zip").  
      * @param name   the bag name to judge
      */
     public static boolean isLegalBagName(String name) {
-        return bagnamere.matcher(name).matches();
+        
+      return  (bagnamere.matcher(name).matches() || bagnamenew.matcher(name).matches());
+      
     }
 
     static class VersionComparator implements Comparator<String> {
-        public VersionComparator() {}
+        public VersionComparator() {
+          //Default Constructor
+        }
+        @Override
         public boolean equals(Object obj) {
             return (obj instanceof VersionComparator);
         }
+        @Override
         public int compare(String v1, String v2) {
             String[] f1 = v1.split("[_\\.]");
             String[] f2 = v2.split("[_\\.]");
             int c = 0;
             for (int i=0; i < f1.length && i < f2.length; i++) {
                 c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
-                if (c != 0) return c;
+                if (c != 0) 
+                  return c;
             }
             return c;
         }
     }
+    
+    static class BagVersionComparator implements Comparator<String> {
+      public 
+      BagVersionComparator() {
+        //Default Constructor
+      }
+      @Override
+      public boolean equals(Object obj) {
+          return (obj instanceof VersionComparator);
+      }
+      @Override
+      public int compare(String v1, String v2) {
+          String[] f1 = v1.split("[\\.\\.mbag\\_\\-]");
+          String[] f2 = v2.split("[\\.\\.mbag\\_\\-]");
+          int c = 0;
+          for (int i=0; i < f1.length && i < f2.length; i++) {
+            try{
+              c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
+              if (c != 0) 
+                return c;
+            }catch(NumberFormatException ne){
+              
+              
+            }
+//            if( i == 1){
+//              c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
+//              if (c != 0) 
+//                return c;
+//            }
+          }
+          return c;
+      }
+  }
 
     static class NameComparator implements Comparator<String> {
-        public NameComparator() {}
+        public NameComparator() {
+          //Default Constructor
+        }
+        @Override
         public boolean equals(Object obj) {
             return (obj instanceof NameComparator);
         }
-
+        @Override
         public int compare(String n1, String n2) {
             List<String> p1 = null, p2 = null;
 
@@ -104,18 +180,22 @@ public class BagUtils {
 
             // compare bag id
             int c = p1.get(0).compareTo(p2.get(0));
-            if (c != 0) return c;
+            if (c != 0) 
+              return c;
 
             // compare the multibag sequence number.
             //
             // It is possible for a NumberFormatException to be thrown, but
             // it normally should not. 
-            c = (new Integer(p1.get(2))).compareTo(new Integer(p2.get(2)));
-            if (c != 0) return c;
+            //c = (new Integer(p1.get(2))).compareTo(new Integer(p2.get(2)));
+            c= bagversion_cmp.compare(p1.get(2), p2.get(2));
+            if (c != 0) 
+              return c;
 
             // compare the multibag profile version
             c = version_cmp.compare(p1.get(1), p2.get(1));
-            if (c != 0) return c;
+            if (c != 0) 
+              return c;
 
             // this effectively sorts alphabetically by the serialization extension
             return n1.compareTo(n2);
@@ -124,6 +204,7 @@ public class BagUtils {
 
     static Comparator<String> version_cmp = new VersionComparator();
     static Comparator<String> name_cmp    = new NameComparator();
+    static Comparator<String> bagversion_cmp    = new BagVersionComparator();
     
     /**
      * return a Comparator for sorting bag names
@@ -141,7 +222,14 @@ public class BagUtils {
     public static Comparator<String> versionComparator() {
         return version_cmp;
     }
-
+    
+   /**
+    * 
+    * @return
+    */
+    public static Comparator<String> bagVersionComparator() {
+      return bagversion_cmp;
+    }
     /**
      * return the latest head bag from the List of bag names.  Each item in the list 
      * must be a legal bag name (see isLegalBagName()) and have the same identifier.
@@ -151,9 +239,16 @@ public class BagUtils {
      * @return String  - the name of the latest head bag in the list
      */
     public static String findLatestHeadBag(List<String> bagnames) {
-        ArrayList<String> sortable = new ArrayList<String>(bagnames);
+        ArrayList<String> sortable = new ArrayList<>(bagnames);
         sortable.sort(bagNameComparator());
         return sortable.get(sortable.size()-1);
     }
+    
+    
+    public static String findLatestHeadBagWithBagVersion(List<String> bagnames) {
+      ArrayList<String> sortable = new ArrayList<>(bagnames);
+      sortable.sort(bagVersionComparator());
+      return sortable.get(sortable.size()-1);
+  }
 }
 

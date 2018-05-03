@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: default
+    active: test,FileStorage
   cloud:
     config:
       uri: http://localhost:8084
@@ -32,6 +32,8 @@ logging:
   file: distservice.log
   path : /var/log/dist-service
   exception-conversion-word: '%wEx'
-    
-    
+
+
+distservice:
+  ec2storage: /tmp/s3/
     

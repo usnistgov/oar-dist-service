@@ -166,7 +166,6 @@ public class DownloadServiceImpl implements DownloadService {
     for (S3ObjectSummary sum : bagSummaries) {
       results.add(sum.getKey());
     }
-
     return results;
   }
 

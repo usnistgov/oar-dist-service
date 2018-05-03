@@ -15,11 +15,14 @@ package gov.nist.oar.bags.preservation;
 
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Before;
 import org.junit.After;
 import static org.junit.Assert.*;
 
 import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.ds.service.impl.DownloadServiceImpl;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -30,7 +33,8 @@ import java.util.Arrays;
 import java.util.ArrayList;
 
 public class BagUtilsTest {
-
+    
+    Logger logger = LoggerFactory.getLogger(BagUtilsTest.class);
     public BagUtilsTest() {}
 
     @Test
@@ -41,11 +45,34 @@ public class BagUtilsTest {
         assertTrue(BagUtils.isLegalBagName("goober.mbag0_3-13.zip"));
         assertTrue(BagUtils.isLegalBagName("goober.mbag10_22-13.tar.gz"));
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.mbag10_22-13.tar.gz"));
+        ///Test bagname with bagversion version
+        assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
+        assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.67.mbag10_22-13.tar.gz"));
         
         assertFalse(BagUtils.isLegalBagName("go.ober.mbag10_22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.mbag10.22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.mbag10_22+13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.multibag10_22-13.tar.gz"));
+        //Test the names with bagversion
+        assertFalse(BagUtils.isLegalBagName("go.ober.9.mbag10_22-13.tar.gz"));
+        assertFalse(BagUtils.isLegalBagName("goober.10_34.mbag10.22-13.tar.gz"));
+        
+        
+    }
+    @Test
+    public void testParseNewBagName() throws ParseException{
+     
+      logger.info("TEST Leagal parsing :"+BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
+      logger.info("TEST Legal parsing :"+BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.mbag10_22-13.zip"));
+      ArrayList<String> need = new ArrayList<String>(Arrays.asList("6376FC675D0E1D77E0531A5706812BC21886","02","10_22","13","zip"));
+      ArrayList<String> test = (ArrayList<String>) BagUtils.parseBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip");
+      
+      assertEquals(need,test);
+      
+      need.set(4, "");
+      assertEquals(need, BagUtils.parseBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13"));
+      need.set(4, "tar.gz");
+      assertEquals(need, BagUtils.parseBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.tar.gz"));
     }
     
     @Test
@@ -72,6 +99,8 @@ public class BagUtilsTest {
         need.set(0, "691DDF3315711C14E0532457068146BE1907");
         assertEquals(need,
                      BagUtils.parseBagName("691DDF3315711C14E0532457068146BE1907.mbag10_223-2.tar.gz"));
+        
+        
     }
     
     @Test
@@ -114,6 +143,7 @@ public class BagUtilsTest {
         assertTrue("Compare not positive", vc.compare("3", "0") > 0);
     }
 
+  
     @Test
     public void testNameCompare() {
         Comparator<String> vc = BagUtils.bagNameComparator();
@@ -143,6 +173,37 @@ public class BagUtilsTest {
         
         names.add("goober.mbag1_2-13.7z");
         assertEquals("goober.mbag1_2-13.7z", BagUtils.findLatestHeadBag(names));
+    }
+    
+    @Test
+    public void testBagVersionComparater() {
+        Comparator<String> vc = BagUtils.bagVersionComparator();
+        assertEquals( 0, vc.compare("testname123.04.mbag10_22-13", "testname123.04.mbag10_22-13"));
+        assertTrue("Compare not negative", vc.compare("testname123.04.mbag10_22-13.zip", "testname123.05.mbag10_22-13.zip") < 0);
+        assertTrue("Compare not negative", vc.compare("testname123.04.mbag10_22-13.zip", "testname123.05.mbag10_22-11.zip") < 0);
+        assertTrue("Compare not negative", vc.compare("testname123.mbag10_22-13.zip", "testname123.mbag10_22-14.zip") < 0);
+        assertTrue("Compare not negative", vc.compare("testname123.mbag10_42-13", "testname123.mbag10_22-14") > 0);
+
+        assertTrue("Compare not negative", vc.compare("1.3.3", "1.2.4") > 0);
+        assertTrue("Compare not positive", vc.compare("1.5.3", "1.2.3") > 0);
+
+       assertTrue("Compare not negative", vc.compare("0", "3") < 0);
+       assertTrue("Compare not positive", vc.compare("3", "0") > 0);
+    }
+    
+    @Test
+    public void testFindLastHeadBagWithBagVersion() {
+        ArrayList<String> names = new ArrayList<String>(4);
+        names.add("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-14.zip");
+       
+        //assertEquals("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13", BagUtils.findLatestHeadBagWithBagVersion(names));
+
+        names.add("6376FC675D0E1D77E0531A5706812BC21886.04.mbag10_22-15.zip");
+        names.add("6376FC675D0E1D77E0531A5706812BC21886.03.mbag10_22-16.zip");
+        names.add("6376FC675D0E1D77E0531A5706812BC21886.04.mbag10_22-12.zip");
+        names.add("6376FC675D0E1D77E0531A5706812BC21886.03.mbag10_22-13.zip");
+logger.info("TSE::"+BagUtils.findLatestHeadBagWithBagVersion(names).trim());
+        assertEquals("6376FC675D0E1D77E0531A5706812BC21886.04.mbag10_22-15.zip", BagUtils.findLatestHeadBagWithBagVersion(names));
     }
 }
 

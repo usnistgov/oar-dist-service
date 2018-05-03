@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -38,7 +40,7 @@ import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 import gov.nist.oar.ds.exception.ResourceNotFoundException;
 import gov.nist.oar.ds.s3.S3Wrapper;
-import gov.nist.oar.ds.service.BagUtils;
+import gov.nist.oar.bags.preservation.BagUtils;
 
 
 /**
@@ -46,6 +48,8 @@ import gov.nist.oar.ds.service.BagUtils;
  * a long term storage for the data.
  * @author Deoyani Nandrekar-Heinis
  */
+@Service
+@Profile("aws")
 public class AWSS3LongTermStorage implements LongTermStorage {
 
   private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorage.class);

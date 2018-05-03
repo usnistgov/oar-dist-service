@@ -28,7 +28,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 @RefreshScope
-//@ComponentScan(basePackages = {"gov.nist.oar.ds"})
+@ComponentScan(basePackages = {"gov.nist.oar"})
 public class ApplicationConfig {
 
   private static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);

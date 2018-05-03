@@ -26,23 +26,33 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 import gov.nist.oar.ds.exception.ResourceNotFoundException;
-import gov.nist.oar.ds.service.BagUtils;
+import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
+@Service
+@Profile("FileStorage")
 public class FilesystemLongTermStorage implements LongTermStorage {
 
   private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorage.class);
   
   @Value("${distservice.ec2storage}")
   public String dataDir;
+  
+  public FilesystemLongTermStorage(){
+    logger.info("Constructor FilesystemLongTermStorage dataDir/:"+dataDir);
+  }
+  
+
   /**
    * Given an exact file name in the storage, return an InputStream open at the start of the file
    * @param filename, Here filename refers to any file/object present in S3 bucket not the file inside compressed package
@@ -65,8 +75,8 @@ public class FilesystemLongTermStorage implements LongTermStorage {
   @Override
   public Checksum getChecksum(String filename) throws FileNotFoundException {
     
-    logger.info("GetChecksumfor "+filename);
-    logger.info("Directory:"+dataDir);
+    logger.info("FilesystemLongTermStorage GetChecksumfor "+filename);
+    logger.info("FilesystemLongTermStorage Directory:"+dataDir);
    
     RegexFileFilter regfilter=  new RegexFileFilter(this.dataDir+filename+".sha256");
     
@@ -101,7 +111,7 @@ public class FilesystemLongTermStorage implements LongTermStorage {
    }
    
    File file = new File(this.dataDir+filename);
-   logger.info("CheckFileSize" +file.length());
+   logger.info("FilesystemLongTermStorage CheckFileSize" +file.length());
    return file.length();
   }
 
@@ -113,7 +123,8 @@ public class FilesystemLongTermStorage implements LongTermStorage {
    */
   @Override
   public List<String> findBagsFor(String identifier) throws IDNotFoundException {
-  
+    logger.info("List of files FilesystemLongTermStorage dataDir/:"+dataDir);
+    
     List<String> filenames = new ArrayList<>(); 
     File dir = new File(this.dataDir);
     if(!dir.isDirectory()) 
@@ -144,6 +155,7 @@ public class FilesystemLongTermStorage implements LongTermStorage {
   @Override
   public String findHeadBagFor(String identifier) throws IDNotFoundException {
 
+    logger.info("Looking for file in :"+ dataDir);
     return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
     
   }
@@ -158,13 +170,14 @@ public class FilesystemLongTermStorage implements LongTermStorage {
    */
   @Override
   public String findHeadBagFor(String identifier, String version) throws IDNotFoundException {
-
-    return null;
+    logger.info("Looking for file with given version in :"+ dataDir);
+    return BagUtils.findLatestHeadBagWithBagVersion(this.findBagsFor(identifier+"."+version));
   }
 
-  
-
-  
+  //Setters for the data directory
+  public void setDataDir(String dir){
+    dataDir = dir;
+  }
 }
 
 
@@ -181,4 +194,7 @@ class RegexFileFilter implements java.io.FileFilter {
       return pattern.matcher(f.getName()).find();
   }
 
+  
+ 
+  
 }
