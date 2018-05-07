@@ -44,8 +44,8 @@ public class PreservationBagServiceImpl implements PreservationBagService {
 
   /**
    * Returns the List of bags with name starting with given identifier
-   * @param identifier
-   * @return List<String>
+   * @param identifier, String identifier for the record 
+   * @return List<String>, List of bags names available starting with identifier entered
    * @throws IDNotFoundException
    */
   @Override
@@ -57,8 +57,8 @@ public class PreservationBagServiceImpl implements PreservationBagService {
 
   /**
    * Returns the head bag name for given identifier
-   * @param identifier
-   * @return String
+   * @param identifier, String id of the record
+   * @return String, Headbag name
    * @throws IDNotFoundException
    */
   @Override
@@ -70,9 +70,9 @@ public class PreservationBagServiceImpl implements PreservationBagService {
 
   /**
    * Returns the head bag for given identifier and a version of bags.
-   * @param identifier
-   * @param version
-   * @return String
+   * @param identifier, String id of the record
+   * @param version, Bag version
+   * @return String, Headbag name with given id and version
    * @throws IDNotFoundException
    */
   @Override
@@ -83,8 +83,8 @@ public class PreservationBagServiceImpl implements PreservationBagService {
 
   /**
    * Returns the bag  for given complete bag file name
-   * @param bagfile
-   * @return StreamHandle
+   * @param bagfile, Required filename which starts with record identifier
+   * @return StreamHandle, A custom class handler to return data stream with additional information
    * @throws FileNotFoundException
    */
   @Override
@@ -96,8 +96,8 @@ public class PreservationBagServiceImpl implements PreservationBagService {
 
   /**
    * Returns the information of the bag for given bag file name
-   * @param bagfile
-   * @return StreamHandle
+   * @param bagfile, Required filename which starts with record identifier
+   * @return StreamHandle, A custom class handler to return  information about the bag
    * @throws FileNotFoundException
    */
   @Override

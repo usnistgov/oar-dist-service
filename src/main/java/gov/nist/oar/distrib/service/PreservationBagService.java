@@ -26,37 +26,37 @@ import gov.nist.oar.ds.exception.IDNotFoundException;
 public interface PreservationBagService {
   /**
    * Returns the List of bags with name starting with given identifier
-   * @param identifier
-   * @return List<String>
+   * @param identifier, String identifier for the record 
+   * @return List<String>, List of bags names available starting with identifier entered
    * @throws IDNotFoundException
    */
   List<String> listBags(String identifier) throws IDNotFoundException;
   /**
    * Returns the head bag name for given identifier
-   * @param identifier
-   * @return String
+   * @param identifier, String id of the record
+   * @return String, Headbag name
    * @throws IDNotFoundException
    */
   String getHeadBagName(String identifier) throws IDNotFoundException ;
   /**
    * Returns the head bag for given identifier and a version of bags.
-   * @param identifier
-   * @param version
-   * @return String
+   * @param identifier, String id of the record
+   * @param version, Bag version
+   * @return String, Headbag name with given id and version
    * @throws IDNotFoundException
    */
   String getHeadBagName(String identifier, String version) throws IDNotFoundException;
   /**
    * Returns the bag  for given complete bag file name
-   * @param bagfile
-   * @return StreamHandle
+   * @param bagfile, Required filename which starts with record identifier
+   * @return StreamHandle, A custom class handler to return data stream with additional information
    * @throws FileNotFoundException
    */
   StreamHandle getBag(String bagfile) throws FileNotFoundException;
   /**
    * Returns the information of the bag for given bag file name
-   * @param bagfile
-   * @return StreamHandle
+   * @param bagfile, Required filename which starts with record identifier
+   * @return StreamHandle, A custom class handler to return  information about the bag
    * @throws FileNotFoundException
    */
   StreamHandle getInfo(String bagfile) throws FileNotFoundException;
