@@ -49,13 +49,13 @@ public class FilesystemLongTermStorageTest {
   
   @Autowired
   private FilesystemLongTermStorage fStorage;
-//  FilesystemLongTermStorage fStorage;
+  //  FilesystemLongTermStorage fStorage;
   
   @Before
   public void setDir(){
     logger.info("THIS dir::"+ dataDir);
-//    fStorage = new FilesystemLongTermStorage();
-//    fStorage.dataDir = "/tmp/ec2/";
+    //    fStorage = new FilesystemLongTermStorage();
+    //    fStorage.dataDir = "/tmp/ec2/";
   }
   
   @Test
@@ -71,8 +71,7 @@ public class FilesystemLongTermStorageTest {
          filenames.add("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip"); 
          filenames.add("6376FC675D0E1D77E0531A5706812BC21886.09.mbag0_2-0.zip");
          filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
-
-         
+ 
     assertEquals(fStorage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
   }
   
@@ -90,7 +89,6 @@ public class FilesystemLongTermStorageTest {
     assertEquals(filelength,60854);
   } 
       
-  
   //Need to update deatils to compare two file streams
   @Test
   public void testFileStream() throws FileNotFoundException  {

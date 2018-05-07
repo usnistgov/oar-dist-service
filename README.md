@@ -31,6 +31,16 @@ oar-config/                    							--> main folder
    			/test/resources/							--> unit and integration test resources 
     	pom.xml 										--> maven pom file
 ```
+
+## Developers Notes
+PreservationBag Service:
+This service connects to long term data storage and returns either given file, package(bag) or the information  about the bag.
+Long term storage can be on Amazon S3 or local or ec2 filesystem. To help enable Long term storage in given instance,
+Developer can set property "aws" or "FileStorage" in addition to "prod","dev","test" properties in spring properties.
+E.g. spring.profiles.active: dev, FileStorage or
+     spring.profiles.active: prod,aws
+
+
 ## Contributing
 
 1. Fork it!

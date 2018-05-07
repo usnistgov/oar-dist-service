@@ -62,7 +62,7 @@ public class BagUtilsTest {
     @Test
     public void testParseNewBagName() throws ParseException{
      
-      logger.info("TEST Leagal parsing :"+BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
+      logger.info("TEST Legal parsing :"+BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
       logger.info("TEST Legal parsing :"+BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.mbag10_22-13.zip"));
       ArrayList<String> need = new ArrayList<String>(Arrays.asList("6376FC675D0E1D77E0531A5706812BC21886","02","10_22","13","zip"));
       ArrayList<String> test = (ArrayList<String>) BagUtils.parseBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip");

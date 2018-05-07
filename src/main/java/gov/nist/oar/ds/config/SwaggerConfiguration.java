@@ -33,7 +33,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @Configuration
 @EnableSwagger2
-@ComponentScan({"gov.nist.oar.ds"})
+//@ComponentScan({"gov.nist.oar.ds"})
 /**
  * Swagger configuration class takes care of Initializing swagger
  *  to be used to generate documentation for the code.
@@ -59,7 +59,7 @@ public class SwaggerConfiguration {
   public Docket api() {
 	
 	 return new Docket(DocumentationType.SWAGGER_2).select()
-			 .apis(RequestHandlerSelectors.basePackage("gov.nist.oar.ds"))
+			 .apis(RequestHandlerSelectors.any())
 			 .paths(PathSelectors.any())
 			 .build().apiInfo(apiInfo());
   }

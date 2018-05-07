@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: test,FileStorage
+    active: test,aws
   cloud:
     config:
       uri: http://localhost:8084

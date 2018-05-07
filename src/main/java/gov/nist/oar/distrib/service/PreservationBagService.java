@@ -19,18 +19,45 @@ import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 
 /**
+ * Service interface to get Perservation bags and information
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public interface preservationservice {
-  
+public interface PreservationBagService {
+  /**
+   * Returns the List of bags with name starting with given identifier
+   * @param identifier
+   * @return List<String>
+   * @throws IDNotFoundException
+   */
   List<String> listBags(String identifier) throws IDNotFoundException;
-  
+  /**
+   * Returns the head bag name for given identifier
+   * @param identifier
+   * @return String
+   * @throws IDNotFoundException
+   */
   String getHeadBagName(String identifier) throws IDNotFoundException ;
-
+  /**
+   * Returns the head bag for given identifier and a version of bags.
+   * @param identifier
+   * @param version
+   * @return String
+   * @throws IDNotFoundException
+   */
   String getHeadBagName(String identifier, String version) throws IDNotFoundException;
-  
+  /**
+   * Returns the bag  for given complete bag file name
+   * @param bagfile
+   * @return StreamHandle
+   * @throws FileNotFoundException
+   */
   StreamHandle getBag(String bagfile) throws FileNotFoundException;
-  
+  /**
+   * Returns the information of the bag for given bag file name
+   * @param bagfile
+   * @return StreamHandle
+   * @throws FileNotFoundException
+   */
   StreamHandle getInfo(String bagfile) throws FileNotFoundException;
 }
