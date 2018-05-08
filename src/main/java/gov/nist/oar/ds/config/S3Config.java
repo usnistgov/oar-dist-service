@@ -48,7 +48,7 @@ public class S3Config {
   
   @Bean
 //  @Profile({"default","test","aws"})
-  @Profile({"test","aws"})
+  @Profile({"default","test"})
   public AmazonS3 s3Clientlocal() {
 	    log.info("Creating s3 client instance test aws:");
 	   

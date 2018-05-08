@@ -409,7 +409,7 @@ public class DownloadServiceImpl implements DownloadService {
 	 
   }
   
-  public String extractRecordkey(String recordid){
+  private String extractRecordkey(String recordid){
      List<S3ObjectSummary> files = s3Wrapper.list(preservationBucket, recordid); 
      String recordBagKey = "";
 

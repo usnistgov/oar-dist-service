@@ -2,14 +2,15 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: test,aws
+    active: default,aws
   cloud:
     config:
       uri: http://localhost:8084
        
 server:
     port: 8083
-    contextPath: /oar-dist-service
+    servlet:
+      context-path:  /oar-dist-service
     error:
       include-stacktrace: never
     connection-timeout: 300000

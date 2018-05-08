@@ -34,7 +34,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.ds.controller.DownloadController;
+
 import gov.nist.oar.ds.exception.IDNotFoundException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -42,12 +42,13 @@ import io.swagger.annotations.ApiOperation;
 
 
 @RestController
-@Api(value = "To get data packages and information.", tags = "Preservation Service API")
+@Api(value = "To get data packages and information.", tags = "PreservationBag Service API")
 /**
  * PreservationBagController  provides api to get data packages or to extract information about the packages (bags)
  * @author Deoyani Nandrekar-Heinis
  *
  */
+@RequestMapping(value = "/presbag")
 public class PreservationBagController {
   
   Logger logger = LoggerFactory.getLogger(PreservationBagController.class);

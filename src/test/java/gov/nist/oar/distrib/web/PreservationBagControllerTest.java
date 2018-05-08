@@ -8,25 +8,16 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
- * 
- * @author:Harold Affo (Prometheus Computing, LLC)
+ * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.ds.controller;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import io.swagger.annotations.ApiOperation;
+package gov.nist.oar.distrib.web;
 
 /**
- * This is the index restful controller class
+ * @author Deoyani Nandrekar-Heinis
  *
  */
-//@RestController
-public class IndexController {
+public class PreservationBagControllerTest {
 
+  //private  MockMvc mockMvc;
+  
 }

@@ -15,6 +15,7 @@ package gov.nist.oar.ds.config;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
@@ -24,8 +25,10 @@ import org.springframework.context.annotation.Configuration;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.builders.ResponseMessageBuilder;
+
 import springfox.documentation.schema.ModelRef;
 import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.Contact;
 import springfox.documentation.service.ResponseMessage;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
@@ -33,11 +36,11 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @Configuration
 @EnableSwagger2
-//@ComponentScan({"gov.nist.oar.ds"})
+
 /**
  * Swagger configuration class takes care of Initializing swagger
  *  to be used to generate documentation for the code.
- * @author dsn1 Deoyani Nandrekar-Heinis
+ * @author Deoyani Nandrekar-Heinis
  *
  */
 public class SwaggerConfiguration {
@@ -53,34 +56,33 @@ public class SwaggerConfiguration {
 	}
   @Bean
   /**
-   * Swagger api setting
+   * Swagger API setting
    * @return Docket
    */
   public Docket api() {
 	
 	 return new Docket(DocumentationType.SWAGGER_2).select()
-			 .apis(RequestHandlerSelectors.any())
+			 .apis(RequestHandlerSelectors.basePackage("gov.nist.oar"))
 			 .paths(PathSelectors.any())
-			 .build().apiInfo(apiInfo());
+			 .build()
+			 .apiInfo(apiInfo());
   }
 
   /**
-   * Swagger Api Info
+   * Swagger API Info
    * @return return ApiInfo
    * 
    */
   private ApiInfo apiInfo() {
+    
+    return new ApiInfo(
+      "Data Distribution  APIs", 
+      "Set of services to retrieve data/file or information for given package.", 
+      "Build-2.0.1", 
+      "Terms of service", 
+      new Contact("OAR Help", "data.nist.gov", "oardist@nist.gov"), 
+      "NIST public license", "https://www.nist.gov/director/licensing", Collections.emptyList());
 
-    @SuppressWarnings("deprecation")
-	ApiInfo apiInfo =
-        new ApiInfo("Distribution service api", 
-        		"This REST api provides service endpoint to dowmload data  ",
-        		"Build-2.0",
-        		"This is a web service to get data associated with the data record", 
-        		"deoyani@nist.gov",
-        		"NIST Public licence", 
-        		"https://www.nist.gov/director/licensing");
-    return apiInfo;
   }
 
 
