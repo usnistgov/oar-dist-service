@@ -39,72 +39,71 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import gov.nist.oar.ds.config.S3Config;
 import gov.nist.oar.ds.exception.IDNotFoundException;
 
-//@SpringBootTest
-////@SpringBootConfiguration
-//@ContextConfiguration(classes = {S3Config.class})
-@RunWith(SpringJUnit4ClassRunner.class)
-@TestPropertySource(properties = {
-                                  "test.bucket=nist-oar-dev-pres",})
 
 
 /**
  * This is test class is used to connect to long term storage on AWS S3
  * To test AWSS3LongTermStorage
- * @author Deoyani Nandrekar-Heinis
  *
+ * @author Deoyani Nandrekar-Heinis
  */
+//@SpringBootTest
+////@SpringBootConfiguration
+//@ContextConfiguration(classes = {S3Config.class})
+@RunWith(SpringJUnit4ClassRunner.class)
+@TestPropertySource(properties = {"test.bucket=nist-oar-dev-pres",})
 public class AWSS3LongTermStorageTest {
   
-  private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
+    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
-  @Value("${test.bucket}")
-  String dataDir;
+    @Value("${test.bucket}")
+    String dataDir;
   
-  private AWSS3LongTermStorage s3Storage;// = new AWSS3LongTermStorage();
+    private AWSS3LongTermStorage s3Storage;// = new AWSS3LongTermStorage();
   
-  @Before
-  public void beforeSetup()
-  {
-    s3Storage = new AWSS3LongTermStorage();
-    s3Storage.preservationBucket = dataDir;
-    s3Storage.s3Client = this.beforeEverything();
-  }
+    @Before
+    public void beforeSetup()
+    {
+        s3Storage = new AWSS3LongTermStorage();
+        s3Storage.preservationBucket = dataDir;
+        s3Storage.s3Client = this.beforeEverything();
+    }
   
-  public AmazonS3 beforeEverything(){
-    return AmazonS3ClientBuilder
-    .standard()
-    .withPathStyleAccessEnabled(true)
-    .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:8001", "us-east-1"))
-    .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-    .build();
-  }
+    public AmazonS3 beforeEverything(){
+        return AmazonS3ClientBuilder
+            .standard()
+            .withPathStyleAccessEnabled(true)
+            .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:8001", "us-east-1"))
+            .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
+            .build();
+    }
 
   
-  @Test
-  public void testFileList() throws IDNotFoundException {
+    @Test
+    public void testFileList() throws IDNotFoundException {
     
-    List<String> filenames = new ArrayList<>();
-         filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-    assertEquals(s3Storage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
-  }
+        List<String> filenames = new ArrayList<>();
+        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
+        assertEquals(s3Storage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
+    }
   
-  @Test
-  public void testFileChecksum() throws FileNotFoundException  {
-    String hash="379171a0ca303d741f854fb427fc6cfa54f9a0d900c4db64a407fc5b7d81706a";
-    String getChecksumHash = s3Storage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip").hash;
-    assertEquals(getChecksumHash.trim(),hash.trim());
-  }
+    @Test
+    public void testFileChecksum() throws FileNotFoundException  {
+        String hash="379171a0ca303d741f854fb427fc6cfa54f9a0d900c4db64a407fc5b7d81706a";
+        String getChecksumHash = s3Storage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip").hash;
+        assertEquals(getChecksumHash.trim(),hash.trim());
+    }
   
-  @Test
-  public void testFileSize() throws FileNotFoundException  {
-    long filelength = s3Storage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-    assertEquals(filelength,31145);
-  } 
+    @Test
+    public void testFileSize() throws FileNotFoundException  {
+        long filelength = s3Storage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
+        assertEquals(filelength,31145);
+    } 
       
-  @Test
-  public void testFileStream() throws FileNotFoundException  {
-    InputStream is = s3Storage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-    assertEquals(is,is);
-  } 
+    @Test
+    public void testFileStream() throws FileNotFoundException  {
+        InputStream is = s3Storage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
+        assertEquals(is,is);
+    } 
 
 }

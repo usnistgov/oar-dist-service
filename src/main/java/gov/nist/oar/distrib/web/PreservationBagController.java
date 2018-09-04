@@ -44,96 +44,97 @@ import io.swagger.annotations.ApiOperation;
 @RestController
 @Api(value = "To get data packages and information.", tags = "PreservationBag Service API")
 /**
- * PreservationBagController  provides api to get data packages or to extract information about the packages (bags)
- * @author Deoyani Nandrekar-Heinis
+ * A controller that provides the web service API to the 
+ * {@link gov.nist.oar.distrib.service.PreservationBagService PreservationBagService}
  *
+ * @author Deoyani Nandrekar-Heinis
  */
 @RequestMapping(value = "/presbag")
 public class PreservationBagController {
   
-  Logger logger = LoggerFactory.getLogger(PreservationBagController.class);
+    Logger logger = LoggerFactory.getLogger(PreservationBagController.class);
 
-  public static final String CONTENT = "Welcome to the OAR preservation service api";
+    public static final String CONTENT = "Welcome to the OAR preservation service api";
   
-  @Autowired
-  PreservationBagService pres;
+    @Autowired
+    PreservationBagService pres;
 
-  /**
-   * Returns checksum value for given bag by reading contents of .sha256 file
-   * associated with that bag.
-   * @param enter bagfilenname to get the checksum of that file. /checksum/{filename} 
-   * @return String the checksum value
-   * @throws FileNotFoundException
-   */
-  @ApiOperation(value = "Returns checksum for given filename.",nickname = "Get Checksum",notes = "PreservationBag Controller.")
-  @RequestMapping(value = "/checksum/{filename}", method = RequestMethod.GET)
-  public ResponseEntity<String> getChecksum(HttpServletRequest request) throws FileNotFoundException{
-    String restOfTheUrl = (String) request.getAttribute(
-      HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    logger.info("param::"+restOfTheUrl);
-    restOfTheUrl = restOfTheUrl.replace("/checksum/", "");
-    HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
+    /**
+     * Returns checksum value for given bag by reading contents of .sha256 file
+     * associated with that bag.
+     * @param enter bagfilenname to get the checksum of that file. /checksum/{filename} 
+     * @return String the checksum value
+     * @throws FileNotFoundException
+     */
+    @ApiOperation(value = "Returns checksum for given filename.",nickname = "Get Checksum",notes = "PreservationBag Controller.")
+    @RequestMapping(value = "/checksum/{filename}", method = RequestMethod.GET)
+    public ResponseEntity<String> getChecksum(HttpServletRequest request) throws FileNotFoundException{
+        String restOfTheUrl = (String) request.getAttribute(
+                                                            HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        logger.info("param::"+restOfTheUrl);
+        restOfTheUrl = restOfTheUrl.replace("/checksum/", "");
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
 
-    Checksum test = pres.getInfo(restOfTheUrl).checksum;
+        Checksum test = pres.getInfo(restOfTheUrl).checksum;
   
-    return new ResponseEntity<>(test.hash,httpHeaders, HttpStatus.OK);
-  }
+        return new ResponseEntity<>(test.hash,httpHeaders, HttpStatus.OK);
+    }
   
-  /**
-   * Get the Headbag for given record in the long term storage.
-   * @param psId preservation id or Record id
-   * @return String Head bag name
-   * @throws IDNotFoundException
-   */
-  @ApiOperation(value = "Returns Headbag for given identifier/record id.",nickname = "Get Headbag",notes = "PreservationBag Controller.")
-  @RequestMapping(value = "/{psId}/headBag", method = RequestMethod.GET)
-  public ResponseEntity<String> getHeadBag(@PathVariable("psId") String psId) throws IDNotFoundException{ 
-    HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
-    return  new ResponseEntity<>( pres.getHeadBagName(psId),httpHeaders,HttpStatus.OK);
-  }
+    /**
+     * Get the Headbag for given record in the long term storage.
+     * @param psId preservation id or Record id
+     * @return String Head bag name
+     * @throws IDNotFoundException
+     */
+    @ApiOperation(value = "Returns Headbag for given identifier/record id.",nickname = "Get Headbag",notes = "PreservationBag Controller.")
+    @RequestMapping(value = "/{psId}/headBag", method = RequestMethod.GET)
+    public ResponseEntity<String> getHeadBag(@PathVariable("psId") String psId) throws IDNotFoundException{ 
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
+        return  new ResponseEntity<>( pres.getHeadBagName(psId),httpHeaders,HttpStatus.OK);
+    }
   
-  /**
-   * Returns list of the bags associated with given record
-   * @param psId preservation bag id or record id
-   * @return List of bags available for given id
-   * @throws IDNotFoundException 
-   */
-  @ApiOperation(value = "Returns List of Bags.",nickname = "Get ListOfBags",notes = "PreservationBag Controller.") 
-  @RequestMapping(value = "/{psId}/listbags", method = RequestMethod.GET)
-  public ResponseEntity<List<String>> getListBags(@PathVariable("psId") String psId) throws IDNotFoundException{
-    HttpHeaders httpHeaders = new HttpHeaders();
+    /**
+     * Returns list of the bags associated with given record
+     * @param psId preservation bag id or record id
+     * @return List of bags available for given id
+     * @throws IDNotFoundException 
+     */
+    @ApiOperation(value = "Returns List of Bags.",nickname = "Get ListOfBags",notes = "PreservationBag Controller.") 
+    @RequestMapping(value = "/{psId}/listbags", method = RequestMethod.GET)
+    public ResponseEntity<List<String>> getListBags(@PathVariable("psId") String psId) throws IDNotFoundException{
+        HttpHeaders httpHeaders = new HttpHeaders();
     
-    return new ResponseEntity<>(pres.listBags(psId),httpHeaders,HttpStatus.OK);
-  }
+        return new ResponseEntity<>(pres.listBags(psId),httpHeaders,HttpStatus.OK);
+    }
   
-  /**
-   * Downloads the bag for given bagname.
-   * @param request
-   * @return File Stream 
-   * @throws FileNotFoundException
-   */
-  @ApiOperation(value = "Dowloads given bag file.",nickname = "Get Info",notes = "PreservationBag Controller.")
-  @RequestMapping(value = "/download/{bagfile}", method = RequestMethod.GET)
-  public ResponseEntity<InputStreamResource> getInfo(HttpServletRequest request) throws FileNotFoundException{
+    /**
+     * Downloads the bag for given bagname.
+     * @param request
+     * @return File Stream 
+     * @throws FileNotFoundException
+     */
+    @ApiOperation(value = "Dowloads given bag file.",nickname = "Get Info",notes = "PreservationBag Controller.")
+    @RequestMapping(value = "/download/{bagfile}", method = RequestMethod.GET)
+    public ResponseEntity<InputStreamResource> getInfo(HttpServletRequest request) throws FileNotFoundException{
     
     
-    String restOfTheUrl = (String) request.getAttribute(
-      HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    logger.info("param::"+restOfTheUrl);
-    restOfTheUrl = restOfTheUrl.replace("/download/", "");
+        String restOfTheUrl = (String) request.getAttribute(
+                                                            HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        logger.info("param::"+restOfTheUrl);
+        restOfTheUrl = restOfTheUrl.replace("/download/", "");
     
-    StreamHandle stHandle = pres.getBag(restOfTheUrl);
+        StreamHandle stHandle = pres.getBag(restOfTheUrl);
     
-    InputStreamResource inputStreamResource = new InputStreamResource(stHandle.dataStream);
-    HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-    httpHeaders.setContentLength(stHandle.size);
-    httpHeaders.setContentDispositionFormData("attachment",  restOfTheUrl);
+        InputStreamResource inputStreamResource = new InputStreamResource(stHandle.dataStream);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        httpHeaders.setContentLength(stHandle.size);
+        httpHeaders.setContentDispositionFormData("attachment",  restOfTheUrl);
 
-    return  new ResponseEntity<>(inputStreamResource,httpHeaders,HttpStatus.OK);
-  }
+        return  new ResponseEntity<>(inputStreamResource,httpHeaders,HttpStatus.OK);
+    }
   
   
 }

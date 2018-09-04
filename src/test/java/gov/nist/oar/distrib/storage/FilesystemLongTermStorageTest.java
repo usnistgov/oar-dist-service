@@ -42,67 +42,67 @@ import gov.nist.oar.ds.exception.IDNotFoundException;
 })
 public class FilesystemLongTermStorageTest {
   
-  private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
+    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
-  @Value("${distservice.ec2storage}")
-  String dataDir;
+    @Value("${distservice.ec2storage}")
+    String dataDir;
   
-  @Autowired
-  private FilesystemLongTermStorage fStorage;
-  //  FilesystemLongTermStorage fStorage;
+    @Autowired
+    private FilesystemLongTermStorage fStorage;
+    //  FilesystemLongTermStorage fStorage;
   
-  @Before
-  public void setDir(){
-    logger.info("THIS dir::"+ dataDir);
-    //    fStorage = new FilesystemLongTermStorage();
-    //    fStorage.dataDir = "/tmp/ec2/";
-  }
+    @Before
+    public void setDir(){
+        logger.info("THIS dir::"+ dataDir);
+        //    fStorage = new FilesystemLongTermStorage();
+        //    fStorage.dataDir = "/tmp/ec2/";
+    }
   
-  @Test
-  public void testValueSetup() {
-    assertEquals("/tmp/ec2/", dataDir);
-  }
+    @Test
+    public void testValueSetup() {
+        assertEquals("/tmp/ec2/", dataDir);
+    }
   
-  @Test
-  public void testFileList() throws IDNotFoundException {
-    List<String> filenames = new ArrayList<>();
+    @Test
+    public void testFileList() throws IDNotFoundException {
+        List<String> filenames = new ArrayList<>();
 
-         filenames.add("6376FC675D0E1D77E0531A5706812BC21886.03.mbag0_3-0.zip");
-         filenames.add("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip"); 
-         filenames.add("6376FC675D0E1D77E0531A5706812BC21886.09.mbag0_2-0.zip");
-         filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
+        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.03.mbag0_3-0.zip");
+        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip"); 
+        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.09.mbag0_2-0.zip");
+        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
  
-    assertEquals(fStorage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
-  }
+        assertEquals(fStorage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
+    }
   
-  @Test
-  public void testFileChecksum() throws FileNotFoundException  {
-    String hash="a13cd5bf10778618d36cf85b4e353290af2afb8295adc6fcdbdd7e1ff828020c";
-    logger.info("Checksum:"+fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash);
-    String getChecksumHash = fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash;
-    assertEquals(getChecksumHash.trim(),hash.trim());
-  }
+    @Test
+    public void testFileChecksum() throws FileNotFoundException  {
+        String hash="a13cd5bf10778618d36cf85b4e353290af2afb8295adc6fcdbdd7e1ff828020c";
+        logger.info("Checksum:"+fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash);
+        String getChecksumHash = fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash;
+        assertEquals(getChecksumHash.trim(),hash.trim());
+    }
   
-  @Test
-  public void testFileSize() throws FileNotFoundException  {
-    long filelength = fStorage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
-    assertEquals(filelength,60854);
-  } 
+    @Test
+    public void testFileSize() throws FileNotFoundException  {
+        long filelength = fStorage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
+        assertEquals(filelength,60854);
+    } 
       
-  //Need to update deatils to compare two file streams
-  @Test
-  public void testFileStream() throws FileNotFoundException  {
-    InputStream is = fStorage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
-    assertEquals(is,is);
-  } 
+    //Need to update deatils to compare two file streams
+    @Test
+    public void testFileStream() throws FileNotFoundException  {
+        InputStream is = fStorage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
+        assertEquals(is,is);
+    } 
   
-  @Test
-  public void testFileHeadbag() throws IDNotFoundException{
-    String headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886"); 
-    logger.info("Test getHeadbagname:"+headBagName);
-    headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886","03"); 
-    logger.info("Test getHeadbagname:"+headBagName);
-  }
+    @Test
+    public void testFileHeadbag() throws IDNotFoundException{
+        String headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886"); 
+        logger.info("Test getHeadbagname:"+headBagName);
+        headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886","03"); 
+        logger.info("Test getHeadbagname:"+headBagName);
+    }
   
   
 }
