@@ -15,6 +15,8 @@ package gov.nist.oar.distrib;
 
 /**
  * a base or generic exception for problems specific to data distribution system.
+ * 
+ * @author: Raymond Plante
  */
 public class DistributionException extends Exception {
 

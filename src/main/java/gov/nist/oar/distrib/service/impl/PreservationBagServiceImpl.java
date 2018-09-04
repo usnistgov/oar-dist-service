@@ -37,74 +37,71 @@ import gov.nist.oar.ds.exception.IDNotFoundException;
 
 public class PreservationBagServiceImpl implements PreservationBagService {
 
-  private static Logger logger = LoggerFactory.getLogger(PreservationBagServiceImpl.class);
+    private static Logger logger = LoggerFactory.getLogger(PreservationBagServiceImpl.class);
   
-  @Autowired
-  LongTermStorage storage;
+    @Autowired
+    LongTermStorage storage;
 
-  /**
-   * Returns the List of bags with name starting with given identifier
-   * @param identifier, String identifier for the record 
-   * @return List<String>, List of bags names available starting with identifier entered
-   * @throws IDNotFoundException
-   */
-  @Override
-  public List<String> listBags(String identifier) throws IDNotFoundException {
-   
-    logger.info("Get List of bags for given identifier:"+identifier);
-    return  storage.findBagsFor(identifier);   
-  }
+    /**
+     * Returns the List of bag names associated with the AIP having the given identifier
+     * @param identifier     identifier for the AIP 
+     * @return List<String>, list of bags names available starting with identifier entered
+     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     */
+    @Override
+    public List<String> listBags(String identifier) throws IDNotFoundException {
+        logger.info("Get List of bags for given identifier:"+identifier);
+        return  storage.findBagsFor(identifier);   
+    }
 
-  /**
-   * Returns the head bag name for given identifier
-   * @param identifier, String id of the record
-   * @return String, Headbag name
-   * @throws IDNotFoundException
-   */
-  @Override
-  public String getHeadBagName(String identifier) throws IDNotFoundException {
-    
-    logger.info("GetHeadbag for :"+identifier);
-    return storage.findHeadBagFor(identifier);
-  }
+    /**
+     * Returns the head bag name for given identifier
+     * @param identifier     identifier for the AIP 
+     * @return String,       the name of the matching head bag
+     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     */
+    @Override
+    public String getHeadBagName(String identifier) throws IDNotFoundException {
+        logger.info("GetHeadbag for :"+identifier);
+        return storage.findHeadBagFor(identifier);
+    }
 
-  /**
-   * Returns the head bag for given identifier and a version of bags.
-   * @param identifier, String id of the record
-   * @param version, Bag version
-   * @return String, Headbag name with given id and version
-   * @throws IDNotFoundException
-   */
-  @Override
-  public String getHeadBagName(String identifier, String version) throws IDNotFoundException {
-    logger.info("GetHeadbag for :"+identifier +" and version:"+version);
-    return storage.findHeadBagFor(identifier, version);
-  }
+    /**
+     * Returns the head bag for given identifier and a version of bags.
+     * @param identifier     identifier for the AIP 
+     * @param version        the desired version of the AIP
+     * @return String,       the name of the matching head bag
+     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     */
+    @Override
+    public String getHeadBagName(String identifier, String version) throws IDNotFoundException {
+        logger.info("GetHeadbag for :"+identifier +" and version:"+version);
+        return storage.findHeadBagFor(identifier, version);
+    }
 
-  /**
-   * Returns the bag  for given complete bag file name
-   * @param bagfile, Required filename which starts with record identifier
-   * @return StreamHandle, A custom class handler to return data stream with additional information
-   * @throws FileNotFoundException
-   */
-  @Override
-  public StreamHandle getBag(String bagfile) throws FileNotFoundException {
-   
-    logger.info("Get StreamHandle  for bagfile:"+bagfile);
-    return new StreamHandle(storage.openFile(bagfile), storage.getSize(bagfile), bagfile, "",storage.getChecksum(bagfile));
-  }
+    /**
+     * Returns the bag for given complete bag file name
+     * @param bagfile        the name of the serialized bag
+     * @return StreamHandle, a container for an open stream ready to present the bag
+     * @throws FileNotFoundException  if no bags are found associated with the given ID
+     */
+    @Override
+    public StreamHandle getBag(String bagfile) throws FileNotFoundException {
+        logger.info("Get StreamHandle for bagfile:"+bagfile);
+        return new StreamHandle(storage.openFile(bagfile), storage.getSize(bagfile), bagfile, "",
+                                storage.getChecksum(bagfile));
+    }
 
-  /**
-   * Returns the information of the bag for given bag file name
-   * @param bagfile, Required filename which starts with record identifier
-   * @return StreamHandle, A custom class handler to return  information about the bag
-   * @throws FileNotFoundException
-   */
-  @Override
-  public StreamHandle getInfo(String bagfile) throws FileNotFoundException {
-    logger.info("Get StreamHandle info for bagfile:"+bagfile);
-    
-    return new StreamHandle(null, storage.getSize(bagfile), bagfile, "",storage.getChecksum(bagfile));
-  }
+    /**
+     * Returns the information of the bag for given bag file name
+     * @param bagfile        the name of the serialized bag
+     * @return StreamHandle, a container for an open stream ready to present the bag
+     * @throws FileNotFoundException  if no bags are found associated with the given ID
+     */
+    @Override
+    public StreamHandle getInfo(String bagfile) throws FileNotFoundException {
+        logger.info("Get StreamHandle info for bagfile:"+bagfile);
+        return new StreamHandle(null, storage.getSize(bagfile), bagfile, "", storage.getChecksum(bagfile));
+    }
 
 }

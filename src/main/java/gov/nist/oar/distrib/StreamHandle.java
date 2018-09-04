@@ -22,6 +22,8 @@ import java.io.InputStream;
  * metadata about the stream.  This is metadata that is useful to a web 
  * service interface, including number of bytes that can/should be read 
  * and an appropriate content-type string.  
+ * 
+ * @author: Raymond Plante
  */
 public class StreamHandle {
 

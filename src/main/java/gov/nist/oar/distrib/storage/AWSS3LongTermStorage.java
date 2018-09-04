@@ -44,132 +44,135 @@ import gov.nist.oar.bags.preservation.BagUtils;
 
 
 /**
- * AWSS3LongTermStorage class connects  and gets data from AWS S3 storage , 
- * a long term storage for the data.
+ * An implementation of the LongTermStorage interface for accessing files from an AWS-S3 storage bucket.
+ * 
  * @author Deoyani Nandrekar-Heinis
  */
 @Service
 @Profile("aws")
 public class AWSS3LongTermStorage implements LongTermStorage {
 
-  private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorage.class);
+    private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorage.class);
 
-  @Autowired
-  AmazonS3 s3Client;
-  
-  @Value("${cloud.aws.preservation.s3.bucket}")
-  String preservationBucket;
-
-  @Value("${cloud.aws.cache.s3.bucket}")
-  private String cacheBucket;
-  
-  /**
-   * Given an exact file name in the storage, return an InputStream open at the start of the file
-   * @param filename, Here filename refers to any file/object present in S3 bucket not the file inside compressed package
-   * @return InputStream open at the start of the file
-   * @throws FileNotFoundException
-   */
-  @Override
-  public InputStream openFile(String filename) throws FileNotFoundException {
-    logger.info(" Read the file from s3 bucket ::"+preservationBucket);
-    GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename);
-    S3Object s3Object = s3Client.getObject(getObjectRequest);
-    return s3Object.getObjectContent();
-  }
-
-  /**
-   * return the checksum for the given file
-   * @param filename this is name of bag, checksum or any other object present in long term data storage\
-   *        This parameter does not reflect the individual data file which might be present in the package/bundle/bag.
-   * @return Checksum
-   * @throws FileNotFoundException
-   */
-  @Override
-  public Checksum getChecksum(String filename) throws FileNotFoundException {
-    logger.info(" get the checksum from s3 bucket file."+preservationBucket);
-    GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename+".sha256");
-
-    S3Object s3Object = s3Client.getObject(getObjectRequest);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(s3Object.getObjectContent()));
-   
-    String line;
-    try{
-        while((line = reader.readLine()) != null) {
-          return Checksum.sha256(line);
-       }
-     }catch(IOException ie){
-      throw new FileNotFoundException(ie.getMessage());
-     }
-     return null;
-  }
-
-  /**
-   * Return the size of the named file in bytes
-   * @param filename Here filename refers to any file/object present in S3 bucket not the file inside compressed package
-   * @return long
-   * @throws FileNotFoundException
-   */
-  @Override
-  public long getSize(String filename) throws FileNotFoundException {
-    logger.info(" getSize from s3 bucket"+ this.preservationBucket+"and  file : "+filename);
-    return s3Client.getObjectMetadata(preservationBucket, filename).getContentLength();
-  }
-
-  /**
-   * Return all the bags associated with the given ID
-   * @param identifier is the unique record id for given data package
-   * @return String 
-   * @throws IDNotFoundException
-   */
-  @Override
-  public List<String> findBagsFor(String identifier) throws IDNotFoundException {
-
-    logger.info(" Get the list of filenames from s3 bucket which matches the given identifier.");
-    ObjectListing objectListing = s3Client.listObjects(new ListObjectsRequest().withBucketName(preservationBucket));
-    List<S3ObjectSummary> files = objectListing.getObjectSummaries();
+    @Autowired
+    AmazonS3 s3Client;
     
-    if (files.isEmpty()) {
-      logger.error("No data available for given id.");
-      throw new ResourceNotFoundException("No data available for given id.");
-    } 
-    List<String> filenames = new ArrayList<String>(files.size());
-      files.forEach(new Consumer<S3ObjectSummary>() {
-              public void accept(S3ObjectSummary f) {
-                  String name = f.getKey();
-                  if (name.endsWith(".zip") && BagUtils.isLegalBagName(name))
-                    filenames.add(name);
-              }
-          }
-      );
-   
-    return filenames;
-  }
+    @Value("${cloud.aws.preservation.s3.bucket}")
+    String preservationBucket;
 
-  /**
-   * Return the head bag associated with the given ID
-   * @param identifier is the unique record id for given data package
-   * @return String
-   * @throws IDNotFoundException
-   */
-  @Override
-  public String findHeadBagFor(String identifier) throws IDNotFoundException {
+    @Value("${cloud.aws.cache.s3.bucket}")
+    private String cacheBucket;
     
-    logger.info(" Get the head/latest bag for given identifier.");
-    return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
-  }
+    /**
+     * Given an exact file name in the storage, return an InputStream open at the start of the file
+     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
+                         serialized bag or other archive (e.g. zip) file.  
+     * @return InputStream open at the start of the file
+     * @throws FileNotFoundException  if the file with the given filename does not exist
+     */
+    @Override
+    public InputStream openFile(String filename) throws FileNotFoundException {
+        logger.info(" Read the file from s3 bucket ::"+preservationBucket);
+        GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename);
+        S3Object s3Object = s3Client.getObject(getObjectRequest);
+        return s3Object.getObjectContent();
+    }
 
-  /**
-   * Return the name of the head bag for the identifier for given version
-   * @param identifier is the unique record id for given data package
-   * @param version 
-   * @return String
-   * @throws IDNotFoundException
-   */
-  @Override
-  public String findHeadBagFor(String identifier, String version) throws IDNotFoundException {
-    logger.info(" Get the bag for given identifier and version. ");
-   
-    return null;
-  }
+    /**
+     * return the checksum for the given file
+     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
+     *                   serialized bag or other archive (e.g. zip) file.  
+     * @return Checksum, a container for the checksum value
+     * @throws FileNotFoundException  if the file with the given filename does not exist
+     */
+    @Override
+    public Checksum getChecksum(String filename) throws FileNotFoundException {
+        logger.info(" get the checksum from s3 bucket file."+preservationBucket);
+        GetObjectRequest getObjectRequest = new GetObjectRequest(preservationBucket, filename+".sha256");
+
+        S3Object s3Object = s3Client.getObject(getObjectRequest);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(s3Object.getObjectContent()));
+     
+        String line;
+        try{
+            while((line = reader.readLine()) != null) {
+                return Checksum.sha256(line);
+            }
+        }catch(IOException ie){
+            throw new FileNotFoundException(ie.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Return the size of the named file in bytes
+     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
+     *                   serialized bag or other archive (e.g. zip) file.  
+     * @return long, the size of the file in bytes
+     * @throws FileNotFoundException  if the file with the given filename does not exist
+     */
+    @Override
+    public long getSize(String filename) throws FileNotFoundException {
+        logger.info(" getSize from s3 bucket"+ this.preservationBucket+"and  file : "+filename);
+        return s3Client.getObjectMetadata(preservationBucket, filename).getContentLength();
+    }
+
+    /**
+     * Return all the bags associated with the given ID
+     * @param identifier  the AIP identifier for the desired data collection 
+     * @return List<String>, the file names for all bags associated with given ID
+     * @throws IDNotFoundException   if there exist no bags with the given identifier
+     */
+    @Override
+    public List<String> findBagsFor(String identifier) throws IDNotFoundException {
+
+        logger.info(" Get the list of filenames from s3 bucket which matches the given identifier.");
+        ObjectListing objectListing = s3Client.listObjects(new ListObjectsRequest().withBucketName(preservationBucket));
+        List<S3ObjectSummary> files = objectListing.getObjectSummaries();
+      
+        if (files.isEmpty()) {
+            logger.error("No data available for given id.");
+            throw new ResourceNotFoundException("No data available for given id.");
+        } 
+        List<String> filenames = new ArrayList<String>(files.size());
+        files.forEach(new Consumer<S3ObjectSummary>() {
+                public void accept(S3ObjectSummary f) {
+                    String name = f.getKey();
+                    if (name.endsWith(".zip") && BagUtils.isLegalBagName(name))
+                        filenames.add(name);
+                }
+            }
+            );
+     
+        return filenames;
+    }
+
+    /**
+     * Return the head bag associated with the given ID
+     * @param identifier  the AIP identifier for the desired data collection 
+     * @return String, the head bag's file name
+     * @throws IDNotFoundException   if there exist no bags with the given identifier
+     */
+    @Override
+    public String findHeadBagFor(String identifier) throws IDNotFoundException {
+      
+        logger.info(" Get the head/latest bag for given identifier.");
+        return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
+    }
+
+    /**
+     * Return the name of the head bag for the identifier for given version
+     * @param identifier  the AIP identifier for the desired data collection 
+     * @param version     the desired version of the AIP
+     * @return String, the head bag's file name
+     * @throws IDNotFoundException   if there exist no bags with the given identifier
+     */
+     */
+    @Override
+    public String findHeadBagFor(String identifier, String version) throws IDNotFoundException {
+        logger.info(" Get the bag for given identifier and version. ");
+     
+        return null;
+    }
 
 }
