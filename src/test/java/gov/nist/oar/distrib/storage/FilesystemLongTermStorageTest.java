@@ -13,96 +13,190 @@
 package gov.nist.oar.distrib.storage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileWriter;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 
 import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import gov.nist.oar.ds.ApplicationConfig;
-import gov.nist.oar.ds.exception.IDNotFoundException;
+import org.springframework.util.FileSystemUtils;
 
-@SpringBootTest
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {ApplicationConfig.class})
-@TestPropertySource(properties = {
-    "distservice.ec2storage=/tmp/ec2/",
-})
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+
 public class FilesystemLongTermStorageTest {
   
-    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
-
-    @Value("${distservice.ec2storage}")
-    String dataDir;
-  
-    @Autowired
-    private FilesystemLongTermStorage fStorage;
-    //  FilesystemLongTermStorage fStorage;
+    Path testdir = null;
   
     @Before
-    public void setDir(){
-        logger.info("THIS dir::"+ dataDir);
-        //    fStorage = new FilesystemLongTermStorage();
-        //    fStorage.dataDir = "/tmp/ec2/";
+    public void setUp() throws IOException {
+        // create a test directory where we can write stuff
+        Path indir = Paths.get(System.getProperty("user.dir"));
+        if (indir.toFile().canWrite())
+            testdir = Files.createTempDirectory(indir, "_unittest");
+        else
+            testdir = Files.createTempDirectory("_unittest");
+        
+        // setup a little repo
+        String[] bases = {
+            "mds013u4g.1_0_0.mbag0_4-", "mds013u4g.1_0_1.mbag0_4-", "mds013u4g.1_1.mbag0_4-",
+            "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-"
+        };
+        Path f = null;
+        int j = 0;
+        for (String base : bases) {
+            for(int i=0; i < 3; i++) {
+                String bag = base + Integer.toString(j++) + ((i > 1) ? ".7z" : ".zip");
+                f = Paths.get(testdir.toString(), bag);
+                if (! Files.exists(f)) 
+                    Files.createFile(f);
+                try (FileWriter w = new FileWriter(f.toString()+".sha256")) {
+                    w.write("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+                    if (i > 1) {
+                        w.write(" ");
+                        w.write(bag);
+                    }
+                    w.write("\n");
+                }
+            }
+        }
+    }
+  
+    @After
+    public void tearDown(){
+        FileSystemUtils.deleteRecursively(testdir.toFile());
+        testdir = null;
     }
   
     @Test
-    public void testValueSetup() {
-        assertEquals("/tmp/ec2/", dataDir);
-    }
-  
-    @Test
-    public void testFileList() throws IDNotFoundException {
-        List<String> filenames = new ArrayList<>();
+    public void testCtor() throws FileNotFoundException {
+        FilesystemLongTermStorage stor = new FilesystemLongTermStorage(testdir.toString());
+        assertEquals(stor.rootdir.toString(), testdir.toString());
 
-        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.03.mbag0_3-0.zip");
-        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip"); 
-        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.09.mbag0_2-0.zip");
-        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
- 
-        assertEquals(fStorage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
+        assert(! (new File("/goober")).exists());
+        try {
+            stor = new FilesystemLongTermStorage("/goober");
+            fail("Failed to detected nonexistent directory");
+        } catch (FileNotFoundException ex) { }
     }
   
     @Test
-    public void testFileChecksum() throws FileNotFoundException  {
-        String hash="a13cd5bf10778618d36cf85b4e353290af2afb8295adc6fcdbdd7e1ff828020c";
-        logger.info("Checksum:"+fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash);
-        String getChecksumHash = fStorage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.06.mbag0_3-0.zip").hash;
+    public void testFindBagsFor() throws DistributionException, FileNotFoundException {
+        LongTermStorage stor = new FilesystemLongTermStorage(testdir.toString());
+
+        List<String> filenames = new ArrayList<String>();
+        filenames.add("mds013u4g.1_0_0.mbag0_4-0.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-1.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-2.7z");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-3.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-4.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-5.7z");
+        filenames.add("mds013u4g.1_1.mbag0_4-6.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-7.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-8.7z");
+ 
+        assertEquals(filenames, stor.findBagsFor("mds013u4g"));
+
+        try {
+            filenames = stor.findBagsFor("mds013u4g9");
+            fail("Failed to raise ResourceNotFoundException; returned "+filenames.toString());
+        } catch (ResourceNotFoundException ex) { }
+
+        filenames =  new ArrayList<String>();
+        filenames.add("mds088kd2.mbag0_3-9.zip");
+        filenames.add("mds088kd2.mbag0_3-10.zip");
+        filenames.add("mds088kd2.mbag0_3-11.7z");
+        filenames.add("mds088kd2.mbag0_3-12.zip");
+        filenames.add("mds088kd2.mbag0_3-13.zip");
+        filenames.add("mds088kd2.mbag0_3-14.7z");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-15.zip");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-16.zip");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-17.7z");
+ 
+        assertEquals(filenames, stor.findBagsFor("mds088kd2"));
+    }
+
+    @Test
+    public void testFileChecksum() throws FileNotFoundException, DistributionException  {
+        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+
+        String hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        String getChecksumHash = fStorage.getChecksum("mds088kd2.mbag0_3-10.zip").hash;
+        assertEquals(getChecksumHash.trim(),hash.trim());
+
+        hash="38acb15d02d5ac0f2a2789602e9df950c380d2799b4bdb59394e4eeabdd3a662";
+        getChecksumHash = fStorage.getChecksum("mds088kd2.mbag0_3-10.zip.sha256").hash;
         assertEquals(getChecksumHash.trim(),hash.trim());
     }
-  
+
     @Test
-    public void testFileSize() throws FileNotFoundException  {
-        long filelength = fStorage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
-        assertEquals(filelength,60854);
+    public void testFileSize() throws FileNotFoundException, DistributionException  {
+        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+
+        long filelength = fStorage.getSize("mds088kd2.1_0_1.mbag0_4-17.7z");
+        assertEquals(0, filelength);
+
+        filelength = fStorage.getSize("mds088kd2.1_0_1.mbag0_4-17.7z.sha256");
+        assertEquals(95, filelength);
     } 
-      
+
     //Need to update deatils to compare two file streams
     @Test
-    public void testFileStream() throws FileNotFoundException  {
-        InputStream is = fStorage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-0.zip");
-        assertEquals(is,is);
+    public void testFileStream() throws FileNotFoundException, DistributionException, IOException  {
+        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+
+        InputStream is = fStorage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z");
+        // the test file happens to be empty
+        assertEquals(-1, is.read());
+        is.close();
+
+        is = fStorage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z.sha256");
+        byte[] buf = new byte[100];
+        assertEquals(95, is.read(buf));
+        assertEquals(-1, is.read());
+        is.close();
+
+        try {
+            is = fStorage.openFile("goober-17.7z");
+            fail("Failed to barf on missing file");
+            is.close();
+        } catch (FileNotFoundException ex) { }
     } 
-  
+
     @Test
-    public void testFileHeadbag() throws IDNotFoundException{
-        String headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886"); 
-        logger.info("Test getHeadbagname:"+headBagName);
-        headBagName = fStorage.findHeadBagFor("6376FC675D0E1D77E0531A5706812BC21886","03"); 
-        logger.info("Test getHeadbagname:"+headBagName);
+    public void testFileHeadbag() throws FileNotFoundException, DistributionException {
+        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", fStorage.findHeadBagFor("mds088kd2")); 
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    fStorage.findHeadBagFor("mds013u4g"));
+
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    fStorage.findHeadBagFor("mds013u4g", "1.1"));
+        assertEquals("mds013u4g.1_0_1.mbag0_4-5.7z",  fStorage.findHeadBagFor("mds013u4g", "1.0.1"));
+        assertEquals("mds013u4g.1_0_0.mbag0_4-2.7z",  fStorage.findHeadBagFor("mds013u4g", "1.0.0"));
+
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", fStorage.findHeadBagFor("mds088kd2", "1.0.1")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", fStorage.findHeadBagFor("mds088kd2", "0")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", fStorage.findHeadBagFor("mds088kd2", "1")); 
+
+        try {
+            String bagname = fStorage.findHeadBagFor("mds013u4g9");
+            fail("Failed to raise ResourceNotFoundException; returned "+bagname.toString());
+        } catch (ResourceNotFoundException ex) { }
+
     }
-  
+    /*                */
   
 }

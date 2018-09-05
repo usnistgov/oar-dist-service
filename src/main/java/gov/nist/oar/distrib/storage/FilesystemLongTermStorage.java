@@ -15,104 +15,117 @@ package gov.nist.oar.distrib.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.Reader;
+import java.io.FileReader;
+import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.ds.exception.IDNotFoundException;
-import gov.nist.oar.ds.exception.ResourceNotFoundException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageStateException;
+import gov.nist.oar.distrib.storage.LongTermStorageBase;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
  * An implementation of the LongTermStorage interface for accessing files from a locally mounted disk.
+ * <p>
+ * In this implementation file names are relative paths interpreted as the location of the file relative 
+ * to a configured root directory.  A pre-calculated SHA-256 hash is expected to be stored in a file with 
+ * the same name as the file it is a hash of but with a ".sha256" extension.  
  *
  * @see gov.nist.oar.distrib.LongTermStorage
  * @author Deoyani Nandrekar-Heinis
  */
-@Service
-@Profile("FileStorage")
-public class FilesystemLongTermStorage implements LongTermStorage {
+public class FilesystemLongTermStorage extends LongTermStorageBase {
 
     private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorage.class);
+
+    /**
+     * the path to the filesystem directory below which its files are stored.
+     */
+    public final File rootdir;
     
-    @Value("${distservice.ec2storage}")
-    public String dataDir;
-    
-    public FilesystemLongTermStorage(){
-        logger.info("Constructor FilesystemLongTermStorage dataDir/:"+dataDir);
+    public FilesystemLongTermStorage(String dirpath) throws FileNotFoundException {
+        rootdir = new File(dirpath);
+        if (! rootdir.isDirectory())
+            throw new FileNotFoundException("Not an existing directory: "+dirpath);
+        logger.info("Creating FilesystemLongTermStorage rooted at " + rootdir.toString());
     }
     
     /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file
-     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
-                         serialized bag or other archive (e.g. zip) file.  
+     * The caller is responsible for closing the stream when finished with it.
+     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+                         may reside inside a serialized bag or other archive (e.g. zip) file.  
      * @return InputStream open at the start of the file
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
     @Override
     public InputStream openFile(String filename) throws FileNotFoundException {
-
-      return new FileInputStream(this.dataDir+filename);
+        return new FileInputStream(new File(this.rootdir, filename));
     }
 
     /**
      * return the checksum for the given file
-     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
-     *                   serialized bag or other archive (e.g. zip) file.  
+     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+     *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
      * @return Checksum, a container for the checksum value
      * @throws FileNotFoundException  if the file with the given filename does not exist
+     * @throws UnsupportedOperationException   if an error occurs while retrieving the checksum
      */
     @Override
-    public Checksum getChecksum(String filename) throws FileNotFoundException {
-      
-        logger.info("FilesystemLongTermStorage GetChecksumfor "+filename);
-        logger.info("FilesystemLongTermStorage Directory:"+dataDir);
-       
-        RegexFileFilter regfilter=  new RegexFileFilter(this.dataDir+filename+".sha256");
-        
-        logger.info("Check file name with path:"+regfilter.pattern.pattern());
-        
-        File file = new File(regfilter.pattern.pattern());
-        if (! file.isFile())  
-            throw new FileNotFoundException();
-        byte[] encoded;
-        logger.info("FileExists");
-        try {
-            encoded = Files.readAllBytes(Paths.get(regfilter.pattern.pattern()));
-            logger.info("encoded ::"+new String(encoded, Charset.defaultCharset()));
-        } catch(IOException exp) {
-            throw new FileNotFoundException(exp.getMessage());
+    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageStateException {
+
+        File dataf = new File(rootdir, filename);
+        if (! dataf.isFile())
+            throw new FileNotFoundException("File does not exist in storage: "+dataf.toString());
+
+        File chksum = new File(rootdir, filename+".sha256");
+        if (! chksum.isFile()) {
+            // no cached checksum, calculate it the file is not too big
+            if (! dataf.getName().endsWith(".sha256"))
+                logger.warn("No cached checksum available for "+filename);
+            if (getSize(filename) > 50000000)
+                throw new StorageStateException("No cached checksum for large file: "+dataf.toString());
+            try {
+                return Checksum.sha256(calcSHA256(filename));
+            } catch (Exception ex) {
+                throw new StorageStateException("Unable to calculate checksum for small file: " + dataf.toString() +
+                                                ": " + ex.getMessage());
+            }
         }
-        return Checksum.sha256(new String(encoded, Charset.defaultCharset()));
+
+        try (FileReader csrdr = new FileReader(chksum)) {
+            return Checksum.sha256(readHash(csrdr));
+        }
+        catch (IOException ex) {
+            throw new StorageStateException("Failed to read cached checksum value from "+ chksum.toString() +
+                                            ": " + ex.getMessage(), ex);
+        }
     }
 
     /**
      * Return the size of the named file in bytes
-     * @param filename   The name of the desired file.  Note that this does not refer to files that may reside inside a 
-     *                   serialized bag or other archive (e.g. zip) file.  
+     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+     *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
      * @return long, the size of the file in bytes
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
     @Override
     public long getSize(String filename) throws FileNotFoundException {
-        if(!BagUtils.isLegalBagName(filename)){
-            throw new IllegalArgumentException("File name is not legal.");
-        }
-       
-        File file = new File(this.dataDir+filename);
-        logger.info("FilesystemLongTermStorage CheckFileSize" +file.length());
+        File file = new File(this.rootdir, filename);
+        if (! file.isFile())
+            throw new FileNotFoundException("File does not exist in storage: "+file.toString());
         return file.length();
     }
 
@@ -120,65 +133,39 @@ public class FilesystemLongTermStorage implements LongTermStorage {
      * Return all the bags associated with the given ID
      * @param identifier  the AIP identifier for the desired data collection 
      * @return List<String>, the file names for all bags associated with given ID
-     * @throws IDNotFoundException   if there exist no bags with the given identifier
+     * @throws ResourceNotFoundException   if there exist no bags with the given identifier
      */
     @Override
-    public List<String> findBagsFor(String identifier) throws IDNotFoundException {
-        logger.info("List of files FilesystemLongTermStorage dataDir/:"+dataDir);
+    public List<String> findBagsFor(String identifier) throws ResourceNotFoundException {
         
-        List<String> filenames = new ArrayList<>(); 
-        File dir = new File(this.dataDir);
-        if (! dir.isDirectory()) 
-            throw new IllegalStateException("Directory/folder does not exist");
+        File[] files = rootdir.listFiles(new BagFileFilter(identifier));
         
-        File[] files = dir.listFiles(new RegexFileFilter(identifier));
-        
-        if (files.length == 0 ) {
-            logger.error("No data available for given id.");
+        if (files.length == 0) {
+            logger.debug("Resource not available with id="+identifier);
             throw new ResourceNotFoundException("No data available for given id.");
-        } else {
-            for(File file :files) {
-                String fname = file.getName();
-                if (fname.endsWith(".zip") && BagUtils.isLegalBagName(fname))
-                    filenames.add(fname);
-            }
         }
+
+        List<String> filenames = new ArrayList<>();
+        for(File file : files)
+            filenames.add(file.getName());
+        filenames.sort( BagUtils.bagNameComparator() );
         
         return filenames;
     }
-
-    /**
-     * Return the head bag associated with the given ID
-     * @param identifier  the AIP identifier for the desired data collection 
-     * @return String, the head bag's file name
-     * @throws IDNotFoundException   if there exist no bags with the given identifier
-     */
-    @Override
-    public String findHeadBagFor(String identifier) throws IDNotFoundException {
-        logger.info("Looking for file in :"+ dataDir);
-        return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
-    }
-
-    /**
-     * Return the name of the head bag for the identifier for given version
-     * @param identifier  the AIP identifier for the desired data collection 
-     * @param version     the desired version of the AIP
-     * @return String, the head bag's file name
-     * @throws IDNotFoundException   if there exist no bags with the given identifier
-     */
-     */
-    @Override
-    public String findHeadBagFor(String identifier, String version) throws IDNotFoundException {
-        logger.info("Looking for file with given version in :"+ dataDir);
-        return BagUtils.findLatestHeadBagWithBagVersion(this.findBagsFor(identifier+"."+version));
-    }
-
-    //Setters for the data directory
-    public void setDataDir(String dir){
-        dataDir = dir;
-    }
 }
 
+class BagFileFilter implements FileFilter {
+    String base = null;
+    public BagFileFilter(String id) {
+        this.base = id+".";
+    }
+    public boolean accept(File f) {
+        String name = f.getName();
+        return (name.startsWith(base) && ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
+    }
+}
+        
+    
 
 //To check the file path/name pattern
 class RegexFileFilter implements java.io.FileFilter {
