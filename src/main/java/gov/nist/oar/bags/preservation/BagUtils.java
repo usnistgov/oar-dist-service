@@ -24,13 +24,26 @@ import java.io.UnsupportedEncodingException;
 
 /**
  * static utility functions for managing and interpreting NIST preservation bags.
+ * <p>
+ * This class embeds conventions for naming PDR "archive preservation package" (AIP) files--i.e.,
+ * preservation bags.  There are two conventions supported:
+ * <ul>
+ *   <li> Original form:  <i>identifier</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br />
+ *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br />
+ *        and <i>S</i> is the sequence number (e.g. 0, 1, ...).  </li>
+ *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</V>_<i>V</V>_<i>V</V>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br />
+ *        where <i>V</V>_<i>V</V>_<i>V</V> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
+ * </ul>
+ * These conventions are used to determine which bags are associated with a given identifier 
+ * (and version) and which are the head bags.  
  */
 public class BagUtils {
 
-    static Pattern bagnamere = Pattern.compile("^(\\w+).mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
-    static Pattern bagnamenew = Pattern.compile("^(\\w+).(\\d+).mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname1re = Pattern.compile("^(\\w+)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname2re = Pattern.compile("^(\\w+)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+
     /**
-     * parse a bag name into its meaningful components: id, multibag profile version, 
+     * parse a bag name into its meaningful components: id, version, multibag profile version, 
      * multibag sequence number, and serialization extension (if present).  
      * @param name           the name to parse.  This name should not include any preceeding
      *                       file paths.  
@@ -43,11 +56,12 @@ public class BagUtils {
      *                         for bag names
      */
     public static List<String> parseBagNameWithoutVersion(String name) throws ParseException {
-        Matcher m = bagnamere.matcher(name);
+        Matcher m = bagname1re.matcher(name);
         if (! m.find())
             throw new ParseException("Not a legal bag name: "+name, 0);
         ArrayList<String> out = new ArrayList<String>(4);
         out.add(m.group(1));
+        out.add("");
         out.add(m.group(2));
         out.add(m.group(3));
 
@@ -56,52 +70,78 @@ public class BagUtils {
           ext = "";
         out.add(ext);
 
-        if (out.get(3).startsWith("."))
-            out.set(3, out.get(3).substring(1));
+        if (out.get(4).startsWith("."))
+            out.set(4, out.get(4).substring(1));
         return out;
     }
     
+    /**
+     * parse a bag name (according the format that includes the AIP version) into its meaningful 
+     * components: id, version, multibag profile version, multibag sequence number, and 
+     * serialization extension (if present).  
+     * @param name           the name to parse.  This name should not include any preceeding
+     *                       file paths.  
+     * @return List<String> - a list containing the components in order of id, multibag 
+     *                       profile version, multibag sequence number, and serialization 
+     *                       extension.  If the name does not contain a serialization extension,
+     *                       the fourth element will be an empty string.  That field will not
+     *                       include a leading dot.  
+     * @throws ParseException  if the given name does not match the accepted pattern 
+     *                         for bag names
+     */
     public static List<String> parseBagNameWithVersion(String name) throws ParseException {
-      Matcher m = bagnamenew.matcher(name);
-      if (! m.find())
-          throw new ParseException("Not a legal bag name: "+name, 0);
-      ArrayList<String> out = new ArrayList<String>(5);
-      out.add(m.group(1));
-      out.add(m.group(2));
-      out.add(m.group(3));
-      out.add(m.group(4));
+        Matcher m = bagname2re.matcher(name);
+        if (! m.find())
+            throw new ParseException("Not a legal bag name: "+name, 0);
+        ArrayList<String> out = new ArrayList<String>(5);
+        out.add(m.group(1));
+        out.add(m.group(2));
+        out.add(m.group(4));
+        out.add(m.group(5));
 
-      String ext = m.group(5);
-      if (m.group(5) == null) 
-          ext = "";
-      out.add(ext);
+        String ext = m.group(6);
+        if (m.group(6) == null) 
+            ext = "";
+        out.add(ext);
 
-      if (out.get(4).startsWith("."))
-          out.set(4, out.get(4).substring(1));
-      return out;
-  }
-    public static List<String> parseBagName(String name) throws ParseException {
-      
-      Matcher m = bagnamere.matcher(name);
-      if(m.matches())
-          return  parseBagNameWithoutVersion(name);
-      else {
-        
-        m = bagnamenew.matcher(name);
-        if(m.matches())
-          return parseBagNameWithVersion(name);
-      }
-      return new ArrayList<>();
+        if (out.get(4).startsWith("."))
+            out.set(4, out.get(4).substring(1));
+        return out;
     }
+
+    /**
+     * parse a bag name (according the format that excludes the AIP version) into its meaningful 
+     * components: id, version, multibag profile version, multibag sequence number, and 
+     * serialization extension (if present).  The version field will be an empty string.  
+     * @param name           the name to parse.  This name should not include any preceeding
+     *                       file paths.  
+     * @return List<String> - a list containing the components in order of id, multibag 
+     *                       profile version, multibag sequence number, and serialization 
+     *                       extension.  If the name does not contain a serialization extension,
+     *                       the fourth element will be an empty string.  That field will not
+     *                       include a leading dot.  
+     * @throws ParseException  if the given name does not match the accepted pattern 
+     *                         for bag names
+     */
+    public static List<String> parseBagName(String name) throws ParseException {
+        Matcher m = bagname1re.matcher(name);
+        if(m.matches())
+            return  parseBagNameWithoutVersion(name);
+        
+        m = bagname2re.matcher(name);
+        if(m.matches())
+            return parseBagNameWithVersion(name);
+
+        throw new ParseException("Not a legal bag name: "+name, 0);
+    }
+
     /**
      * return true if the file is a legal bag name.  The name may or may not contain a 
      * serialization extension (e.g. ".zip").  
      * @param name   the bag name to judge
      */
     public static boolean isLegalBagName(String name) {
-        
-      return  (bagnamere.matcher(name).matches() || bagnamenew.matcher(name).matches());
-      
+      return  (bagname1re.matcher(name).matches() || bagname2re.matcher(name).matches());
     }
 
     static class VersionComparator implements Comparator<String> {
@@ -117,48 +157,28 @@ public class BagUtils {
             String[] f1 = v1.split("[_\\.]");
             String[] f2 = v2.split("[_\\.]");
             int c = 0;
-            for (int i=0; i < f1.length && i < f2.length; i++) {
-                c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
+            int i = 0;
+            for (; i < f1.length && i < f2.length; i++) {
+                c = toInt(f1[i]).compareTo(toInt(f2[i]));
                 if (c != 0) 
                   return c;
             }
+            for (; i < f1.length; i++) 
+                if (toInt(f1[i]) > 0) return +1;
+            for (; i < f2.length; i++) 
+                if (toInt(f2[i]) > 0) return -1;
             return c;
+        }
+        Integer zero = new Integer(0);
+        private Integer toInt(String is) {
+            try {
+                return new Integer(is);
+            } catch (NumberFormatException ex) {
+                return zero;
+            }
         }
     }
     
-    static class BagVersionComparator implements Comparator<String> {
-      public 
-      BagVersionComparator() {
-        //Default Constructor
-      }
-      @Override
-      public boolean equals(Object obj) {
-          return (obj instanceof VersionComparator);
-      }
-      @Override
-      public int compare(String v1, String v2) {
-          String[] f1 = v1.split("[\\.\\.mbag\\_\\-]");
-          String[] f2 = v2.split("[\\.\\.mbag\\_\\-]");
-          int c = 0;
-          for (int i=0; i < f1.length && i < f2.length; i++) {
-            try{
-              c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
-              if (c != 0) 
-                return c;
-            }catch(NumberFormatException ne){
-              
-              
-            }
-//            if( i == 1){
-//              c = (new Integer(f1[i])).compareTo(new Integer(f2[i]));
-//              if (c != 0) 
-//                return c;
-//            }
-          }
-          return c;
-      }
-  }
-
     static class NameComparator implements Comparator<String> {
         public NameComparator() {
           //Default Constructor
@@ -169,42 +189,59 @@ public class BagUtils {
         }
         @Override
         public int compare(String n1, String n2) {
+            // After parsing the bag names into their components, we sort the
+            // names based on the ordering with the following precendence:
+            //  1. the AIP identifier (lexically)
+            //  2. the bag sequence number
+            //  3. the publication version
+            //  4. the multibag profile version
+            //  5. the serialization extension (lexically)
+            
             List<String> p1 = null, p2 = null;
 
             try {
                 p1 = BagUtils.parseBagName(n1);
                 p2 = BagUtils.parseBagName(n2);
             } catch (ParseException ex) {
-                throw new ClassCastException(ex.getMessage());
+                throw new IllegalArgumentException(ex.getMessage(), ex);
             }
 
-            // compare bag id
+            // 1. compare AIP id
             int c = p1.get(0).compareTo(p2.get(0));
             if (c != 0) 
               return c;
 
-            // compare the multibag sequence number.
+            // 2. compare the multibag sequence number.
             //
             // It is possible for a NumberFormatException to be thrown, but
-            // it normally should not. 
-            //c = (new Integer(p1.get(2))).compareTo(new Integer(p2.get(2)));
-            c= bagversion_cmp.compare(p1.get(2), p2.get(2));
-            if (c != 0) 
-              return c;
-
-            // compare the multibag profile version
+            // it normally should not.
+            try {
+                c = (new Integer(p1.get(3))).compareTo(new Integer(p2.get(3)));
+                if (c != 0)
+                    return c;
+            } catch (NumberFormatException ex) {
+                // can't compare non-integers; treat them as equal
+                c = 0;
+            }
+            
+            // 3. compare the publication version.  When not present, the version
+            // is taken as zero.  
             c = version_cmp.compare(p1.get(1), p2.get(1));
             if (c != 0) 
               return c;
 
-            // this effectively sorts alphabetically by the serialization extension
+            // 4. compare the multibag profile version
+            c = version_cmp.compare(p1.get(2), p2.get(2));
+            if (c != 0) 
+              return c;
+
+            // 5. finally, compare the extensions, alphabetically
             return n1.compareTo(n2);
         }
     }
 
     static Comparator<String> version_cmp = new VersionComparator();
     static Comparator<String> name_cmp    = new NameComparator();
-    static Comparator<String> bagversion_cmp    = new BagVersionComparator();
     
     /**
      * return a Comparator for sorting bag names
@@ -223,13 +260,6 @@ public class BagUtils {
         return version_cmp;
     }
     
-   /**
-    * 
-    * @return
-    */
-    public static Comparator<String> bagVersionComparator() {
-      return bagversion_cmp;
-    }
     /**
      * return the latest head bag from the List of bag names.  Each item in the list 
      * must be a legal bag name (see isLegalBagName()) and have the same identifier.
@@ -237,18 +267,55 @@ public class BagUtils {
      * if the second is not, the result is undefined. 
      * @param bagnames   the list of bag names.  
      * @return String  - the name of the latest head bag in the list
+     * @throws IllegalArgumentException  if the list is empty or contains an illegal 
+     *                                   bag name
      */
     public static String findLatestHeadBag(List<String> bagnames) {
+        if (bagnames.size() == 0)
+            throw new IllegalArgumentException("Empty bag name list provided");
         ArrayList<String> sortable = new ArrayList<>(bagnames);
         sortable.sort(bagNameComparator());
         return sortable.get(sortable.size()-1);
     }
-    
-    
-    public static String findLatestHeadBagWithBagVersion(List<String> bagnames) {
-      ArrayList<String> sortable = new ArrayList<>(bagnames);
-      sortable.sort(bagVersionComparator());
-      return sortable.get(sortable.size()-1);
-  }
+
+    /**
+     * select the bags from a list of bagnames that match a desired version.  Under
+     * certain circumstances, this will look for certain varients.  If none of the 
+     * names match the version, an empty list is returned.
+     * @param bagnames   the list of bag names to filter
+     * @param version    the desired version in dot-delimited form
+     * @return List<String>  - the list of matching names (in the same order as they
+     *                   appeared in the original list)
+     * @throws IllegalArgumentException  if the list is empty or contains an illegal 
+     *                                   bag name
+     */
+    public static List<String> selectVersion(List<String> bagnames, String version) {
+        version = Pattern.compile("\\.")
+                         .matcher(version)
+                         .replaceAll("_");
+        
+        ArrayList<String> out = new ArrayList<String>();
+
+        Pattern vernamere = null;
+        while (true) {
+            vernamere = (version.length() == 0)
+                           ? Pattern.compile("^(\\w+)\\.mbag")
+                           : Pattern.compile("^(\\w+)\\."+version+"\\.");
+            for (String name : bagnames) {
+                if (vernamere.matcher(name).find())
+                    out.add(name);
+            }
+            if (out.size() > 0 || ! version.endsWith("_0"))
+                break;
+
+            // try lopping zeros
+            version = version.substring(0, version.length()-2);
+        }
+
+        if (out.size() == 0 && (version.equals("0") || version.equals("1")))
+            return BagUtils.selectVersion(bagnames, "");
+
+        return out;
+    }
 }
 
