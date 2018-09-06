@@ -55,6 +55,13 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      */
     public final File rootdir;
     
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
     public FilesystemLongTermStorage(String dirpath) throws FileNotFoundException {
         rootdir = new File(dirpath);
         if (! rootdir.isDirectory())
@@ -140,10 +147,8 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
         
         File[] files = rootdir.listFiles(new BagFileFilter(identifier));
         
-        if (files.length == 0) {
-            logger.debug("Resource not available with id="+identifier);
-            throw new ResourceNotFoundException("No data available for given id.");
-        }
+        if (files.length == 0) 
+            throw ResourceNotFoundException.forID(identifier);
 
         List<String> filenames = new ArrayList<>();
         for(File file : files)
@@ -162,20 +167,5 @@ class BagFileFilter implements FileFilter {
     public boolean accept(File f) {
         String name = f.getName();
         return (name.startsWith(base) && ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
-    }
-}
-        
-    
-
-//To check the file path/name pattern
-class RegexFileFilter implements java.io.FileFilter {
-    final java.util.regex.Pattern pattern;
-
-    public RegexFileFilter(String regex) {
-        pattern = java.util.regex.Pattern.compile(regex);
-    }
-
-    public boolean accept(java.io.File f) {
-        return pattern.matcher(f.getName()).find();
     }
 }

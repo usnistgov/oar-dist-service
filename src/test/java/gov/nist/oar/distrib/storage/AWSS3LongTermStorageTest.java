@@ -15,31 +15,34 @@ package gov.nist.oar.distrib.storage;
 import static org.junit.Assert.assertEquals;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
-import gov.nist.oar.ds.config.S3Config;
-import gov.nist.oar.ds.exception.IDNotFoundException;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.bags.preservation.BagUtils;
 
-
+import cloud.localstack.LocalstackTestRunner;
+import cloud.localstack.TestUtils;
 
 /**
  * This is test class is used to connect to long term storage on AWS S3
@@ -47,63 +50,180 @@ import gov.nist.oar.ds.exception.IDNotFoundException;
  *
  * @author Deoyani Nandrekar-Heinis
  */
-//@SpringBootTest
-////@SpringBootConfiguration
-//@ContextConfiguration(classes = {S3Config.class})
-@RunWith(SpringJUnit4ClassRunner.class)
-@TestPropertySource(properties = {"test.bucket=nist-oar-dev-pres",})
+@RunWith(LocalstackTestRunner.class)
 public class AWSS3LongTermStorageTest {
   
     private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
-    @Value("${test.bucket}")
-    String dataDir;
+    static final String bucket = "oar-lts-test";
+    static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
+    static AmazonS3 s3client = TestUtils.getClientS3();
+    AWSS3LongTermStorage s3Storage = null;
   
-    private AWSS3LongTermStorage s3Storage;// = new AWSS3LongTermStorage();
-  
+    @BeforeClass
+    public static void setUpClass() throws IOException {
+        if (s3client.doesBucketExistV2(bucket))
+            destroyBucket();
+        s3client.createBucket(bucket);
+        populateBucket();
+    }
+
     @Before
-    public void beforeSetup()
-    {
-        s3Storage = new AWSS3LongTermStorage();
-        s3Storage.preservationBucket = dataDir;
-        s3Storage.s3Client = this.beforeEverything();
-    }
-  
-    public AmazonS3 beforeEverything(){
-        return AmazonS3ClientBuilder
-            .standard()
-            .withPathStyleAccessEnabled(true)
-            .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:8001", "us-east-1"))
-            .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-            .build();
+    public void setUp() throws IOException {
+        s3Storage = new AWSS3LongTermStorage(bucket, s3client);
     }
 
-  
-    @Test
-    public void testFileList() throws IDNotFoundException {
-    
-        List<String> filenames = new ArrayList<>();
-        filenames.add("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-        assertEquals(s3Storage.findBagsFor("6376FC675D0E1D77E0531A5706812BC21886"),filenames);
+    @After
+    public void tearDown() {
+        s3Storage = null;
     }
-  
-    @Test
-    public void testFileChecksum() throws FileNotFoundException  {
-        String hash="379171a0ca303d741f854fb427fc6cfa54f9a0d900c4db64a407fc5b7d81706a";
-        String getChecksumHash = s3Storage.getChecksum("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip").hash;
-        assertEquals(getChecksumHash.trim(),hash.trim());
+
+    @AfterClass
+    public static void tearDownClass() {
+        destroyBucket();
     }
-  
+
+    public static void destroyBucket() {
+        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
+        for (S3ObjectSummary f : files) 
+            s3client.deleteObject(bucket, f.getKey());
+        s3client.deleteBucket(bucket);
+    }
+
+    public static void populateBucket() throws IOException {
+        String[] bases = {
+            "mds013u4g.1_0_0.mbag0_4-", "mds013u4g.1_0_1.mbag0_4-", "mds013u4g.1_1.mbag0_4-",
+            "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-"
+        };
+
+        int j = 0;
+        for (String base : bases) {
+            for(int i=0; i < 3; i++) {
+                String bag = base + Integer.toString(j++) + ((i > 1) ? ".7z" : ".zip");
+                String baghash = hash+" "+bag;
+
+                if (! s3client.doesObjectExist(bucket, bag)) {
+                    ObjectMetadata md = new ObjectMetadata();
+                    md.setContentLength(1);
+                    // md.setContentMD5("1B2M2Y8AsgTpgAmY7PhCfg==");
+                    md.setContentType("text/plain");
+                    try (InputStream ds = new ByteArrayInputStream("0".getBytes())) {
+                        s3client.putObject(bucket, bag, ds, md);
+                    }
+
+                    md.setContentLength(baghash.length());
+                    // md.setContentMD5(null);
+                    try (InputStream ds = new ByteArrayInputStream(baghash.getBytes())) {
+                        s3client.putObject(bucket, bag+".sha256", ds, md);
+                    }
+                }
+            }
+        }
+        
+    }
+
     @Test
-    public void testFileSize() throws FileNotFoundException  {
-        long filelength = s3Storage.getSize("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-        assertEquals(filelength,31145);
-    } 
-      
+    public void testCtor() throws FileNotFoundException {
+        assert(s3client.doesBucketExistV2(bucket));
+    }
+
     @Test
-    public void testFileStream() throws FileNotFoundException  {
-        InputStream is = s3Storage.openFile("6376FC675D0E1D77E0531A5706812BC21886.mbag0_2-0.zip");
-        assertEquals(is,is);
+    public void testFindBagsFor() throws DistributionException, FileNotFoundException {
+        List<String> filenames = new ArrayList<String>();
+        filenames.add("mds013u4g.1_0_0.mbag0_4-0.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-1.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-2.7z");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-3.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-4.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-5.7z");
+        filenames.add("mds013u4g.1_1.mbag0_4-6.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-7.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-8.7z");
+ 
+        assertEquals(filenames, s3Storage.findBagsFor("mds013u4g"));
+
+        try {
+            filenames = s3Storage.findBagsFor("mds013u4g9");
+            fail("Failed to raise ResourceNotFoundException; returned "+filenames.toString());
+        } catch (ResourceNotFoundException ex) { }
+
+        filenames =  new ArrayList<String>();
+        filenames.add("mds088kd2.mbag0_3-9.zip");
+        filenames.add("mds088kd2.mbag0_3-10.zip");
+        filenames.add("mds088kd2.mbag0_3-11.7z");
+        filenames.add("mds088kd2.mbag0_3-12.zip");
+        filenames.add("mds088kd2.mbag0_3-13.zip");
+        filenames.add("mds088kd2.mbag0_3-14.7z");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-15.zip");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-16.zip");
+        filenames.add("mds088kd2.1_0_1.mbag0_4-17.7z");
+        filenames.sort(null);
+
+        List<String> found = s3Storage.findBagsFor("mds088kd2");
+        found.sort(null);
+ 
+        assertEquals(filenames, found);
+    }
+
+    @Test
+    public void testFileChecksum() throws FileNotFoundException, DistributionException  {
+        String getChecksumHash = s3Storage.getChecksum("mds088kd2.mbag0_3-10.zip").hash;
+        assertEquals(getChecksumHash.trim(), hash.trim());
+
+        String h = "6f6173bf926eef7978d86a98f19ebc54b14ce3f8acaa2ce7dc8d199ae65adcb7";
+        getChecksumHash = s3Storage.getChecksum("mds088kd2.mbag0_3-10.zip.sha256").hash;
+        assertEquals(h.trim(), getChecksumHash.trim());
+    }
+
+    @Test
+    public void testFileSize() throws FileNotFoundException, DistributionException  {
+        long filelength = s3Storage.getSize("mds088kd2.1_0_1.mbag0_4-17.7z");
+        assertEquals(1, filelength);
+
+        filelength = s3Storage.getSize("mds088kd2.1_0_1.mbag0_4-17.7z.sha256");
+        assertEquals(94, filelength);
     } 
 
+    //Need to update deatils to compare two file streams
+    @Test
+    public void testFileStream() throws FileNotFoundException, DistributionException, IOException  {
+        InputStream is = s3Storage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z");
+        byte[] buf = new byte[100];
+        int n = is.read(buf);
+        assertEquals("Unexpected output: "+(new String(buf, 0, n)), 1, n);
+        assertEquals("0", new String(buf, 0, 1));
+        assertEquals(-1, is.read());
+        is.close();
+
+        is = s3Storage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z.sha256");
+        assertEquals(94, is.read(buf));
+        assertEquals(-1, is.read());
+        is.close();
+
+        try {
+            is = s3Storage.openFile("goober-17.7z");
+            fail("Failed to barf on missing file");
+            is.close();
+        } catch (FileNotFoundException ex) { }
+    } 
+
+    @Test
+    public void testFileHeadbag() throws FileNotFoundException, DistributionException {
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", s3Storage.findHeadBagFor("mds088kd2")); 
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    s3Storage.findHeadBagFor("mds013u4g"));
+
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    s3Storage.findHeadBagFor("mds013u4g", "1.1"));
+        assertEquals("mds013u4g.1_0_1.mbag0_4-5.7z",  s3Storage.findHeadBagFor("mds013u4g", "1.0.1"));
+        assertEquals("mds013u4g.1_0_0.mbag0_4-2.7z",  s3Storage.findHeadBagFor("mds013u4g", "1.0.0"));
+
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", s3Storage.findHeadBagFor("mds088kd2", "1.0.1")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", s3Storage.findHeadBagFor("mds088kd2", "0")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", s3Storage.findHeadBagFor("mds088kd2", "1")); 
+
+        try {
+            String bagname = s3Storage.findHeadBagFor("mds013u4g9");
+            fail("Failed to raise ResourceNotFoundException; returned "+bagname.toString());
+        } catch (ResourceNotFoundException ex) { }
+
+    }
 }

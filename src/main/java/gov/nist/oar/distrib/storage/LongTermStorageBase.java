@@ -44,7 +44,7 @@ import gov.nist.oar.bags.preservation.BagUtils;
  */
 public abstract class LongTermStorageBase implements LongTermStorage {
 
-    private Logger logger = null;
+    protected Logger logger = null;
 
     /**
      * initialize the base class with a class-specific logger
