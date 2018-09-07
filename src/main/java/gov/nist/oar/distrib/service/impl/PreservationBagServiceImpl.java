@@ -14,6 +14,9 @@ package gov.nist.oar.distrib.service.impl;
 
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.TreeSet;
+import java.text.ParseException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,46 +26,85 @@ import org.springframework.stereotype.Service;
 
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.service.PreservationBagService;
-//import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
-//import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.ds.exception.IDNotFoundException;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
  * Service implementation to get Preservation bags and information
- * @author Deoyani Nandrekar-Heinis
  *
+ * @author Deoyani Nandrekar-Heinis
  */
-@Service()
-
 public class PreservationBagServiceImpl implements PreservationBagService {
 
-    private static Logger logger = LoggerFactory.getLogger(PreservationBagServiceImpl.class);
-  
-    @Autowired
-    LongTermStorage storage;
+    protected static Logger logger = LoggerFactory.getLogger(PreservationBagServiceImpl.class);
+    protected LongTermStorage storage = null;
+
+    /**
+     * create the service instance
+     */
+    public PreservationBagServiceImpl(LongTermStorage stor) {
+        storage = stor;
+    }
 
     /**
      * Returns the List of bag names associated with the AIP having the given identifier
      * @param identifier     identifier for the AIP 
      * @return List<String>, list of bags names available starting with identifier entered
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public List<String> listBags(String identifier) throws IDNotFoundException {
-        logger.info("Get List of bags for given identifier:"+identifier);
+    public List<String> listBags(String identifier)
+        throws ResourceNotFoundException, DistributionException
+    {
+        logger.debug("Get List of bags for given identifier:"+identifier);
         return  storage.findBagsFor(identifier);   
+    }
+
+    /**
+     * Return the version strings for the versions available for an AIP with the given identifier
+     * @param identifier     identifier for the AIP 
+     * @return List<String>, list of versions available for the AIP
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
+     */
+    public List<String> listVersions(String identifier)
+        throws ResourceNotFoundException, DistributionException
+    {
+        List<String> bags = listBags(identifier);
+        TreeSet<String> versions = new TreeSet<String>(BagUtils.versionComparator());
+        String ver = null;
+        for (String bag : bags) {
+            try {
+                ver = BagUtils.parseBagName(bag).get(1);
+                if (ver.length() == 0) ver = "0";
+                ver = String.join(".", ver.split("_"));
+                versions.add(ver);
+            }
+            catch (ParseException ex) {
+                logger.warn("Unexpected error while parsing version from bag name, " + 
+                            bag + "; skipping");
+            }
+        }
+
+        return new ArrayList<String>(versions);
     }
 
     /**
      * Returns the head bag name for given identifier
      * @param identifier     identifier for the AIP 
      * @return String,       the name of the matching head bag
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public String getHeadBagName(String identifier) throws IDNotFoundException {
-        logger.info("GetHeadbag for :"+identifier);
+    public String getHeadBagName(String identifier)
+        throws ResourceNotFoundException, DistributionException
+    {
+        logger.debug("GetHeadbag for :"+identifier);
         return storage.findHeadBagFor(identifier);
     }
 
@@ -71,11 +113,14 @@ public class PreservationBagServiceImpl implements PreservationBagService {
      * @param identifier     identifier for the AIP 
      * @param version        the desired version of the AIP
      * @return String,       the name of the matching head bag
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public String getHeadBagName(String identifier, String version) throws IDNotFoundException {
-        logger.info("GetHeadbag for :"+identifier +" and version:"+version);
+    public String getHeadBagName(String identifier, String version)
+        throws ResourceNotFoundException, DistributionException
+    {
+        logger.debug("GetHeadbag for :"+identifier +" and version:"+version);
         return storage.findHeadBagFor(identifier, version);
     }
 
@@ -84,12 +129,14 @@ public class PreservationBagServiceImpl implements PreservationBagService {
      * @param bagfile        the name of the serialized bag
      * @return StreamHandle, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public StreamHandle getBag(String bagfile) throws FileNotFoundException {
+    public StreamHandle getBag(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle for bagfile:"+bagfile);
-        return new StreamHandle(storage.openFile(bagfile), storage.getSize(bagfile), bagfile, "",
-                                storage.getChecksum(bagfile));
+        long size = storage.getSize(bagfile);
+        Checksum hash = storage.getChecksum(bagfile);
+        return new StreamHandle(storage.openFile(bagfile), size, bagfile, "", hash);
     }
 
     /**
@@ -97,11 +144,13 @@ public class PreservationBagServiceImpl implements PreservationBagService {
      * @param bagfile        the name of the serialized bag
      * @return StreamHandle, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public StreamHandle getInfo(String bagfile) throws FileNotFoundException {
+    public StreamHandle getInfo(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle info for bagfile:"+bagfile);
-        return new StreamHandle(null, storage.getSize(bagfile), bagfile, "", storage.getChecksum(bagfile));
+        return new StreamHandle(null, storage.getSize(bagfile), bagfile, null,
+                                storage.getChecksum(bagfile));
     }
 
 }

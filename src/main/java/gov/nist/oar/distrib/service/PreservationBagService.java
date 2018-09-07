@@ -16,53 +16,70 @@ import java.io.FileNotFoundException;
 import java.util.List;
 
 import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.ds.exception.IDNotFoundException;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 
 /**
- * Service interface to get Perservation bags and information
+ * Service interface for accessing preservation bags (AIP files) and information about them.
  *
  * @author Deoyani Nandrekar-Heinis
  */
 public interface PreservationBagService {
 
     /**
-     * Returns the List of bag names associated with the AIP having the given identifier
+     * Return the names of the bags having the given AIP identifier
      * @param identifier     identifier for the AIP 
-     * @return List<String>, list of bags names available starting with identifier entered
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @return List<String>, list of names of available bags for the AIP 
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
-    List<String> listBags(String identifier) throws IDNotFoundException;
+    List<String> listBags(String identifier) throws ResourceNotFoundException, DistributionException;
+
+    /**
+     * Return the version strings for the versions available for an AIP with the given identifier
+     * @param identifier     identifier for the AIP 
+     * @return List<String>, list of versions available for the AIP
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
+     */
+    List<String> listVersions(String identifier) throws ResourceNotFoundException, DistributionException;
 
     /**
      * Returns the head bag name for given identifier
      * @param identifier     identifier for the AIP 
      * @return String,       the name of the matching head bag
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
-    String getHeadBagName(String identifier) throws IDNotFoundException ;
+    String getHeadBagName(String identifier) throws ResourceNotFoundException, DistributionException;
 
     /**
      * Returns the head bag for given identifier and a version of bags.
      * @param identifier     identifier for the AIP 
      * @param version        the desired version of the AIP
      * @return String,       the name of the matching head bag
-     * @throws IDNotFoundException  if no bags are found associated with the given ID
+     * @throws ResourceNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
-    String getHeadBagName(String identifier, String version) throws IDNotFoundException;
+    String getHeadBagName(String identifier, String version)
+        throws ResourceNotFoundException, DistributionException;
 
     /**
-     * Returns the bag for given complete bag file name
+     * Returns the bag for given complete bag file name.  The bag data is provided as an 
+     * open InputStream in the returned StreamHandle container.  The 
      * @param bagfile        the name of the serialized bag
      * @return StreamHandle, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
-    StreamHandle getBag(String bagfile) throws FileNotFoundException;
+    StreamHandle getBag(String bagfile) throws FileNotFoundException, DistributionException;
 
     /**
      * Returns the information of the bag for given bag file name
      * @param bagfile        the name of the serialized bag
      * @return StreamHandle, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
+     * @throws DistributionException      if there is unexpected, internal error
      */
-    StreamHandle getInfo(String bagfile) throws FileNotFoundException;
+    StreamHandle getInfo(String bagfile) throws FileNotFoundException, DistributionException;
 }

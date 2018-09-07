@@ -33,6 +33,8 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.service.PreservationBagService;
 
 import gov.nist.oar.ds.exception.IDNotFoundException;
@@ -68,7 +70,9 @@ public class PreservationBagController {
      */
     @ApiOperation(value = "Returns checksum for given filename.",nickname = "Get Checksum",notes = "PreservationBag Controller.")
     @RequestMapping(value = "/checksum/{filename}", method = RequestMethod.GET)
-    public ResponseEntity<String> getChecksum(HttpServletRequest request) throws FileNotFoundException{
+    public ResponseEntity<String> getChecksum(HttpServletRequest request)
+        throws FileNotFoundException, DistributionException
+    {
         String restOfTheUrl = (String) request.getAttribute(
                                                             HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         logger.info("param::"+restOfTheUrl);
@@ -85,11 +89,11 @@ public class PreservationBagController {
      * Get the Headbag for given record in the long term storage.
      * @param psId preservation id or Record id
      * @return String Head bag name
-     * @throws IDNotFoundException
+     * @throws DistributionException
      */
     @ApiOperation(value = "Returns Headbag for given identifier/record id.",nickname = "Get Headbag",notes = "PreservationBag Controller.")
     @RequestMapping(value = "/{psId}/headBag", method = RequestMethod.GET)
-    public ResponseEntity<String> getHeadBag(@PathVariable("psId") String psId) throws IDNotFoundException{ 
+    public ResponseEntity<String> getHeadBag(@PathVariable("psId") String psId) throws DistributionException{ 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(org.springframework.http.MediaType.TEXT_PLAIN);
         return  new ResponseEntity<>( pres.getHeadBagName(psId),httpHeaders,HttpStatus.OK);
@@ -99,11 +103,11 @@ public class PreservationBagController {
      * Returns list of the bags associated with given record
      * @param psId preservation bag id or record id
      * @return List of bags available for given id
-     * @throws IDNotFoundException 
+     * @throws DistributionException 
      */
     @ApiOperation(value = "Returns List of Bags.",nickname = "Get ListOfBags",notes = "PreservationBag Controller.") 
     @RequestMapping(value = "/{psId}/listbags", method = RequestMethod.GET)
-    public ResponseEntity<List<String>> getListBags(@PathVariable("psId") String psId) throws IDNotFoundException{
+    public ResponseEntity<List<String>> getListBags(@PathVariable("psId") String psId) throws DistributionException{
         HttpHeaders httpHeaders = new HttpHeaders();
     
         return new ResponseEntity<>(pres.listBags(psId),httpHeaders,HttpStatus.OK);
@@ -117,11 +121,10 @@ public class PreservationBagController {
      */
     @ApiOperation(value = "Dowloads given bag file.",nickname = "Get Info",notes = "PreservationBag Controller.")
     @RequestMapping(value = "/download/{bagfile}", method = RequestMethod.GET)
-    public ResponseEntity<InputStreamResource> getInfo(HttpServletRequest request) throws FileNotFoundException{
-    
-    
-        String restOfTheUrl = (String) request.getAttribute(
-                                                            HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    public ResponseEntity<InputStreamResource> getInfo(HttpServletRequest request)
+        throws FileNotFoundException, DistributionException
+    {
+        String restOfTheUrl = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         logger.info("param::"+restOfTheUrl);
         restOfTheUrl = restOfTheUrl.replace("/download/", "");
     
