@@ -115,11 +115,11 @@ public class BagUtils {
      * serialization extension (if present).  The version field will be an empty string.  
      * @param name           the name to parse.  This name should not include any preceeding
      *                       file paths.  
-     * @return List<String> - a list containing the components in order of id, multibag 
+     * @return List<String> - a list containing the components in order of id, version, multibag 
      *                       profile version, multibag sequence number, and serialization 
-     *                       extension.  If the name does not contain a serialization extension,
-     *                       the fourth element will be an empty string.  That field will not
-     *                       include a leading dot.  
+     *                       extension.  If the name does not contain a version or serialization 
+     *                       extension, the second or fourth element, respectively, will be an 
+     *                       empty string.  The extension field will not include a leading dot.  
      * @throws ParseException  if the given name does not match the accepted pattern 
      *                         for bag names
      */
@@ -290,14 +290,22 @@ public class BagUtils {
      *                                   bag name
      */
     public static List<String> selectVersion(List<String> bagnames, String version) {
+        // in bag names, the version appears in N_N_N format; swap . for _
         version = Pattern.compile("\\.")
                          .matcher(version)
                          .replaceAll("_");
         
-        ArrayList<String> out = new ArrayList<String>();
+        // Most likely given current NIST practice, if version is simply "0" or "1",
+        // we're refering to bags following the original naming convention.
+        if (version.equals("0") || version.equals("1")) {
+            List<String> out = BagUtils.selectVersion(bagnames, "");
+            if (out.size() > 0) return out;
+        }
 
+        ArrayList<String> out = new ArrayList<String>();
         Pattern vernamere = null;
         while (true) {
+            // loop through possible matching version strings
             vernamere = (version.length() == 0)
                            ? Pattern.compile("^(\\w+)\\.mbag")
                            : Pattern.compile("^(\\w+)\\."+version+"\\.");
@@ -308,12 +316,9 @@ public class BagUtils {
             if (out.size() > 0 || ! version.endsWith("_0"))
                 break;
 
-            // try lopping zeros
+            // try lopping off trailing zeros
             version = version.substring(0, version.length()-2);
         }
-
-        if (out.size() == 0 && (version.equals("0") || version.equals("1")))
-            return BagUtils.selectVersion(bagnames, "");
 
         return out;
     }
