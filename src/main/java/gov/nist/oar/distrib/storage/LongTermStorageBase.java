@@ -130,7 +130,7 @@ public abstract class LongTermStorageBase implements LongTermStorage {
      * @param identifier  the AIP identifier for the desired data collection 
      * @param version     the desired version of the AIP
      * @return String, the head bag's file name, or null if version is not found
-     * @throws ResourceNotFoundException   if there exist no bags with the given identifier
+     * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
      */
     @Override
     public String findHeadBagFor(String identifier, String version)
@@ -138,7 +138,8 @@ public abstract class LongTermStorageBase implements LongTermStorage {
     {
         List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
         if (bags.size() == 0)
-            return null;
+            throw new ResourceNotFoundException("Version "+version+" not found for id="+identifier,
+                                                identifier);
         return BagUtils.findLatestHeadBag(bags);
     }
 }

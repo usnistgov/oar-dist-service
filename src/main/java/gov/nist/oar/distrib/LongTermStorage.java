@@ -96,7 +96,7 @@ public interface LongTermStorage {
      * @param identifier  the AIP identifier for the desired data collection 
      * @param version     the desired version of the AIP
      * @return String, the head bag's file name
-     * @throws ResourceNotFoundException   if there exist no bags with the given identifier
+     * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
      */
     String findHeadBagFor(String identifier, String version)
         throws ResourceNotFoundException, StorageStateException;

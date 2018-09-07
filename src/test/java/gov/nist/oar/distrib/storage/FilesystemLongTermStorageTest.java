@@ -197,6 +197,4 @@ public class FilesystemLongTermStorageTest {
         } catch (ResourceNotFoundException ex) { }
 
     }
-    /*                */
-  
 }
