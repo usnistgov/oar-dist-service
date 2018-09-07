@@ -14,6 +14,8 @@
 package gov.nist.oar.distrib;
 
 import java.io.InputStream;
+import java.io.IOException;
+import java.io.Closeable;
 
 // Possible TODO:  add JsonObject for arbitrary metadata.
 
@@ -25,7 +27,7 @@ import java.io.InputStream;
  * 
  * @author: Raymond Plante
  */
-public class StreamHandle {
+public class StreamHandle implements Closeable {
 
     /**
      * an OutputStream that is ready to deliver requested content.  This can be 
@@ -118,4 +120,11 @@ public class StreamHandle {
      * be set to null.
      */
     public StreamHandle() { }
+
+    /**
+     * close that bag's open dataStream
+     */
+    public void close() throws IOException {
+        if (dataStream != null) dataStream.close();
+    }
 }

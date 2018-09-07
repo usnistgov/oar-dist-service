@@ -19,6 +19,7 @@ import org.junit.After;
 import static org.junit.Assert.*;
 
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.StringBufferInputStream;
 
 public class StreamHandleTest {
@@ -93,4 +94,30 @@ public class StreamHandleTest {
         assertEquals(sh.size,        -1L);
     }
 
+    @Test
+    public void testClose() throws IOException {
+        String data = "Hello world";
+        InputStream strm = new StringBufferInputStream(data);
+
+        StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
+                                           "abcdef12345");
+        sh.close();
+        sh.close();
+
+        sh = new StreamHandle(null, 55L, "greeting.txt", "text/plain", "abcdef12345");
+        sh.close();
+        sh.close();
+    }
+
+    @Test
+    public void testAutoClose() throws IOException {
+        String data = "Hello world";
+        InputStream strm = new StringBufferInputStream(data);
+
+        try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
+                                                "abcdef12345")) 
+        {
+            sh.dataStream.read();
+        }
+    }
 }
