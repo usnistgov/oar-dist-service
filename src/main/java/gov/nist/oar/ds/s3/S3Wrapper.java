@@ -122,6 +122,7 @@ public class S3Wrapper {
 
     S3ObjectInputStream objectInputStream = s3Object.getObjectContent();
 
+    // ACK!! whole file is read into memory!!  (see streamFile())
     byte[] bytes = IOUtils.toByteArray(objectInputStream);
 
     String fileName = URLEncoder.encode(key, "UTF-8").replaceAll("\\+", "%20");
@@ -132,6 +133,15 @@ public class S3Wrapper {
     httpHeaders.setContentDispositionFormData("attachment", fileName);
 
     return new ResponseEntity<>(bytes, httpHeaders, HttpStatus.OK);
+  }
+
+  /**
+   * return a stream that downloads bytes from a requested file
+   */
+  public InputStream streamFile(String bucket, String key) throws IOException {
+    GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
+    S3Object s3Object = s3Client.getObject(getObjectRequest);
+    return s3Object.getObjectContent();
   }
   
   public void copytocache(String hostbucket, String hostkey, String destBucket, String destKey){
