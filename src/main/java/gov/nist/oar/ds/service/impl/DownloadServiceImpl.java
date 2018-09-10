@@ -222,7 +222,7 @@ public class DownloadServiceImpl implements DownloadService {
               HttpMethod.GET, entity, JSONObject.class, "1");
       JSONObject jsonRecord = response.getBody();
       if((int)jsonRecord.get("ResultCount") == 0) 
-    	  throw new ResourceNotFoundException("No data available for given record id.");
+    	  throw new ResourceNotFoundException("No data available for given record id.", id);
       
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
@@ -413,7 +413,7 @@ public class DownloadServiceImpl implements DownloadService {
 
      if (files.isEmpty()) {
          logger.error("No data available for given id.");
-         throw new ResourceNotFoundException("No data available for given id.");
+         throw new ResourceNotFoundException("No data available for given id", recordid);
      } else {
          ArrayList<String> bags = new ArrayList<String>(files.size());
          files.forEach(new Consumer<S3ObjectSummary>() {
@@ -429,7 +429,7 @@ public class DownloadServiceImpl implements DownloadService {
      if (recordBagKey.isEmpty() || recordBagKey.equals("")) {
          logger.info("recordBagKey is empty?:"+recordBagKey);
          logger.error("There is no bag available for given data id. Check the format/extension of bag.");
-         throw new ResourceNotFoundException(recordid);
+         throw new ResourceNotFoundException("No bag available for requested id", recordid);
      } 
      logger.info("Found headbag: "+ recordBagKey);
      return recordBagKey;
@@ -512,7 +512,7 @@ public class DownloadServiceImpl implements DownloadService {
               out.close();
           }
 	  if(out.size() == 0){ 
-              throw new ResourceNotFoundException("Requested file is not in data bundle.");
+              throw new ResourceNotFoundException("Requested file is not in data bundle.", recordid);
           }
 		 
 	  HttpHeaders httpHeaders = new HttpHeaders();
