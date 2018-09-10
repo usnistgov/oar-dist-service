@@ -19,6 +19,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
@@ -219,7 +222,7 @@ public class DownloadServiceImpl implements DownloadService {
               HttpMethod.GET, entity, JSONObject.class, "1");
       JSONObject jsonRecord = response.getBody();
       if((int)jsonRecord.get("ResultCount") == 0) 
-    	  throw new ResourceNotFoundException("No data available for given record id.");
+    	  throw new ResourceNotFoundException("No data available for given record id.", id);
       
       String dzId = id;
       logger.info(rmmApi + "records?@id="+ id + "&include=components");
@@ -410,7 +413,7 @@ public class DownloadServiceImpl implements DownloadService {
 
      if (files.isEmpty()) {
          logger.error("No data available for given id.");
-         throw new ResourceNotFoundException("No data available for given id.");
+         throw new ResourceNotFoundException("No data available for given id", recordid);
      } else {
          ArrayList<String> bags = new ArrayList<String>(files.size());
          files.forEach(new Consumer<S3ObjectSummary>() {
@@ -426,10 +429,51 @@ public class DownloadServiceImpl implements DownloadService {
      if (recordBagKey.isEmpty() || recordBagKey.equals("")) {
          logger.info("recordBagKey is empty?:"+recordBagKey);
          logger.error("There is no bag available for given data id. Check the format/extension of bag.");
-         throw new ResourceNotFoundException(recordid);
+         throw new ResourceNotFoundException("No bag available for requested id", recordid);
      } 
-     logger.info("Extracting file from bag: "+ recordBagKey);
+     logger.info("Found headbag: "+ recordBagKey);
      return recordBagKey;
+  }
+
+  public String lookupFile(String headbag, String id, String filepath) throws IOException {
+      if (headbag.contains(".mbag0_2-"))
+          // legacy format; single-member multibag
+          return headbag;
+      
+      ZipInputStream zis = new ZipInputStream(s3Wrapper.streamFile(preservationBucket, headbag));
+      return lookupFileViaZip(zis, headbag, id, filepath);
+  }
+
+  public static String lookupFileViaZip(ZipInputStream zis, String headbag, String id, String filepath)
+      throws IOException
+  {
+      ZipEntry entry = null;
+      String lufile = headbag.substring(0, headbag.length()-4) + "/multibag/file-lookup.tsv";
+      String entrypath = "data/" + filepath;
+      byte[] buf = new byte[5000];
+      BufferedReader cnts = null;
+      try {
+          while ((entry = zis.getNextEntry()) != null) {
+              if (entry.getName().equals(lufile)) {
+                  cnts = new BufferedReader(new InputStreamReader(zis));
+                  String line = null;
+                  String[] words = null;
+                  while ((line = cnts.readLine()) != null) {
+                      words = line.trim().split("\t");
+                      if (words[0].equals(entrypath))
+                          return words[1] + ".zip";
+                  }
+              }
+          }
+      }
+      finally {
+          if (cnts != null) cnts.close();
+          zis.close();
+      }
+
+      // didn't find the lookup file (or matched an entry in it); assume the
+      // filepath is in the given headbag
+      return headbag;
   }
   
   
@@ -439,30 +483,37 @@ public class DownloadServiceImpl implements DownloadService {
 	  this.validateIds(filepath, "file path");
 	  logger.info("Info : record id: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
 	  
-	  String recordBagKey = extractRecordkey(recordid);
+	  String headbag = extractRecordkey(recordid);
+          String recordBagKey = lookupFile(headbag, recordid, filepath);
+          logger.info("Extracting file from "+recordBagKey);
+          
 	  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
-	  byte[] outdata = new byte[ 9000];
+	  byte[] outdata = new byte[100000];
 	  ByteArrayOutputStream out = new ByteArrayOutputStream();
 //		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
 //			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
 	  logger.info("Pulling data from preservationbucket: "+preservationBucket +" recordbagkey:"+recordBagKey + " :: "+" filename ::"+filename );
       
-	  ResponseEntity<byte[]> zipdata = s3Wrapper.download(preservationBucket,recordBagKey);
-	  ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipdata.getBody()));
-	  ZipEntry entry; 
-	  while((entry = zis.getNextEntry()) != null)  {
-		  if (entry.getName().equals(filename)) {  
-			  int len;
-			  while ((len = zis.read(outdata)) != -1) {
-				  out.write(outdata, 0, len);
-			  }
-			  out.close();
+	  InputStream zipdata = s3Wrapper.streamFile(preservationBucket, recordBagKey);
+	  ZipInputStream zis = new ZipInputStream(zipdata);
+	  ZipEntry entry;
+          try {
+              while((entry = zis.getNextEntry()) != null)  {
+                  if (entry.getName().equals(filename)) {  
+                      int len;
+                      while ((len = zis.read(outdata)) != -1) {
+                          out.write(outdata, 0, len);
+                      }
 		  }
+              }
 	  }
-	  zis.close();
+          finally {
+              zis.close();
+              out.close();
+          }
 	  if(out.size() == 0){ 
-		  throw new ResourceNotFoundException("Requested file is not in data bundle.");
-	   }
+              throw new ResourceNotFoundException("Requested file is not in data bundle.", recordid);
+          }
 		 
 	  HttpHeaders httpHeaders = new HttpHeaders();
 	  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
