@@ -70,6 +70,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.gson.Gson;
@@ -478,7 +480,9 @@ public class DownloadServiceImpl implements DownloadService {
   
   
   @Override
-  public ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException {
+  public void downloadData(String recordid, String filepath, HttpServletResponse response)
+      throws IOException
+  {
 	  this.validateIds(recordid, "Record or DataSet identifier");
 	  this.validateIds(filepath, "file path");
 	  logger.info("Info : record id: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
@@ -488,37 +492,29 @@ public class DownloadServiceImpl implements DownloadService {
           logger.info("Extracting file from "+recordBagKey);
           
 	  String filename = recordBagKey.substring(0, recordBagKey.length()-4)+"/data/"+filepath;
-	  byte[] outdata = new byte[100000];
-	  ByteArrayOutputStream out = new ByteArrayOutputStream();
-//		  if(!s3Wrapper.doesObjectExistInCache(cacheBucket, recordBagKey))
-//			  s3Wrapper.copytocache(preservationBucket, recordBagKey, cacheBucket,recordBagKey);
+
 	  logger.info("Pulling data from preservationbucket: "+preservationBucket +" recordbagkey:"+recordBagKey + " :: "+" filename ::"+filename );
       
 	  InputStream zipdata = s3Wrapper.streamFile(preservationBucket, recordBagKey);
 	  ZipInputStream zis = new ZipInputStream(zipdata);
 	  ZipEntry entry;
-          try {
-              while((entry = zis.getNextEntry()) != null)  {
-                  if (entry.getName().equals(filename)) {  
-                      int len;
-                      while ((len = zis.read(outdata)) != -1) {
-                          out.write(outdata, 0, len);
-                      }
-		  }
+          while((entry = zis.getNextEntry()) != null)  {
+              if (entry.getName().equals(filename)) {
+
+                  response.setHeader("Content-Length", Long.toString(entry.getSize()));
+                  response.setHeader("Content-Type", MediaType.APPLICATION_OCTET_STREAM.toString());
+                  response.setHeader("Content-Disposition", "filename="+filepath);
+                  int len;
+                  byte[] outdata = new byte[100000];
+                  OutputStream out = response.getOutputStream();
+                  while ((len = zis.read(outdata)) != -1) {
+                      out.write(outdata, 0, len);
+                  }
+                  return;
               }
-	  }
-          finally {
-              zis.close();
-              out.close();
           }
-	  if(out.size() == 0){ 
-              throw new ResourceNotFoundException("Requested file is not in data bundle.", recordid);
-          }
-		 
-	  HttpHeaders httpHeaders = new HttpHeaders();
-	  httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-	  httpHeaders.setContentLength(out.toByteArray().length);
-	  httpHeaders.setContentDispositionFormData("attachment", filepath);
-	  return new ResponseEntity<>(out.toByteArray(), httpHeaders, HttpStatus.OK);
+
+          throw new ResourceNotFoundException("Failed to find file, "+filepath+" in bag, "+headbag,
+                                              recordid);
   }
 }

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,17 +184,19 @@ public class DownloadController {
 //}
 
 @RequestMapping(value = "/{dsId}/**", method = RequestMethod.GET)
-public ResponseEntity<byte[]> downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request) throws IOException {
-  logger.debug("Handling file request from dataset with id=" + dsid);
+public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest request,
+                         HttpServletResponse response)
+    throws IOException
+{
+    logger.debug("Handling file request from dataset with id=" + dsid);
   
-	  String restOfTheUrl = (String) request.getAttribute(
-	        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    String restOfTheUrl = (String) request.getAttribute(
+                                      HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	 
-	  restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
-            logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
+    restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
+    logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
       
-          return downloadService.downloadData(dsid, BagUtils.urlDecode(restOfTheUrl));
-     
+    downloadService.downloadData(dsid, BagUtils.urlDecode(restOfTheUrl), response);
 }
 
 //@RequestMapping(value="/{id}/**", method = RequestMethod.GET)
