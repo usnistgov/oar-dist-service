@@ -519,7 +519,7 @@ public class DownloadServiceImpl implements DownloadService {
 
                       // "Connection reset by peer" gets thrown if the user cancels the download
                       if (ex.getMessage().contains("Connection reset by peer"))
-                          log.info("Client cancelled download");
+                          logger.info("Client cancelled download");
                       else 
                           throw ex;
                   }
