@@ -507,10 +507,22 @@ public class DownloadServiceImpl implements DownloadService {
                   int len;
                   byte[] outdata = new byte[100000];
                   OutputStream out = response.getOutputStream();
-                  while ((len = zis.read(outdata)) != -1) {
-                      out.write(outdata, 0, len);
+                  try {
+                      while ((len = zis.read(outdata)) != -1) {
+                          out.write(outdata, 0, len);
+                      }
+                      logger.info(filepath + " sent.");
+                      return;
                   }
-                  return;
+                  catch (IOException ex) {
+                      logger.info("IOException type: "+ex.getClass().getName());
+
+                      // "Connection reset by peer" gets thrown if the user cancels the download
+                      if (ex.getMessage().contains("Connection reset by peer"))
+                          log.info("Client cancelled download");
+                      else 
+                          throw ex;
+                  }
               }
           }
 
