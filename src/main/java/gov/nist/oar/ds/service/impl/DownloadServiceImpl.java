@@ -516,8 +516,8 @@ public class DownloadServiceImpl implements DownloadService {
                       return;
                   }
                   catch (org.apache.catalina.connector.ClientAbortException ex) {
-                      logger.info("Client cancelled download");
-                      response.flushBuffer();
+                      logger.info("Client cancelled the download");
+                      // response.flushBuffer();
                       return;
                   }
                   catch (IOException ex) {
