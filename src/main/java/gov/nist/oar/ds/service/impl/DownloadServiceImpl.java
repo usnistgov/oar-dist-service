@@ -511,8 +511,12 @@ public class DownloadServiceImpl implements DownloadService {
                       while ((len = zis.read(outdata)) != -1) {
                           out.write(outdata, 0, len);
                       }
+                      response.flushBuffer();
                       logger.info(filepath + " sent.");
                       return;
+                  }
+                  catch (org.apache.catalina.connector.ClientAbortException ex) {
+                      logger.info("Client cancelled download");
                   }
                   catch (IOException ex) {
                       logger.info("IOException type: "+ex.getClass().getName());
