@@ -504,8 +504,8 @@ public class DownloadServiceImpl implements DownloadService {
 
                   response.setHeader("Content-Length", Long.toString(entry.getSize()));
                   response.setHeader("Content-Type", MediaType.APPLICATION_OCTET_STREAM.toString());
-                  response.setHeader("Content-Disposition", "filename=" +
-                                     Pattern.compile("[\\s/]+").matcher(filepath).replaceAll("_"));
+                  response.setHeader("Content-Disposition", "filename=\"" +
+                                     Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
                   int len;
                   byte[] outdata = new byte[100000];
                   OutputStream out = response.getOutputStream();
