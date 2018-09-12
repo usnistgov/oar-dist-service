@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -503,7 +504,8 @@ public class DownloadServiceImpl implements DownloadService {
 
                   response.setHeader("Content-Length", Long.toString(entry.getSize()));
                   response.setHeader("Content-Type", MediaType.APPLICATION_OCTET_STREAM.toString());
-                  response.setHeader("Content-Disposition", "filename="+filepath);
+                  response.setHeader("Content-Disposition", "filename=" +
+                                     Pattern.compile("[\\s/]+").matcher(filepath).replaceAll("_"));
                   int len;
                   byte[] outdata = new byte[100000];
                   OutputStream out = response.getOutputStream();
