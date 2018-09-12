@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.unit.service.impl;
+package gov.nist.oar.distrib.service;
 
 import static org.junit.Assert.assertEquals;
 
@@ -47,8 +47,8 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class PreservationServiceTest {
-    private static Logger logger = LoggerFactory.getLogger(PreservationServiceTest.class);
+public class DefaultPreservationBagService {
+    private static Logger logger = LoggerFactory.getLogger(PreservationBagService.class);
     
     String filesystem;
     PreservationBagService pres;

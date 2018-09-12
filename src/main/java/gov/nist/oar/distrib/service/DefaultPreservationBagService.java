@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.service.impl;
+package gov.nist.oar.distrib.service;
 
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -37,15 +37,15 @@ import gov.nist.oar.bags.preservation.BagUtils;
  *
  * @author Deoyani Nandrekar-Heinis
  */
-public class PreservationBagServiceImpl implements PreservationBagService {
+public class DefaultPreservationBagService implements PreservationBagService {
 
-    protected static Logger logger = LoggerFactory.getLogger(PreservationBagServiceImpl.class);
+    protected static Logger logger = LoggerFactory.getLogger(PreservationBagService.class);
     protected LongTermStorage storage = null;
 
     /**
      * create the service instance
      */
-    public PreservationBagServiceImpl(LongTermStorage stor) {
+    public DefaultPreservationBagService(LongTermStorage stor) {
         storage = stor;
     }
 
