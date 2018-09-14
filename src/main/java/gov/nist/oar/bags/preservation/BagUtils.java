@@ -44,14 +44,15 @@ public class BagUtils {
 
     /**
      * parse a bag name into its meaningful components: id, version, multibag profile version, 
-     * multibag sequence number, and serialization extension (if present).  
+     * multibag sequence number, and serialization extension (if present).  The version field will 
+     * be an empty string.  
      * @param name           the name to parse.  This name should not include any preceeding
      *                       file paths.  
-     * @return List<String> - a list containing the components in order of id, multibag 
+     * @return List<String> - a list containing the components in order of id, version, multibag 
      *                       profile version, multibag sequence number, and serialization 
      *                       extension.  If the name does not contain a serialization extension,
      *                       the fourth element will be an empty string.  That field will not
-     *                       include a leading dot.  
+     *                       include a leading dot.  The version field will be an empty string.
      * @throws ParseException  if the given name does not match the accepted pattern 
      *                         for bag names
      */
@@ -112,7 +113,8 @@ public class BagUtils {
     /**
      * parse a bag name (according the format that excludes the AIP version) into its meaningful 
      * components: id, version, multibag profile version, multibag sequence number, and 
-     * serialization extension (if present).  The version field will be an empty string.  
+     * serialization extension (if present).  The version fields will be exactly as they appear 
+     * in the name (i.e. with underscore, _, as the delimiter).  
      * @param name           the name to parse.  This name should not include any preceeding
      *                       file paths.  
      * @return List<String> - a list containing the components in order of id, version, multibag 

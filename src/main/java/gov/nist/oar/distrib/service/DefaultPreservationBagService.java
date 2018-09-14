@@ -13,6 +13,7 @@
 package gov.nist.oar.distrib.service;
 
 import gov.nist.oar.distrib.AIPDescription;
+import gov.nist.oar.distrib.BagDescription;
 
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -35,8 +36,14 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
- * Service implementation to get Preservation bags and information
- *
+ * A PreservationBagService implementation that leverages default AIP storage and naming conventions.  
+ * <p>
+ * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
+ * Together, these make up the AIP.  In the default storage model, the AIP files are serialized BagIt
+ * bags that conform to the Multibag BagIt Profile.  These bags are stored in a single 
+ * {@link gov.nist.oar.distrib.LongTermStorage LongTermStorage} system using a naming convention 
+ * encapsulated in the {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class.  
+ * <p>
  * @author Deoyani Nandrekar-Heinis
  */
 public class DefaultPreservationBagService implements PreservationBagService {
@@ -142,17 +149,19 @@ public class DefaultPreservationBagService implements PreservationBagService {
     }
 
     /**
-     * Returns the information of the bag for given bag file name
+     * Returns the information of the bag for given bag file name.  If the filename follows the bag
+     * naming conventions understood by the {@link BagUtils BagUtils} class, the returned object will
+     * include extra property information gleaned from the name.
      * @param bagfile        the name of the serialized bag
-     * @return StreamHandle, a container for an open stream ready to present the bag
+     * @return AIPDescription, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
     public AIPDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle info for bagfile:"+bagfile);
-        return new AIPDescription(bagfile, storage.getSize(bagfile), null,
-                                storage.getChecksum(bagfile));
+        return new BagDescription(bagfile, storage.getSize(bagfile), null,
+                                  storage.getChecksum(bagfile));
     }
 
 }

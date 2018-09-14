@@ -21,9 +21,9 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 /**
  * a simple container for metadata about an AIP file that are crucial to its storage and access 
  * in a long term storage system.  
- * 
+ * <p>
  * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
- * Together, these make up the AIP.  AIP files, therefor, have associated metadata that indicate their 
+ * Together, these make up the AIP.  AIP files, therefore, have associated metadata that indicate their 
  * membership in a particular AIP (e.g. AIP identifier, version, etc.) and which are are important for 
  * accessing them in storage systems.  Although the PDR (at NIST) follows a naming convention that 
  * embeds some of this metadata, this is considered an implementation detail that is hidden from 
@@ -31,7 +31,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
  * the naming convention (or how files and metadata are connected) to get at the metadata.  This class
  * provides a container for transmitting this information from the storage system up to the distribution
  * service API.
- *
+ * <p>
  * This container leverages the Jackson JSON framework (which is used by the Spring Framework) for 
  * serializing this information into JSON.  
  */
@@ -121,6 +121,15 @@ public class AIPDescription {
     public void setProp(String name, String val) {
         ensureProps();
         props.put(name, val);
+    }
+
+    /**
+     * set the boolean-value of the named property
+     * @throws ClassCastException  if the property is not integer-valued
+     */
+    public String getStringProp(String name) {
+        ensureProps();
+        return (String) props.get(name);
     }
 
     /**
