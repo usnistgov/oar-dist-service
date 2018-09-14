@@ -40,14 +40,14 @@ import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.impl.PreservationBagServiceImpl;
+import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class DefaultPreservationBagService {
+public class DefaultPreservationBagServiceTest {
     private static Logger logger = LoggerFactory.getLogger(PreservationBagService.class);
     
     String filesystem;
@@ -97,7 +97,7 @@ public class DefaultPreservationBagService {
 
     @Before
     public void setUp() throws FileNotFoundException {
-        pres = new PreservationBagServiceImpl(new FilesystemLongTermStorage(testdir.toString()));
+        pres = new DefaultPreservationBagService(new FilesystemLongTermStorage(testdir.toString()));
     }
 
     @AfterClass
