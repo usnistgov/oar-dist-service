@@ -91,8 +91,17 @@ public class BagDescription extends AIPDescription {
                 desc.setProp("sinceVersion", String.join(".", info.get(1).split("_")));
                 desc.setProp("multibagProfileVersion", String.join(".", info.get(2).split("_")));
                 desc.setProp("multibagSequence", Long.parseLong(info.get(3)));
-                if (! info.get(4).equals(""))
+                if (! info.get(4).equals("")) {
                     desc.setProp("serialization", info.get(4));
+                    if (desc.contentType == null || desc.contentType.equals("")) {
+                        if (info.get(4).equals("zip"))
+                            desc.contentType = "application/zip";
+                        else if (info.get(4).equals("7z"))
+                            desc.contentType = "application/x-7z-compressed";
+                        else
+                            desc.contentType = "application/octet-stream";
+                    }
+                }
             }
             catch (ParseException ex) {
                 // should not happen

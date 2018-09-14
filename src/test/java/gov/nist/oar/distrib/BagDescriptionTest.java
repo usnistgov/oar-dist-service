@@ -82,7 +82,7 @@ public class BagDescriptionTest {
         d = new BagDescription("mds25gd1k.2_1_51.mbag1_0-34.7z", data.length());
         assertEquals("mds25gd1k.2_1_51.mbag1_0-34.7z", d.name);
         assertEquals( 11L, d.contentLength);
-        assertEquals(null, d.contentType );
+        assertEquals("application/x-7z-compressed", d.contentType );
         assertEquals(null, d.checksum    );
         assertNotEquals(   0, d.getProperties().size());
         assertEquals("mds25gd1k",    d.aipid);
