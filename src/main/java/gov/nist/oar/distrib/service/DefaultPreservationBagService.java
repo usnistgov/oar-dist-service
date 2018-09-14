@@ -12,6 +12,8 @@
  */
 package gov.nist.oar.distrib.service;
 
+import gov.nist.oar.distrib.AIPDescription;
+
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.ArrayList;
@@ -147,9 +149,9 @@ public class DefaultPreservationBagService implements PreservationBagService {
      * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public StreamHandle getInfo(String bagfile) throws FileNotFoundException, DistributionException {
+    public AIPDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle info for bagfile:"+bagfile);
-        return new StreamHandle(null, storage.getSize(bagfile), bagfile, null,
+        return new AIPDescription(bagfile, storage.getSize(bagfile), null,
                                 storage.getChecksum(bagfile));
     }
 

@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.util.List;
 
 import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.AIPDescription;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
@@ -81,5 +82,5 @@ public interface PreservationBagService {
      * @throws FileNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    StreamHandle getInfo(String bagfile) throws FileNotFoundException, DistributionException;
+    AIPDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException;
 }

@@ -29,17 +29,17 @@ public class StreamHandleTest {
 
         StreamHandle sh = new StreamHandle();
         assertEquals(sh.dataStream, null);
-        assertEquals(sh.name, null);
-        assertEquals(sh.contentType, null);
-        assertEquals(sh.checksum, null);
-        assertEquals(sh.size, -1L);
+        assertEquals(sh.getInfo().name, null);
+        assertEquals(sh.getInfo().contentType, null);
+        assertEquals(sh.getInfo().checksum, null);
+        assertEquals(sh.getInfo().contentLength, -1L);
 
         sh = new StreamHandle(null);
         assertEquals(sh.dataStream, null);
-        assertEquals(sh.name, null);
-        assertEquals(sh.contentType, null);
-        assertEquals(sh.checksum, null);
-        assertEquals(sh.size, -1L);
+        assertEquals(sh.getInfo().name, null);
+        assertEquals(sh.getInfo().contentType, null);
+        assertEquals(sh.getInfo().checksum, null);
+        assertEquals(sh.getInfo().contentLength, -1L);
     }
 
     @Test
@@ -50,19 +50,19 @@ public class StreamHandleTest {
 
         StreamHandle sh = new StreamHandle(null, -3, null, null, (String) null);
         assertEquals(null, sh.dataStream  );
-        assertEquals(null, sh.name        );
-        assertEquals(null, sh.contentType );
-        assertEquals(null, sh.checksum    );
-        assertEquals( -3L, sh.size        );
+        assertEquals(null, sh.getInfo().name        );
+        assertEquals(null, sh.getInfo().contentType );
+        assertEquals(null, sh.getInfo().checksum    );
+        assertEquals( -3L, sh.getInfo().contentLength        );
 
         sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
                               Checksum.sha256("abcdef12345"));
         assertSame(sh.dataStream, strm);
-        assertEquals("greeting.txt", sh.name);
-        assertEquals("text/plain",   sh.contentType);
-        assertEquals("abcdef12345",  sh.checksum.hash);
-        assertEquals("sha256", sh.checksum.algorithm);
-        assertEquals(11L, sh.size);
+        assertEquals("greeting.txt", sh.getInfo().name);
+        assertEquals("text/plain",   sh.getInfo().contentType);
+        assertEquals("abcdef12345",  sh.getInfo().checksum.hash);
+        assertEquals("sha256", sh.getInfo().checksum.algorithm);
+        assertEquals(11L, sh.getInfo().contentLength);
     }
 
     @Test
@@ -73,25 +73,25 @@ public class StreamHandleTest {
         StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
                                            "abcdef12345");
         assertSame(sh.dataStream,    strm);
-        assertEquals(sh.name,        "greeting.txt");
-        assertEquals(sh.contentType, "text/plain");
-        assertEquals(sh.checksum.hash, "abcdef12345");
-        assertEquals(sh.checksum.algorithm, Checksum.SHA256);
-        assertEquals(sh.size,        11L);
+        assertEquals(sh.getInfo().name,        "greeting.txt");
+        assertEquals(sh.getInfo().contentType, "text/plain");
+        assertEquals(sh.getInfo().checksum.hash, "abcdef12345");
+        assertEquals(sh.getInfo().checksum.algorithm, Checksum.SHA256);
+        assertEquals(sh.getInfo().contentLength,        11L);
 
         sh = new StreamHandle(strm, data.length());
         assertSame(sh.dataStream,    strm);
-        assertEquals(sh.name,        null);
-        assertEquals(sh.contentType, null);
-        assertEquals(sh.checksum, null);
-        assertEquals(sh.size,        11L);
+        assertEquals(sh.getInfo().name,        null);
+        assertEquals(sh.getInfo().contentType, null);
+        assertEquals(sh.getInfo().checksum, null);
+        assertEquals(sh.getInfo().contentLength,        11L);
 
         sh = new StreamHandle(strm);
         assertSame(sh.dataStream,    strm);
-        assertEquals(sh.name,        null);
-        assertEquals(sh.contentType, null);
-        assertEquals(sh.checksum,    null);
-        assertEquals(sh.size,        -1L);
+        assertEquals(sh.getInfo().name,        null);
+        assertEquals(sh.getInfo().contentType, null);
+        assertEquals(sh.getInfo().checksum,    null);
+        assertEquals(sh.getInfo().contentLength,        -1L);
     }
 
     @Test

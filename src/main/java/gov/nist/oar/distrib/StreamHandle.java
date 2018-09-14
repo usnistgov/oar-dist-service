@@ -36,27 +36,9 @@ public class StreamHandle implements Closeable {
     public InputStream dataStream = null;
 
     /**
-     * the total number of bytes that are available from the output data stream.  
-     * A value less than 0 indicates that the total length is unknown.
+     * information about the content provided on the data stream
      */
-    public long size = -1L;
-
-    /**
-     * a name for the stream of bytes
-     */
-    public String name = null;
-
-    /**
-     * the checksum calculated for the bytes on the output data stream.  If null, the 
-     * hash is not available for this deliverable.
-     */
-    public Checksum checksum = null;
-
-    /**
-     * the content type appropriate for the contents of the data stream.  If null,
-     * a default contentType shoud be assumed.  
-     */
-    public String contentType = null;
+    protected AIPDescription info;
 
     /**
      * initialize this handle with all available data.  The stream and any String may
@@ -71,10 +53,7 @@ public class StreamHandle implements Closeable {
                         Checksum cs)
     {
         dataStream = strm;
-        this.size = size;
-        this.name = name;
-        this.contentType = contentType;
-        this.checksum = cs;
+        info = new AIPDescription(name, size, contentType, cs);
     }
 
     /**
@@ -119,12 +98,19 @@ public class StreamHandle implements Closeable {
      * initialize an empty handle.  The size will be set to -1, and all other data will 
      * be set to null.
      */
-    public StreamHandle() { }
+    public StreamHandle() { info = new AIPDescription(); }
 
     /**
      * close that bag's open dataStream
      */
     public void close() throws IOException {
         if (dataStream != null) dataStream.close();
+    }
+
+    /**
+     * return a description of the content available on the data stream
+     */
+    public AIPDescription getInfo() {
+        return info;
     }
 }
