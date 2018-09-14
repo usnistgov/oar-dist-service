@@ -26,7 +26,7 @@ import java.text.ParseException;
  * accessing them in storage systems.  The OAR-PDR (at NIST) follows a naming convention that 
  * embeds some of this metadata (which is encasulated in the 
  * {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class).  This specialized 
- * {@link gov.nist.oar.destrib.AIPDescription AIPDescription} will add this embedded information as 
+ * {@link gov.nist.oar.distrib.AIPDescription AIPDescription} will add this embedded information as 
  * additional properties.  
  * <p>
  */

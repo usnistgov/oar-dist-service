@@ -41,7 +41,6 @@ public class StorageStateException extends DistributionException {
 
     /**
      * initialize the exception
-     * @param message   the description of the problem
      * @param cause     the underlying cause of the problem in the form of an internally-caught 
      *                  Throwable.  
      */

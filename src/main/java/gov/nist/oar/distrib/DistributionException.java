@@ -8,15 +8,11 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
- * 
- * @author: Raymond Plante
  */
 package gov.nist.oar.distrib;
 
 /**
  * a base or generic exception for problems specific to data distribution system.
- * 
- * @author: Raymond Plante
  */
 public class DistributionException extends Exception {
 

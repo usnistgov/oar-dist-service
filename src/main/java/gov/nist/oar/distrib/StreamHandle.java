@@ -17,15 +17,13 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.Closeable;
 
-// Possible TODO:  add JsonObject for arbitrary metadata.
-
 /**
  * a simple container class used to deliver an InputStream along with 
  * metadata about the stream.  This is metadata that is useful to a web 
  * service interface, including number of bytes that can/should be read 
  * and an appropriate content-type string.  
  * 
- * @author: Raymond Plante
+ * @author Raymond Plante
  */
 public class StreamHandle implements Closeable {
 
