@@ -36,7 +36,7 @@ public class StreamHandle implements Closeable {
     /**
      * information about the content provided on the data stream
      */
-    protected AIPDescription info;
+    protected FileDescription info;
 
     /**
      * initialize this handle with all available data.  The stream and any String may
@@ -51,7 +51,7 @@ public class StreamHandle implements Closeable {
                         Checksum cs)
     {
         dataStream = strm;
-        info = new AIPDescription(name, size, contentType, cs);
+        info = new FileDescription(name, size, contentType, cs);
     }
 
     /**
@@ -96,7 +96,7 @@ public class StreamHandle implements Closeable {
      * initialize an empty handle.  The size will be set to -1, and all other data will 
      * be set to null.
      */
-    public StreamHandle() { info = new AIPDescription(); }
+    public StreamHandle() { info = new FileDescription(); }
 
     /**
      * close that bag's open dataStream
@@ -108,7 +108,7 @@ public class StreamHandle implements Closeable {
     /**
      * return a description of the content available on the data stream
      */
-    public AIPDescription getInfo() {
+    public FileDescription getInfo() {
         return info;
     }
 }

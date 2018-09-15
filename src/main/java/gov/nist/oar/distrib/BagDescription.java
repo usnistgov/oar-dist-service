@@ -18,7 +18,7 @@ import java.util.List;
 import java.text.ParseException;
 
 /**
- * an AIP description with extra support for properties describing OAR preservation bags.
+ * a file description with extra support for properties describing OAR preservation bags.
  * <p>
  * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
  * Together, these make up the AIP.  AIP files, therefore, have associated metadata that indicate their 
@@ -26,11 +26,10 @@ import java.text.ParseException;
  * accessing them in storage systems.  The OAR-PDR (at NIST) follows a naming convention that 
  * embeds some of this metadata (which is encasulated in the 
  * {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class).  This specialized 
- * {@link gov.nist.oar.distrib.AIPDescription AIPDescription} will add this embedded information as 
+ * {@link gov.nist.oar.distrib.FileDescription FileDescription} will add this embedded information as 
  * additional properties.  
- * <p>
  */
-public class BagDescription extends AIPDescription {
+public class BagDescription extends FileDescription {
 
     /**
      * create an empty description
@@ -72,7 +71,7 @@ public class BagDescription extends AIPDescription {
     }
 
     /**
-     * add additional properties to an AIPDescription that have been extracted from a 
+     * add additional properties to an FileDescription that have been extracted from a 
      * a preservation bag name that follows the OAR bag naming conventions.  If the name 
      * is not a compliant name, this method exits without adding anything.
      * @param desc     the description to add the properties to
@@ -80,7 +79,7 @@ public class BagDescription extends AIPDescription {
      *                 be a file path in which case only the base file name will be 
      *                 examined.
      */
-    public static void addBagPropertiesFor(AIPDescription desc, String bagname) {
+    public static void addBagPropertiesFor(FileDescription desc, String bagname) {
         bagname = (new File(bagname)).getName();
         if (BagUtils.isLegalBagName(bagname)) {
             try {

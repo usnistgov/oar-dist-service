@@ -19,27 +19,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
- * a simple container for metadata about an AIP file that are crucial to its storage and access 
- * in a long term storage system.  
- * <p>
- * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
- * Together, these make up the AIP.  AIP files, therefore, have associated metadata that indicate their 
- * membership in a particular AIP (e.g. AIP identifier, version, etc.) and which are are important for 
- * accessing them in storage systems.  Although the PDR (at NIST) follows a naming convention that 
- * embeds some of this metadata, this is considered an implementation detail that is hidden from 
- * high-level APIs.  In other words, clients of high-level APIs should not need to know the 
- * the naming convention (or how files and metadata are connected) to get at the metadata.  This class
- * provides a container for transmitting this information from the storage system up to the distribution
- * service API.
+ * a simple container for metadata about a downloadable file that are crucial to its storage and 
+ * delivery through a web service.  This includes its canonical name (which can be a hierarchical 
+ * path name), its size, and checksum hash.  Additional metadata can be attached as well.
  * <p>
  * This container leverages the Jackson JSON framework (which is used by the Spring Framework) for 
  * serializing this information into JSON.  
  */
 @JsonInclude(Include.NON_NULL)
-public class AIPDescription {
+public class FileDescription {
 
     /**
-     * the name of the AIP file
+     * the name of the file (which can be hierarchical)
      */
     public String name = null;
 
@@ -62,19 +53,20 @@ public class AIPDescription {
     public Checksum checksum = null;
 
     /**
-     * the identifier of the AIP that this file is associated with
+     * the identifier of the AIP (<em>archive information package</em>) that this file is 
+     * associated with
      */
     public String aipid = null;
 
     /**
-     * additional named properties of the AIP
+     * additional named properties of the file
      */
     protected Map<String, Object> props = null;
 
     /**
      * create an empty description
      */
-    public AIPDescription() { }
+    public FileDescription() { }
 
     /**
      * initialize this description with basic file information
@@ -83,7 +75,7 @@ public class AIPDescription {
      * @param contentType  the MIME type to associate with the bytes
      * @param cs           a Checksum for the bytes on the stream
      */
-    public AIPDescription(String name, long size, String contentType, Checksum cs) {
+    public FileDescription(String name, long size, String contentType, Checksum cs) {
         this.name = name;
         this.contentLength = size;
         this.contentType = contentType;
@@ -98,7 +90,7 @@ public class AIPDescription {
      * @param contentType  the MIME type to associate with the bytes
      * @param sha256       the SHA-256 hash of the file contents
      */
-    public AIPDescription(String name, long size, String contentType, String sha256) {
+    public FileDescription(String name, long size, String contentType, String sha256) {
         this(name, size, contentType, (sha256 == null) ? (Checksum) null : Checksum.sha256(sha256));
     }
 
@@ -107,7 +99,7 @@ public class AIPDescription {
      * @param name         a (file) name for the bytes on the stream
      * @param size         the expected number of bytes available on the stream
      */
-    public AIPDescription(String name, long size) {
+    public FileDescription(String name, long size) {
         this(name, size, null, (Checksum) null);
     }
 

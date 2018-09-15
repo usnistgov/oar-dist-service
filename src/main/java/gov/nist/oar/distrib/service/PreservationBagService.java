@@ -16,7 +16,7 @@ import java.io.FileNotFoundException;
 import java.util.List;
 
 import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.AIPDescription;
+import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
@@ -34,7 +34,8 @@ public interface PreservationBagService {
      * @throws ResourceNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    List<String> listBags(String identifier) throws ResourceNotFoundException, DistributionException;
+    public List<String> listBags(String identifier)
+        throws ResourceNotFoundException, DistributionException;
 
     /**
      * Return the version strings for the versions available for an AIP with the given identifier
@@ -43,7 +44,8 @@ public interface PreservationBagService {
      * @throws ResourceNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    List<String> listVersions(String identifier) throws ResourceNotFoundException, DistributionException;
+    public List<String> listVersions(String identifier)
+        throws ResourceNotFoundException, DistributionException;
 
     /**
      * Returns the head bag name for given identifier
@@ -52,7 +54,8 @@ public interface PreservationBagService {
      * @throws ResourceNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    String getHeadBagName(String identifier) throws ResourceNotFoundException, DistributionException;
+    public String getHeadBagName(String identifier)
+        throws ResourceNotFoundException, DistributionException;
 
     /**
      * Returns the head bag for given identifier and a version of bags.
@@ -62,7 +65,7 @@ public interface PreservationBagService {
      * @throws ResourceNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    String getHeadBagName(String identifier, String version)
+    public String getHeadBagName(String identifier, String version)
         throws ResourceNotFoundException, DistributionException;
 
     /**
@@ -73,7 +76,7 @@ public interface PreservationBagService {
      * @throws FileNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    StreamHandle getBag(String bagfile) throws FileNotFoundException, DistributionException;
+    public StreamHandle getBag(String bagfile) throws FileNotFoundException, DistributionException;
 
     /**
      * Returns the information of the bag for given bag file name
@@ -82,5 +85,5 @@ public interface PreservationBagService {
      * @throws FileNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
-    AIPDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException;
+    public FileDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException;
 }

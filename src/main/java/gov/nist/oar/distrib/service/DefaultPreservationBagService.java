@@ -12,7 +12,7 @@
  */
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.distrib.AIPDescription;
+import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.BagDescription;
 
 import java.io.FileNotFoundException;
@@ -153,12 +153,12 @@ public class DefaultPreservationBagService implements PreservationBagService {
      * naming conventions understood by the {@link BagUtils BagUtils} class, the returned object will
      * include extra property information gleaned from the name.
      * @param bagfile        the name of the serialized bag
-     * @return AIPDescription, a container for an open stream ready to present the bag
+     * @return FileDescription, a container for an open stream ready to present the bag
      * @throws FileNotFoundException  if no bags are found associated with the given ID
      * @throws DistributionException      if there is unexpected, internal error
      */
     @Override
-    public AIPDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
+    public FileDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle info for bagfile:"+bagfile);
         return new BagDescription(bagfile, storage.getSize(bagfile), null,
                                   storage.getChecksum(bagfile));

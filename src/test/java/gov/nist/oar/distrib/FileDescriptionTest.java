@@ -21,11 +21,11 @@ import static org.hamcrest.CoreMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class AIPDescriptionTest {
+public class FileDescriptionTest {
 
     @Test
     public void testCtorNull() {
-        AIPDescription d = new AIPDescription();
+        FileDescription d = new FileDescription();
         assertEquals(null, d.name          );
         assertEquals(null, d.contentType   );
         assertEquals(null, d.checksum      );
@@ -33,7 +33,7 @@ public class AIPDescriptionTest {
         assertEquals( -1L, d.contentLength );
         assertEquals(   0, d.getProperties().size());
 
-        d = new AIPDescription(null, -3L);
+        d = new FileDescription(null, -3L);
         assertEquals(null, d.name          );
         assertEquals(null, d.contentType   );
         assertEquals(null, d.checksum      );
@@ -47,14 +47,14 @@ public class AIPDescriptionTest {
 
         String data = "Hello world";
 
-        AIPDescription d = new AIPDescription(null, -3, null, (String) null);
+        FileDescription d = new FileDescription(null, -3, null, (String) null);
         assertEquals(null, d.name         );
         assertEquals(null, d.contentType  );
         assertEquals(null, d.checksum     );
         assertEquals( -3L, d.contentLength);
         assertEquals(   0, d.getProperties().size());
 
-        d = new AIPDescription("greeting.txt", data.length(), "text/plain",
+        d = new FileDescription("greeting.txt", data.length(), "text/plain",
                                Checksum.sha256("abcdef12345"));
         assertEquals("greeting.txt", d.name);
         assertEquals("text/plain",   d.contentType);
@@ -63,7 +63,7 @@ public class AIPDescriptionTest {
         assertEquals(11L, d.contentLength);
         assertEquals(   0, d.getProperties().size());
 
-        d = new AIPDescription("greeting.txt", data.length());
+        d = new FileDescription("greeting.txt", data.length());
         assertEquals("greeting.txt", d.name);
         assertEquals( 11L, d.contentLength);
         assertEquals(null, d.contentType );
@@ -73,7 +73,7 @@ public class AIPDescriptionTest {
 
     @Test
     public void testProps() {
-        AIPDescription d = new AIPDescription("greeting.txt", 11);
+        FileDescription d = new FileDescription("greeting.txt", 11);
         d.setProp("sequence", 14);
         d.setProp("ishead", true);
         d.setProp("size", 5L);
@@ -88,7 +88,7 @@ public class AIPDescriptionTest {
 
     @Test
     public void testPropCastExc() {
-        AIPDescription d = new AIPDescription("greeting.txt", 11);
+        FileDescription d = new FileDescription("greeting.txt", 11);
         d.setProp("goober", "gurn");
         try {
             d.getIntProp("goober");
@@ -106,7 +106,7 @@ public class AIPDescriptionTest {
 
     @Test
     public void testJSON() throws Exception {
-        AIPDescription d = new AIPDescription("greeting.txt", 45098L, "text/plain",
+        FileDescription d = new FileDescription("greeting.txt", 45098L, "text/plain",
                                               Checksum.sha256("abcdef12345"));
         String json = new ObjectMapper().writeValueAsString(d);
         assertThat(json, containsString("\"name\":"));
