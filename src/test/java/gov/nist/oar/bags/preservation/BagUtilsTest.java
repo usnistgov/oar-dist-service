@@ -108,6 +108,13 @@ public class BagUtilsTest {
         
         
     }
+
+    @Test
+    public void testMultibagVersionOf() {
+        assertEquals("0.3", BagUtils.multibagVersionOf("goober.mbag0_3-0.zip"));
+        assertEquals("1.4", BagUtils.multibagVersionOf("goober.mbag1_4-0.zip"));
+        assertEquals("", BagUtils.multibagVersionOf("goober.0.zip"));
+    }
     
     @Test
     public void testParseBagNameFail() {

@@ -23,15 +23,15 @@ import java.net.URLDecoder;
 import java.io.UnsupportedEncodingException;
 
 /**
- * static utility functions for managing and interpreting NIST preservation bags.
+ * static utility functions for managing and interpreting NIST preservation bags by their names.
  * <p>
  * This class embeds conventions for naming PDR "archive preservation package" (AIP) files--i.e.,
  * preservation bags.  There are two conventions supported:
  * <ul>
- *   <li> Original form:  <i>identifier</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br />
- *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br />
+ *   <li> Original form:  <i>identifier</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
+ *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br>
  *        and <i>S</i> is the sequence number (e.g. 0, 1, ...).  </li>
- *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</V>_<i>V</V>_<i>V</V>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br />
+ *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</V>_<i>V</V>_<i>V</V>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
  *        where <i>V</V>_<i>V</V>_<i>V</V> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
  * </ul>
  * These conventions are used to determine which bags are associated with a given identifier 
@@ -41,6 +41,8 @@ public class BagUtils {
 
     static Pattern bagname1re = Pattern.compile("^(\\w+)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
     static Pattern bagname2re = Pattern.compile("^(\\w+)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern dotdelim = Pattern.compile("\\.");
+    static Pattern usdelim = Pattern.compile("_");
 
     /**
      * parse a bag name into its meaningful components: id, version, multibag profile version, 
@@ -143,7 +145,24 @@ public class BagUtils {
      * @param name   the bag name to judge
      */
     public static boolean isLegalBagName(String name) {
-      return  (bagname1re.matcher(name).matches() || bagname2re.matcher(name).matches());
+        return  (bagname1re.matcher(name).matches() || bagname2re.matcher(name).matches());
+    }
+
+    /**
+     * return the version of the multibag profile a preservation bag claims to conform to
+     * based on its name.
+     * @param name        the bag's name
+     * @return String - the dot-delimited version string, or an empty string if the version 
+     *                  cannot be determined. 
+     */
+    public static String multibagVersionOf(String name) {
+        try {
+            return usdelim.matcher(parseBagName(name).get(2))
+                          .replaceAll(".");
+        }
+        catch (ParseException ex) {
+            return "";
+        }
     }
 
     static class VersionComparator implements Comparator<String> {
@@ -293,9 +312,8 @@ public class BagUtils {
      */
     public static List<String> selectVersion(List<String> bagnames, String version) {
         // in bag names, the version appears in N_N_N format; swap . for _
-        version = Pattern.compile("\\.")
-                         .matcher(version)
-                         .replaceAll("_");
+        version = dotdelim.matcher(version)
+                          .replaceAll("_");
         
         // Most likely given current NIST practice, if version is simply "0" or "1",
         // we're refering to bags following the original naming convention.
