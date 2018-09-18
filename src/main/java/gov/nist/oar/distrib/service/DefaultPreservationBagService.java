@@ -51,11 +51,26 @@ public class DefaultPreservationBagService implements PreservationBagService {
     protected static Logger logger = LoggerFactory.getLogger(PreservationBagService.class);
     protected LongTermStorage storage = null;
 
+    protected MimetypesFileTypeMap typemap = null;
+
+    /**
+     * create the service instance
+     */
+    public DefaultPreservationBagService(LongTermStorage stor, MimetypesFileTypeMap mimemap) {
+        storage = stor;
+        if (mimemap == null) {
+            InputStream mis = getClass().getResourceAsStream("/mime.types");
+            mimemap = (mis == null) ? new MimetypesFileTypeMap()
+                                    : new MimetypesFileTypeMap(mis);
+        }
+        typemap = mimemap;
+    }
+
     /**
      * create the service instance
      */
     public DefaultPreservationBagService(LongTermStorage stor) {
-        storage = stor;
+        this(stor, null);
     }
 
     /**
@@ -145,7 +160,8 @@ public class DefaultPreservationBagService implements PreservationBagService {
         logger.info("Get StreamHandle for bagfile:"+bagfile);
         long size = storage.getSize(bagfile);
         Checksum hash = storage.getChecksum(bagfile);
-        return new StreamHandle(storage.openFile(bagfile), size, bagfile, "", hash);
+        String ct = getDefaultContentType(bagfile);
+        return new StreamHandle(storage.openFile(bagfile), size, bagfile, ct, hash);
     }
 
     /**
@@ -160,8 +176,17 @@ public class DefaultPreservationBagService implements PreservationBagService {
     @Override
     public FileDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
         logger.info("Get StreamHandle info for bagfile:"+bagfile);
-        return new BagDescription(bagfile, storage.getSize(bagfile), null,
+        String ct = getDefaultContentType(bagfile);
+        return new BagDescription(bagfile, storage.getSize(bagfile), ct,
                                   storage.getChecksum(bagfile));
+    }
+
+    /**
+     * return a default content type based on the given file name.  This implementation determines
+     * the content type based on the file name's extension.  
+     */
+    public String getDefaultContentType(String filename) {
+        return typemap.getContentType(filename);
     }
 
 }

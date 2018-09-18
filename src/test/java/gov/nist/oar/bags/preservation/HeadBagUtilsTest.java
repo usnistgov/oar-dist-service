@@ -110,30 +110,30 @@ public class HeadBagUtilsTest {
     public void testListDataFiles() throws IOException {
         InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
         zis = ZipBagUtils.openFileLookup("0.2", zis, "mds1491.mbag0_2-0").stream;
-        List<String> bags = HeadBagUtils.listDataFiles("0.2", zis);
-        assertTrue(bags.contains("trial1.json"));
-        assertTrue(bags.contains("trial2.json"));
-        assertTrue(bags.contains("trial3/trial3a.json"));
-        assertEquals(3, bags.size());
+        List<String> files = HeadBagUtils.listDataFiles("0.2", zis);
+        assertTrue(files.contains("trial1.json"));
+        assertTrue(files.contains("trial2.json"));
+        assertTrue(files.contains("trial3/trial3a.json"));
+        assertEquals(3, files.size());
 
         zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
         zis = ZipBagUtils.openFileLookup("0.3", zis, "mds1491.1_1_0.mbag0_4-1").stream;
-        bags = HeadBagUtils.listDataFiles("0.3", zis);
-        assertTrue(bags.contains("trial1.json"));
-        assertTrue(bags.contains("trial1.json.sha256"));
-        assertTrue(bags.contains("trial2.json"));
-        assertTrue(bags.contains("trial3/trial3a.json"));
-        assertTrue(bags.contains("trial3/trial3a.json.sha256"));
-        assertEquals(5, bags.size());
+        files = HeadBagUtils.listDataFiles("0.3", zis);
+        assertTrue(files.contains("trial1.json"));
+        assertTrue(files.contains("trial1.json.sha256"));
+        assertTrue(files.contains("trial2.json"));
+        assertTrue(files.contains("trial3/trial3a.json"));
+        assertTrue(files.contains("trial3/trial3a.json.sha256"));
+        assertEquals(5, files.size());
 
         // assume latest multibag version
         zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
         zis = ZipBagUtils.openFileLookup("0.3", zis, "mds1491.1_1_0.mbag0_4-1").stream;
-        bags = HeadBagUtils.listDataFiles(zis);
-        assertTrue(bags.contains("trial1.json"));
-        assertTrue(bags.contains("trial2.json"));
-        assertTrue(bags.contains("trial3/trial3a.json"));
-        assertEquals(5, bags.size());
+        files = HeadBagUtils.listDataFiles(zis);
+        assertTrue(files.contains("trial1.json"));
+        assertTrue(files.contains("trial2.json"));
+        assertTrue(files.contains("trial3/trial3a.json"));
+        assertEquals(5, files.size());
 
     }
 }

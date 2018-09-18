@@ -95,6 +95,18 @@ public class FileDescription {
     }
 
     /**
+     * initialize this description with basic file information.  Any String may 
+     * be null, and size should be negative if not known.  The checksum will be set to
+     * null.
+     * @param name         a (file) name for the bytes on the stream
+     * @param size         the expected number of bytes available on the stream
+     * @param contentType  the MIME type to associate with the bytes
+     */
+    public FileDescription(String name, long size, String contentType) {
+        this(name, size, contentType, (Checksum) null);
+    }
+
+    /**
      * initialize this description with a name and size.  
      * @param name         a (file) name for the bytes on the stream
      * @param size         the expected number of bytes available on the stream

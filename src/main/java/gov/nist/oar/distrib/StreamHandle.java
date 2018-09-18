@@ -56,6 +56,20 @@ public class StreamHandle implements Closeable {
 
     /**
      * initialize this handle with all available data.  The stream and any String may
+     * be null, and size should be negative if not known.  The checksum will be set to
+     * null.
+     * @param strm         the InputStream to transport
+     * @param size         the expected number of bytes available on the stream
+     * @param name         a (file) name for the bytes on the stream
+     * @param contentType  the MIME type to associate with the bytes
+     */
+    public StreamHandle(InputStream strm, long size, String name, String contentType) {
+        dataStream = strm;
+        info = new FileDescription(name, size, contentType, (Checksum) null);
+    }
+
+    /**
+     * initialize this handle with all available data.  The stream and any String may
      * be null, and size should be negative if not known.  The algorithm will be set 
      * to a default for the system.
      * @param strm         the InputStream to transport
