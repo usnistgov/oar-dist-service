@@ -35,10 +35,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
 /**
@@ -176,5 +178,36 @@ public class DefaultPreservationBagServiceTest {
         exception.expect(ResourceNotFoundException.class);
         pres.getHeadBagName("mds013u4g", "2.1");
     }
-                                                 
+
+    @Test
+    public void testGetBag() throws FileNotFoundException, DistributionException {
+        StreamHandle sh = pres.getBag("mds013u4g.1_0_0.mbag0_4-2.7z");
+        assertNotNull(sh.dataStream);
+        assertTrue(sh.getInfo().checksum.hash.startsWith("e3b0c44298f"));
+        assertEquals(0, sh.getInfo().contentLength);
+        assertEquals("mds013u4g.1_0_0.mbag0_4-2.7z", sh.getInfo().name);
+        assertEquals("application/x-7z-compressed",  sh.getInfo().contentType);
+
+        sh = pres.getBag("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-18.zip");
+        assertNotNull(sh.dataStream);
+        assertTrue(sh.getInfo().checksum.hash.startsWith("e3b0c44298f"));
+        assertEquals(0, sh.getInfo().contentLength);
+        assertEquals("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-18.zip", sh.getInfo().name);
+        assertEquals("application/zip",  sh.getInfo().contentType);
+    }
+
+    @Test
+    public void testGetBagInfo() throws FileNotFoundException, DistributionException {
+        FileDescription fd = pres.getInfo("mds013u4g.1_0_0.mbag0_4-2.7z");
+        assertTrue(fd.checksum.hash.startsWith("e3b0c44298f"));
+        assertEquals(0, fd.contentLength);
+        assertEquals("mds013u4g.1_0_0.mbag0_4-2.7z", fd.name);
+        assertEquals("application/x-7z-compressed",  fd.contentType);
+
+        fd = pres.getInfo("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-18.zip");
+        assertTrue(fd.checksum.hash.startsWith("e3b0c44298f"));
+        assertEquals(0, fd.contentLength);
+        assertEquals("6376FC675D0E1D77E0531A5706812BC21886.mbag0_3-18.zip", fd.name);
+        assertEquals("application/zip",  fd.contentType);
+    }
 }

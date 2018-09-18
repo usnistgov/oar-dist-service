@@ -16,10 +16,12 @@ import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.BagDescription;
 
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.TreeSet;
 import java.text.ParseException;
+import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
