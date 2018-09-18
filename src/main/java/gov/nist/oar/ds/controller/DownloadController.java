@@ -188,7 +188,11 @@ public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest r
                          HttpServletResponse response)
     throws IOException
 {
-    logger.debug("Handling file request having PATH_INFO=" + request.getPathInfo());
+    logger.debug("Handling file request having \n"+
+                   "   PATH_INFO=" +   request.getPathInfo() +
+                 "\n   request uri=" + request.getRequestURI() +
+                 "\n   request cxt=" + request.getRequestContext() 
+                 );
     logger.debug("Handling file request from dataset with id=" + dsid);
   
     String restOfTheUrl = (String) request.getAttribute(
