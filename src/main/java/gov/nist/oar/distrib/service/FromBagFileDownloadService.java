@@ -76,9 +76,21 @@ public class FromBagFileDownloadService implements FileDownloadService {
      * 
      * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
      *                   preservation bags
+     * @param typemap  the map to use for determining content types from filename extensions; 
+     *                 if null, a default will be used.  
+     */
+    public FromBagFileDownloadService(LongTermStorage bagstore, MimetypesFileTypeMap mimemap) {
+        this(new DefaultPreservationBagService(bagstore), mimemap);
+    }
+
+    /**
+     * create the service instance.  
+     * 
+     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
+     *                   preservation bags
      */
     public FromBagFileDownloadService(LongTermStorage bagstore) {
-        this(new DefaultPreservationBagService(bagstore));
+        this(new DefaultPreservationBagService(bagstore), null);
     }
 
     /**

@@ -59,6 +59,8 @@ public class DefaultPreservationBagService implements PreservationBagService {
      * create the service instance
      */
     public DefaultPreservationBagService(LongTermStorage stor, MimetypesFileTypeMap mimemap) {
+        if (stor == null)
+            throw new IllegalArgumentException("DefaultPreservationBagService: stor cannot be null");
         storage = stor;
         if (mimemap == null) {
             InputStream mis = getClass().getResourceAsStream("/mime.types");
