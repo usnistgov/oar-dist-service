@@ -191,7 +191,7 @@ public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest r
     logger.debug("Handling file request having \n"+
                    "   PATH_INFO=" +   request.getPathInfo() +
                  "\n   request uri=" + request.getRequestURI() +
-                 "\n   request cxt=" + request.getRequestContext() 
+                 "\n   request cxt=" + request.getContextPath() 
                  );
     logger.debug("Handling file request from dataset with id=" + dsid);
   
