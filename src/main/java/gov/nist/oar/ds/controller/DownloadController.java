@@ -188,11 +188,6 @@ public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest r
                          HttpServletResponse response)
     throws IOException
 {
-    logger.debug("Handling file request having \n"+
-                   "   PATH_INFO=" +   request.getPathInfo() +
-                 "\n   request uri=" + request.getRequestURI() +
-                 "\n   request cxt=" + request.getContextPath() 
-                 );
     logger.debug("Handling file request from dataset with id=" + dsid);
   
     String restOfTheUrl = (String) request.getAttribute(
@@ -201,7 +196,7 @@ public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest r
     restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
     logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
       
-    downloadService.downloadData(dsid, BagUtils.urlDecode(restOfTheUrl), response);
+    downloadService.downloadData(dsid, restOfTheUrl, response);
 }
 
 //@RequestMapping(value="/{id}/**", method = RequestMethod.GET)
