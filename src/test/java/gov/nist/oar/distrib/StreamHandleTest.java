@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.StringBufferInputStream;
+import java.io.ByteArrayInputStream;
 
 public class StreamHandleTest {
 
@@ -46,7 +46,7 @@ public class StreamHandleTest {
     public void testCtorFull() {
 
         String data = "Hello world";
-        InputStream strm = new StringBufferInputStream(data);
+        InputStream strm = new ByteArrayInputStream(data.getBytes());
 
         StreamHandle sh = new StreamHandle(null, -3, null, null, (String) null);
         assertEquals(null, sh.dataStream  );
@@ -68,7 +68,7 @@ public class StreamHandleTest {
     @Test
     public void testCtorOther() {
         String data = "Hello world";
-        InputStream strm = new StringBufferInputStream(data);
+        InputStream strm = new ByteArrayInputStream(data.getBytes());
 
         StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
                                            "abcdef12345");
@@ -97,7 +97,7 @@ public class StreamHandleTest {
     @Test
     public void testClose() throws IOException {
         String data = "Hello world";
-        InputStream strm = new StringBufferInputStream(data);
+        InputStream strm = new ByteArrayInputStream(data.getBytes());
 
         StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
                                            "abcdef12345");
@@ -112,7 +112,7 @@ public class StreamHandleTest {
     @Test
     public void testAutoClose() throws IOException {
         String data = "Hello world";
-        InputStream strm = new StringBufferInputStream(data);
+        InputStream strm = new ByteArrayInputStream(data.getBytes());
 
         try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
                                                 "abcdef12345")) 
