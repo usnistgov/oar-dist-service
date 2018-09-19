@@ -141,7 +141,12 @@ public class S3Wrapper {
   public InputStream streamFile(String bucket, String key) throws IOException {
     GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, key);
     S3Object s3Object = s3Client.getObject(getObjectRequest);
-    return s3Object.getObjectContent();
+    try {
+        return s3Object.getObjectContent();
+    } catch (Exception ex) {
+        s3Object.close();
+        throw ex;
+    }
   }
   
   public void copytocache(String hostbucket, String hostkey, String destBucket, String destKey){
