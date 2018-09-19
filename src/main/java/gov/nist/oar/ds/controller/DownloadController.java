@@ -196,7 +196,7 @@ public void downloadData(@PathVariable("dsId") String dsid, HttpServletRequest r
     restOfTheUrl = restOfTheUrl.replace("/"+dsid+"/", "");
     logger.info("Handling request for data file: id="+dsid+" path="+restOfTheUrl);
       
-    downloadService.downloadData(dsid, BagUtils.urlDecode(restOfTheUrl), response);
+    downloadService.downloadData(dsid, restOfTheUrl, response);
 }
 
 //@RequestMapping(value="/{id}/**", method = RequestMethod.GET)

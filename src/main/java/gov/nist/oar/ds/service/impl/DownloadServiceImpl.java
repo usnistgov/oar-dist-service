@@ -485,8 +485,8 @@ public class DownloadServiceImpl implements DownloadService {
       throws IOException
   {
 	  this.validateIds(recordid, "Record or DataSet identifier");
-	  this.validateIds(filepath, "file path");
-	  logger.info("Info : record id: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
+          this.validateIds(filepath, "file path");
+          logger.info("Info : record id: "+recordid +" :: "+filepath+" :: preservationBucket::"+preservationBucket);
 	  
 	  String headbag = extractRecordkey(recordid);
           String recordBagKey = lookupFile(headbag, recordid, filepath);
@@ -515,16 +515,19 @@ public class DownloadServiceImpl implements DownloadService {
                       }
                       response.flushBuffer();
                       logger.info(filepath + " sent.");
+                      zipdata.close();
                       return;
                   }
                   catch (org.apache.catalina.connector.ClientAbortException ex) {
                       logger.info("Client cancelled the download");
                       // response.flushBuffer();
+                      zipdata.close();
                       return;
                   }
                   catch (IOException ex) {
                       logger.info("IOException type: "+ex.getClass().getName());
-
+                      zipdata.close();
+                      
                       // "Connection reset by peer" gets thrown if the user cancels the download
                       if (ex.getMessage().contains("Connection reset by peer"))
                           logger.info("Client cancelled download");
@@ -533,6 +536,7 @@ public class DownloadServiceImpl implements DownloadService {
                   }
               }
           }
+          zipdata.close();
 
           throw new ResourceNotFoundException("Failed to find file, "+filepath+" in bag, "+headbag,
                                               recordid);
