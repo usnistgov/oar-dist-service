@@ -41,7 +41,10 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
  * the AIP.  The {@link #findHeadBagFor(String, String) findHeadBagFor()} will return the filename for the 
  * serialized head bag for the AIP with a given identifier and version.  To determine the name of other 
  * (non-bag) types of files, one must have an "out-of-band" mechanism.
- *
+ * <p>
+ * The {@link gov.nist.oar.distrib.storage storage} sub-package provides different implementations of 
+ * this interface.
+ * 
  * @author  Deoyani Nandrekar-Heinis
  */
 public interface LongTermStorage {

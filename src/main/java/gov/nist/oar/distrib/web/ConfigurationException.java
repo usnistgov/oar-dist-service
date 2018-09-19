@@ -11,6 +11,11 @@
  */
 package gov.nist.oar.distrib.web;
 
+/**
+ * an exception indicating an error while assembling and configuring an application.  When this
+ * exception is caught by the <a href="https://spring.io/" target="_top">spring boot framework</a>,
+ * execution ceases.
+ */
 public class ConfigurationException extends Exception {
 
     protected String parameter = null;
