@@ -138,8 +138,7 @@ public abstract class LongTermStorageBase implements LongTermStorage {
     {
         List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
         if (bags.size() == 0)
-            throw new ResourceNotFoundException("Version "+version+" not found for id="+identifier,
-                                                identifier);
+            throw ResourceNotFoundException.forID(identifier, version);
         return BagUtils.findLatestHeadBag(bags);
     }
 }

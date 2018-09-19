@@ -32,7 +32,8 @@ import static org.junit.Assert.*;
 @ContextConfiguration(classes = NISTDistribServiceConfig.class)
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
-        "distrib.bagstore.location=${basedir}/src/test/resources"
+        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.baseurl=http://localhost/oar-dist-service"
 })
 public class NISTDistribServiceConfigTest {
 

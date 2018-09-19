@@ -161,7 +161,7 @@ public class DefaultPreservationBagService implements PreservationBagService {
      */
     @Override
     public StreamHandle getBag(String bagfile) throws FileNotFoundException, DistributionException {
-        logger.info("Get StreamHandle for bagfile:"+bagfile);
+        logger.debug("Get StreamHandle for bagfile:"+bagfile);
         long size = storage.getSize(bagfile);
         Checksum hash = storage.getChecksum(bagfile);
         String ct = getDefaultContentType(bagfile);
@@ -179,7 +179,7 @@ public class DefaultPreservationBagService implements PreservationBagService {
      */
     @Override
     public FileDescription getInfo(String bagfile) throws FileNotFoundException, DistributionException {
-        logger.info("Get StreamHandle info for bagfile:"+bagfile);
+        logger.debug("Get StreamHandle info for bagfile:"+bagfile);
         String ct = getDefaultContentType(bagfile);
         return new BagDescription(bagfile, storage.getSize(bagfile), ct,
                                   storage.getChecksum(bagfile));
