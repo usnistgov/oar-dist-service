@@ -13,11 +13,12 @@
  */
 
 /**
- * a package that implements web service frontends to the functionality of the 
- * {@link gov.nist.oar.distrib distrib} package.  
+ * a package that implements interfaces for accessing and interacting with storage.  This includes,
+ * in particular, the {@link gov.nist.oar.distrib.LongTermStorage} interface.
  * <p>
- * The web service implementation is based on the 
- * <a href="https://spring.io/" target="_top">spring framework</a>.
+ * This package makes use of the {@link gov.nist.oar.bags oar.bags} and 
+ * {@link gov.nist.oar.distrib oar.distrib} packages.  It does not have any dependencies 
+ * on the sibling {@link gov.nist.oar.distrib.web web} package.
  */
-package gov.nist.oar.distrib.web;
+package gov.nist.oar.distrib.storage;
 

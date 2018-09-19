@@ -46,7 +46,9 @@ import gov.nist.oar.bags.preservation.BagUtils;
  * {@link gov.nist.oar.distrib.LongTermStorage LongTermStorage} system using a naming convention 
  * encapsulated in the {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class.  
  * <p>
- * @author Deoyani Nandrekar-Heinis
+ * This implementation leverages the naming conventions to provide otherwise generic access to 
+ * AIP files.  It is agnostic as to how the files are stored, as it is given a 
+ * {@link gov.nist.oar.distrib.LongTermStorage LongTermStorage} to use. 
  */
 public class DefaultPreservationBagService implements PreservationBagService {
 

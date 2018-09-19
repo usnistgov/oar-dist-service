@@ -22,7 +22,12 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 
 /**
  * Service interface for accessing preservation bags (AIP files) and information about them.
- *
+ * <p>
+ * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
+ * Together, these make up the AIP.  In the default storage model, the AIP files are serialized BagIt
+ * bags that conform to the Multibag BagIt Profile.  This interface provides a means for identifying
+ * and accessing the bag files.  
+ * 
  * @author Deoyani Nandrekar-Heinis
  */
 public interface PreservationBagService {
