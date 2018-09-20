@@ -109,7 +109,7 @@ public class NISTDistribServiceConfig {
     /**
      * the AWS region the service should operate in; this is ignored if mode=local.
      */
-    @Value("${cloud.aws.region}")
+    @Value("${cloud.aws.region:@null}")
     String region;
 
     @Autowired LongTermStorage          lts;    // set via getter below
