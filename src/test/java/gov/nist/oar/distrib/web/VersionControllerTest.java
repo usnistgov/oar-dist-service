@@ -70,7 +70,31 @@ public class VersionControllerTest {
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
     }
 
+    @Test
+    public void testDeleteNotAllowed() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
+                                                      HttpMethod.DELETE, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
 
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.POST, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
+
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.PATCH, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
+    }
+
+
+    @Test
+    public void testHEAD() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
+                                                      HttpMethod.HEAD, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+    }
+    
     @Test
     public void testRedirectToServiceVersion() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);

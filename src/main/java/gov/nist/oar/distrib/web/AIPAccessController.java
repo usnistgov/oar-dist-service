@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,7 +85,7 @@ public class AIPAccessController {
      */
     @ApiOperation(value = "Return an AIP file (e.g. a preservation bag)", nickname = "getAIPFile",
                   notes = "return the AIP with the given name")
-    @RequestMapping(value = "/{name}")
+    @GetMapping(value = "/{name}")
     public void downloadAIP(@PathVariable("name") String name,
                             @ApiIgnore HttpServletResponse resp)
         throws ResourceNotFoundException, DistributionException, IOException
@@ -153,7 +154,7 @@ public class AIPAccessController {
      */
     @ApiOperation(value = "describe an AIP file (e.g. a preservation bag)", nickname = "describeAIPFile",
                   notes = "return a description of the AIP with the given name as a JSON object")
-    @RequestMapping(value = "/{name}/_info")
+    @GetMapping(value = "/{name}/_info")
     public FileDescription describeAIP(@PathVariable("name") String name)
         throws ResourceNotFoundException, DistributionException
     {

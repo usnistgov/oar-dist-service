@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
@@ -74,7 +75,7 @@ public class VersionController {
      */
     @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
                   notes = "This returns the name and version label for this service")
-    @RequestMapping(value = "/")
+    @GetMapping(value = "/")
     public VersionInfo getServiceVersion() {
         return new VersionInfo(NAME, VERSION);
     }
@@ -84,7 +85,7 @@ public class VersionController {
      */
     @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
                   notes = "This returns the name and version label for this service")
-    @RequestMapping(value = "")
+    @GetMapping(value = "")
     public void redirectToServiceVersion(HttpServletResponse resp) throws IOException {
         resp.sendRedirect("ds/");
     }

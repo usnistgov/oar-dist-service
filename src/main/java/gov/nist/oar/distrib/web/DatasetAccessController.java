@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -100,7 +101,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "List descriptions of available AIP files", nickname = "List all bags",
                   notes = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @RequestMapping(value = "/{dsid}/_aip", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/_aip")
     public List<FileDescription>  describeAIPs(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -135,7 +136,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "List the AIP versions available for a dataset", nickname = "List versions",
                   notes = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
-    @RequestMapping(value = "/{dsid}/_aip/_v", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/_aip/_v")
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -161,7 +162,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "List descriptions of AIP files available for a particular version of the dataset",
                   nickname = "Describe versions",
                   notes = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @RequestMapping(value = "/{dsid}/_aip/_v/{ver}", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/_aip/_v/{ver}")
     public List<FileDescription>  describeAIPsForVersion(@PathVariable("dsid") String dsid,
                                                          @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
@@ -215,7 +216,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                   nickname = "Describe head",
                   notes = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @RequestMapping(value = "/{dsid}/_aip/_v/{ver}/_head", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head")
     public FileDescription describeHeadAIPForVersion(@PathVariable("dsid") String dsid,
                                                     @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
@@ -256,7 +257,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                   nickname = "Describe head",
                   notes = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @RequestMapping(value = "/{dsid}/_aip/_head", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/_aip/_head")
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -290,7 +291,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "stream the data product with the given name", nickname = "get file",
                   notes = "download the file")
-    @RequestMapping(value = "/{dsid}/**", method = RequestMethod.GET)
+    @GetMapping(value = "/{dsid}/**")
     public void downloadFile(@PathVariable("dsid") String dsid,
                              @ApiIgnore HttpServletRequest request,
                              @ApiIgnore HttpServletResponse response)
