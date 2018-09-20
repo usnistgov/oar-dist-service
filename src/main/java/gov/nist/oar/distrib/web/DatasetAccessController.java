@@ -416,8 +416,8 @@ public class DatasetAccessController {
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleNotFoundException(DistributionException ex,
-                                             HttpServletRequest req)
+    public ErrorInfo handleInternalError(DistributionException ex,
+                                         HttpServletRequest req)
     {
         logger.info("Failure processing request: " + req.getRequestURI() +
                     "\n  " + ex.getMessage());
@@ -433,6 +433,16 @@ public class DatasetAccessController {
                     "\n  " + ex.getMessage());
         return new ErrorInfo(req.getRequestURI(), 400, "Malformed input");
     }    
+
+    @ExceptionHandler(IOException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(DistributionException ex,
+                                          HttpServletRequest req)
+    {
+        logger.info("Streaming failure during request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
 }
 
 

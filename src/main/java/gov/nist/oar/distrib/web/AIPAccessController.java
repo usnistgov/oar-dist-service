@@ -189,4 +189,24 @@ public class AIPAccessController {
         return new ErrorInfo(req.getRequestURI(), 404, "AIP file not found");
     }
 
+    @ExceptionHandler(DistributionException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleInternalError(DistributionException ex,
+                                         HttpServletRequest req)
+    {
+        logger.info("Failure processing request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
+
+    @ExceptionHandler(IOException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(DistributionException ex,
+                                          HttpServletRequest req)
+    {
+        logger.info("Streaming failure during request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
+
 }
