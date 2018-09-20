@@ -22,7 +22,6 @@ import org.junit.After;
 import static org.junit.Assert.*;
 
 import gov.nist.oar.bags.preservation.BagUtils;
-import gov.nist.oar.ds.service.impl.DownloadServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
