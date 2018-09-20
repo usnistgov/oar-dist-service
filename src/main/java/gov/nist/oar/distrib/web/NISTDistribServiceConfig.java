@@ -69,6 +69,12 @@ import com.amazonaws.regions.RegionUtils;
  *        is set to {@code local}, this value is the path to a directory on the local filesystem.
  *        If {@code distrib.bagstore.mode} is set to {@code aws} or {@code remote}, this value is 
  *        the name of an S3 bucket. </dd>
+ *   <dt> {@code distrib.baseurl} </dt>
+ *   <dd> The base URL for the service (as seen by external, public users); this should include 
+ *        everything up to but not including the "/ds" part of the path. </dd>
+ *   <dt> {@code cloud.aws.region} </dt>
+ *   <dd> The AWS service region (e.g. "us-east-1") to use.  This is ignore if 
+ *        {@code distrib.bagstore.mode}=local. </dd>
  * </dl>
  * <p>
  * See also 
@@ -103,7 +109,7 @@ public class NISTDistribServiceConfig {
     /**
      * the AWS region the service should operate in; this is ignored if mode=local.
      */
-    @Value("{cloud.aws.region}")
+    @Value("${cloud.aws.region}")
     String region;
 
     @Autowired LongTermStorage          lts;    // set via getter below
