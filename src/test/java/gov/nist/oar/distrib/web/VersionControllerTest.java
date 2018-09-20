@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
+        "cloud.aws.region=us-east-1",
         "logging.path=${basedir}/target/surefire-reports",
 })
 public class VersionControllerTest {
