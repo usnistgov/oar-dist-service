@@ -16,9 +16,12 @@ package gov.nist.oar.distrib.web;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.IOException;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletResponse;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Api;
@@ -71,9 +74,19 @@ public class VersionController {
      */
     @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
                   notes = "This returns the name and version label for this service")
-    @RequestMapping(value = "/_v")
+    @RequestMapping(value = "/")
     public VersionInfo getServiceVersion() {
         return new VersionInfo(NAME, VERSION);
+    }
+
+    /**
+     * redirect "/ds" to "/ds/"
+     */
+    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
+                  notes = "This returns the name and version label for this service")
+    @RequestMapping(value = "")
+    public void redirectToServiceVersion(HttpServletResponse resp) throws IOException {
+        resp.sendRedirect("ds/");
     }
 
     public static class VersionInfo {

@@ -56,7 +56,7 @@ public class VersionControllerTest {
     @Test
     public void testGetServiceVersion() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_v",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -68,6 +68,17 @@ public class VersionControllerTest {
         assertTrue(! got.contains("\"version\":\"unknown\""));
         assertTrue(! got.contains("\"version\":\"missing\""));
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+    }
+
+
+    @Test
+    public void testRedirectToServiceVersion() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.FOUND, resp.getStatusCode());
+
+        assertTrue(resp.getHeaders().getFirst("Location").endsWith("/oar-dist-service/ds/"));
     }
 
 }
