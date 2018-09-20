@@ -26,12 +26,16 @@ import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
@@ -172,6 +176,17 @@ public class AIPAccessController {
             // return 404
             throw new ResourceNotFoundException("AIP file not found: "+name);
         }
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex,
+                                                     HttpServletRequest req)
+    {
+        // error is not specific to a version
+        logger.info("Non-existent bag file requested: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 404, "AIP file not found");
     }
 
 }
