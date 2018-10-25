@@ -69,7 +69,7 @@ vers4fn=`echo $version | sed -re 's#[/ ]+#_#g'`
 # ENTER BUILD COMMANDS HERE
 #
 # The build products should be written into the "dist" directory
-mvn clean package
+mvn clean package -DskipTests
 [ -f "$targetdir/${DISTNAMES[0]}.jar" ] || {
     echo "${prog}:" Failed to build distribution: \
          "$targetdir/${DISTNAMES[0]}.jar"

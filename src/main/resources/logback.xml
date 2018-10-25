@@ -6,29 +6,29 @@
         </encoder>
     </appender>
 
-<appender name="SAVE-TO-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="SAVE-TO-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
 
-  <file>${LOG_PATH}/distservice.log</file>
+        <file>${LOG_PATH}/distservice.log</file>
 
-  <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-    <Pattern>
-      %d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M - %msg%n
-    </Pattern>
-  </encoder>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+              %d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M - %msg%n
+            </Pattern>
+        </encoder>
 
-  <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-    <fileNamePattern>
-      ${LOG_PATH}/distservice_%i.log
-    </fileNamePattern>
-    <minIndex>2</minIndex>
-    <maxIndex>100</maxIndex>
-  </rollingPolicy>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>
+              ${LOG_PATH}/distservice_%i.log
+            </fileNamePattern>
+            <minIndex>2</minIndex>
+            <maxIndex>100</maxIndex>
+        </rollingPolicy>
 
-  <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-    <maxFileSize>1GB</maxFileSize>
-  </triggeringPolicy>
-
-</appender>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>1GB</maxFileSize>
+        </triggeringPolicy>
+    </appender>
+    
     <logger name="org.springframework" level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
