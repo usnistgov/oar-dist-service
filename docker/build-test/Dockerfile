@@ -1,8 +1,8 @@
 FROM openjdk:8-jdk-slim-stretch
 
-RUN apt-get update && apt-get upgrade && apt-get install -y netcat-openbsd zip git less \
-                                          gnupg python python-pip python-virtualenv \
-                                          make gcc curl maven
+RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
+                                            gnupg python python-pip python-virtualenv \
+                                            make gcc curl maven
 
 # npm is need by localstack, but we need a newer version than what is available 
 # from debian
