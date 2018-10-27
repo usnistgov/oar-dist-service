@@ -153,8 +153,8 @@ public class NISTDistribServiceConfig {
         AmazonS3 client = AmazonS3Client.builder()
                                         .standard()                 
                                         .withCredentials(provider)
+                                        .withRegion(region)
                                         .build();
-        client.setRegion(RegionUtils.getRegion(region));
         return client;
     }
 
