@@ -41,8 +41,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
-import cloud.localstack.LocalstackTestRunner;
-import cloud.localstack.TestUtils;
+import io.findify.s3mock.S3Mock;
 
 /**
  * This is test class is used to connect to long term storage on AWS S3
@@ -50,18 +49,26 @@ import cloud.localstack.TestUtils;
  *
  * @author Deoyani Nandrekar-Heinis
  */
-@RunWith(LocalstackTestRunner.class)
 public class AWSS3LongTermStorageTest {
   
     private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
     static final String bucket = "oar-lts-test";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static AmazonS3 s3client = TestUtils.getClientS3();
+    static S3Mock api = new S3Mock.Builder().withPort(9001).withInMemoryBackend().build();
+    static AmazonS3 s3client = null;
     AWSS3LongTermStorage s3Storage = null;
   
     @BeforeClass
     public static void setUpClass() throws IOException {
+        api.start();
+        s3client = AmazonS3ClientBuilder.standard()
+                                        .withPathStyleAccessEnabled(true)  
+                                        .withEndpointConfiguration(endpoint)
+                                        .withCredentials(new AWSStaticCredentialsProvider(
+                                                                      new AnonymousAWSCredentials()))
+                                        .build();
+        
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
         s3client.createBucket(bucket);
