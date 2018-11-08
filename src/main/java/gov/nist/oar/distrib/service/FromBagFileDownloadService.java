@@ -23,10 +23,19 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Vector;
+
 import javax.activation.MimetypesFileTypeMap;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +162,36 @@ public class FromBagFileDownloadService implements FileDownloadService {
 
         return new StreamHandle(fentry.stream, fentry.info.getSize(), filepath, ct);
     }
+    
+    /**
+     * Get the requested bundle of files by parsing jsonobject to get list of files and records
+     * Download and bundle those files in zip format.
+     * @throws JSONException 
+     * @throws DistributionException 
+     */
+    public StreamHandle getDataFilesBundle(JSONObject object)
+    		throws FileNotFoundException, JSONException, DistributionException
+    {
+    	Vector<InputStream> vector = new Vector();
+    	
+    	List<String> list = new ArrayList<>();
+    	JSONArray array = object.getJSONArray("fileslist");
+    	for(int i = 0 ; i < array.length() ; i++){
+    		 String[] filepathComponents = array.getJSONObject(i).getString("filepath").split("/");
+    		 String recordid=  filepathComponents[0];
+    		 String filename = filepathComponents[filepathComponents.length-1];
+    		 String filepath =  Arrays.copyOfRange(filepathComponents, 1, filepathComponents.length).toString();
+    		 StreamHandle fstream = this.getDataFile(recordid, filepath, "");
+    		 vector.addElement(fstream.dataStream);
+    	}
+    	Enumeration<InputStream> enu = vector.elements();
+    	SequenceInputStream sis = new SequenceInputStream(enu);
+    	return new StreamHandle(sis);
+    
+    }
 
+  
+    
     /**
      * Describe the data file with the given filepath.  The returned information includes the 
      * file size, type, and checksum information.  

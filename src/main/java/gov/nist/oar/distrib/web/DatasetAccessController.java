@@ -27,6 +27,7 @@ import java.net.MalformedURLException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,8 @@ import org.springframework.web.servlet.HandlerMapping;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -363,6 +366,67 @@ public class DatasetAccessController {
         finally {
             if (sh != null) sh.close();
         }
+    }
+    /**
+     * download a data file
+     * 
+     * @param dsid      the dataset identifier
+     * @param request   the input HTTP request object 
+     * @param response  the output HTTP response object, used to write the output data
+     * @throws JSONException 
+     * @throws ResourceNotFoundException  if the given ID does not exist
+     * @throws DistributionException      if an internal service error occurs
+     * @throws IOException                if an error occurs while streaming the data to the client
+     */
+    @ApiOperation(value = "stream the data product with the given name", nickname = "get file",
+                  notes = "download the file")
+    @GetMapping(value = "/downloadall/{json}")
+    public void downloadAll(@PathVariable("json") String json,  @ApiIgnore HttpServletResponse response) 
+    		throws JSONException, ResourceNotFoundException, DistributionException, IOException{
+    	String ver = null;
+    	StreamHandle sh = null;
+    	JSONObject jObject = new JSONObject(json);
+        try {
+            sh = downl.getDataFilesBundle(jObject);
+            
+            response.setHeader("Content-Length",      Long.toString(sh.getInfo().contentLength));
+            response.setHeader("Content-Type",        sh.getInfo().contentType);
+            response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
+
+            int len;
+            byte[] buf = new byte[100000];
+            ZipOutputStream out = new ZipOutputStream(response.getOutputStream());
+
+            try {
+                while ((len = sh.dataStream.read(buf)) != -1) {
+                    out.write(buf, 0, len);
+                }
+                response.flushBuffer();
+                logger.info("Data File delivered: " );
+            }
+            catch (org.apache.catalina.connector.ClientAbortException ex) {
+                 logger.info("Client cancelled the download");
+                 response.flushBuffer();
+                 throw ex;
+            }
+            catch (IOException ex) {
+                logger.debug("IOException type: "+ex.getClass().getName());
+
+                // "Connection reset by peer" gets thrown if the user cancels the download
+                if (ex.getMessage().contains("Connection reset by peer")) {
+                    logger.info("Client cancelled download");
+                } else {
+                    logger.error("IO error while sending file, "+
+                                 ": " + ex.getMessage());
+                    throw ex;
+                }
+            }
+        }
+        finally {
+            if (sh != null)
+            	sh.close();
+        }
+    	
     }
 
     static Pattern baddsid = Pattern.compile("[\\s]");
