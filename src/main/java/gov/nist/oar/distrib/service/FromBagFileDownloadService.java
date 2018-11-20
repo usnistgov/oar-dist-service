@@ -11,35 +11,25 @@
  */
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.bags.preservation.BagUtils;
-import gov.nist.oar.bags.preservation.HeadBagUtils;
-import gov.nist.oar.bags.preservation.ZipBagUtils;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
-import java.util.Vector;
-import java.util.zip.ZipOutputStream;
 
 import javax.activation.MimetypesFileTypeMap;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.bags.preservation.HeadBagUtils;
+import gov.nist.oar.bags.preservation.ZipBagUtils;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.FileDescription;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StreamHandle;
 
 /**
  * An implementation of the {@link gov.nist.oar.distrib.service.FileDownloadService FileDownloadService}

@@ -17,11 +17,8 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.List;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 /**
  * Service interface for downloading data products from the repository
  * 
