@@ -17,6 +17,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 import org.json.JSONException;
@@ -71,7 +72,5 @@ public interface FileDownloadService {
      */
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException;
-    
-    public StreamHandle getDataFilesBundle(JSONObject object) 
-    		throws ResourceNotFoundException,  FileNotFoundException, JSONException,DistributionException;
+
 }

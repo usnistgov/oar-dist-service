@@ -11,35 +11,34 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.FromBagFileDownloadService;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.DefaultPreservationBagService;
-
-import java.io.InputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
+
 import javax.activation.MimetypesFileTypeMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.regions.RegionUtils;
-    
+
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.FromBagFileDownloadService;
+import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 /**
  * The configuration for the Distribution Service used in the NIST Public Data Repository.
@@ -141,6 +140,7 @@ public class NISTDistribServiceConfig {
     /**
      * the client for access S3 storage
      */
+    @Profile({"prod", "dev", "test"})
     public AmazonS3 getAmazonS3() throws ConfigurationException {
         logger.info("Creating S3 client");
 
@@ -157,13 +157,12 @@ public class NISTDistribServiceConfig {
                                         .build();
         return client;
     }
-
+    
     /**
      * the MIME type assignments to use when setting content types
      */
     @Bean
-    public MimetypesFileTypeMap getMimetypesFileTypeMap() {
-        InputStream mis = getClass().getResourceAsStream("/mime.types");
+    public MimetypesFileTypeMap getMimetypesFileTypeMap() {        InputStream mis = getClass().getResourceAsStream("/mime.types");
         if (mis == null) {
             logger.warn("No mime.type resource found; content type support will be limited!");
             return new MimetypesFileTypeMap();

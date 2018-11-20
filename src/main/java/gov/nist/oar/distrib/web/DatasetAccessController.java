@@ -21,12 +21,15 @@ import gov.nist.oar.distrib.DistributionException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -42,11 +48,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.HandlerMapping;
 
+
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+//import org.json.JSONArray;
+//import org.json.JSONException;
+//import org.json.JSONObject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -310,7 +319,8 @@ public class DatasetAccessController {
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0) filepath = filepath.substring(i+1);
+            if (i >= 0) 
+            	filepath = filepath.substring(i+1);
         }
         checkFilePath(filepath);
 
@@ -347,8 +357,8 @@ public class DatasetAccessController {
                 logger.info("Data File delivered: " + filepath);
             }
             catch (org.apache.catalina.connector.ClientAbortException ex) {
-                logger.info("Client cancelled the download");
-                // response.flushBuffer();
+                logger.info("Client cancelled the download :");
+                
             }
             catch (IOException ex) {
                 logger.debug("IOException type: "+ex.getClass().getName());
@@ -364,52 +374,53 @@ public class DatasetAccessController {
             }
         }
         finally {
-            if (sh != null) sh.close();
+            if (sh != null) 
+            	sh.close();
         }
     }
     /**
-     * download a data file
-     * 
-     * @param dsid      the dataset identifier
-     * @param request   the input HTTP request object 
+     * download a bundle of data files requested
+     * @param jsonarray of type   { "filePath":"", "downloadUrl":""} 
      * @param response  the output HTTP response object, used to write the output data
-     * @throws JSONException 
-     * @throws ResourceNotFoundException  if the given ID does not exist
-     * @throws DistributionException      if an internal service error occurs
-     * @throws IOException                if an error occurs while streaming the data to the client
+     * @throws DistributionException    catches all exceptions and throws as distribution service exception
+	 *	
      */
-    @ApiOperation(value = "stream the data product with the given name", nickname = "get file",
-                  notes = "download the file")
-    @GetMapping(value = "/downloadall/{json}")
-    public void downloadAll(@PathVariable("json") String json,  @ApiIgnore HttpServletResponse response) 
-    		throws JSONException, ResourceNotFoundException, DistributionException, IOException{
-    	String ver = null;
-    	StreamHandle sh = null;
-    	JSONObject jObject = new JSONObject(json);
+    @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files",
+                  notes = "download the bundle of files")
+    @PostMapping(value = "/downloadall", consumes = "application/json", produces = "application/zip")
+    public void downloadAll( @RequestBody FilePathURL[]  jsonarray,@ApiIgnore HttpServletResponse response) 
+    		throws   DistributionException{
         try {
-            sh = downl.getDataFilesBundle(jObject);
-            
-            response.setHeader("Content-Length",      Long.toString(sh.getInfo().contentLength));
-            response.setHeader("Content-Type",        sh.getInfo().contentType);
-            response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
 
-            int len;
-            byte[] buf = new byte[100000];
-            ZipOutputStream out = new ZipOutputStream(response.getOutputStream());
-
-            try {
-                while ((len = sh.dataStream.read(buf)) != -1) {
-                    out.write(buf, 0, len);
-                }
-                response.flushBuffer();
-                logger.info("Data File delivered: " );
-            }
-            catch (org.apache.catalina.connector.ClientAbortException ex) {
+           int len;
+           byte[] buf = new byte[100000];
+           ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
+          
+           response.setHeader("Content-Type","application/zip");
+           response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
+          
+        	for(int i = 0 ; i < jsonarray.length ; i++){
+        		FilePathURL jobject = jsonarray[i];
+        		 String filepath = jobject.getFilePath();
+        		 String downloadurl = jobject.getDownloadUrl();
+        		 zout.putNextEntry(new ZipEntry(filepath));
+        		 InputStream fstream = new URL(downloadurl).openStream();
+        		 while ((len = fstream.read(buf)) != -1) {
+                     zout.write(buf, 0, len);
+                 }
+        		zout.closeEntry(); 
+        		fstream.close();
+        		
+        	}
+            zout.close();
+            response.flushBuffer();
+            logger.info("Data bundled in zip delivered" );
+         }
+         catch (org.apache.catalina.connector.ClientAbortException ex) {
                  logger.info("Client cancelled the download");
-                 response.flushBuffer();
-                 throw ex;
-            }
-            catch (IOException ex) {
+                
+                 throw new DistributionException(ex.getMessage());
+         } catch (IOException ex) {
                 logger.debug("IOException type: "+ex.getClass().getName());
 
                 // "Connection reset by peer" gets thrown if the user cancels the download
@@ -418,16 +429,13 @@ public class DatasetAccessController {
                 } else {
                     logger.error("IO error while sending file, "+
                                  ": " + ex.getMessage());
-                    throw ex;
+                    throw new DistributionException(ex.getMessage());
                 }
-            }
-        }
-        finally {
-            if (sh != null)
-            	sh.close();
-        }
-    	
+          }
+      
     }
+    
+   
 
     static Pattern baddsid = Pattern.compile("[\\s]");
     static Pattern badpath = Pattern.compile("(^\\.)|(/\\.)");
@@ -509,5 +517,4 @@ public class DatasetAccessController {
         return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
     }
 }
-
 
