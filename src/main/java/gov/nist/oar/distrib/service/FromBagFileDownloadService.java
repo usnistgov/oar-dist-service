@@ -30,6 +30,7 @@ import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.web.FilePathUrl;
 
 /**
  * An implementation of the {@link gov.nist.oar.distrib.service.FileDownloadService FileDownloadService}
@@ -289,4 +290,15 @@ public class FromBagFileDownloadService implements FileDownloadService {
     public String getDefaultContentType(String filename) {
         return typemap.getContentType(filename);
     }
+    
+   
+
+	/* (non-Javadoc)
+	 * @see gov.nist.oar.distrib.service.FileDownloadService#getDataFilesBundle(gov.nist.oar.distrib.web.FilePathUrl[])
+	 */
+	@Override
+	public StreamHandle getDataFilesBundle(FilePathUrl[] filesArray) throws DistributionException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

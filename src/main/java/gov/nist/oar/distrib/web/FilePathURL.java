@@ -10,32 +10,80 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
+
 package gov.nist.oar.distrib.web;
 
-public class FilePathURL {
+/**
+ * Jackson json framework to form a request data to a download controller. 
+ * This class is used to represent the requested post object to dowload bundled zip of requested files 
+ * with given URLs
+ */
+public class FilePathUrl {
 
+	/*
+	 * Name of the file along with path within the bundle
+	 */
 	private String filePath;
+	/**
+	 * Url related to filename above, to be used to download data
+	 */
 	private String downloadUrl;
 	
-	public FilePathURL(){
+	public FilePathUrl(){
 		//DefaultConstructor
 	}
-	public FilePathURL(String filepath, String downloadurl){
+	/**
+	 * 
+	 * @param filepath
+	 * @param downloadurl
+	 */
+	public FilePathUrl(String filepath, String downloadurl){
 		this.filePath = filepath;
 		this.downloadUrl = downloadurl;
 	}
+	/**
+	 * Set filepath
+	 * @param filepath
+	 */
 	public void setFilePath(String filepath){
 		this.filePath = filepath;
 	}
+	/**
+	 * Get filepath
+	 * @return
+	 */
 	public String getFilePath(){
 		return this.filePath;
 	}
 	
+	/**
+	 * Set downloadurl
+	 * @param downloadurl
+	 */
 	public void setDownloadUrl(String downloadurl){
 		this.downloadUrl = downloadurl;
 	}
+	
+	/**
+	 * Get the downloaded url
+	 * @return
+	 */
 	public String getDownloadUrl(){
 		return this.downloadUrl;
 	}
+	
+	@Override
+    public int hashCode() {
+        return filePath.hashCode() ^ downloadUrl.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof FilePathUrl))
+            return false;
+
+        FilePathUrl mdc = (FilePathUrl) obj;
+        return mdc.filePath.equals(filePath) && mdc.downloadUrl.equals(downloadUrl);
+    }
 
 }

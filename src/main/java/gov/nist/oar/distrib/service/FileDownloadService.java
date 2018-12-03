@@ -12,6 +12,7 @@
 package gov.nist.oar.distrib.service;
 
 import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.web.FilePathUrl;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
@@ -69,5 +70,10 @@ public interface FileDownloadService {
      */
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException;
+    
+    
+    public StreamHandle getDataFilesBundle(FilePathUrl[]  filesArray)
+    		throws DistributionException;
+    
 
 }

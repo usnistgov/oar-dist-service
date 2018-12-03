@@ -28,13 +28,7 @@ security:
     enable-csrf: false
     
      
-    
 logging:
   file: distservice.log
-  path : /var/log/dist-service
+  path : /tmp/dist-service
   exception-conversion-word: '%wEx'
-
-
-distservice:
-  ec2storage: /tmp/s3/
-    

@@ -14,6 +14,7 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.ResourceNotFoundException;
@@ -90,11 +91,16 @@ public class DatasetAccessController {
 
     @Autowired
     FileDownloadService downl;
-
+    
     @Value("${distrib.baseurl}")
     String svcbaseurl;
 
-    // TODO test inputs
+    @Value("${distrib.filesizelimit}")
+    long maxfileSize;
+  
+    @Value("${distrib.numberoffiles}")
+    int numofFiles;
+  
 
     /**
      * return a list of descriptions of AIP files available for a given ID.  Each 
@@ -380,36 +386,81 @@ public class DatasetAccessController {
      * @throws DistributionException    catches all exceptions and throws as distribution service exception
 	 *	
      */
+//    @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files",
+//                  notes = "download the bundle of files")
+//    @PostMapping(value = "/downloadall", consumes = "application/json", produces = "application/zip")
+//    public void downloadAll( @RequestBody FilePathUrl[]  jsonarray,@ApiIgnore HttpServletResponse response) 
+//    		throws   DistributionException{
+//        try {
+//
+//           int len;
+//           byte[] buf = new byte[100000];
+//           ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
+//          
+//           response.setHeader("Content-Type","application/zip");
+//           response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
+//          
+//        	for(int i = 0 ; i < jsonarray.length ; i++){
+//        		 FilePathUrl jobject = jsonarray[i];
+//        		 String filepath = jobject.getFilePath();
+//        		 String downloadurl = jobject.getDownloadUrl();
+//        		 zout.putNextEntry(new ZipEntry(filepath));
+//        		 InputStream fstream = new URL(downloadurl).openStream();
+//        		 while ((len = fstream.read(buf)) != -1) {
+//                     zout.write(buf, 0, len);
+//                 }
+//        		zout.closeEntry(); 
+//        		fstream.close();
+//        	}
+//            zout.close();
+//            response.flushBuffer();
+//            logger.info("Data bundled in zip delivered" );
+//         }
+//         catch (org.apache.catalina.connector.ClientAbortException ex) {
+//                 logger.info("Client cancelled the download");
+//                
+//                 throw new DistributionException(ex.getMessage());
+//         } catch (IOException ex) {
+//                logger.debug("IOException type: "+ex.getClass().getName());
+//
+//                // "Connection reset by peer" gets thrown if the user cancels the download
+//                if (ex.getMessage().contains("Connection reset by peer")) {
+//                    logger.info("Client cancelled download");
+//                } else {
+//                    logger.error("IO error while sending file, "+
+//                                 ": " + ex.getMessage());
+//                    throw new DistributionException(ex.getMessage());
+//                }
+//          }
+//      
+//    }
+   
+
+    
+    /**
+     * download a bundle of data files requested
+     * @param jsonarray of type   { "filePath":"", "downloadUrl":""} 
+     * @param response  the output HTTP response object, used to write the output data
+     * @throws DistributionException    catches all exceptions and throws as distribution service exception
+	 *	
+     */
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files",
                   notes = "download the bundle of files")
-    @PostMapping(value = "/downloadall", consumes = "application/json", produces = "application/zip")
-    public void downloadAll( @RequestBody FilePathURL[]  jsonarray,@ApiIgnore HttpServletResponse response) 
+    @PostMapping(value = "/_bundle", consumes = "application/json", produces = "application/zip")
+    public void getbundle( @RequestBody FilePathUrl[]  jsonarray,@ApiIgnore HttpServletResponse response) 
     		throws   DistributionException{
         try {
-
-           int len;
-           byte[] buf = new byte[100000];
-           ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-          
+     
            response.setHeader("Content-Type","application/zip");
            response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
-          
-        	for(int i = 0 ; i < jsonarray.length ; i++){
-        		FilePathURL jobject = jsonarray[i];
-        		 String filepath = jobject.getFilePath();
-        		 String downloadurl = jobject.getDownloadUrl();
-        		 zout.putNextEntry(new ZipEntry(filepath));
-        		 InputStream fstream = new URL(downloadurl).openStream();
-        		 while ((len = fstream.read(buf)) != -1) {
-                     zout.write(buf, 0, len);
-                 }
-        		zout.closeEntry(); 
-        		fstream.close();
-        		
-        	}
-            zout.close();
-            response.flushBuffer();
-            logger.info("Data bundled in zip delivered" );
+           ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
+           
+           DefaultDataPackagingService df = new DefaultDataPackagingService( this.maxfileSize, this.numofFiles, jsonarray);
+           
+           df.getZipPackage(zout);
+           zout.close();
+           response.flushBuffer();
+           logger.info("Data bundled in zip delivered" );
          }
          catch (org.apache.catalina.connector.ClientAbortException ex) {
                  logger.info("Client cancelled the download");
@@ -429,9 +480,6 @@ public class DatasetAccessController {
           }
       
     }
-    
-   
-
     static Pattern baddsid = Pattern.compile("[\\s]");
     static Pattern badpath = Pattern.compile("(^\\.)|(/\\.)");
 
