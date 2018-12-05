@@ -31,7 +31,9 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	long maxFileSize = 0;
 	int numOfFiles = 0;
 	FilePathUrl[] jsonRequest;
-	public DefaultDataPackagingService(){}
+	public DefaultDataPackagingService(){
+		//Default constructor
+	}
 	
 	public DefaultDataPackagingService(long maxFileSize, int numOfFiles, FilePathUrl[] jsonRequest){
 		this.maxFileSize = maxFileSize;
@@ -40,17 +42,13 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	}
 	  
 
-	/* (non-Javadoc)
-	 * @see gov.nist.oar.distrib.service.DataPackagingService#getPackageFor(gov.nist.oar.distrib.web.FilePathUrl[])
+	/**
+	 * 
 	 */
 	@Override
 	public OutputStream  getPackageFor(FilePathUrl[] jsonRequest, String format) {
 		
-		if(format.equals("zip")){
-			DefaultDataPackager dp = new DefaultDataPackager();
-			
-		}
-	
+		//Place holder
 		return null;
 	}
 

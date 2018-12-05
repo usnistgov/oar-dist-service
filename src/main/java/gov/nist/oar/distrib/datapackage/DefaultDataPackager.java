@@ -13,6 +13,7 @@
 package gov.nist.oar.distrib.datapackage;
 
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,25 +67,40 @@ public class DefaultDataPackager implements DataPackager {
 	@Override
 	public void writeData(ZipOutputStream zout) throws DistributionException {
 		logger.info("Forming zip file from the the input fileurls");
-		try{
-			int len;
+		
+			int len,l;
 			byte[] buf = new byte[100000];
 			for(int i = 0 ; i < inputfileList.length ; i++){
 				FilePathUrl jobject = inputfileList[i];
 				String filepath = jobject.getFilePath();
 				String downloadurl = jobject.getDownloadUrl();
-				zout.putNextEntry(new ZipEntry(filepath));
-				InputStream fstream = new URL(downloadurl).openStream();
-				while ((len = fstream.read(buf)) != -1) {
-					zout.write(buf, 0, len);
+				String zipinfofile = "There was an error getting data from url listed below:";
+				try{
+					zout.putNextEntry(new ZipEntry(filepath));
+				try{
+					InputStream fstream = new URL(downloadurl).openStream();
+					while ((len = fstream.read(buf)) != -1) {
+						zout.write(buf, 0, len);
+					}
+					zout.closeEntry(); 
+					fstream.close();}
+				catch(IOException ie){
+					zipinfofile += "\n"+downloadurl;
+					InputStream nStream = new ByteArrayInputStream(zipinfofile.getBytes());
+					zout.putNextEntry(new ZipEntry("ZipInfo.txt"));
+					while ((l = nStream.read(buf)) != -1) {
+						zout.write(new byte[1000], 0, l);
+					}
+					zout.closeEntry();
+					logger.info("There is an error reading this file at location: "+downloadurl+ 
+							"Exception: "+ie.getMessage());
+					
+				}}catch(IOException ie){
+					logger.info("There is an error createing zip entry for "+downloadurl+ 
+							"Exception: "+ie.getMessage());
 				}
-				zout.closeEntry(); 
-				fstream.close();
 			}
-		}catch (IOException exp){
-			logger.error(exp.getMessage());
-			throw new DistributionException("There is an issue with forming Zipfile"+exp.getMessage());
-		}
+		
    	
 	}
 
@@ -108,22 +124,20 @@ public class DefaultDataPackager implements DataPackager {
                     .collect(Collectors.toList());
 			
 			this.inputfileList =  newfilelist.toArray(new FilePathUrl[0]) ;
+					
+			if(this.getSize() > this.mxFileSize) 
+				throw new DistributionException("Total filesize is beyond allowed limit.");
+			if(this.getFilesCount() > this.numberofFiles)
+				throw new DistributionException("Total number of files requested is beyond allowed limit.");
+				
 			
-			try {
-				
-				if(this.checkSize() > this.mxFileSize) 
-					throw new DistributionException("Total filesize is beyond allowed limit.");
-				if(!this.checkFilesCount())
-					throw new DistributionException("Total number of files requested is beyond allowed limit.");
-				
-			} catch (IOException e) {
-				throw new DistributionException("Error in reading urls for files.");
-			}
 		}else{
 			throw new DistributionException("Requested files jsonobject is empty.");
 		}
 		
 	}
+	
+	
 
 	/**
 	 * Function to calculate total files size requested by user
@@ -132,7 +146,8 @@ public class DefaultDataPackager implements DataPackager {
 	 * @throws IOException
 	 */
 	@Override
-	public long checkSize() throws MalformedURLException, IOException {
+	public long getSize() {
+		
 		List<FilePathUrl> list = Arrays.asList(this.inputfileList);
 		
 		List<String> downloadurls = list.stream()
@@ -140,12 +155,16 @@ public class DefaultDataPackager implements DataPackager {
                 .collect(Collectors.toList());
 		long totalSize = 0;
 		for (int i = 0; i < downloadurls.size(); i++) {
-			
+			try{
 			URL obj = new URL(downloadurls.get(i));
 			URLConnection conn = obj.openConnection();
 			totalSize += conn.getContentLength();
+			}catch(IOException ie){
+				logger.info("There is error reading this url:"+downloadurls.get(i));
+			}
 		}
 		return totalSize;	
+		
 	}
 
 	/**
@@ -153,11 +172,9 @@ public class DefaultDataPackager implements DataPackager {
 	 * @return boolean based on comparison
 	 */
 	@Override
-	public boolean checkFilesCount() {
-		if(this.inputfileList.length > this.numberofFiles)
-			return false;
-		else
-			return true;
+	public int getFilesCount() {
+		return this.inputfileList.length;
+		
 	}
 
     /**
