@@ -32,6 +32,9 @@ public class ResourceNotFoundException extends RuntimeException {
 	public ResourceNotFoundException(int id){
 		super("ResourceNotFoundException with id="+id);
 	}
+        public ResourceNotFoundException(String message, String id){
+		super(message+ " (id="+id+")");
+	}
 	/**
 	 * ResourceNotFoundException 
 	 */
@@ -43,8 +46,7 @@ public class ResourceNotFoundException extends RuntimeException {
 	 * @param requestUrl String
 	 */
 	public ResourceNotFoundException(String requestUrl){
-		
-		super("Resource you are looking for is not available.");
+		super("Resource you are looking for is not available");
 		this.setRequestUrl(requestUrl);
 	}
 	/***

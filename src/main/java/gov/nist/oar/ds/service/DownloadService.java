@@ -23,6 +23,8 @@ import java.util.zip.ZipOutputStream;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+
 import com.amazonaws.services.s3.model.PutObjectResult;
 
 import gov.nist.oar.ds.exception.DistributionException;
@@ -79,6 +81,6 @@ public interface DownloadService {
 	
 //	ResponseEntity<byte[]> downloadAllData(String recordid) throws Exception;
 	
-	ResponseEntity<byte[]> downloadData(String recordid, String filepath) throws IOException;
-  
+  public void downloadData(String recordid, String filepath, HttpServletResponse response)
+      throws IOException;
 }

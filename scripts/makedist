@@ -63,7 +63,7 @@ java_major_version=`echo $java_version | sed -re 's/^[0-9]+\.//' -e 's/[\.\-\_].
 $PACKAGE_DIR/scripts/setversion.sh
 [ -n "$PACKAGE_NAME" ] || export PACKAGE_NAME=`cat VERSION | awk '{print $1}'`
 version=`cat VERSION | awk '{print $2}'`
-vers4fn=`echo $version | sed -re 's#[/\s]+#_#g'`
+vers4fn=`echo $version | sed -re 's#[/ ]+#_#g'`
 
 
 # ENTER BUILD COMMANDS HERE
