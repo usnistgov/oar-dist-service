@@ -13,27 +13,37 @@
 
 package gov.nist.oar.distrib.web;
 
+import javax.validation.constraints.NotNull;
+
+import org.hibernate.validator.constraints.NotBlank;
+
 /**
  * Jackson json framework to form a request data to a download controller. 
  * This class is used to represent the requested post object to dowload bundled zip of requested files 
  * with given URLs
  */
+
 public class FilePathUrl {
 
 	/*
 	 * Name of the file along with path within the bundle
 	 */
+	@NotNull
 	private String filePath;
+	
 	/**
 	 * Url related to filename above, to be used to download data
 	 */
+	@NotNull
+	@NotBlank
 	private String downloadUrl;
 	
 	public FilePathUrl(){
 		//DefaultConstructor
 	}
 	/**
-	 * 
+	 * Set the requested filename along including hierarchy expected and 
+	 * Url to get file from.
 	 * @param filepath
 	 * @param downloadurl
 	 */

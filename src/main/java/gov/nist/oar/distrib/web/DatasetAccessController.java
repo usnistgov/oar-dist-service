@@ -81,7 +81,7 @@ import springfox.documentation.annotations.ApiIgnore;
  */
 @RestController
 @Api
-@RequestMapping(value = "/ds")
+//@RequestMapping(value = "/ds")
 public class DatasetAccessController {
 
     Logger logger = LoggerFactory.getLogger(DatasetAccessController.class);
@@ -95,11 +95,6 @@ public class DatasetAccessController {
     @Value("${distrib.baseurl}")
     String svcbaseurl;
 
-    @Value("${distrib.filesizelimit}")
-    long maxfileSize;
-  
-    @Value("${distrib.numberoffiles}")
-    int numofFiles;
   
 
     /**
@@ -114,7 +109,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "List descriptions of available AIP files", nickname = "List all bags",
                   notes = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @GetMapping(value = "/{dsid}/_aip")
+    @GetMapping(value = "/ds/{dsid}/_aip")
     public List<FileDescription>  describeAIPs(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -149,7 +144,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "List the AIP versions available for a dataset", nickname = "List versions",
                   notes = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
-    @GetMapping(value = "/{dsid}/_aip/_v")
+    @GetMapping(value = "/ds/{dsid}/_aip/_v")
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -175,7 +170,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "List descriptions of AIP files available for a particular version of the dataset",
                   nickname = "Describe versions",
                   notes = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @GetMapping(value = "/{dsid}/_aip/_v/{ver}")
+    @GetMapping(value = "/ds/{dsid}/_aip/_v/{ver}")
     public List<FileDescription>  describeAIPsForVersion(@PathVariable("dsid") String dsid,
                                                          @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
@@ -229,7 +224,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                   nickname = "Describe head",
                   notes = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head")
+    @GetMapping(value = "/ds/{dsid}/_aip/_v/{ver}/_head")
     public FileDescription describeHeadAIPForVersion(@PathVariable("dsid") String dsid,
                                                     @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
@@ -270,7 +265,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                   nickname = "Describe head",
                   notes = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @GetMapping(value = "/{dsid}/_aip/_head")
+    @GetMapping(value = "/ds/{dsid}/_aip/_head")
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -304,7 +299,7 @@ public class DatasetAccessController {
      */
     @ApiOperation(value = "stream the data product with the given name", nickname = "get file",
                   notes = "download the file")
-    @GetMapping(value = "/{dsid}/**")
+    @GetMapping(value = "/ds/{dsid}/**")
     public void downloadFile(@PathVariable("dsid") String dsid,
                              @ApiIgnore HttpServletRequest request,
                              @ApiIgnore HttpServletResponse response)
@@ -437,49 +432,7 @@ public class DatasetAccessController {
    
 
     
-    /**
-     * download a bundle of data files requested
-     * @param jsonarray of type   { "filePath":"", "downloadUrl":""} 
-     * @param response  the output HTTP response object, used to write the output data
-     * @throws DistributionException    catches all exceptions and throws as distribution service exception
-	 *	
-     */
-    @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files",
-                  notes = "download the bundle of files")
-    @PostMapping(value = "/_bundle", consumes = "application/json", produces = "application/zip")
-    public void getbundle( @RequestBody FilePathUrl[]  jsonarray,@ApiIgnore HttpServletResponse response) 
-    		throws   DistributionException{
-        try {
-     
-           response.setHeader("Content-Type","application/zip");
-           response.setHeader("Content-Disposition","attachment;filename=\"downloadall.zip\"");
-           ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-           
-           DefaultDataPackagingService df = new DefaultDataPackagingService( this.maxfileSize, this.numofFiles, jsonarray);
-           
-           df.getZipPackage(zout);
-           zout.close();
-           response.flushBuffer();
-           logger.info("Data bundled in zip delivered" );
-         }
-         catch (org.apache.catalina.connector.ClientAbortException ex) {
-                 logger.info("Client cancelled the download");
-                
-                 throw new DistributionException(ex.getMessage());
-         } catch (IOException ex) {
-                logger.debug("IOException type: "+ex.getClass().getName());
-
-                // "Connection reset by peer" gets thrown if the user cancels the download
-                if (ex.getMessage().contains("Connection reset by peer")) {
-                    logger.info("Client cancelled download");
-                } else {
-                    logger.error("IO error while sending file, "+
-                                 ": " + ex.getMessage());
-                    throw new DistributionException(ex.getMessage());
-                }
-          }
-      
-    }
+   
     static Pattern baddsid = Pattern.compile("[\\s]");
     static Pattern badpath = Pattern.compile("(^\\.)|(/\\.)");
 

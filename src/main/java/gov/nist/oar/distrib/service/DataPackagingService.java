@@ -12,6 +12,7 @@
  */
 package gov.nist.oar.distrib.service;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -26,4 +27,6 @@ import gov.nist.oar.distrib.web.FilePathUrl;
 public interface DataPackagingService {
   public OutputStream getPackageFor(FilePathUrl[] jsonRequest, String format)throws DistributionException ;
   public void getZipPackage(ZipOutputStream zout)throws DistributionException ;
+  public void getBundledZipPackage(ZipOutputStream zout)throws DistributionException ;
+  public void validateRequest() throws DistributionException, IOException;
 }

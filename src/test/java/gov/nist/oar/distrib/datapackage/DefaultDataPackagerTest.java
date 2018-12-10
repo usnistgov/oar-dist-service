@@ -20,7 +20,9 @@ import java.net.MalformedURLException;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 /**
@@ -40,6 +43,7 @@ public class DefaultDataPackagerTest {
 	private static long mxFileSize = 1000000;
 	private static int numberofFiles = 100;
 	private static FilePathUrl[] inputfileList;
+	private static BundleNameFilePathUrl bundleRequest;
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
 	DefaultDataPackager dp ;
 	
@@ -79,11 +83,66 @@ public class DefaultDataPackagerTest {
 	
 	@Test
 	public void testValidateRequest() throws DistributionException, MalformedURLException, IOException{
+		this.createInput();
+		dp = new DefaultDataPackager(inputfileList,mxFileSize,numberofFiles);	
 		assertTrue(dp.getFilesCount()< this.numberofFiles);
 		assertTrue(dp.getSize() < this.mxFileSize);
 		int countBefore = 2;
 		dp.validateRequest();
 		int countAfter = dp.getFilesCount();
 		assertTrue("No duplicates!", countBefore == countAfter);
+	}
+	
+	@Test
+	public void testValidateBundleRequest() throws DistributionException, MalformedURLException, IOException{
+		createBundleTestdata();
+		int countBefore = 2;
+		dp = new DefaultDataPackager(bundleRequest,mxFileSize,numberofFiles);	
+		dp.validateInput();
+		dp.validateBundleRequest();
+		assertTrue(dp.getFilesCount()< this.numberofFiles);
+		assertTrue(dp.getSize() < this.mxFileSize);
+		int countAfter = dp.getFilesCount();	
+		assertTrue("No duplicates!", countBefore == countAfter);
+	}
+	
+	public void createBundleTestdata() throws JsonParseException, JsonMappingException, IOException{
+		
+		 inputfileList = new FilePathUrl[2];
+			String val1 ="{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val2 ="{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			
+			ObjectMapper mapper = new ObjectMapper();
+			FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+			FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+			inputfileList[0] = testval1;
+			inputfileList[1] = testval2;
+			bundleRequest = new BundleNameFilePathUrl("testdatabundle",inputfileList);
+	}
+	
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
+    
+	@Test
+	public void testValidateBundleRequestError() throws DistributionException, MalformedURLException, IOException{
+	
+		exception.expect(JsonMappingException.class);
+		createBundleErrorTestdata();
+
+	}
+	
+	public void createBundleErrorTestdata() throws JsonParseException, JsonMappingException, IOException{
+		
+		 inputfileList = new FilePathUrl[2];
+			String val1 ="{\"filePath\":\"/1894/license.pdf\",\"jgkdfghjkdf\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val2 ="{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			
+			ObjectMapper mapper = new ObjectMapper();
+			FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+			FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+			inputfileList[0] = testval1;
+			inputfileList[1] = testval2;
+			bundleRequest = new BundleNameFilePathUrl("testdatabundle",inputfileList);
 	}
 }

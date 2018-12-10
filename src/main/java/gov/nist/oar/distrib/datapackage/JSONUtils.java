@@ -13,40 +13,69 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Arrays;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 public final class JSONUtils {
-  public JSONUtils(){}
 
-  public static boolean isJSONValid(String jsonInString ) {
-    try {
-    	
-    	
+	private static String bundleName ="";
+    public JSONUtils(){}
+
+    public static boolean isJSONValid(String jsonInString ) {
+      try {
        final ObjectMapper mapper = new ObjectMapper();
        mapper.readTree(jsonInString);
        return true;
-    } catch (IOException e) {
+      } catch (IOException e) {
        return false;
-    }
-  }
+      }
+   }
   
   public static boolean isJSONValid(FilePathUrl[] jsonInString ) {
 	    try {
 	    	
-	    	
 	       final ObjectMapper mapper = new ObjectMapper();
+	       
 	       String test = mapper.writeValueAsString(jsonInString);
-	       System.out.println(test);
+
+	       List<FilePathUrl> myObjects = Arrays.asList(jsonInString);
+	       if(myObjects.contains(null))
+	    	   throw new IOException("There are null values in the input");
+	       
 	       return true;
 	    } catch (IOException e) {
 	       return false;
+	    }
+	  }
+  
+  public static void isJSONValid(BundleNameFilePathUrl inputJson ) throws JsonParseException, JsonMappingException, IOException {
+	    try {
+	    	
+	       final ObjectMapper mapper = new ObjectMapper();
+	       
+	       String test = mapper.writeValueAsString(inputJson);
+
+	       if(inputJson.getBundleName() == null)
+	    	   bundleName = "download";
+	       else
+	    	   bundleName = inputJson.getBundleName();
+	       
+	       isJSONValid(inputJson.getFilePathUrl());
+	       
+	      
+	    } catch (IOException e) {
+	    	 throw new IOException("The input json is not valid.");
 	    }
 	  }
 }

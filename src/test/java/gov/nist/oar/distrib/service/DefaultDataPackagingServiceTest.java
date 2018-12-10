@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 /**
@@ -52,6 +53,7 @@ public class DefaultDataPackagingServiceTest {
 	static FilePathUrl[] requestedUrls = new FilePathUrl[2];
 	long maxFileSize = 1000000;
 	int numOfFiles = 100;
+	static BundleNameFilePathUrl bundleRequest;
 	
 	public static void createRequest() throws JsonParseException, JsonMappingException, IOException{
 
@@ -63,6 +65,7 @@ public class DefaultDataPackagingServiceTest {
 		FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
 		requestedUrls[0] = testval1;
 		requestedUrls[1] = testval2;
+		bundleRequest = new BundleNameFilePathUrl("testdatabundle",requestedUrls);
 	}
 	
 	@BeforeClass
@@ -72,7 +75,7 @@ public class DefaultDataPackagingServiceTest {
 	
 	@Before
 	 public void setUp(){
-		ddp = new DefaultDataPackagingService(maxFileSize,numOfFiles, requestedUrls);
+		ddp = new DefaultDataPackagingService(maxFileSize,numOfFiles,bundleRequest );
 	}
 
 	@Rule
@@ -82,10 +85,15 @@ public class DefaultDataPackagingServiceTest {
 	 @Test
 	 public void getBundledZip() throws DistributionException{
 		 try {
-			Path path = Files.createTempFile("example", ".zip");
+			 String bundleName ="example";
+			 ddp.validateRequest();
+			 if(!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null )
+				 bundleName = bundleRequest.getBundleName();
+			 
+			Path path = Files.createTempFile(bundleName, ".zip");
 			OutputStream os = Files.newOutputStream(path);
             ZipOutputStream zos = new ZipOutputStream(os);
-            ddp.getZipPackage(zos);
+            ddp.getBundledZipPackage(zos);
             zos.close();
             int len = (int) Files.size(path);
             assertEquals(len,59682);

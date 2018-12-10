@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 
@@ -43,6 +44,7 @@ public class DefaultDataPackager implements DataPackager {
 	private long mxFileSize;
 	private int numberofFiles;
 	private FilePathUrl[] inputfileList;
+	private BundleNameFilePathUrl bundleRequest;
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 	
 	public DefaultDataPackager(){}
@@ -59,6 +61,17 @@ public class DefaultDataPackager implements DataPackager {
 		this.numberofFiles = numOfFiles;
 	}
 
+	/**
+	 * Construct input parameters to be used within the class
+	 * @param inputjson
+	 * @param maxFileSize total file size allowed to download
+	 * @param numOfFiles total number of files allowed to download
+	 */
+	public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles ){
+		this.bundleRequest = inputjson;
+		this.mxFileSize = maxFileSize;
+		this.numberofFiles = numOfFiles;
+	}
 	/***
 	 * Read inputstream from valid urls and stream it to outputstream provided by response handler.
 	 * @param zout ZipOutputStream
@@ -94,10 +107,12 @@ public class DefaultDataPackager implements DataPackager {
 					zout.closeEntry();
 					logger.info("There is an error reading this file at location: "+downloadurl+ 
 							"Exception: "+ie.getMessage());
+					throw new DistributionException(ie.getMessage());
 					
 				}}catch(IOException ie){
 					logger.info("There is an error createing zip entry for "+downloadurl+ 
 							"Exception: "+ie.getMessage());
+					throw new DistributionException(ie.getMessage());
 				}
 			}
 		
@@ -105,7 +120,7 @@ public class DefaultDataPackager implements DataPackager {
 	}
 
 	/**
-	 * Validate the request sent by user.
+	 * Validate the request sent by client.
 	 * Function checks and eliminates duplicates, check total filesize to comapre with allowed size, 
 	 * Checks total number of files allowed 
 	 * @throws DistributionException
@@ -113,9 +128,9 @@ public class DefaultDataPackager implements DataPackager {
 	@Override
 	public void validateRequest() throws DistributionException {
 		if(this.inputfileList.length > 0){
-			JSONUtils jUtils = new JSONUtils();
-			if(!jUtils.isJSONValid(inputfileList))
-				throw new DistributionException("Input values are not valid. Check the json represntation.");;
+			
+			JSONUtils.isJSONValid(inputfileList);
+				
 			
 			// Remove duplicates	
 			List<FilePathUrl> list =  Arrays.asList(inputfileList);
@@ -138,7 +153,30 @@ public class DefaultDataPackager implements DataPackager {
 	}
 	
 	
+	/* 
+	 * This is to validate request and validate input json data sent. 
+	 */
+	@Override
+	public void validateBundleRequest() throws DistributionException, IOException {
+		
+		JSONUtils.isJSONValid(this.bundleRequest);
+			
+		this.inputfileList = this.bundleRequest.getFilePathUrl();
+		
+		this.validateRequest();
+	}
 
+	/* 
+	 * Check whether input request is a valid json data.
+	 */
+	@Override
+	public void validateInput() throws IOException {
+	
+		JSONUtils.isJSONValid(this.bundleRequest);
+		this.inputfileList = this.bundleRequest.getFilePathUrl();
+	}
+
+	
 	/**
 	 * Function to calculate total files size requested by user
 	 * @return long, total size.
@@ -174,7 +212,6 @@ public class DefaultDataPackager implements DataPackager {
 	@Override
 	public int getFilesCount() {
 		return this.inputfileList.length;
-		
 	}
 
     /**
@@ -184,10 +221,7 @@ public class DefaultDataPackager implements DataPackager {
      */
 	@Override
 	public void writeData(OutputStream out) throws DistributionException {
-		// TODO Auto-generated method stub
 		
 	}
-
-
 
 }

@@ -235,17 +235,7 @@ public class DatasetAccessControllerTest {
         assertEquals(69, resp.getBody().length());
     }
 
-    @Test
-    public void testDownloadAllFiles()
-    {
-    	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-    	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_bundle",
-                HttpMethod.POST, req, String.class);
-    	assertEquals(HttpStatus.OK, resp.getStatusCode());
-    	assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
-        assertEquals(69, resp.getBody().length());
-    	
-    }
+   
     
     @Test
     public void testDownloadFileBadInp() throws JSONException {
