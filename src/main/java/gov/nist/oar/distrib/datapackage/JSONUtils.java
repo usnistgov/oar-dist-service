@@ -65,13 +65,13 @@ public final class JSONUtils {
 	       final ObjectMapper mapper = new ObjectMapper();
 	       
 	       String test = mapper.writeValueAsString(inputJson);
-
+//             System.out.println(test);
 	       if(inputJson.getBundleName() == null)
 	    	   bundleName = "download";
 	       else
 	    	   bundleName = inputJson.getBundleName();
 	       
-	       isJSONValid(inputJson.getFilePathUrl());
+	       isJSONValid(inputJson.getIncludeFiles());
 	       
 	      
 	    } catch (IOException e) {

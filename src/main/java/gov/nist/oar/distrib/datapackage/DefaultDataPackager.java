@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
@@ -45,6 +46,8 @@ public class DefaultDataPackager implements DataPackager {
 	private int numberofFiles;
 	private FilePathUrl[] inputfileList;
 	private BundleNameFilePathUrl bundleRequest;
+	private String domains;
+	String bundlelogfile = " Information about this bundle and contents as below:\n";
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 	
 	public DefaultDataPackager(){}
@@ -72,6 +75,19 @@ public class DefaultDataPackager implements DataPackager {
 		this.mxFileSize = maxFileSize;
 		this.numberofFiles = numOfFiles;
 	}
+	
+	/**
+	 * Construct input parameters to be used within the class
+	 * @param inputjson
+	 * @param maxFileSize total file size allowed to download
+	 * @param numOfFiles total number of files allowed to download
+	 */
+	public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles, String domains ){
+		this.bundleRequest = inputjson;
+		this.mxFileSize = maxFileSize;
+		this.numberofFiles = numOfFiles;
+		this.domains = domains;
+	}
 	/***
 	 * Read inputstream from valid urls and stream it to outputstream provided by response handler.
 	 * @param zout ZipOutputStream
@@ -87,36 +103,48 @@ public class DefaultDataPackager implements DataPackager {
 				FilePathUrl jobject = inputfileList[i];
 				String filepath = jobject.getFilePath();
 				String downloadurl = jobject.getDownloadUrl();
-				String zipinfofile = "There was an error getting data from url listed below:";
+				bundlelogfile += "If there are any issues with any files/urls it will be listed below.";
+
 				try{
-					zout.putNextEntry(new ZipEntry(filepath));
-				try{
-					InputStream fstream = new URL(downloadurl).openStream();
-					while ((len = fstream.read(buf)) != -1) {
-						zout.write(buf, 0, len);
+					
+					if(this.validateUrl(downloadurl)){
+						zout.putNextEntry(new ZipEntry(filepath));
+						InputStream fstream = new URL(downloadurl).openStream();
+						while ((len = fstream.read(buf)) != -1) {
+							zout.write(buf, 0, len);
+						}
+						zout.closeEntry(); 
+						fstream.close();
 					}
-					zout.closeEntry(); 
-					fstream.close();}
+				  }
 				catch(IOException ie){
-					zipinfofile += "\n"+downloadurl;
-					InputStream nStream = new ByteArrayInputStream(zipinfofile.getBytes());
-					zout.putNextEntry(new ZipEntry("ZipInfo.txt"));
-					while ((l = nStream.read(buf)) != -1) {
-						zout.write(new byte[1000], 0, l);
-					}
-					zout.closeEntry();
+					
+					bundlelogfile += "\n Exception in getting data for: "+filepath+" at "+downloadurl;
+					
 					logger.info("There is an error reading this file at location: "+downloadurl+ 
 							"Exception: "+ie.getMessage());
-					throw new DistributionException(ie.getMessage());
 					
-				}}catch(IOException ie){
-					logger.info("There is an error createing zip entry for "+downloadurl+ 
-							"Exception: "+ie.getMessage());
-					throw new DistributionException(ie.getMessage());
+					
 				}
-			}
 		
-   	
+			}
+			this.writeLog(zout);
+		
+	}
+	
+	private void writeLog(ZipOutputStream zout){
+		try{
+			int len,l;
+			byte[] buf = new byte[10000];
+		InputStream nStream = new ByteArrayInputStream(bundlelogfile.getBytes());
+		zout.putNextEntry(new ZipEntry("BundleInfo.txt"));
+		while ((l = nStream.read(buf)) != -1) {
+			zout.write(buf, 0, l);
+		}
+		zout.closeEntry();
+		}catch(IOException ie){
+			logger.info("Exception while creating Ziplogfile"+ ie.getMessage());
+		}
 	}
 
 	/**
@@ -124,12 +152,13 @@ public class DefaultDataPackager implements DataPackager {
 	 * Function checks and eliminates duplicates, check total filesize to comapre with allowed size, 
 	 * Checks total number of files allowed 
 	 * @throws DistributionException
+	 * @throws IOException 
 	 */
 	@Override
-	public void validateRequest() throws DistributionException {
+	public void validateRequest() throws DistributionException, IOException, InputLimitException {
 		if(this.inputfileList.length > 0){
 			
-			JSONUtils.isJSONValid(inputfileList);
+			//JSONUtils.isJSONValid(inputfileList);
 				
 			
 			// Remove duplicates	
@@ -140,10 +169,11 @@ public class DefaultDataPackager implements DataPackager {
 			
 			this.inputfileList =  newfilelist.toArray(new FilePathUrl[0]) ;
 					
+			
 			if(this.getSize() > this.mxFileSize) 
-				throw new DistributionException("Total filesize is beyond allowed limit.");
+				throw new InputLimitException("Total filesize is beyond allowed limit of."+this.mxFileSize);
 			if(this.getFilesCount() > this.numberofFiles)
-				throw new DistributionException("Total number of files requested is beyond allowed limit.");
+				throw new InputLimitException("Total number of files requested is beyond allowed limit."+this.numberofFiles);
 				
 			
 		}else{
@@ -157,11 +187,11 @@ public class DefaultDataPackager implements DataPackager {
 	 * This is to validate request and validate input json data sent. 
 	 */
 	@Override
-	public void validateBundleRequest() throws DistributionException, IOException {
+	public void validateBundleRequest() throws DistributionException, IOException , InputLimitException{
 		
 		JSONUtils.isJSONValid(this.bundleRequest);
 			
-		this.inputfileList = this.bundleRequest.getFilePathUrl();
+		this.inputfileList = this.bundleRequest.getIncludeFiles();
 		
 		this.validateRequest();
 	}
@@ -173,7 +203,6 @@ public class DefaultDataPackager implements DataPackager {
 	public void validateInput() throws IOException {
 	
 		JSONUtils.isJSONValid(this.bundleRequest);
-		this.inputfileList = this.bundleRequest.getFilePathUrl();
 	}
 
 	
@@ -184,8 +213,11 @@ public class DefaultDataPackager implements DataPackager {
 	 * @throws IOException
 	 */
 	@Override
-	public long getSize() {
-		
+	public long getSize() throws IOException {
+		if(this.inputfileList == null) {
+			this.validateInput();
+			this.inputfileList = this.bundleRequest.getIncludeFiles();
+		}
 		List<FilePathUrl> list = Arrays.asList(this.inputfileList);
 		
 		List<String> downloadurls = list.stream()
@@ -208,9 +240,14 @@ public class DefaultDataPackager implements DataPackager {
 	/**
 	 * Checks whether total number of files requested are within allowed limit. 
 	 * @return boolean based on comparison
+	 * @throws IOException 
 	 */
 	@Override
-	public int getFilesCount() {
+	public int getFilesCount() throws IOException {
+		if(this.inputfileList == null) {
+			this.validateInput();
+			this.inputfileList = this.bundleRequest.getIncludeFiles();
+		}
 		return this.inputfileList.length;
 	}
 
@@ -221,6 +258,28 @@ public class DefaultDataPackager implements DataPackager {
      */
 	@Override
 	public void writeData(OutputStream out) throws DistributionException {
+		
+	}
+
+	/* 
+	 * Check whether url belongs to given domains
+	 */
+	@Override
+	public boolean validateUrl(String url) throws IOException, DistributionException {
+		
+			try{
+			  URL obj = new URL(url);
+			  if(!this.domains.toLowerCase().contains(obj.getHost().toLowerCase())){
+				  this.bundlelogfile += "\n Url here:"+ url+" does not belong to allowed domains, so no file is downnloaded for this";
+				  return false;
+			  }
+			  return true;
+			}catch(IOException ie){
+				
+				logger.info("There is an issue accessing this url:"+url + " Excption here"+ ie.getMessage());
+				this.bundlelogfile += "\n There is an issue accessing this url:"+url;
+				return false;
+			}
 		
 	}
 

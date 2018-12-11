@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
@@ -35,6 +36,7 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	FilePathUrl[] jsonRequest;
 	BundleNameFilePathUrl bundleRequest;
 	DefaultDataPackager dp ;
+	String domains;
 	public DefaultDataPackagingService(){
 		//Default constructor
 	}
@@ -46,11 +48,12 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 		dp = new DefaultDataPackager(jsonRequest,maxFileSize,numOfFiles);
 	}
 	  
-	public DefaultDataPackagingService(long maxFileSize, int numOfFiles, BundleNameFilePathUrl bundleRequest){
+	public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles, BundleNameFilePathUrl bundleRequest){
 		this.maxFileSize = maxFileSize;
 		this.numOfFiles = numOfFiles;
 		this.bundleRequest = bundleRequest;
-		dp = new DefaultDataPackager(bundleRequest,maxFileSize,numOfFiles);
+		this.domains = domains;
+		dp = new DefaultDataPackager(bundleRequest,maxFileSize,numOfFiles, domains);
 	}
 	  
 	/**
@@ -68,7 +71,7 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	 * @see gov.nist.oar.distrib.service.DataPackagingService#getZipPackage(gov.nist.oar.distrib.web.FilePathUrl[], java.lang.String)
 	 */
 	@Override
-	public void getZipPackage(ZipOutputStream zout) throws DistributionException {
+	public void getZipPackage(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException {
 		dp.validateRequest();
 		dp.writeData(zout);
 	}
@@ -86,7 +89,7 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	 * @see gov.nist.oar.distrib.service.DataPackagingService#validateRequest()
 	 */
 	@Override
-	public void validateRequest() throws DistributionException, IOException {
+	public void validateRequest() throws DistributionException, IOException, InputLimitException {
 		
 		dp.validateBundleRequest();
 	}

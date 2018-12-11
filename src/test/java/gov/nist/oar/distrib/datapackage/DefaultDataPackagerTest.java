@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
@@ -77,12 +78,12 @@ public class DefaultDataPackagerTest {
 	}
 	
 	@Test
-	public void testNumOfFiles(){
+	public void testNumOfFiles() throws IOException{
 		assertEquals(dp.getFilesCount(),2);
 	}
 	
 	@Test
-	public void testValidateRequest() throws DistributionException, MalformedURLException, IOException{
+	public void testValidateRequest() throws DistributionException, MalformedURLException, IOException, InputLimitException{
 		this.createInput();
 		dp = new DefaultDataPackager(inputfileList,mxFileSize,numberofFiles);	
 		assertTrue(dp.getFilesCount()< this.numberofFiles);
@@ -94,7 +95,7 @@ public class DefaultDataPackagerTest {
 	}
 	
 	@Test
-	public void testValidateBundleRequest() throws DistributionException, MalformedURLException, IOException{
+	public void testValidateBundleRequest() throws DistributionException, MalformedURLException, IOException, InputLimitException{
 		createBundleTestdata();
 		int countBefore = 2;
 		dp = new DefaultDataPackager(bundleRequest,mxFileSize,numberofFiles);	

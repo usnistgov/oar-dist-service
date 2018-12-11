@@ -18,6 +18,7 @@ import java.util.zip.ZipOutputStream;
 
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 /**
@@ -26,7 +27,7 @@ import gov.nist.oar.distrib.web.FilePathUrl;
  */
 public interface DataPackagingService {
   public OutputStream getPackageFor(FilePathUrl[] jsonRequest, String format)throws DistributionException ;
-  public void getZipPackage(ZipOutputStream zout)throws DistributionException ;
+  public void getZipPackage(ZipOutputStream zout)throws DistributionException, IOException, InputLimitException;
   public void getBundledZipPackage(ZipOutputStream zout)throws DistributionException ;
-  public void validateRequest() throws DistributionException, IOException;
+  public void validateRequest() throws DistributionException, IOException, InputLimitException;
 }

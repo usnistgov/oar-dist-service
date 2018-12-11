@@ -51,12 +51,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-        "distrib.bagstore.mode=local",
-       
+        "distrib.bagstore.mode=local",  
         "distrib.baseurl=http://localhost/oar-distrb-service",
-        
         "distrib.filesizelimit = 100000",
-        "distrib.numberoffiles = 100"
+        "distrib.numberoffiles = 2",
+         "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
         // "logging.level.org.springframework.web=DEBUG"
 })
 public class DataBundleAccessControllerTest {
@@ -84,17 +83,49 @@ public class DataBundleAccessControllerTest {
 			FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
 			inputfileList[0] = testval1;
 			inputfileList[1] = testval2;
-
-	    	RequestEntity<FilePathUrl[]> request = RequestEntity
+			BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
+	    	RequestEntity<BundleNameFilePathUrl> request = RequestEntity
 	    		     .post(new URI(getBaseURL() + "/ds/_bundle"))
-	    		     .body(inputfileList);
+	    		     .body(bFL);
 	    	
 	    	ResponseEntity<String> response = websvc.exchange(request,String.class );
 //	    	System.out.println("response.getStatusCode() :"+response.getStatusCode()+ " \n resp.getHeaders() :"+response.getHeaders()+"\n resp.getBody().length():"+response.getBody().length());
 
 	    	assertEquals(HttpStatus.OK, response.getStatusCode());
 	    	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
-	        assertEquals(59682, response.getBody().length());
+	        assertEquals(59903, response.getBody().length());
+	    	
+	    }
+	    
+	    @Test
+	    public void testDownloadAllFilesException() throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception
+	    {
+	    	FilePathUrl[] inputfileList  = new FilePathUrl[3];
+			String val1 ="{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val2 ="{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val3 ="{\"filePath\":\"/1894/license3.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			
+			ObjectMapper mapper = new ObjectMapper();
+			FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+			FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+			FilePathUrl testval3 = mapper.readValue(val3, FilePathUrl.class);
+			inputfileList[0] = testval1;
+			inputfileList[1] = testval2;
+			inputfileList[2] = testval3;
+			
+			BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
+	    	RequestEntity<BundleNameFilePathUrl> request = RequestEntity
+	    		     .post(new URI(getBaseURL() + "/ds/_bundle"))
+	    		     .body(bFL);
+	    	
+	    	ResponseEntity<String> response = websvc.exchange(request,String.class );
+//	    	System.out.println("response.getStatusCode() :"+response.getStatusCode()+
+//   			" \n resp.getHeaders() :"+response.getHeaders()+
+//   			"\n resp.getBody().length():"+response.getBody().length());
+
+	    	assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+	    	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+	        assertEquals(164, response.getBody().length());
 	    	
 	    }
 }

@@ -13,21 +13,25 @@
 package gov.nist.oar.distrib.web;
 
 import java.io.IOException;
-import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -48,18 +52,22 @@ public class DataBundleAccessController {
   
     @Value("${distrib.numberoffiles}")
     int numofFiles;
+    
+    @Value("${distrib.validdomains}")
+    String validdomains;
 	 /**
      * download a bundle of data files requested
      * @param jsonarray of type   { "filePath":"", "downloadUrl":""} 
      * @param response  the output HTTP response object, used to write the output data
      * @throws DistributionException    catches all exceptions and throws as distribution service exception
+	 * @throws InputLimitException 
 	 *	
      */
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files",
                   notes = "download the bundle of files")
     @PostMapping(value = "/ds/_bundleNoName", consumes = "application/json", produces = "application/zip")
     public void getbundle( @Valid @RequestBody FilePathUrl[]  jsonarray,@ApiIgnore HttpServletResponse response, Errors errors) 
-    		throws   DistributionException{
+    		throws   DistributionException, InputLimitException{
         try {
         	
            response.setHeader("Content-Type","application/zip");
@@ -97,17 +105,18 @@ public class DataBundleAccessController {
      * @param jsonarray of type   { "filePath":"", "downloadUrl":""} 
      * @param response  the output HTTP response object, used to write the output data
      * @throws DistributionException    catches all exceptions and throws as distribution service exception
+     * @throws InputLimitException 
 	 *	
      */
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files",
                   notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
     public void getbundlewithname( @Valid @RequestBody BundleNameFilePathUrl  jsonObject,@ApiIgnore HttpServletResponse response, Errors errors) 
-    		throws   DistributionException{
+    		throws   DistributionException, InputLimitException{
         try {
            String bundleName = "download";	
            
-           DefaultDataPackagingService df = new DefaultDataPackagingService( this.maxfileSize, this.numofFiles, jsonObject);
+           DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize, this.numofFiles, jsonObject);
            try{
         	   df.validateRequest();
         	   
@@ -115,7 +124,8 @@ public class DataBundleAccessController {
         		   bundleName = jsonObject.getBundleName();
         	   }
            }catch(DistributionException | IOException e){
-        	   throw new DistributionException("Input validation failed:"+e.getMessage());
+        	   
+        	  throw new ServiceSyntaxException(e.getMessage());
            }
            
            response.setHeader("Content-Type","application/zip");
@@ -145,5 +155,47 @@ public class DataBundleAccessController {
                 }
           }
       
+    }
+    
+    @ExceptionHandler(ServiceSyntaxException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorInfo handleServiceSyntaxException(ServiceSyntaxException ex,
+                                                  HttpServletRequest req)
+    {
+        logger.info("Malformed input detected in " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
+    }    
+    
+    @ExceptionHandler(InputLimitException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorInfo handleInputLimitException(InputLimitException ex,
+                                                  HttpServletRequest req)
+    {
+        logger.info("Bundle size and number of files in the bundle have some limits." 
+        			+ req.getRequestURI() +"\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), HttpStatus.FORBIDDEN.value(), 
+        		"Number of files and total size of bundle has some limit.", "POST");
+    }    
+    
+    @ExceptionHandler(DistributionException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleInternalError(DistributionException ex,
+                                         HttpServletRequest req)
+    {
+        logger.info("Failure processing request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error","POST");
+    }
+
+
+    @ExceptionHandler(IOException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(DistributionException ex,
+                                          HttpServletRequest req)
+    {
+        logger.info("Streaming failure during request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error","POST");
     }
 }

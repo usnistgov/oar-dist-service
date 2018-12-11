@@ -25,10 +25,11 @@ public interface DataPackager {
 
 	public void writeData(OutputStream out) throws  DistributionException;
 	public void writeData(ZipOutputStream zp) throws DistributionException;
-	void validateRequest() throws DistributionException, IOException;
+	void validateRequest() throws DistributionException, IOException, InputLimitException;
 	long getSize() throws IOException;
-	int getFilesCount();
-	void validateBundleRequest() throws DistributionException, IOException;
+	int getFilesCount() throws IOException;
+	void validateBundleRequest() throws DistributionException, IOException, InputLimitException ;
 	void validateInput() throws IOException;
+	boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
 	
 }

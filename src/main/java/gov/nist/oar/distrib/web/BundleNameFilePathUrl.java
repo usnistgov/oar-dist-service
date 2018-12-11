@@ -31,7 +31,7 @@ public class BundleNameFilePathUrl {
 	/**
 	 * FilePAths and Urls json array 
 	 */
-	private FilePathUrl[] fPathUrl;
+	private FilePathUrl[] includeFiles;
 	
 	/**
 	 * Default Constructor
@@ -42,11 +42,11 @@ public class BundleNameFilePathUrl {
 	/**
 	 * Create an object with bundle name and array of files with urls.
 	 * @param bundleName
-	 * @param fPathUrl
+	 * @param includeFiles
 	 */
-	public BundleNameFilePathUrl(String bundleName,FilePathUrl[] fPathUrl ){
+	public BundleNameFilePathUrl(String bundleName,FilePathUrl[] includeFiles ){
 		this.bundleName = bundleName;
-		this.fPathUrl = fPathUrl;
+		this.includeFiles = includeFiles;
 	}
 	
 	/**
@@ -59,7 +59,7 @@ public class BundleNameFilePathUrl {
 	
 	/**
 	 * Get the name to be downloaded
-	 * @return
+	 * @return String
 	 */
 	public String getBundleName(){
 		return this.bundleName;
@@ -67,17 +67,17 @@ public class BundleNameFilePathUrl {
 	
 	/**
 	 * Set the url associated with filename  to download data from
-	 * @param fPathUrl
+	 * @param includeFiles
 	 */
-	public void setFilePathUrl(FilePathUrl[] fPathUrl){
-		this.fPathUrl = fPathUrl;
+	public void setIncludeFiles(FilePathUrl[] includeFiles){
+		this.includeFiles = includeFiles;
 	}
 
 	/**
 	 * get the url associated with filename to download data from
-	 * @return
+	 * @return FilePathUrl[]
 	 */
-	public FilePathUrl[] getFilePathUrl(){
-		return this.fPathUrl;
+	public FilePathUrl[] getIncludeFiles(){
+		return this.includeFiles;
 	}
 }

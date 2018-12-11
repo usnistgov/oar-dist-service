@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
@@ -53,6 +54,7 @@ public class DefaultDataPackagingServiceTest {
 	static FilePathUrl[] requestedUrls = new FilePathUrl[2];
 	long maxFileSize = 1000000;
 	int numOfFiles = 100;
+	String domains ="nist.gov, s3.amazonaws.com/nist-midas";
 	static BundleNameFilePathUrl bundleRequest;
 	
 	public static void createRequest() throws JsonParseException, JsonMappingException, IOException{
@@ -75,7 +77,7 @@ public class DefaultDataPackagingServiceTest {
 	
 	@Before
 	 public void setUp(){
-		ddp = new DefaultDataPackagingService(maxFileSize,numOfFiles,bundleRequest );
+		ddp = new DefaultDataPackagingService(domains,maxFileSize,numOfFiles,bundleRequest );
 	}
 
 	@Rule
@@ -83,7 +85,7 @@ public class DefaultDataPackagingServiceTest {
 	
 	
 	 @Test
-	 public void getBundledZip() throws DistributionException{
+	 public void getBundledZip() throws DistributionException, InputLimitException{
 		 try {
 			 String bundleName ="example";
 			 ddp.validateRequest();
@@ -96,7 +98,8 @@ public class DefaultDataPackagingServiceTest {
             ddp.getBundledZipPackage(zos);
             zos.close();
             int len = (int) Files.size(path);
-            assertEquals(len,59682);
+            System.out.println("Len:"+len);
+            assertEquals(len,59903);
             checkFilesinZip(path);
             Files.delete(path);          
             		
