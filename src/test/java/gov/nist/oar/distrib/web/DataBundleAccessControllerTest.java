@@ -51,8 +51,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-        "distrib.bagstore.mode=local",  
+        "distrib.bagstore.mode=local",
+        "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
+        "logging.path=./target/surefire-reports",
         "distrib.filesizelimit = 100000",
         "distrib.numberoffiles = 2",
          "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
@@ -61,7 +63,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class DataBundleAccessControllerTest {
 	
 	 Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
-	  @LocalServerPort
+	  
+	 @LocalServerPort
 	    int port;
 
 	    TestRestTemplate websvc = new TestRestTemplate();
@@ -102,8 +105,8 @@ public class DataBundleAccessControllerTest {
 	    {
 	    	FilePathUrl[] inputfileList  = new FilePathUrl[3];
 			String val1 ="{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-			String val2 ="{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-			String val3 ="{\"filePath\":\"/1894/license3.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val2 ="{\"filePath\":\"/1895/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+			String val3 ="{\"filePath\":\"/1896/license3.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 			
 			ObjectMapper mapper = new ObjectMapper();
 			FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
