@@ -4,13 +4,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zi
                                             gnupg python python-pip python-virtualenv \
                                             make gcc curl maven
 
-# npm is need by localstack, but we need a newer version than what is available 
-# from debian
-# 
-RUN (curl -sL https://deb.nodesource.com/setup_8.x | bash -) && \
-     apt-get install -y nodejs
-
-
 # ARG gosu_arch=
 # ENV GOSU_ARCH $gosu_arch
 # ENV GOSU_VERSION 1.10
@@ -52,20 +45,6 @@ RUN chmod a+rx /app/entrypoint.sh
 
 WORKDIR /app/dev
 USER $devuser
-
-# Now install localstack as the user who's going to use it
-#
-# Download localstack for use via maven to test AWS accessing classes
-# as of 09-20-2018:
-# 
-RUN (set -ex; LS_HASH=70edd81fd9cd21aea4cb388d22aba377bd63a96b; \
-     curl -L -o /tmp/localstack-$LS_HASH.zip \
-     https://github.com/localstack/localstack/archive/$LS_HASH.zip; \
-     cd /tmp; ls -l localstack-$LS_HASH.zip; \
-     unzip -q localstack-$LS_HASH.zip; mv localstack-$LS_HASH localstack_install_dir)
-
-RUN (cd /tmp/localstack_install_dir; make install)
-
 
 ENTRYPOINT [ "/app/entrypoint.sh" ]
 
