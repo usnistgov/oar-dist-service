@@ -49,7 +49,10 @@ import org.slf4j.LoggerFactory;
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
-        "logging.path=${basedir}/target/surefire-reports"
+        "logging.path=${basedir}/target/surefire-reports",
+        "distrib.filesizelimit = 100000",
+      "distrib.numberoffiles = 2",
+      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
 })
 public class AIPAccessControllerTest {
 

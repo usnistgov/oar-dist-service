@@ -54,10 +54,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
-        "logging.path=./target/surefire-reports",
+        "logging.path=${basedir}/target/surefire-reports",
         "distrib.filesizelimit = 100000",
         "distrib.numberoffiles = 2",
-         "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
+        "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
         // "logging.level.org.springframework.web=DEBUG"
 })
 public class DataBundleAccessControllerTest {
@@ -128,7 +128,7 @@ public class DataBundleAccessControllerTest {
 
 	    	assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 	    	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-	        assertEquals(164, response.getBody().length());
+	        assertEquals(143, response.getBody().length());
 	    	
 	    }
 }

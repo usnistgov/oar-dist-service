@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "cloud.aws.region=us-east-1",
         "logging.path=${basedir}/target/surefire-reports",
+        "distrib.filesizelimit = 100000",
+      "distrib.numberoffiles = 2",
+      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
 })
 public class VersionControllerTest {
 

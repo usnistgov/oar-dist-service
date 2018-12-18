@@ -33,7 +33,10 @@ import static org.junit.Assert.*;
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.baseurl=http://localhost/oar-dist-service"
+        "distrib.baseurl=http://localhost/oar-dist-service",
+        "distrib.filesizelimit = 100000",
+      "distrib.numberoffiles = 2",
+      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
 })
 public class NISTDistribServiceConfigTest {
 
@@ -48,4 +51,6 @@ public class NISTDistribServiceConfigTest {
         assertNotNull(config.lts);
         assertTrue(config.lts instanceof FilesystemLongTermStorage);
     }
+    
+    
 }

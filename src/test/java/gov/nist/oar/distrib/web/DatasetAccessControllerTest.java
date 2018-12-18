@@ -50,6 +50,10 @@ import org.slf4j.LoggerFactory;
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
+        "distrib.filesizelimit = 100000",
+      "distrib.numberoffiles = 2",
+      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
+        
         // "logging.level.org.springframework.web=DEBUG"
 })
 public class DatasetAccessControllerTest {
