@@ -32,8 +32,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.AnonymousAWSCredentials;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.LongTermStorage;
@@ -53,18 +57,22 @@ public class AWSS3LongTermStorageTest {
   
     private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
+    static int port = 9001;
     static final String bucket = "oar-lts-test";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static S3Mock api = new S3Mock.Builder().withPort(9001).withInMemoryBackend().build();
+    static S3Mock api = new S3Mock.Builder().withPort(port).withInMemoryBackend().build();
     static AmazonS3 s3client = null;
     AWSS3LongTermStorage s3Storage = null;
   
     @BeforeClass
     public static void setUpClass() throws IOException {
+        String endpoint = "http://localhost:"+Integer.toString(port);
         api.start();
         s3client = AmazonS3ClientBuilder.standard()
                                         .withPathStyleAccessEnabled(true)  
-                                        .withEndpointConfiguration(endpoint)
+                                        .withEndpointConfiguration(
+                                                 new AwsClientBuilder.EndpointConfiguration(endpoint,
+                                                                                            "us-east-1"))
                                         .withCredentials(new AWSStaticCredentialsProvider(
                                                                       new AnonymousAWSCredentials()))
                                         .build();
@@ -88,6 +96,7 @@ public class AWSS3LongTermStorageTest {
     @AfterClass
     public static void tearDownClass() {
         destroyBucket();
+        api.shutdown();
     }
 
     public static void destroyBucket() {
