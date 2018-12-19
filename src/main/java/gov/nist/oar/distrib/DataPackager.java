@@ -17,6 +17,8 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.zip.ZipOutputStream;
 
+import gov.nist.oar.distrib.web.BundleDownloadPlan;
+
 /**
  * @author Deoyani Nandrekar-Heinis
  *
@@ -31,5 +33,7 @@ public interface DataPackager {
 	void validateBundleRequest() throws DistributionException, IOException, InputLimitException ;
 	void validateInput() throws IOException;
 	boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
+	BundleDownloadPlan getBundleDownloadPlan();
 	
 }
+

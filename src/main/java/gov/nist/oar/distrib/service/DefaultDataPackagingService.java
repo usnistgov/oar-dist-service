@@ -23,6 +23,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
+import gov.nist.oar.distrib.web.BundleDownloadPlan;
 import gov.nist.oar.distrib.web.FilePathUrl;
 
 /**
@@ -92,6 +93,15 @@ public class DefaultDataPackagingService  implements DataPackagingService{
 	public void validateRequest() throws DistributionException, IOException, InputLimitException {
 		
 		dp.validateBundleRequest();
+	}
+
+	/* (non-Javadoc)
+	 * @see gov.nist.oar.distrib.service.DataPackagingService#getBundlePlan()
+	 */
+	@Override
+	public BundleDownloadPlan getBundlePlan() {
+
+		return null;
 	}
 
 }
