@@ -12,10 +12,51 @@
  */
 package gov.nist.oar.distrib.web;
 
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.InputLimitException;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import springfox.documentation.annotations.ApiIgnore;
+
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
+@RestController
+@Api
 public class BundleDownloadPlanController {
+	
+	Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
 
+    @Value("${distrib.filesizelimit}")
+    long maxfileSize;
+  
+    @Value("${distrib.numberoffiles}")
+    int numofFiles;
+    
+    @Value("${distrib.validdomains}")
+    String validdomains;
+    
+    @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.",
+            notes = "This api endpoint provides the information to client to how to divide request for number of files download "
+            		+ "if some limits are not met.")
+    @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
+    
+    public void getbundlePlan( @Valid @RequestBody BundleNameFilePathUrl  jsonObject,@ApiIgnore HttpServletResponse response, Errors errors) 
+		throws   DistributionException, InputLimitException{
+    
+    	
+    }
+    
 }

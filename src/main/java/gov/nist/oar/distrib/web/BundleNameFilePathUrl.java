@@ -18,66 +18,73 @@ package gov.nist.oar.distrib.web;
  */
 
 /**
- * Jackson json framework to form a request data to a download controller. 
- * This class is used to represent the requested post object to dowload bundled zip of requested files 
- * with given URLs. It also holds name of the bundle given by client.
+ * Jackson json framework to form a request data to a download controller. This
+ * class is used to represent the requested post object to dowload bundled zip
+ * of requested files with given URLs. It also holds name of the bundle given by
+ * client.
  */
 public class BundleNameFilePathUrl {
-	
-	/**
-	 * Name of the bundle to be downloaded
-	 */
-	private String bundleName;
-	/**
-	 * FilePAths and Urls json array 
-	 */
-	private FilePathUrl[] includeFiles;
-	
-	/**
-	 * Default Constructor
-	 */
-	public BundleNameFilePathUrl(){
-		//default constructor
-	}
-	/**
-	 * Create an object with bundle name and array of files with urls.
-	 * @param bundleName
-	 * @param includeFiles
-	 */
-	public BundleNameFilePathUrl(String bundleName,FilePathUrl[] includeFiles ){
-		this.bundleName = bundleName;
-		this.includeFiles = includeFiles;
-	}
-	
-	/**
-	 * Set the name of the bundle to be downloaded
-	 * @param bundleName
-	 */
-	public void setBundleName(String bundleName){
-		this.bundleName = bundleName;
-	}
-	
-	/**
-	 * Get the name to be downloaded
-	 * @return String
-	 */
-	public String getBundleName(){
-		return this.bundleName;
-	}
-	
-	/**
-	 * Set the url associated with filename  to download data from
-	 * @param includeFiles
-	 */
-	public void setIncludeFiles(FilePathUrl[] includeFiles){
-		this.includeFiles = includeFiles;
-	}
 
-	/**
-	 * get the url associated with filename to download data from
-	 * @return FilePathUrl[]
-	 */
-	public FilePathUrl[] getIncludeFiles(){
-		return this.includeFiles;
-	}
+    /**
+     * Name of the bundle to be downloaded
+     */
+    private String bundleName;
+    /**
+     * FilePAths and Urls json array
+     */
+    private FilePathUrl[] includeFiles;
+
+    /**
+     * Default Constructor
+     */
+    public BundleNameFilePathUrl() {
+	// default constructor
+    }
+
+    /**
+     * Create an object with bundle name and array of files with urls.
+     * 
+     * @param bundleName
+     * @param includeFiles
+     */
+    public BundleNameFilePathUrl(String bundleName, FilePathUrl[] includeFiles) {
+	this.bundleName = bundleName;
+	this.includeFiles = includeFiles;
+    }
+
+    /**
+     * Set the name of the bundle to be downloaded
+     * 
+     * @param bundleName
+     */
+    public void setBundleName(String bundleName) {
+	this.bundleName = bundleName;
+    }
+
+    /**
+     * Get the name to be downloaded
+     * 
+     * @return String
+     */
+    public String getBundleName() {
+	return this.bundleName;
+    }
+
+    /**
+     * Set the url associated with filename to download data from
+     * 
+     * @param includeFiles
+     */
+    public void setIncludeFiles(FilePathUrl[] includeFiles) {
+	this.includeFiles = includeFiles;
+    }
+
+    /**
+     * get the url associated with filename to download data from
+     * 
+     * @return FilePathUrl[]
+     */
+    public FilePathUrl[] getIncludeFiles() {
+	return this.includeFiles;
+    }
 }

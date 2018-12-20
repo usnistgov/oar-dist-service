@@ -42,9 +42,18 @@ public class BundleDownloadPlan {
 	/**
 	 * Default Constructor
 	 */
-	public BundleDownloadPlan(){}
+	public BundleDownloadPlan(){
+	  //Default constructor
+	}
 	
-	
+	/**
+	 * Creates java object representing plan to download requested data.
+	 * @param postEachTo method to post request to.
+	 * @param status status of the service.
+	 * @param requests requested files organized in bundles. 
+	 * @param messages If there are any specific messages available with given request.
+	 * @param notIncluded If files are not included in the bundle.
+	 */
 	public BundleDownloadPlan(String postEachTo, String status, BundleNameFilePathUrl[] requests, String[] messages, NotIncludedFiles[] notIncluded ){
 		this.postEachTo = postEachTo;
 		this.status = status;
@@ -53,45 +62,73 @@ public class BundleDownloadPlan {
 		this.notIncluded = notIncluded;
 	}
 	/**
-	 * 
+	 * Set the api endpoint to post the request to.
 	 * @param postEachTo
 	 */
 	public void setPostEachTo(String postEachTo){
 		this.postEachTo = postEachTo;
 	}
-	
+	/**
+	 * Set the requests in the form of bundlename and urls.
+	 * @param requests
+	 */
 	public void setBundleNameFilePathUrl(BundleNameFilePathUrl[] requests){
 		this.requests = requests;
 	}
-	
+	/**
+	 * Set the status of the service.
+	 * @param status
+	 */
 	public void setStatus(String status){
 		this.status = status;
 	}
-	
+	/**
+	 * Set messages related to requested bundle.
+	 * @param msgs
+	 */
 	public void setMessages(String[] msgs){
 		this.messages = msgs;
 	}
-	
+	/**
+	 * Set list of files not included in the plan for downloading bundles.
+	 * @param notIncluded
+	 */
 	public void setNotIncluded(NotIncludedFiles[] notIncluded){
 		this.notIncluded = notIncluded;
 	}
-	
+	/**
+	 * Set the post method api endpoint name.
+	 * @return
+	 */
 	public String getPostEach(){
 		return this.postEachTo;
 	}
 	
+	/**
+	 * Sets bundles for requested list of files.
+	 * @return
+	 */
 	public BundleNameFilePathUrl[] getBundleNameFilePathUrl(){
 		return this.requests;
 	}
-	
+	/**
+	 * Get the service/api endpoint status.
+	 * @return
+	 */
 	public String getStatus(){
 		return this.status;
 	}
-	
+	/**
+	 * Get the messages if any, associated with the request.
+	 * @return
+	 */
 	public String[] getMessages(){
 		return this.messages;
 	}
-	
+	/**
+	 * Get number of files not included in the proposed bundle plan.
+	 * @return
+	 */
 	public NotIncludedFiles[] getNotIncluded(){
 		return this.notIncluded;
 	}

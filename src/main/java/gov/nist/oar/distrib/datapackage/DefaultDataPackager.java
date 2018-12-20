@@ -20,6 +20,7 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.BundleDownloadPlan;
 import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.NotIncludedFiles;
 
 
 /**
@@ -44,7 +46,7 @@ import gov.nist.oar.distrib.web.FilePathUrl;
 public class DefaultDataPackager implements DataPackager {
 	
 	private long mxFileSize;
-	private int numberofFiles;
+	private int mxFilesCount;
 	private FilePathUrl[] inputfileList;
 	private BundleNameFilePathUrl bundleRequest;
 	private String domains;
@@ -62,7 +64,7 @@ public class DefaultDataPackager implements DataPackager {
 	public DefaultDataPackager(FilePathUrl[] inputjson, long maxFileSize, int numOfFiles ){
 		this.inputfileList = inputjson;
 		this.mxFileSize = maxFileSize;
-		this.numberofFiles = numOfFiles;
+		this.mxFilesCount = numOfFiles;
 	}
 
 	/**
@@ -74,7 +76,7 @@ public class DefaultDataPackager implements DataPackager {
 	public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles ){
 		this.bundleRequest = inputjson;
 		this.mxFileSize = maxFileSize;
-		this.numberofFiles = numOfFiles;
+		this.mxFilesCount = numOfFiles;
 	}
 	
 	/**
@@ -86,7 +88,7 @@ public class DefaultDataPackager implements DataPackager {
 	public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles, String domains ){
 		this.bundleRequest = inputjson;
 		this.mxFileSize = maxFileSize;
-		this.numberofFiles = numOfFiles;
+		this.mxFilesCount = numOfFiles;
 		this.domains = domains;
 	}
 	/***
@@ -158,24 +160,14 @@ public class DefaultDataPackager implements DataPackager {
 	@Override
 	public void validateRequest() throws DistributionException, IOException, InputLimitException {
 		if(this.inputfileList.length > 0){
-			
-			//JSONUtils.isJSONValid(inputfileList);
-				
-			
-			// Remove duplicates	
-			List<FilePathUrl> list =  Arrays.asList(inputfileList);
-			List<FilePathUrl> newfilelist  = list.stream()
-                    .distinct()               // it will remove duplicate object, It will check duplicate using equals method
-                    .collect(Collectors.toList());
-			
-			this.inputfileList =  newfilelist.toArray(new FilePathUrl[0]) ;
 					
+			ObjectUtils.removeDuplicates(this.inputfileList);
 			
-			if(this.getSize() > this.mxFileSize) 
+			if(this.getTotalSize() > this.mxFileSize) 
 				throw new InputLimitException("Total filesize is beyond allowed limit of."+this.mxFileSize);
-			if(this.getFilesCount() > this.numberofFiles)
-				throw new InputLimitException("Total number of files requested is beyond allowed limit."+this.numberofFiles);
-				
+			
+			if(this.getFilesCount() > this.mxFilesCount)
+				throw new InputLimitException("Total number of files requested is beyond allowed limit."+this.mxFilesCount);
 			
 		}else{
 			throw new DistributionException("Requested files jsonobject is empty.");
@@ -207,6 +199,7 @@ public class DefaultDataPackager implements DataPackager {
 	}
 
 	
+	
 	/**
 	 * Function to calculate total files size requested by user
 	 * @return long, total size.
@@ -214,7 +207,7 @@ public class DefaultDataPackager implements DataPackager {
 	 * @throws IOException
 	 */
 	@Override
-	public long getSize() throws IOException {
+	public long getTotalSize() throws IOException {
 		if(this.inputfileList == null) {
 			this.validateInput();
 			this.inputfileList = this.bundleRequest.getIncludeFiles();
@@ -222,14 +215,12 @@ public class DefaultDataPackager implements DataPackager {
 		List<FilePathUrl> list = Arrays.asList(this.inputfileList);
 		
 		List<String> downloadurls = list.stream()
-				.map(FilePathUrl::getDownloadUrl)
-                .collect(Collectors.toList());
+		    .map(FilePathUrl::getDownloadUrl)
+		    .collect(Collectors.toList());
 		long totalSize = 0;
 		for (int i = 0; i < downloadurls.size(); i++) {
 			try{
-			URL obj = new URL(downloadurls.get(i));
-			URLConnection conn = obj.openConnection();
-			totalSize += conn.getContentLength();
+				totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
 			}catch(IOException ie){
 				logger.info("There is error reading this url:"+downloadurls.get(i));
 			}
@@ -252,36 +243,23 @@ public class DefaultDataPackager implements DataPackager {
 		return this.inputfileList.length;
 	}
 
-    /**
-     * Writedata function taking other form of outputstream
-     * @param out
-     * @throws DistributionException
-     */
-	@Override
-	public void writeData(OutputStream out) throws DistributionException {
-		
-	}
 
 	/* 
 	 * Check whether url belongs to given domains
 	 */
 	@Override
 	public boolean validateUrl(String url) throws IOException, DistributionException {
-		
-			try{
-			  URL obj = new URL(url);
-			  if(!this.domains.toLowerCase().contains(obj.getHost().toLowerCase())){
-				  this.bundlelogfile += "\n Url here:"+ url+" does not belong to allowed domains, so no file is downnloaded for this";
-				  return false;
-			  }
-			  return true;
-			}catch(IOException ie){
-				
-				logger.info("There is an issue accessing this url:"+url + " Excption here"+ ie.getMessage());
-				this.bundlelogfile += "\n There is an issue accessing this url:"+url;
-				return false;
-			}
-		
+	  try{
+	    if(! ObjectUtils.validateUrlDomain(url, this.domains)){
+	      this.bundlelogfile += "\n Url here:"+ url+" does not belong to allowed domains, so no file is downnloaded for this";
+	      return false;
+	    }
+		return true;
+	  }catch(IOException ie){
+	    logger.info("There is an issue accessing this url:"+url + " Excption here"+ ie.getMessage());
+	    this.bundlelogfile += "\n There is an issue accessing this url:"+url;
+	    return false;
+	  }
 	}
 
 	/* (non-Javadoc)
@@ -289,8 +267,9 @@ public class DefaultDataPackager implements DataPackager {
 	 */
 	@Override
 	public BundleDownloadPlan getBundleDownloadPlan() {
-		// TODO Auto-generated method stub
-		return null;
+	    // TODO Auto-generated method stub
+	    return null;
 	}
+
 
 }

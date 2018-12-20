@@ -47,89 +47,88 @@ import gov.nist.oar.distrib.web.FilePathUrl;
  *
  */
 public class DefaultDataPackagingServiceTest {
-	
-	private static Logger logger = LoggerFactory.getLogger(DefaultDataPackagingServiceTest.class);
-	
-	DefaultDataPackagingService ddp;
-	static FilePathUrl[] requestedUrls = new FilePathUrl[2];
-	long maxFileSize = 1000000;
-	int numOfFiles = 100;
-	String domains ="nist.gov, s3.amazonaws.com/nist-midas";
-	static BundleNameFilePathUrl bundleRequest;
-	
-	public static void createRequest() throws JsonParseException, JsonMappingException, IOException{
 
-		String val1 ="{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-		String val2 ="{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-		
-		ObjectMapper mapper = new ObjectMapper();
-		FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-		FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
-		requestedUrls[0] = testval1;
-		requestedUrls[1] = testval2;
-		bundleRequest = new BundleNameFilePathUrl("testdatabundle",requestedUrls);
-	}
-	
-	@BeforeClass
-	public static void setUpClass() throws IOException {
-	    createRequest();
-	}
-	
-	@Before
-	 public void setUp(){
-		ddp = new DefaultDataPackagingService(domains,maxFileSize,numOfFiles,bundleRequest );
-	}
+    private static Logger logger = LoggerFactory.getLogger(DefaultDataPackagingServiceTest.class);
 
-	@Rule
+    DefaultDataPackagingService ddp;
+    static FilePathUrl[] requestedUrls = new FilePathUrl[2];
+    long maxFileSize = 1000000;
+    int numOfFiles = 100;
+    String domains = "nist.gov, s3.amazonaws.com/nist-midas";
+    static BundleNameFilePathUrl bundleRequest;
+
+    public static void createRequest() throws JsonParseException, JsonMappingException, IOException {
+
+	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+
+	ObjectMapper mapper = new ObjectMapper();
+	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	requestedUrls[0] = testval1;
+	requestedUrls[1] = testval2;
+	bundleRequest = new BundleNameFilePathUrl("testdatabundle", requestedUrls);
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws IOException {
+	createRequest();
+    }
+
+    @Before
+    public void setUp() {
+	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles, bundleRequest);
+    }
+
+    @Rule
     public final ExpectedException exception = ExpectedException.none();
-	
-	
-	 @Test
-	 public void getBundledZip() throws DistributionException, InputLimitException{
-		 try {
-			 String bundleName ="example";
-			 ddp.validateRequest();
-			 if(!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null )
-				 bundleName = bundleRequest.getBundleName();
-			 
-			Path path = Files.createTempFile(bundleName, ".zip");
-			OutputStream os = Files.newOutputStream(path);
-            ZipOutputStream zos = new ZipOutputStream(os);
-            ddp.getBundledZipPackage(zos);
-            zos.close();
-            int len = (int) Files.size(path);
-            System.out.println("Len:"+len);
-            assertEquals(len,59903);
-            checkFilesinZip(path);
-            Files.delete(path);          
-            		
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		 
-	 }
-	 public void checkFilesinZip(Path filepath){
-		 
-	        try(ZipFile file = new ZipFile(filepath.toString()))
-	        {
-	            FileSystem fileSystem = FileSystems.getDefault();
-	            //Get file entries
-	            Enumeration<? extends ZipEntry> entries = file.entries();
-	            ZipEntry entry = entries.nextElement();
-	            //Just check first entry in zip
-	            assertEquals(entry.getName(),"/1894/license.pdf");
-	          //Iterate over entries
-//	            while (entries.hasMoreElements())
-//	            {
-//	            	ZipEntry entry = entries.nextElement();
-//	            	if (entry.isDirectory()){
-//	            		System.out.println("entryname:"+entry.getName());
-//	            		 assertEquals(entry.getName(),entry.getName());
-//	            	}
-//	            }
-	        }catch(IOException ixp){
-	        	
-	        }
-	 }
+
+    @Test
+    public void getBundledZip() throws DistributionException, InputLimitException {
+	try {
+	    String bundleName = "example";
+	    ddp.validateRequest();
+	    if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
+		bundleName = bundleRequest.getBundleName();
+
+	    Path path = Files.createTempFile(bundleName, ".zip");
+	    OutputStream os = Files.newOutputStream(path);
+	    ZipOutputStream zos = new ZipOutputStream(os);
+	    ddp.getBundledZipPackage(zos);
+	    zos.close();
+	    int len = (int) Files.size(path);
+	    System.out.println("Len:" + len);
+	    assertEquals(len, 59903);
+	    checkFilesinZip(path);
+	    Files.delete(path);
+
+	} catch (IOException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+
+    }
+
+    public void checkFilesinZip(Path filepath) {
+
+	try (ZipFile file = new ZipFile(filepath.toString())) {
+	    FileSystem fileSystem = FileSystems.getDefault();
+	    // Get file entries
+	    Enumeration<? extends ZipEntry> entries = file.entries();
+	    ZipEntry entry = entries.nextElement();
+	    // Just check first entry in zip
+	    assertEquals(entry.getName(), "/1894/license.pdf");
+	    // Iterate over entries
+	    // while (entries.hasMoreElements())
+	    // {
+	    // ZipEntry entry = entries.nextElement();
+	    // if (entry.isDirectory()){
+	    // System.out.println("entryname:"+entry.getName());
+	    // assertEquals(entry.getName(),entry.getName());
+	    // }
+	    // }
+	} catch (IOException ixp) {
+
+	}
+    }
 }
