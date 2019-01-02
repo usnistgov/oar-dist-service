@@ -17,23 +17,26 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.zip.ZipOutputStream;
 
-import gov.nist.oar.distrib.web.BundleDownloadPlan;
+import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
 
 /**
+ * DataPackager interface declares the methods to be used when data download requests are made.
  * @author Deoyani Nandrekar-Heinis
  *
  */
 public interface DataPackager {
 
-	
-	public void writeData(ZipOutputStream zp) throws DistributionException;
-	void validateRequest() throws DistributionException, IOException, InputLimitException;
-	long getTotalSize() throws IOException;
-	int getFilesCount() throws IOException;
-	void validateBundleRequest() throws DistributionException, IOException, InputLimitException ;
-	void validateInput() throws IOException;
-	boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
-	BundleDownloadPlan getBundleDownloadPlan();
-	
-}
+    public void writeData(ZipOutputStream zp) throws DistributionException;
 
+    void validateRequest() throws DistributionException, IOException, InputLimitException;
+
+    long getTotalSize() throws IOException;
+
+    int getFilesCount() throws IOException;
+
+    void validateBundleRequest() throws DistributionException, IOException, InputLimitException;
+
+    void validateInput() throws IOException;
+
+    boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
+}

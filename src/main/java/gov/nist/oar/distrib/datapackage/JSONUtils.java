@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
  */
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 public final class JSONUtils {
 
@@ -33,7 +33,7 @@ public final class JSONUtils {
 
     public JSONUtils() {
     }
-    
+
     public static boolean isJSONValid(String jsonInString) {
 	try {
 	    final ObjectMapper mapper = new ObjectMapper();

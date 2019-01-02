@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web;
+package gov.nist.oar.distrib.web.objects;
 
 import java.util.Map;
 import java.util.Hashtable;

@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
-        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.bagstore.location=$/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
         "distrib.filesizelimit = 100000",

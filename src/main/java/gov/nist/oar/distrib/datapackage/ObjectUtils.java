@@ -17,9 +17,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /***
  * 
@@ -63,4 +65,11 @@ public class ObjectUtils {
 	return newfilelist.toArray(new FilePathUrl[0]);
     }
 
+    private static final String HTML_PATTERN = "<(\"[^\"]*\"|'[^']*'|[^'\">])*>";
+    private static Pattern pattern = Pattern.compile(HTML_PATTERN);
+
+    public static boolean hasHTMLTags(String text) {
+	Matcher matcher = pattern.matcher(text);
+	return matcher.matches();
+    }
 }

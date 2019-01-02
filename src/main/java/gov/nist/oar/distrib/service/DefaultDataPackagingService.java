@@ -20,11 +20,12 @@ import org.springframework.beans.factory.annotation.Value;
 
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.DownloadBundlePlanner;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
-import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
+import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -38,6 +39,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     BundleNameFilePathUrl bundleRequest;
     DefaultDataPackager dp;
     String domains;
+    DownloadBundlePlanner dwnldPlanner;
 
     public DefaultDataPackagingService() {
 	// Default constructor
@@ -57,6 +59,15 @@ public class DefaultDataPackagingService implements DataPackagingService {
 	this.bundleRequest = bundleRequest;
 	this.domains = domains;
 	dp = new DefaultDataPackager(bundleRequest, maxFileSize, numOfFiles, domains);
+    }
+
+    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
+	    BundleNameFilePathUrl bundleRequest, String bundleName) {
+	this.maxFileSize = maxFileSize;
+	this.numOfFiles = numOfFiles;
+	this.bundleRequest = bundleRequest;
+	this.domains = domains;
+	dwnldPlanner = new DownloadBundlePlanner(bundleRequest, maxFileSize, numOfFiles, domains, bundleName);
     }
 
     /*
@@ -102,7 +113,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     @Override
     public BundleDownloadPlan getBundlePlan() {
 
-	return null;
+	return dwnldPlanner.getBundleDownloadPlan();
     }
 
 }

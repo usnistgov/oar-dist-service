@@ -30,7 +30,7 @@ import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
  * An implementation of the

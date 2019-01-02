@@ -19,14 +19,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.datapackage.JSONUtils;
 import gov.nist.oar.distrib.datapackage.ObjectUtils;
-import gov.nist.oar.distrib.web.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.FilePathUrl;
-import gov.nist.oar.distrib.web.NotIncludedFiles;
+import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
+import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.NotIncludedFiles;
 
 /**
+ * DownloadBundlePlanner class takes input bundle request with the limits of
+ * filesize, filecount and allowed domais for download urls. The class is
+ * written to process the input request check for any issues with respect to
+ * size and count limit, any unauthorized access, non working urls or any other
+ * issues, it sorts and processes input request to create a plan which can be
+ * used to send requests to download controller where actual data bundles will
+ * be downloaded.
+ * 
  * @author Deoyani Nandrekar-Heinis
- *
  */
 public class DownloadBundlePlanner {
 
@@ -49,27 +56,35 @@ public class DownloadBundlePlanner {
     private String validdomains;
 
     public DownloadBundlePlanner() {
-
+	// Default constructor
     }
 
-    public DownloadBundlePlanner(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles,
-	    String validdomains) {
+    public DownloadBundlePlanner(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles, String validdomains,
+	    String bundleName) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
 	this.validdomains = validdomains;
+	this.bundleName = bundleName;
     }
+
     /*
      * Get the plan to download all files after checking various limits and
      * criteria.
      */
-
     public BundleDownloadPlan getBundleDownloadPlan() {
 
 	notIncludedFiles = new ArrayList<NotIncludedFiles>();
 	filePathUrls = new ArrayList<FilePathUrl>();
 	bundleFilePathUrls = new ArrayList<BundleNameFilePathUrl>();
 	messages = new ArrayList<String>();
+
+	if (ObjectUtils.hasHTMLTags(this.bundleRequest.toString())) {
+	    messages.add("Input contains html code, make sure to post proper URLs");
+	    this.status = "warnings";
+	    makeBundlePlan();
+	    return finalPlan;
+	}
 
 	try {
 	    JSONUtils.isJSONValid(this.bundleRequest);
@@ -103,8 +118,15 @@ public class DownloadBundlePlanner {
 	return finalPlan;
     }
 
+    /**
+     * Add to the Bundle of the input requested based on the size and number of
+     * files allowed per bundle request.
+     * 
+     * @param jobject
+     * @throws IOException
+     */
     public void makeBundles(FilePathUrl jobject) throws IOException {
-	bundlePlanSize += ObjectUtils.getFileSize(jobject.getFilePath());
+	bundlePlanSize += ObjectUtils.getFileSize(jobject.getDownloadUrl());
 	bundlePlanCount++;
 	if (bundlePlanSize < this.mxFileSize && bundlePlanCount < this.mxFilesCount) {
 	    filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
@@ -113,6 +135,10 @@ public class DownloadBundlePlanner {
 	}
     }
 
+    /**
+     * Put together the list of files and urls to make a bundle in a planned
+     * bundle array and clear out the filespathurl for the rest of the files
+     */
     public void makePlan() {
 	if (!filePathUrls.isEmpty()) {
 	    bundleCount++;
@@ -122,8 +148,9 @@ public class DownloadBundlePlanner {
 	}
     }
 
-    // String postEachTo, String status, BundleNameFilePathUrl[] requests,
-    // String[] messages, NotIncludedFiles[] notIncluded
+    /**
+     * Create Java Object of BundleDownloadPlan after processing input request.
+     */
     public void makeBundlePlan() {
 	this.finalPlan = new BundleDownloadPlan("_bundle", this.status,
 		bundleFilePathUrls.toArray(new BundleNameFilePathUrl[0]), messages.toArray(new String[0]),

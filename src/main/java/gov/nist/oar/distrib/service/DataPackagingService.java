@@ -19,8 +19,8 @@ import java.util.zip.ZipOutputStream;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
  * @author Deoyani Nandrekar-Heinis

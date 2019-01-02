@@ -13,6 +13,7 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.web.objects.ErrorInfo;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.FileDescription;

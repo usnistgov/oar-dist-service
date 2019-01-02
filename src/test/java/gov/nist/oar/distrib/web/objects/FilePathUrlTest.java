@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web;
+package gov.nist.oar.distrib.web.objects;
 
 import static org.junit.Assert.assertEquals;
 
@@ -21,26 +21,29 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
+
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
 public class FilePathUrlTest {
 
-	@Test
-	public void testFilePathUrl(){
-		FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf","https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-		assertEquals("/1894/license.pdf", fpathUrl.getFilePath());
-        assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf", fpathUrl.getDownloadUrl());
-	}
-	
-	@Test
-	public void testJson() throws JsonProcessingException, JSONException{
-		String testJson ="{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-		FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf","https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-        String json = new ObjectMapper().writeValueAsString(fpathUrl);
-        JSONAssert.assertEquals(testJson,
-                                json, true);
+    @Test
+    public void testFilePathUrl() {
+	FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf",
+		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+	assertEquals("/1894/license.pdf", fpathUrl.getFilePath());
+	assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf", fpathUrl.getDownloadUrl());
+    }
 
-	}
+    @Test
+    public void testJson() throws JsonProcessingException, JSONException {
+	String testJson = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf",
+		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+	String json = new ObjectMapper().writeValueAsString(fpathUrl);
+	JSONAssert.assertEquals(testJson, json, true);
+
+    }
 }

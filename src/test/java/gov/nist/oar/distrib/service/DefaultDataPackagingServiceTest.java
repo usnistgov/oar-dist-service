@@ -39,8 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
+import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
  * @author Deoyani Nandrekar-Heinis

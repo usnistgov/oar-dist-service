@@ -12,6 +12,7 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.web.objects.ErrorInfo;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.ResourceNotFoundException;
