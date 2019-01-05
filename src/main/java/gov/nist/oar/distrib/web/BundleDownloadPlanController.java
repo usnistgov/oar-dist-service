@@ -35,16 +35,20 @@ import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.objects.ErrorInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import springfox.documentation.annotations.ApiIgnore;
 
 /**
- * BundleDownloadPlanController has api endpoint where client sends list of requested files and urls.
- * The _bundle_plan endpoint accepts this request in the json format representing FilePathUrl object.
- * The endpoint processes the input request and create a plan in the form of DownloadBundlePlan. 
- * In this plan list of files can be divided in several bundles if the total size of bundle goes
- * beyond allowed download limit. _bundle_plan endpoint returns the json DownloadBundlePlan object, 
- * which contains the proposed bundle requests, status of requests/urls, any warnings or messages.
- * Client can use the plan to request to _bundle enpoint to get actual data downloaded.
+ * BundleDownloadPlanController has api endpoint where client sends list of
+ * requested files and urls. The _bundle_plan endpoint accepts this request in
+ * the json format representing FilePathUrl object. The endpoint processes the
+ * input request and create a plan in the form of DownloadBundlePlan. In this
+ * plan list of files can be divided in several bundles if the total size of
+ * bundle goes beyond allowed download limit. _bundle_plan endpoint returns the
+ * json DownloadBundlePlan object, which contains the proposed bundle requests,
+ * status of requests/urls, any warnings or messages. Client can use the plan to
+ * request to _bundle enpoint to get actual data downloaded.
  * 
  * @author Deoyani Nandrekar-Heinis
  *
@@ -64,12 +68,25 @@ public class BundleDownloadPlanController {
     @Value("${distrib.validdomains}")
     String validdomains;
 
+    /**
+     * The controller api endpoint to accept list of requested files in json
+     * format and return a plan to send requests to download files. once the
+     * request is posted it is parsed and files are sorted
+     * 
+     * @param jsonObject
+     *            of type BundleNameFilePathUrl
+     * @param response
+     * @param errors
+     * @return JsonObject of type BundleDownloadPlan
+     */
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
+	    @ApiResponse(code = 400, message = "Malformed request."),
+	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.", notes = "This api endpoint provides the information to client to how to divide request for number of files download "
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
-
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleNameFilePathUrl jsonObject,
-	    @ApiIgnore HttpServletResponse response, Errors errors){
+	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) {
 
 	String bundleName = "Download-data";
 	if (jsonObject.getBundleName() != null && !jsonObject.getBundleName().isEmpty()) {
@@ -81,7 +98,7 @@ public class BundleDownloadPlanController {
 	return df.getBundlePlan();
 
     }
-    
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {

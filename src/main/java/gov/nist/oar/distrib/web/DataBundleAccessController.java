@@ -39,6 +39,8 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import springfox.documentation.annotations.ApiIgnore;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.ApiResponse;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -72,10 +74,14 @@ public class DataBundleAccessController {
      * @throws InputLimitException
      * 
      */
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
+	    @ApiResponse(code = 400, message = "Malformed request."),
+	    @ApiResponse(code = 403, message = "Download not allowed"),
+	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files", notes = "download the bundle of files")
     @PostMapping(value = "/ds/_bundleNoName", consumes = "application/json", produces = "application/zip")
     public void getbundle(@Valid @RequestBody FilePathUrl[] jsonarray, @ApiIgnore HttpServletResponse response,
-	    Errors errors) throws DistributionException, InputLimitException {
+	    @ApiIgnore Errors errors) throws DistributionException, InputLimitException {
 	try {
 
 	    response.setHeader("Content-Type", "application/zip");
@@ -121,10 +127,15 @@ public class DataBundleAccessController {
      * @throws InputLimitException
      * 
      */
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
+	    @ApiResponse(code = 400, message = "Malformed request."),
+	    @ApiResponse(code = 403, message = "Download not allowed"),
+	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
     public void getbundlewithname(@Valid @RequestBody BundleNameFilePathUrl jsonObject,
-	    @ApiIgnore HttpServletResponse response, Errors errors) throws DistributionException, InputLimitException {
+	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
+	    throws DistributionException, InputLimitException {
 	try {
 	    String bundleName = "download";
 

@@ -51,9 +51,9 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
         "distrib.bagstore.location=./src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=./target/surefire-reports",
-        "distrib.filesizelimit = 100000",
+        "distrib.filesizelimit = 2000000",
       "distrib.numberoffiles = 2",
-      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
+      "distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas,www.uab.edu "
 })
 public class BundleDownloadPlanControllerTest {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
@@ -73,7 +73,7 @@ public class BundleDownloadPlanControllerTest {
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
 	FilePathUrl[] inputfileList = new FilePathUrl[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://www.uab.edu/students/academics/images/academic-calendar/2018-2019.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);

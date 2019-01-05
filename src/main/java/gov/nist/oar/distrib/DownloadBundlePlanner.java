@@ -68,9 +68,11 @@ public class DownloadBundlePlanner {
 	this.bundleName = bundleName;
     }
 
-    /*
+    /**
      * Get the plan to download all files after checking various limits and
-     * criteria.
+     * criteria
+     * 
+     * @return JsonObject of type BundleDownloadPlan
      */
     public BundleDownloadPlan getBundleDownloadPlan() {
 
@@ -98,16 +100,15 @@ public class DownloadBundlePlanner {
 		    this.makeBundles(jobject);
 		} else {
 		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "Not valid Url."));
+		    messages.add("Some urls are not added due to unsupported host.");
+		    this.status = "warnings";
 		}
 	    }
 
 	    if (!this.filePathUrls.isEmpty()) {
 		this.makePlan();
 	    }
-	    if (this.unsupportedSource) {
-		messages.add("Some urls are not added due to unsupported host.");
-		this.status = "warnings";
-	    }
+
 	    this.makeBundlePlan();
 
 	} catch (IOException ie) {
@@ -128,7 +129,7 @@ public class DownloadBundlePlanner {
     public void makeBundles(FilePathUrl jobject) throws IOException {
 	bundlePlanSize += ObjectUtils.getFileSize(jobject.getDownloadUrl());
 	bundlePlanCount++;
-	if (bundlePlanSize < this.mxFileSize && bundlePlanCount < this.mxFilesCount) {
+	if (bundlePlanSize < this.mxFileSize && bundlePlanCount <= this.mxFilesCount) {
 	    filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
 	} else {
 	    makePlan();

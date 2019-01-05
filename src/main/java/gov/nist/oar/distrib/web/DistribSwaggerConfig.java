@@ -70,7 +70,8 @@ public class DistribSwaggerConfig {
                   .apis(RequestHandlerSelectors.basePackage("gov.nist.oar.distrib.web"))
                   .paths(PathSelectors.any())
                   .build()
-                  .apiInfo(apiInfo());
+                  .apiInfo(apiInfo())
+                  .useDefaultResponseMessages(false);
     }
 
     /**
