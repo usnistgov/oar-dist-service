@@ -15,25 +15,30 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.IOException;
 import java.util.List;
 import java.util.Arrays;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-/**
- * @author Deoyani Nandrekar-Heinis
- *
- */
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
+/**
+ * JSONUtils class provides some static functions to parse and validate json data.
+ * @author Deoyani Nandrekar-Heinis
+ *
+ */
 public final class JSONUtils {
 
     private static String bundleName = "";
 
-    public JSONUtils() {
+    private JSONUtils() {
+	//Default
     }
 
+    /**
+     * Read jsonstring to check validity
+     * @param jsonInString
+     * @return boolean
+     */
     public static boolean isJSONValid(String jsonInString) {
 	try {
 	    final ObjectMapper mapper = new ObjectMapper();
@@ -43,39 +48,42 @@ public final class JSONUtils {
 	    return false;
 	}
     }
-
+    
+    /**
+     * Check input filePathURL is valid json
+     * @param jsonInString
+     * @return boolean
+     */
     public static boolean isJSONValid(FilePathUrl[] jsonInString) {
 	try {
-
 	    final ObjectMapper mapper = new ObjectMapper();
-
 	    String test = mapper.writeValueAsString(jsonInString);
-
 	    List<FilePathUrl> myObjects = Arrays.asList(jsonInString);
 	    if (myObjects.contains(null))
 		throw new IOException("There are null values in the input");
-
 	    return true;
 	} catch (IOException e) {
 	    return false;
 	}
     }
 
+    /**
+     * Check whether input is valid json
+     * @param inputJson
+     * @throws JsonParseException
+     * @throws JsonMappingException
+     * @throws IOException
+     */
     public static void isJSONValid(BundleNameFilePathUrl inputJson)
 	    throws JsonParseException, JsonMappingException, IOException {
 	try {
-
 	    final ObjectMapper mapper = new ObjectMapper();
-
 	    String test = mapper.writeValueAsString(inputJson);
-	    // System.out.println(test);
 	    if (inputJson.getBundleName() == null)
 		bundleName = "download";
 	    else
 		bundleName = inputJson.getBundleName();
-
 	    isJSONValid(inputJson.getIncludeFiles());
-
 	} catch (IOException e) {
 	    throw new IOException("The input json is not valid.");
 	}

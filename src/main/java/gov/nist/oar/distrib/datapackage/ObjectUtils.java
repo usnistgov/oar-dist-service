@@ -24,14 +24,15 @@ import java.util.stream.Collectors;
 import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /***
- * 
+ * ObjectUtils class provides the functionality to validate objects and text.
  * @author Deoyani Nandrekar-Heinis
  */
 public class ObjectUtils {
+    private ObjectUtils(){}
     /**
-     * 
+     * Read the url header to get the size of file.
      * @param url
-     * @return
+     * @return long
      * @throws IOException
      */
     public static long getFileSize(String url) throws IOException {
@@ -41,10 +42,10 @@ public class ObjectUtils {
     }
 
     /***
-     * 
+     * Accepts given url and allowed domains. And checks whether url requested from valid domain.
      * @param url
      * @param domains
-     * @return
+     * @return boolean
      * @throws IOException
      */
     public static boolean validateUrlDomain(String url, String domains) throws IOException {
@@ -54,12 +55,14 @@ public class ObjectUtils {
 	return true;
     }
 
+   
     /**
-     * it will remove duplicate object, It will check duplicate using equals
+     * This method helps remove duplicate object, It will check duplicate using equals
      * method
+     * @param inputfileList input list of filepathurls provided by user.
+     * @return Updated list.
      */
     public static FilePathUrl[] removeDuplicates(FilePathUrl[] inputfileList) {
-
 	List<FilePathUrl> list = Arrays.asList(inputfileList);
 	List<FilePathUrl> newfilelist = list.stream().distinct().collect(Collectors.toList());
 	return newfilelist.toArray(new FilePathUrl[0]);
@@ -68,6 +71,11 @@ public class ObjectUtils {
     private static final String HTML_PATTERN = "<(\"[^\"]*\"|'[^']*'|[^'\">])*>";
     private static Pattern pattern = Pattern.compile(HTML_PATTERN);
 
+    /**
+     * Is input requested contains any html tags.
+     * @param text
+     * @return boolean
+     */
     public static boolean hasHTMLTags(String text) {
 	Matcher matcher = pattern.matcher(text);
 	return matcher.matches();

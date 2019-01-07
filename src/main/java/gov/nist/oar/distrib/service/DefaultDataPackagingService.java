@@ -28,6 +28,7 @@ import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
+ * This class implements the functionalities defined in DataPackagingService.
  * @author Deoyani Nandrekar-Heinis
  *
  */
@@ -103,7 +104,6 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public void validateRequest() throws DistributionException, IOException, InputLimitException {
-
 	dp.validateBundleRequest();
     }
 
@@ -112,7 +112,6 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public BundleDownloadPlan getBundlePlan() {
-
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 
