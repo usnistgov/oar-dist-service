@@ -32,12 +32,13 @@ import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
- * An abstract base class collecting common method implementations for the LongTermStorage interface.
- * It assumes the bag naming conventions that are encapsulted in the 
- * {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class to implement the functions for
- * finding head bags.  
+ * An abstract base class collecting common method implementations for the
+ * LongTermStorage interface. It assumes the bag naming conventions that are
+ * encapsulted in the {@link gov.nist.oar.bags.preservation.BagUtils BagUtils}
+ * class to implement the functions for finding head bags.
  * <p>
- * This sets a Logger instance to use that is based on the implementing class (not this base class).
+ * This sets a Logger instance to use that is based on the implementing class
+ * (not this base class).
  *
  * @see gov.nist.oar.distrib.LongTermStorage
  * @author Raymond Plante
@@ -50,99 +51,104 @@ public abstract class LongTermStorageBase implements LongTermStorage {
      * initialize the base class with a class-specific logger
      */
     public LongTermStorageBase() {
-        logger = LoggerFactory.getLogger(getClass());
+	logger = LoggerFactory.getLogger(getClass());
     }
 
     /**
-     * read the hash from an open hash file.  
+     * read the hash from an open hash file.
      * <p>
-     * A hash file should contain the hexidecimal hash as the first space-delimited word in the file.
-     * (This keeps it compatible with hash files created by the *nix sha256sum command.)  The caller 
-     * is responsible for closing the Reader stream.  
-     * @param hashfile    a Reader opened to the beginn
+     * A hash file should contain the hexidecimal hash as the first
+     * space-delimited word in the file. (This keeps it compatible with hash
+     * files created by the *nix sha256sum command.) The caller is responsible
+     * for closing the Reader stream.
+     * 
+     * @param hashfile
+     *            a Reader opened to the beginn
      */
     protected String readHash(Reader hashfile) throws StorageStateException {
-        // file contains a string (hexidecimal) hash as its first word.
-        BufferedReader hs = null;
+	// file contains a string (hexidecimal) hash as its first word.
+	BufferedReader hs = null;
 
-        try {
-            hs = new BufferedReader(hashfile);
-            String out = hs.readLine();
-            if (out == null || out.length() == 0)
-                throw new StorageStateException("Hash missing form checksum file: "+hashfile);
-            out = out.split("\\s")[0];
-            if (out.length() == 0)
-                throw new StorageStateException("Hash missing form checksum file: "+hashfile);
-            return out;
-        }
-        catch (IOException ex) {
-            throw new StorageStateException("Unexpected IO error: " + ex.getMessage(), ex);
-        }
+	try {
+	    hs = new BufferedReader(hashfile);
+	    String out = hs.readLine();
+	    if (out == null || out.length() == 0)
+		throw new StorageStateException("Hash missing form checksum file: " + hashfile);
+	    out = out.split("\\s")[0];
+	    if (out.length() == 0)
+		throw new StorageStateException("Hash missing form checksum file: " + hashfile);
+	    return out;
+	} catch (IOException ex) {
+	    throw new StorageStateException("Unexpected IO error: " + ex.getMessage(), ex);
+	}
     }
 
     /**
-     * calculate the SHA-256 checksum of a file.  This is normally only called when the checksum is not cached.
+     * calculate the SHA-256 checksum of a file. This is normally only called
+     * when the checksum is not cached.
      *
-     * @param filename    the name of the file within the storage whose checksum is desired.
+     * @param filename
+     *            the name of the file within the storage whose checksum is
+     *            desired.
      */
     protected String calcSHA256(String filename) throws StorageStateException, IOException {
-        MessageDigest md = null;
-        
-        try (InputStream ds = openFile(filename)) {
-            md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[50000];
-            int nr = 0;
-            while ( (nr = ds.read(buf)) >= 0 ) 
-                md.update(buf, 0, nr);
-        }
-        catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException("Unexpected Java configuration: SHA-256 algorithm not supported!");
-        }
+	MessageDigest md = null;
 
-        return bytesToHex(md.digest());
+	try (InputStream ds = openFile(filename)) {
+	    md = MessageDigest.getInstance("SHA-256");
+	    byte[] buf = new byte[50000];
+	    int nr = 0;
+	    while ((nr = ds.read(buf)) >= 0)
+		md.update(buf, 0, nr);
+	} catch (NoSuchAlgorithmException ex) {
+	    throw new RuntimeException("Unexpected Java configuration: SHA-256 algorithm not supported!");
+	}
+
+	return bytesToHex(md.digest());
     }
 
     private static String bytesToHex(byte[] hash) {
-        StringBuffer hexString = new StringBuffer();
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if (hex.length() == 1) hexString.append('0');
-            hexString.append(hex);
-        }
-        return hexString.toString();
+	StringBuffer hexString = new StringBuffer();
+	for (int i = 0; i < hash.length; i++) {
+	    String hex = Integer.toHexString(0xff & hash[i]);
+	    if (hex.length() == 1)
+		hexString.append('0');
+	    hexString.append(hex);
+	}
+	return hexString.toString();
     }
 
     /**
      * Return the head bag associated with the given ID
-     * @param identifier  the AIP identifier for the desired data collection 
+     * 
+     * @param identifier
+     *            the AIP identifier for the desired data collection
      * @return String, the head bag's file name
-     * @throws ResourceNotFoundException   if there exist no bags with the given identifier
+     * @throws ResourceNotFoundException
+     *             if there exist no bags with the given identifier
      */
     @Override
-    public String findHeadBagFor(String identifier)
-        throws ResourceNotFoundException, StorageStateException
-    {
-        return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
+    public String findHeadBagFor(String identifier) throws ResourceNotFoundException, StorageStateException {
+	return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
     }
 
     /**
      * Return the name of the head bag for the identifier for given version
-     * @param identifier  the AIP identifier for the desired data collection 
-     * @param version     the desired version of the AIP
+     * 
+     * @param identifier
+     *            the AIP identifier for the desired data collection
+     * @param version
+     *            the desired version of the AIP
      * @return String, the head bag's file name, or null if version is not found
-     * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
+     * @throws ResourceNotFoundException
+     *             if there exist no bags with the given identifier or version
      */
     @Override
     public String findHeadBagFor(String identifier, String version)
-        throws ResourceNotFoundException, StorageStateException
-    {
-        List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
-        if (bags.size() == 0)
-            throw ResourceNotFoundException.forID(identifier, version);
-        return BagUtils.findLatestHeadBag(bags);
+	    throws ResourceNotFoundException, StorageStateException {
+	List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
+	if (bags.size() == 0)
+	    throw ResourceNotFoundException.forID(identifier, version);
+	return BagUtils.findLatestHeadBag(bags);
     }
 }
-
-    
-
-    

@@ -17,7 +17,9 @@
  *
  * Services currently supported are:
  * <ul>
- *   <li> <code>{@link gov.nist.oar.clients.rmm Resource Metadata Manager (RMM)}</code> </li>
+ * <li>
+ * <code>{@link gov.nist.oar.clients.rmm Resource Metadata Manager (RMM)}</code>
+ * </li>
  * <ul>
  */
 package gov.nist.oar.clients;

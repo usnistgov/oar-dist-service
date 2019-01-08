@@ -25,12 +25,16 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /***
  * ObjectUtils class provides the functionality to validate objects and text.
+ * 
  * @author Deoyani Nandrekar-Heinis
  */
 public class ObjectUtils {
-    private ObjectUtils(){}
+    private ObjectUtils() {
+    }
+
     /**
      * Read the url header to get the size of file.
+     * 
      * @param url
      * @return long
      * @throws IOException
@@ -42,7 +46,9 @@ public class ObjectUtils {
     }
 
     /***
-     * Accepts given url and allowed domains. And checks whether url requested from valid domain.
+     * Accepts given url and allowed domains. And checks whether url requested
+     * from valid domain.
+     * 
      * @param url
      * @param domains
      * @return boolean
@@ -55,11 +61,12 @@ public class ObjectUtils {
 	return true;
     }
 
-   
     /**
-     * This method helps remove duplicate object, It will check duplicate using equals
-     * method
-     * @param inputfileList input list of filepathurls provided by user.
+     * This method helps remove duplicate object, It will check duplicate using
+     * equals method
+     * 
+     * @param inputfileList
+     *            input list of filepathurls provided by user.
      * @return Updated list.
      */
     public static FilePathUrl[] removeDuplicates(FilePathUrl[] inputfileList) {
@@ -73,6 +80,7 @@ public class ObjectUtils {
 
     /**
      * Is input requested contains any html tags.
+     * 
      * @param text
      * @return boolean
      */

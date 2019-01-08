@@ -18,17 +18,17 @@ import java.io.IOException;
 import java.io.Closeable;
 
 /**
- * a simple container class used to deliver an InputStream along with 
- * metadata about the stream.  This is metadata that is useful to a web 
- * service interface, including number of bytes that can/should be read 
- * and an appropriate content-type string.  
+ * a simple container class used to deliver an InputStream along with metadata
+ * about the stream. This is metadata that is useful to a web service interface,
+ * including number of bytes that can/should be read and an appropriate
+ * content-type string.
  * 
  * @author Raymond Plante
  */
 public class StreamHandle implements Closeable {
 
     /**
-     * an OutputStream that is ready to deliver requested content.  This can be 
+     * an OutputStream that is ready to deliver requested content. This can be
      * null if only the metadata is desired.
      */
     public InputStream dataStream = null;
@@ -39,90 +39,110 @@ public class StreamHandle implements Closeable {
     protected FileDescription info;
 
     /**
-     * initialize this handle with all available data.  The stream and any String may
-     * be null, and size should be negative if not known.
-     * @param strm         the InputStream to transport
-     * @param size         the expected number of bytes available on the stream
-     * @param name         a (file) name for the bytes on the stream
-     * @param contentType  the MIME type to associate with the bytes
-     * @param cs           a Checksum for the bytes on the stream
+     * initialize this handle with all available data. The stream and any String
+     * may be null, and size should be negative if not known.
+     * 
+     * @param strm
+     *            the InputStream to transport
+     * @param size
+     *            the expected number of bytes available on the stream
+     * @param name
+     *            a (file) name for the bytes on the stream
+     * @param contentType
+     *            the MIME type to associate with the bytes
+     * @param cs
+     *            a Checksum for the bytes on the stream
      */
-    public StreamHandle(InputStream strm, long size, String name, String contentType,
-                        Checksum cs)
-    {
-        dataStream = strm;
-        info = new FileDescription(name, size, contentType, cs);
+    public StreamHandle(InputStream strm, long size, String name, String contentType, Checksum cs) {
+	dataStream = strm;
+	info = new FileDescription(name, size, contentType, cs);
     }
 
     /**
-     * initialize this handle with all available data.  The stream and any String may
-     * be null, and size should be negative if not known.  The checksum will be set to
-     * null.
-     * @param strm         the InputStream to transport
-     * @param size         the expected number of bytes available on the stream
-     * @param name         a (file) name for the bytes on the stream
-     * @param contentType  the MIME type to associate with the bytes
+     * initialize this handle with all available data. The stream and any String
+     * may be null, and size should be negative if not known. The checksum will
+     * be set to null.
+     * 
+     * @param strm
+     *            the InputStream to transport
+     * @param size
+     *            the expected number of bytes available on the stream
+     * @param name
+     *            a (file) name for the bytes on the stream
+     * @param contentType
+     *            the MIME type to associate with the bytes
      */
     public StreamHandle(InputStream strm, long size, String name, String contentType) {
-        dataStream = strm;
-        info = new FileDescription(name, size, contentType, (Checksum) null);
+	dataStream = strm;
+	info = new FileDescription(name, size, contentType, (Checksum) null);
     }
 
     /**
-     * initialize this handle with all available data.  The stream and any String may
-     * be null, and size should be negative if not known.  The algorithm will be set 
-     * to a default for the system.
-     * @param strm         the InputStream to transport
-     * @param size         the expected number of bytes available on the stream
-     * @param name         a (file) name for the bytes on the stream
-     * @param contentType  the MIME type to associate with the bytes
-     * @param hash         a Checksum hash value for the bytes on the stream
+     * initialize this handle with all available data. The stream and any String
+     * may be null, and size should be negative if not known. The algorithm will
+     * be set to a default for the system.
+     * 
+     * @param strm
+     *            the InputStream to transport
+     * @param size
+     *            the expected number of bytes available on the stream
+     * @param name
+     *            a (file) name for the bytes on the stream
+     * @param contentType
+     *            the MIME type to associate with the bytes
+     * @param hash
+     *            a Checksum hash value for the bytes on the stream
      */
-    public StreamHandle(InputStream strm, long size, String name, String contentType,
-                        String hash)
-    {
-        this(strm, size, name, contentType,
-             (hash == null) ? null : Checksum.sha256(hash));
+    public StreamHandle(InputStream strm, long size, String name, String contentType, String hash) {
+	this(strm, size, name, contentType, (hash == null) ? null : Checksum.sha256(hash));
     }
 
     /**
-     * initialize this handle with all available data.  The stream and may
-     * be null, and size should be negative if not known.  The name, contentType, 
+     * initialize this handle with all available data. The stream and may be
+     * null, and size should be negative if not known. The name, contentType,
      * and checksum will be set to null.
-     * @param strm         the InputStream to transport
-     * @param size         the expected number of bytes available on the stream
+     * 
+     * @param strm
+     *            the InputStream to transport
+     * @param size
+     *            the expected number of bytes available on the stream
      */
     public StreamHandle(InputStream strm, long size) {
-        this(strm, size, null, null, (Checksum) null);
+	this(strm, size, null, null, (Checksum) null);
     }
 
     /**
-     * initialize this handle with all available data.  The stream may be null.  The
-     * name, contentType, and checksum will all be set to null, and the 
-     * size will be set to -1.
-     * @param strm         the InputStream to transport
+     * initialize this handle with all available data. The stream may be null.
+     * The name, contentType, and checksum will all be set to null, and the size
+     * will be set to -1.
+     * 
+     * @param strm
+     *            the InputStream to transport
      */
     public StreamHandle(InputStream strm) {
-        this(strm, -1L, null, null, (Checksum) null);
+	this(strm, -1L, null, null, (Checksum) null);
     }
 
     /**
-     * initialize an empty handle.  The size will be set to -1, and all other data will 
-     * be set to null.
+     * initialize an empty handle. The size will be set to -1, and all other
+     * data will be set to null.
      */
-    public StreamHandle() { info = new FileDescription(); }
+    public StreamHandle() {
+	info = new FileDescription();
+    }
 
     /**
      * close that bag's open dataStream
      */
     public void close() throws IOException {
-        if (dataStream != null) dataStream.close();
+	if (dataStream != null)
+	    dataStream.close();
     }
 
     /**
      * return a description of the content available on the data stream
      */
     public FileDescription getInfo() {
-        return info;
+	return info;
     }
 }

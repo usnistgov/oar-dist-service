@@ -14,8 +14,8 @@ package gov.nist.oar.distrib;
 import gov.nist.oar.distrib.DistributionException;
 
 /**
- * an exception indicating an operation failure using a storage system because that system was 
- * found to be in an unexpected state.
+ * an exception indicating an operation failure using a storage system because
+ * that system was found to be in an unexpected state.
  */
 public class StorageStateException extends DistributionException {
 
@@ -23,30 +23,35 @@ public class StorageStateException extends DistributionException {
 
     /**
      * initialize the exception
-     * @param message   the description of the problem
+     * 
+     * @param message
+     *            the description of the problem
      */
     public StorageStateException(String message) {
-        super(message);
+	super(message);
     }
 
     /**
      * initialize the exception
-     * @param message   the description of the problem
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * 
+     * @param message
+     *            the description of the problem
+     * @param cause
+     *            the underlying cause of the problem in the form of an
+     *            internally-caught Throwable.
      */
     public StorageStateException(String message, Throwable cause) {
-        super(message, cause);
+	super(message, cause);
     }
 
     /**
      * initialize the exception
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * 
+     * @param cause
+     *            the underlying cause of the problem in the form of an
+     *            internally-caught Throwable.
      */
     public StorageStateException(Throwable cause) {
-        super("Storage system failure: "+cause.getMessage(), cause);
+	super("Storage system failure: " + cause.getMessage(), cause);
     }
 }
-
-

@@ -14,8 +14,8 @@ package gov.nist.oar.distrib;
 import gov.nist.oar.distrib.DistributionException;
 
 /**
- * an exception indicating the request for a non-existent resource (or particular version of 
- * an existing resource).
+ * an exception indicating the request for a non-existent resource (or
+ * particular version of an existing resource).
  */
 public class ResourceNotFoundException extends DistributionException {
 
@@ -27,55 +27,62 @@ public class ResourceNotFoundException extends DistributionException {
     public String id = null;
 
     /**
-     * the version of the resource requested.  This should be null if the resource itself 
-     * does not exist rather than a requested version.
+     * the version of the resource requested. This should be null if the
+     * resource itself does not exist rather than a requested version.
      */
     public String version = null;
 
     /**
      * initialize the exception
-     * @param message   the description of the problem
+     * 
+     * @param message
+     *            the description of the problem
      */
     public ResourceNotFoundException(String message) {
-        super(message);
+	super(message);
     }
 
     /**
      * indicate that a particular version of the resource cannot be found
-     * @param message   the description of the problem
-     * @param id        the identifier used to find the resource (can be null)
-     * @param version   the requested version of the resource (should be null if the ID
-     *                  does not exist).
+     * 
+     * @param message
+     *            the description of the problem
+     * @param id
+     *            the identifier used to find the resource (can be null)
+     * @param version
+     *            the requested version of the resource (should be null if the
+     *            ID does not exist).
      */
     public ResourceNotFoundException(String message, String id, String version) {
-        super(message);
-        this.id = id;
-        this.version = version;
+	super(message);
+	this.id = id;
+	this.version = version;
     }
 
     /**
      * indicate that a resource with the given ID cannot be found
-     * @param message   the description of the problem
-     * @param id        the identifier used to find the resource (can be null)
+     * 
+     * @param message
+     *            the description of the problem
+     * @param id
+     *            the identifier used to find the resource (can be null)
      */
     public ResourceNotFoundException(String message, String id) {
-        this(message, id, null);
+	this(message, id, null);
     }
 
     /**
      * create an instance for a given identifier
      */
     public static ResourceNotFoundException forID(String id) {
-        return new ResourceNotFoundException("Resource not found with ID="+id, id);
+	return new ResourceNotFoundException("Resource not found with ID=" + id, id);
     }
 
     /**
      * create an instance for a given identifier and version
      */
     public static ResourceNotFoundException forID(String id, String version) {
-        return new ResourceNotFoundException("Version "+version+" not found for resource with ID="+id, 
-                                             id, version);
+	return new ResourceNotFoundException("Version " + version + " not found for resource with ID=" + id, id,
+		version);
     }
 }
-
-

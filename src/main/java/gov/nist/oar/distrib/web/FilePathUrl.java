@@ -18,82 +18,90 @@ import javax.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.NotBlank;
 
 /**
- * Jackson json framework to form a request data to a download controller. 
- * This class is used to represent the requested post object to dowload bundled zip of requested files 
- * with given URLs
+ * Jackson json framework to form a request data to a download controller. This
+ * class is used to represent the requested post object to dowload bundled zip
+ * of requested files with given URLs
  */
 
 public class FilePathUrl {
 
-	/*
-	 * Name of the file along with path within the bundle
-	 */
-	@NotNull
-	private String filePath;
-	
-	/**
-	 * Url related to filename above, to be used to download data
-	 */
-	@NotNull
-	@NotBlank
-	private String downloadUrl;
-	
-	public FilePathUrl(){
-		//DefaultConstructor
-	}
-	/**
-	 * Set the requested filename along including hierarchy expected and 
-	 * Url to get file from.
-	 * @param filepath
-	 * @param downloadurl
-	 */
-	public FilePathUrl(String filepath, String downloadurl){
-		this.filePath = filepath;
-		this.downloadUrl = downloadurl;
-	}
-	/**
-	 * Set filepath
-	 * @param filepath
-	 */
-	public void setFilePath(String filepath){
-		this.filePath = filepath;
-	}
-	/**
-	 * Get filepath
-	 * @return
-	 */
-	public String getFilePath(){
-		return this.filePath;
-	}
-	
-	/**
-	 * Set downloadurl
-	 * @param downloadurl
-	 */
-	public void setDownloadUrl(String downloadurl){
-		this.downloadUrl = downloadurl;
-	}
-	
-	/**
-	 * Get the downloaded url
-	 * @return
-	 */
-	public String getDownloadUrl(){
-		return this.downloadUrl;
-	}
-	
-	@Override
+    /*
+     * Name of the file along with path within the bundle
+     */
+    @NotNull
+    private String filePath;
+
+    /**
+     * Url related to filename above, to be used to download data
+     */
+    @NotNull
+    @NotBlank
+    private String downloadUrl;
+
+    public FilePathUrl() {
+	// DefaultConstructor
+    }
+
+    /**
+     * Set the requested filename along including hierarchy expected and Url to
+     * get file from.
+     * 
+     * @param filepath
+     * @param downloadurl
+     */
+    public FilePathUrl(String filepath, String downloadurl) {
+	this.filePath = filepath;
+	this.downloadUrl = downloadurl;
+    }
+
+    /**
+     * Set filepath
+     * 
+     * @param filepath
+     */
+    public void setFilePath(String filepath) {
+	this.filePath = filepath;
+    }
+
+    /**
+     * Get filepath
+     * 
+     * @return
+     */
+    public String getFilePath() {
+	return this.filePath;
+    }
+
+    /**
+     * Set downloadurl
+     * 
+     * @param downloadurl
+     */
+    public void setDownloadUrl(String downloadurl) {
+	this.downloadUrl = downloadurl;
+    }
+
+    /**
+     * Get the downloaded url
+     * 
+     * @return
+     */
+    public String getDownloadUrl() {
+	return this.downloadUrl;
+    }
+
+    @Override
     public int hashCode() {
-        return filePath.hashCode() ^ downloadUrl.hashCode();
+	return filePath.hashCode() ^ downloadUrl.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof FilePathUrl))
-            return false;
+	if (!(obj instanceof FilePathUrl))
+	    return false;
 
-        FilePathUrl mdc = (FilePathUrl) obj;
-        return mdc.filePath.equals(filePath) && mdc.downloadUrl.equals(downloadUrl);
+	FilePathUrl mdc = (FilePathUrl) obj;
+	return mdc.filePath.equals(filePath) && mdc.downloadUrl.equals(downloadUrl);
     }
 
 }

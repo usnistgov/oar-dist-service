@@ -22,7 +22,9 @@ import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
 import gov.nist.oar.distrib.web.objects.FilePathUrl;
 
 /**
- * JSONUtils class provides some static functions to parse and validate json data.
+ * JSONUtils class provides some static functions to parse and validate json
+ * data.
+ * 
  * @author Deoyani Nandrekar-Heinis
  *
  */
@@ -31,11 +33,12 @@ public final class JSONUtils {
     private static String bundleName = "";
 
     private JSONUtils() {
-	//Default
+	// Default
     }
 
     /**
      * Read jsonstring to check validity
+     * 
      * @param jsonInString
      * @return boolean
      */
@@ -48,9 +51,10 @@ public final class JSONUtils {
 	    return false;
 	}
     }
-    
+
     /**
      * Check input filePathURL is valid json
+     * 
      * @param jsonInString
      * @return boolean
      */
@@ -69,6 +73,7 @@ public final class JSONUtils {
 
     /**
      * Check whether input is valid json
+     * 
      * @param inputJson
      * @throws JsonParseException
      * @throws JsonMappingException

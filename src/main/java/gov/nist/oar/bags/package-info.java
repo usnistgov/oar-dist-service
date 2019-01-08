@@ -13,26 +13,26 @@
  */
 
 /**
- * a package for handling data packages based on the BagIt specification.  
+ * a package for handling data packages based on the BagIt specification.
  *
- * BagIt is a simple specification for packaging related data into a serialazable 
- * and self-documenting unit 
- * (<a href="https://tools.ietf.org/html/draft-kunze-bagit-14">specification</a>).  
- * A bag is a directory with a name whose contents are constrained in a lightweight 
- * way.  The contents include the data files (refered to as the payload) in 
- * <code>data</code> subdirectory as well as some package-level metadata.  Also 
- * included are checksums for all the data files in the payload.  
+ * BagIt is a simple specification for packaging related data into a
+ * serialazable and self-documenting unit (
+ * <a href="https://tools.ietf.org/html/draft-kunze-bagit-14">specification</a>
+ * ). A bag is a directory with a name whose contents are constrained in a
+ * lightweight way. The contents include the data files (refered to as the
+ * payload) in <code>data</code> subdirectory as well as some package-level
+ * metadata. Also included are checksums for all the data files in the payload.
  *
- * This package provides the OAR system's support for data bags.  It segregates that 
- * support into the following subpackages:
+ * This package provides the OAR system's support for data bags. It segregates
+ * that support into the following subpackages:
  * <dl>
- *   <dt> <code>{@link gov.nist.oar.bags.preservation preservation}</code> </dt>
- *   <dd> provides support for bags complying with the NIST preservation bag file. </dd>
+ * <dt><code>{@link gov.nist.oar.bags.preservation preservation}</code></dt>
+ * <dd>provides support for bags complying with the NIST preservation bag file.
+ * </dd>
  * </dl>
  * 
- * This package (and all its subpackages) are independent of all other sibling packages 
- * under the <code>oar</code> parent package.  In particular, it contains no dependencies 
- * on the {@link gov.nist.oar.distrib distrib} package.  
+ * This package (and all its subpackages) are independent of all other sibling
+ * packages under the <code>oar</code> parent package. In particular, it
+ * contains no dependencies on the {@link gov.nist.oar.distrib distrib} package.
  */
 package gov.nist.oar.bags;
-

@@ -20,7 +20,9 @@ import java.util.zip.ZipOutputStream;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
 
 /**
- * DataPackager interface declares the methods to be used when data download requests are made.
+ * DataPackager interface declares the methods to be used when data download
+ * requests are made.
+ * 
  * @author Deoyani Nandrekar-Heinis
  *
  */

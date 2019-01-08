@@ -28,7 +28,10 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
  */
 public interface DataPackagingService {
     public void getZipPackage(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException;
+
     public void getBundledZipPackage(ZipOutputStream zout) throws DistributionException;
+
     public void validateRequest() throws DistributionException, IOException, InputLimitException;
+
     public BundleDownloadPlan getBundlePlan();
 }

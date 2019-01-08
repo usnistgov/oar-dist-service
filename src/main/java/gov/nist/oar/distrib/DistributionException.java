@@ -12,39 +12,47 @@
 package gov.nist.oar.distrib;
 
 /**
- * a base or generic exception for problems specific to data distribution system.
+ * a base or generic exception for problems specific to data distribution
+ * system.
  */
 public class DistributionException extends Exception {
 
     /**
      * Create an exception with an arbitrary message
      */
-    public DistributionException(String msg) { super(msg); }
+    public DistributionException(String msg) {
+	super(msg);
+    }
 
     /**
      * Create an exception with an arbitrary message and an underlying cause
      */
-    public DistributionException(String msg, Throwable cause) { super(msg, cause); }
+    public DistributionException(String msg, Throwable cause) {
+	super(msg, cause);
+    }
 
     /**
-     * Create an exception with an underlying cause.  A default message is created.
+     * Create an exception with an underlying cause. A default message is
+     * created.
      */
-    public DistributionException(Throwable cause) { super(messageFor(cause), cause); }
+    public DistributionException(Throwable cause) {
+	super(messageFor(cause), cause);
+    }
 
     /**
      * return a message prefix that can introduce a more specific message
      */
     public static String getMessagePrefix() {
-        return "Data Distribution exception encountered: ";
+	return "Data Distribution exception encountered: ";
     }
 
     protected static String messageFor(Throwable cause) {
-        StringBuilder sb = new StringBuilder(getMessagePrefix());
-        String name = cause.getClass().getSimpleName();
-        if (name != null)
-            sb.append('(').append(name).append(") ");
-        sb.append(cause.getMessage());
-        return sb.toString();
+	StringBuilder sb = new StringBuilder(getMessagePrefix());
+	String name = cause.getClass().getSimpleName();
+	if (name != null)
+	    sb.append('(').append(name).append(") ");
+	sb.append(cause.getMessage());
+	return sb.toString();
     }
 
 }

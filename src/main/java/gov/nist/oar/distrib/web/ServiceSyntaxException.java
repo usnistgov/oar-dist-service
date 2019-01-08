@@ -12,7 +12,8 @@
 package gov.nist.oar.distrib.web;
 
 /**
- * an exception indicating that illegal input was provide to a web service endpoint
+ * an exception indicating that illegal input was provide to a web service
+ * endpoint
  */
 public class ServiceSyntaxException extends RuntimeException {
 
@@ -24,24 +25,24 @@ public class ServiceSyntaxException extends RuntimeException {
      * Create an exception with an arbitrary message
      */
     public ServiceSyntaxException(String msg) {
-        super(msg);
+	super(msg);
     }
 
     /**
      * initialize the exception indicating a problem with a particular parameter
      */
     public ServiceSyntaxException(String param, String val, String expl, Throwable cause) {
-        super("Malformed value for " + param + " parameter: " +
-              ((val == null) ? "" : val) + ((expl == null) ? "" : ": "+expl), cause);
-        parameter = param;
-        reason = expl;
-        value = val;
+	super("Malformed value for " + param + " parameter: " + ((val == null) ? "" : val)
+		+ ((expl == null) ? "" : ": " + expl), cause);
+	parameter = param;
+	reason = expl;
+	value = val;
     }
 
     /**
      * initialize the exception indicating a problem with a particular parameter
      */
     public ServiceSyntaxException(String param, String val) {
-        this(param, val, null, null);
+	this(param, val, null, null);
     }
 }

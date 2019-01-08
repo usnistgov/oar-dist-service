@@ -13,11 +13,11 @@
  */
 
 /**
- * a package that implements services that constitute the OAR data distribution service.
+ * a package that implements services that constitute the OAR data distribution
+ * service.
  * <p>
- * This package makes use of the {@link gov.nist.oar.bags oar.bags} and 
- * {@link gov.nist.oar.cachemgr oar.cachemgr} packages.  It does not have any dependencies 
- * on the sibling {@link gov.nist.oar.distrib.web web} package.
+ * This package makes use of the {@link gov.nist.oar.bags oar.bags} and
+ * {@link gov.nist.oar.cachemgr oar.cachemgr} packages. It does not have any
+ * dependencies on the sibling {@link gov.nist.oar.distrib.web web} package.
  */
 package gov.nist.oar.distrib.service;
-

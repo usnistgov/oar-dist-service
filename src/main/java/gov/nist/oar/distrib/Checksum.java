@@ -14,7 +14,7 @@
 package gov.nist.oar.distrib;
 
 /**
- * a simple container class used to deliver a checksum hash, labeled with the 
+ * a simple container class used to deliver a checksum hash, labeled with the
  * the algorithm that was used to calculate it.
  */
 public class Checksum {
@@ -36,20 +36,23 @@ public class Checksum {
 
     /**
      * initialize the checksum value
-     * @param hash   the checksum hash value
-     * @param alg    the name of the algorithm used to calculate the hash.  
-     *               It is recommended that the usual filename extension for
-     *               hash files of this type be used as the name.
+     * 
+     * @param hash
+     *            the checksum hash value
+     * @param alg
+     *            the name of the algorithm used to calculate the hash. It is
+     *            recommended that the usual filename extension for hash files
+     *            of this type be used as the name.
      */
     public Checksum(String hash, String alg) {
-        this.hash = hash;
-        this.algorithm = alg;
+	this.hash = hash;
+	this.algorithm = alg;
     }
 
     /**
-     * create a SHA-256 checksum 
+     * create a SHA-256 checksum
      */
     public static Checksum sha256(String hash) {
-        return new Checksum(hash, Checksum.SHA256);
+	return new Checksum(hash, Checksum.SHA256);
     }
 }

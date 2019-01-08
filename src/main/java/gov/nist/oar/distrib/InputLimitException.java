@@ -16,35 +16,42 @@ package gov.nist.oar.distrib;
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class InputLimitException  extends Exception{
-	/**
+public class InputLimitException extends Exception {
+    /**
      * Create an exception with an arbitrary message
      */
-    public InputLimitException(String msg) { super(msg); }
+    public InputLimitException(String msg) {
+	super(msg);
+    }
 
     /**
      * Create an exception with an arbitrary message and an underlying cause
      */
-    public InputLimitException(String msg, Throwable cause) { super(msg, cause); }
+    public InputLimitException(String msg, Throwable cause) {
+	super(msg, cause);
+    }
 
     /**
-     * Create an exception with an underlying cause.  A default message is created.
+     * Create an exception with an underlying cause. A default message is
+     * created.
      */
-    public InputLimitException(Throwable cause) { super(messageFor(cause), cause); }
+    public InputLimitException(Throwable cause) {
+	super(messageFor(cause), cause);
+    }
 
     /**
      * return a message prefix that can introduce a more specific message
      */
     public static String getMessagePrefix() {
-        return "Input or Request restrictions: ";
+	return "Input or Request restrictions: ";
     }
 
     protected static String messageFor(Throwable cause) {
-        StringBuilder sb = new StringBuilder(getMessagePrefix());
-        String name = cause.getClass().getSimpleName();
-        if (name != null)
-            sb.append('(').append(name).append(") ");
-        sb.append(cause.getMessage());
-        return sb.toString();
+	StringBuilder sb = new StringBuilder(getMessagePrefix());
+	String name = cause.getClass().getSimpleName();
+	if (name != null)
+	    sb.append('(').append(name).append(") ");
+	sb.append(cause.getMessage());
+	return sb.toString();
     }
 }

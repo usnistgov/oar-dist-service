@@ -13,10 +13,9 @@
 package gov.nist.oar.distrib.web.objects;
 
 /**
- * @author Deoyani Nandrekar-Heinis 
- * This class is a java object representing,
- * files and urls which has some issues so they should not get included
- * in data bundle plan which is posted to download data.
+ * @author Deoyani Nandrekar-Heinis This class is a java object representing,
+ *         files and urls which has some issues so they should not get included
+ *         in data bundle plan which is posted to download data.
  */
 
 public class NotIncludedFiles {

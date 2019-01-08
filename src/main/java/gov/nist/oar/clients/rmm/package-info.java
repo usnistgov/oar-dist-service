@@ -13,9 +13,9 @@
  */
 
 /**
- * a package that provides a client API to the Resource Metadata Manager (RMM) service.  This API 
- * can be used to search and retrieve NERDm metadata records for resources available to the Science
- * Data Portal (SDP)
+ * a package that provides a client API to the Resource Metadata Manager (RMM)
+ * service. This API can be used to search and retrieve NERDm metadata records
+ * for resources available to the Science Data Portal (SDP)
  *
  */
 package gov.nist.oar.clients.rmm;
