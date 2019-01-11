@@ -33,7 +33,7 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 public class DownloadBundlePlannerTest {
 
     @Test
-    public void getBundleDownloadPlanTest() throws JsonParseException, JsonMappingException, IOException{
+    public void getBundleDownloadPlanTest() throws JsonParseException, JsonMappingException, IOException {
 	FilePathUrl[] inputfileList = new FilePathUrl[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
@@ -44,17 +44,18 @@ public class DownloadBundlePlannerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL,200000,3,"s3.amazonaws.com,project-open-data.cio.gov","testdownload");
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200000, 3,
+		"s3.amazonaws.com,project-open-data.cio.gov", "testdownload");
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
-	assertEquals(bundlePlan.getPostEach(),"_bundle");
-	assertEquals(bundlePlan.getStatus(),"complete");
+	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
+	assertEquals(bundlePlan.getStatus(), "complete");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
-	
+
     }
-   
+
     @Test
-    public void getBundleDownloadPlan2Test() throws JsonParseException, JsonMappingException, IOException{
+    public void getBundleDownloadPlan2Test() throws JsonParseException, JsonMappingException, IOException {
 	FilePathUrl[] inputfileList = new FilePathUrl[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
@@ -68,13 +69,14 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL,2000000,3,"s3.amazonaws.com,www.nist.gov","testdownload");
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 2000000, 3, "s3.amazonaws.com,www.nist.gov",
+		"testdownload");
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
-	assertEquals(bundlePlan.getPostEach(),"_bundle");
-	assertEquals(bundlePlan.getStatus(),"warnings");
+	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
+	assertEquals(bundlePlan.getStatus(), "warnings");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
-	
+
     }
 }

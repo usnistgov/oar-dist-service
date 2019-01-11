@@ -22,23 +22,22 @@ public class DistributionExceptionTest {
 
     @Test
     public void testCtorMsg() {
-        Exception ex = new DistributionException("Oops!");
-        assertEquals("Oops!", ex.getMessage());
-        assertEquals(null, ex.getCause());
+	Exception ex = new DistributionException("Oops!");
+	assertEquals("Oops!", ex.getMessage());
+	assertEquals(null, ex.getCause());
 
-        Exception cause = new RuntimeException("whoa!");
-        ex = new DistributionException("Oops!", cause);
-        assertEquals("Oops!", ex.getMessage());
-        assertSame(cause, ex.getCause());
+	Exception cause = new RuntimeException("whoa!");
+	ex = new DistributionException("Oops!", cause);
+	assertEquals("Oops!", ex.getMessage());
+	assertSame(cause, ex.getCause());
     }
 
     @Test
     public void testCtorAutoMessage() {
-        Exception cause = new RuntimeException("whoa!");
-        Exception ex = new DistributionException(cause);
-        assertEquals("Data Distribution exception encountered: (RuntimeException) whoa!",
-                     ex.getMessage());
-        assertEquals(cause, ex.getCause());
+	Exception cause = new RuntimeException("whoa!");
+	Exception ex = new DistributionException(cause);
+	assertEquals("Data Distribution exception encountered: (RuntimeException) whoa!", ex.getMessage());
+	assertEquals(cause, ex.getCause());
     }
 
 }

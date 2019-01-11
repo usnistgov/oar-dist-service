@@ -86,6 +86,6 @@ public class ObjectUtils {
      */
     public static boolean hasHTMLTags(String text) {
 	Matcher matcher = pattern.matcher(text);
-	return matcher.matches();
+	return matcher.find();
     }
 }

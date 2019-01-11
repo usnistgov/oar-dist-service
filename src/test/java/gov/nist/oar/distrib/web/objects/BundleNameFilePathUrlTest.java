@@ -35,32 +35,33 @@ public class BundleNameFilePathUrlTest {
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
 		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
-	
+
 	assertEquals("download_data_1", bundle1.getBundleName());
 	assertEquals("/filepath/file-1.pdf", bundle1.getIncludeFiles()[0].getFilePath());
-	assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf", bundle1.getIncludeFiles()[0].getDownloadUrl());
-	
+	assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf",
+		bundle1.getIncludeFiles()[0].getDownloadUrl());
+
     }
-    
+
     @Test
-    public void testJson() throws JsonProcessingException, JSONException{
-	String fileUrl1= "{\"filePath\":\"/filepath/file-1.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+    public void testJson() throws JsonProcessingException, JSONException {
+	String fileUrl1 = "{\"filePath\":\"/filepath/file-1.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String fileUrl2 = "{\"filePath\":\"/filepath/file-2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	
+
 	String bundleNAme = "\"bundleName\":\"download_data_1\" ";
-	String bundleJson = "{"+bundleNAme+","+"\"includeFiles\""+":["+fileUrl1+","+fileUrl2+"]"+"}";
-	
+	String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" + "}";
+
 	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	FilePathUrl fpathUrl_2 = new FilePathUrl("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
 		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
-	
+
 	String json = new ObjectMapper().writeValueAsString(bundle1);
 	JSONAssert.assertEquals(bundleJson, json, true);
     }
-    
+
     public BundleNameFilePathUrl[] makeBundles() {
 	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
@@ -78,6 +79,5 @@ public class BundleNameFilePathUrlTest {
 
 	return new BundleNameFilePathUrl[] { bundle1, bundle2 };
     }
-
 
 }

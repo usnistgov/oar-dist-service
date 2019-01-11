@@ -17,6 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import gov.nist.oar.distrib.datapackage.JSONUtils;
 import gov.nist.oar.distrib.datapackage.ObjectUtils;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
@@ -73,19 +77,23 @@ public class DownloadBundlePlanner {
      * criteria
      * 
      * @return JsonObject of type BundleDownloadPlan
+     * @throws JsonProcessingException
      */
-    public BundleDownloadPlan getBundleDownloadPlan() {
+    public BundleDownloadPlan getBundleDownloadPlan() throws JsonProcessingException {
 
 	notIncludedFiles = new ArrayList<NotIncludedFiles>();
 	filePathUrls = new ArrayList<FilePathUrl>();
 	bundleFilePathUrls = new ArrayList<BundleNameFilePathUrl>();
 	messages = new ArrayList<String>();
 
-	if (ObjectUtils.hasHTMLTags(this.bundleRequest.toString())) {
-	    messages.add("Input contains html code, make sure to post proper URLs");
-	    this.status = "warnings";
+	ObjectMapper mapper = new ObjectMapper();
+	String requestString = mapper.writeValueAsString(this.bundleRequest);
+	if (ObjectUtils.hasHTMLTags(requestString)) {
+	    messages.add("Input contains html code, make sure to post proper request.");
+	    this.status = "Error";
 	    makeBundlePlan();
 	    return finalPlan;
+
 	}
 
 	try {

@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
@@ -78,6 +80,7 @@ public class BundleDownloadPlanController {
      * @param response
      * @param errors
      * @return JsonObject of type BundleDownloadPlan
+     * @throws JsonProcessingException
      */
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
 	    @ApiResponse(code = 400, message = "Malformed request."),
@@ -86,7 +89,7 @@ public class BundleDownloadPlanController {
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleNameFilePathUrl jsonObject,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) {
+	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) throws JsonProcessingException {
 
 	String bundleName = "Download-data";
 	if (jsonObject.getBundleName() != null && !jsonObject.getBundleName().isEmpty()) {
@@ -97,6 +100,13 @@ public class BundleDownloadPlanController {
 	response.setHeader("Content-Type", "application/json");
 	return df.getBundlePlan();
 
+    }
+
+    @ExceptionHandler(JsonProcessingException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
+	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
     }
 
     @ExceptionHandler(Exception.class)

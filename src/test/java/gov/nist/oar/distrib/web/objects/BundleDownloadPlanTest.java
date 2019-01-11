@@ -17,50 +17,50 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 /**
- * @author Deoyani Nandrekar-Heinis
- * This is the test class for java object representing bundle plan json. 
+ * @author Deoyani Nandrekar-Heinis This is the test class for java object
+ *         representing bundle plan json.
  */
 public class BundleDownloadPlanTest {
-    
-    public BundleNameFilePathUrl[] makeBundles(){
+
+    public BundleNameFilePathUrl[] makeBundles() {
 	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	FilePathUrl fpathUrl_2 = new FilePathUrl("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
-		new FilePathUrl[]{fpathUrl_1, fpathUrl_2} );
-	
+		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
+
 	FilePathUrl fpathUrl_3 = new FilePathUrl("/filepath-2/testfile-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	FilePathUrl fpathUrl_4 = new FilePathUrl("/filepath-2/testfile-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	BundleNameFilePathUrl bundle2 = new BundleNameFilePathUrl("download_data_2",
-		new FilePathUrl[]{fpathUrl_3, fpathUrl_4} );
-	
-	return new BundleNameFilePathUrl[]{bundle1, bundle2};
+		new FilePathUrl[] { fpathUrl_3, fpathUrl_4 });
+
+	return new BundleNameFilePathUrl[] { bundle1, bundle2 };
     }
-    
-    public String[] makeMessages(){
-	return new String[]{"Some files are not included.", "Domains are not allowed."};
+
+    public String[] makeMessages() {
+	return new String[] { "Some files are not included.", "Domains are not allowed." };
     }
-    
-    public NotIncludedFiles[] makeNotIncluded(){
+
+    public NotIncludedFiles[] makeNotIncluded() {
 	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/testFile",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
 	NotIncludedFiles notIn2 = new NotIncludedFiles("/testPath/testFile2",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license2.pdf", "Not allowed domain.");
-	
-	return new NotIncludedFiles[]{ notIn, notIn2};
+
+	return new NotIncludedFiles[] { notIn, notIn2 };
     }
 
     @Test
-    public void testBundleDownloadPlan(){	
-	BundleDownloadPlan bundlePlan  = new BundleDownloadPlan("_bundle", "partial", this.makeBundles(),
+    public void testBundleDownloadPlan() {
+	BundleDownloadPlan bundlePlan = new BundleDownloadPlan("_bundle", "partial", this.makeBundles(),
 		this.makeMessages(), this.makeNotIncluded());
-	
-	assertEquals("_bundle",bundlePlan.getPostEach());
-	assertEquals("partial",bundlePlan.getStatus());
+
+	assertEquals("_bundle", bundlePlan.getPostEachTo());
+	assertEquals("partial", bundlePlan.getStatus());
 	assertEquals("download_data_1", bundlePlan.getBundleNameFilePathUrl()[0].getBundleName());
-	assertEquals("/testPath/testFile2",bundlePlan.getNotIncluded()[1].getFilePath());
+	assertEquals("/testPath/testFile2", bundlePlan.getNotIncluded()[1].getFilePath());
     }
 }

@@ -22,17 +22,17 @@ public class ChecksumTest {
 
     @Test
     public void testCtor() {
-        Checksum cs = new Checksum("abcdef12345", "md5");
-        assertEquals("abcdef12345", cs.hash);
-        assertEquals("md5", cs.algorithm);
+	Checksum cs = new Checksum("abcdef12345", "md5");
+	assertEquals("abcdef12345", cs.hash);
+	assertEquals("md5", cs.algorithm);
     }
 
     @Test
     public void testSha256() {
-        Checksum cs = Checksum.sha256("abcdef12345");
-        assertEquals("abcdef12345", cs.hash);
-        assertEquals(Checksum.SHA256, cs.algorithm);
-        assertEquals("sha256", cs.algorithm);
+	Checksum cs = Checksum.sha256("abcdef12345");
+	assertEquals("abcdef12345", cs.hash);
+	assertEquals(Checksum.SHA256, cs.algorithm);
+	assertEquals("sha256", cs.algorithm);
     }
 
 }

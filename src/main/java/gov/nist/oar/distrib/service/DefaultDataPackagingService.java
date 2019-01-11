@@ -18,6 +18,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.DownloadBundlePlanner;
@@ -112,7 +114,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * Get the Plan for downloading requested data
      */
     @Override
-    public BundleDownloadPlan getBundlePlan() {
+    public BundleDownloadPlan getBundlePlan() throws JsonProcessingException {
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 

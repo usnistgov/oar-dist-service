@@ -120,7 +120,7 @@ public class BundleDownloadPlan {
      * 
      * @return
      */
-    public String getPostEach() {
+    public String getPostEachTo() {
 	return this.postEachTo;
     }
 
