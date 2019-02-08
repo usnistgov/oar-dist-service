@@ -11,6 +11,16 @@
  */
 package gov.nist.oar.distrib.web;
 
+
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.FromBagFileDownloadService;
+import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+    
+import java.io.InputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
@@ -27,6 +37,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
+import org.springframework.web.util.UrlPathHelper;
 
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
@@ -190,18 +202,31 @@ public class NISTDistribServiceConfig {
     }
 
     /**
-     * Add CORS
-     * 
-     * @return
+     * configure MVC model, including setting CORS support and semicolon in URLs.
+     * <p>
+     * This gets called as a result of having the @SpringBootApplication annotation.
+     * <p>
+     * The returned configurer allows requested files to have semicolons in them.  By 
+     * default, spring will truncate URLs after the location of a semicolon.  
      */
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-	return new WebMvcConfigurerAdapter() {
-	    @Override
-	    public void addCorsMappings(CorsRegistry registry) {
-		registry.addMapping("/**");
-	    }
-	};
+    public WebMvcConfigurer mvcConfigurer() {
+        return new WebMvcConfigurerAdapter() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**");
+            }
+
+            @Override
+            public void configurePathMatch(PathMatchConfigurer configurer) {
+                UrlPathHelper uhlpr = configurer.getUrlPathHelper();
+                if (uhlpr == null) {
+                    uhlpr = new UrlPathHelper();
+                    configurer.setUrlPathHelper(uhlpr);
+                }
+                uhlpr.setRemoveSemicolonContent(false);
+            }
+        };
     }
 
     /**
