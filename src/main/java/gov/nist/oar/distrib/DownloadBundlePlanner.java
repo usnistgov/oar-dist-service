@@ -139,8 +139,12 @@ public class DownloadBundlePlanner {
 	bundlePlanCount++;
 	if (bundlePlanSize < this.mxFileSize && bundlePlanCount <= this.mxFilesCount) {
 	    filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
+	
 	} else {
 	    makePlan();
+	    if (bundlePlanSize < this.mxFileSize && bundlePlanCount <= this.mxFilesCount) {
+		filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    }
 	}
     }
 
@@ -154,6 +158,8 @@ public class DownloadBundlePlanner {
 	    FilePathUrl[] fpathUrls = filePathUrls.toArray(new FilePathUrl[0]);
 	    bundleFilePathUrls.add(new BundleNameFilePathUrl(bundleName + "-" + bundleCount + ".zip", fpathUrls));
 	    filePathUrls.clear();
+	    bundlePlanSize = 0;
+	    bundlePlanCount = 1;
 	}
     }
 
