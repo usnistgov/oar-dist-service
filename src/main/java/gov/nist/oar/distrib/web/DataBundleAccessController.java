@@ -141,7 +141,7 @@ public class DataBundleAccessController {
 
 	    DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
 		    this.numofFiles, jsonObject);
-	    try {
+	    try{
 		df.validateRequest();
 
 		if (jsonObject.getBundleName() != null && !jsonObject.getBundleName().isEmpty()) {

@@ -49,10 +49,10 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
+	"distrib.bagstore.location=./src/test/resources",
+	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=./target/surefire-reports",
 	"distrib.filesizelimit = 2000000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas " })
+	"distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas, www.nist.gov " })
 public class BundleDownloadPlanControllerTest {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
 
@@ -130,6 +130,51 @@ public class BundleDownloadPlanControllerTest {
 	assertEquals("Error", testResponse.getStatus());
 	assertEquals(0, testResponse.getNotIncluded().length);
 	assertEquals(0, testResponse.getBundleNameFilePathUrl().length);
+
+    }
+    
+    
+    @Test
+    public void testDownloadAllFiles2()
+	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+	FilePathUrl[] inputfileList = new FilePathUrl[5];
+	String val1 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
+	String val2 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";
+	String val3 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-003.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-003.json\"}";
+	String val4 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-004.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-004.json\"}";
+	String val5 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-005.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-005.json\"}";
+		    
+	ObjectMapper mapper = new ObjectMapper();
+	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FilePathUrl testval3 = mapper.readValue(val3, FilePathUrl.class);
+	FilePathUrl testval4 = mapper.readValue(val4, FilePathUrl.class);
+	FilePathUrl testval5 = mapper.readValue(val5, FilePathUrl.class);
+	
+	inputfileList[0] = testval1;
+	inputfileList[1] = testval2;
+	inputfileList[2] = testval3;
+	inputfileList[3] = testval4;
+	inputfileList[4] = testval5;
+	
+	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
+	RequestEntity<BundleNameFilePathUrl> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+		.body(bFL);
+
+	ResponseEntity<String> response = websvc.exchange(request, String.class);
+
+	assertEquals(HttpStatus.OK, response.getStatusCode());
+	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+
+	ObjectMapper mapperResults = new ObjectMapper();
+	String responsetest = response.getBody();
+	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
+	System.out.println("Response :"+responsetest);
+	assertEquals("complete", testResponse.getStatus());
+	assertEquals("_bundle", testResponse.getPostEachTo());
+	assertEquals(3,testResponse.getBundleNameFilePathUrl().length);
+	assertEquals("ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-003.json",
+		testResponse.getBundleNameFilePathUrl()[1].getIncludeFiles()[0].getFilePath());
 
     }
 }

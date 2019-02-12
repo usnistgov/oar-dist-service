@@ -177,13 +177,12 @@ public class DefaultDataPackager implements DataPackager {
 	if (this.inputfileList.length > 0) {
 
 	    ObjectUtils.removeDuplicates(this.inputfileList);
-
-	    if (this.getTotalSize() > this.mxFileSize)
-		throw new InputLimitException("Total filesize is beyond allowed limit of." + this.mxFileSize);
-
+	   
+	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() >1){
+		    throw new InputLimitException("Total filesize is beyond allowed limit of." + this.mxFileSize);
+	    }	
 	    if (this.getFilesCount() > this.mxFilesCount)
-		throw new InputLimitException(
-			"Total number of files requested is beyond allowed limit." + this.mxFilesCount);
+		throw new InputLimitException("Total number of files requested is beyond allowed limit." + this.mxFilesCount);
 
 	} else {
 	    throw new DistributionException("Requested files jsonobject is empty.");

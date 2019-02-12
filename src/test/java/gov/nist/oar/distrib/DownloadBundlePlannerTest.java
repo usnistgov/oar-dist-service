@@ -79,4 +79,32 @@ public class DownloadBundlePlannerTest {
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
 
     }
+    
+    @Test
+    public void getBundleDownloadPlan3Test() throws JsonParseException, JsonMappingException, IOException {
+	FilePathUrl[] inputfileList = new FilePathUrl[3];
+	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
+	String val3 = "{\"filePath\":\"/1894/contract.pdf\",\"downloadUrl\":\"https://www.nist.gov/sites/default/files/documents/2018/12/26/letter_for_contractors_12.26.2018.pdf/\"}";
+
+	ObjectMapper mapper = new ObjectMapper();
+	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
+	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FilePathUrl testval3 = mapper.readValue(val3, FilePathUrl.class);
+	inputfileList[0] = testval1;
+	inputfileList[1] = testval2;
+	inputfileList[2] = testval3;
+	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com,www.nist.gov",
+		"testdownload");
+	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
+	System.out.println("Bundle Plan:"+ bundlePlan.getBundleNameFilePathUrl()[0].getBundleName());
+	BundleNameFilePathUrl[] test = bundlePlan.getBundleNameFilePathUrl();
+	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
+	assertEquals(bundlePlan.getStatus(), "warnings");
+	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 2);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
+	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
+
+    }
 }
