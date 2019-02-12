@@ -49,8 +49,8 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=./src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=./target/surefire-reports",
+	"distrib.bagstore.location=${basedir}/src/test/resources",
+	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
 	"distrib.filesizelimit = 2000000", "distrib.numberoffiles = 2",
 	"distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas, www.nist.gov " })
 public class BundleDownloadPlanControllerTest {
