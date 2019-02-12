@@ -45,7 +45,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200000, 3,
-		"s3.amazonaws.com,project-open-data.cio.gov", "testdownload");
+		"s3.amazonaws.com|project-open-data.cio.gov", "testdownload");
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "complete");
@@ -69,7 +69,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 2000000, 3, "s3.amazonaws.com,www.nist.gov",
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 2000000, 3, "s3.amazonaws.com|nist.gov",
 		"testdownload");
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
@@ -95,7 +95,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com,www.nist.gov",
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov",
 		"testdownload");
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	System.out.println("Bundle Plan:"+ bundlePlan.getBundleNameFilePathUrl()[0].getBundleName());

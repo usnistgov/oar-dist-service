@@ -54,11 +54,13 @@ public class ObjectUtils {
      * @return boolean
      * @throws IOException
      */
-    public static boolean validateUrlDomain(String url, String domains) throws IOException {
+   // private 
+    //private 
+    public static boolean validateUrlDomain(String url, String domains) throws IOException {	
+	Pattern dpattern = Pattern.compile(domains);
 	URL obj = new URL(url);
-	if (!domains.toLowerCase().contains(obj.getHost().toLowerCase()))
-	    return false;
-	return true;
+	Matcher matcher = dpattern.matcher(obj.toString());
+	return matcher.find();	
     }
 
     /**

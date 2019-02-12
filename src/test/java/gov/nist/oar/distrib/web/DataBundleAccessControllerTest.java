@@ -56,7 +56,7 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 	"distrib.bagstore.location=${basedir}/src/test/resources",
 	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
 	"distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas"
+	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas"
 	// "logging.level.org.springframework.web=DEBUG"
 })
 public class DataBundleAccessControllerTest {

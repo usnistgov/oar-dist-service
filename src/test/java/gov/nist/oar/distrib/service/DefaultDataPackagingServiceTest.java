@@ -54,7 +54,7 @@ public class DefaultDataPackagingServiceTest {
     static FilePathUrl[] requestedUrls = new FilePathUrl[2];
     long maxFileSize = 1000000;
     int numOfFiles = 100;
-    String domains = "nist.gov, s3.amazonaws.com/nist-midas";
+    String domains = "nist.gov|s3.amazonaws.com/nist-midas";
     static BundleNameFilePathUrl bundleRequest;
 
     public static void createRequest() throws JsonParseException, JsonMappingException, IOException {

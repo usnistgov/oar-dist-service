@@ -52,7 +52,7 @@ import gov.nist.oar.distrib.web.objects.FilePathUrl;
 	"distrib.bagstore.location=${basedir}/src/test/resources",
 	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
 	"distrib.filesizelimit = 2000000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = s3.amazonaws.com/nist-midas, nist-midas, www.nist.gov " })
+	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas" })
 public class BundleDownloadPlanControllerTest {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
 
