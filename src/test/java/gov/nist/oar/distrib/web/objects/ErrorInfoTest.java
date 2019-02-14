@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.objects.ErrorInfo;
+import gov.nist.oar.distrib.web.ErrorInfo;
 
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.json.JSONException;

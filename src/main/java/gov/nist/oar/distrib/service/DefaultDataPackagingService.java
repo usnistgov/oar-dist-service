@@ -22,12 +22,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.DownloadBundlePlanner;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * This class implements the functionalities defined in DataPackagingService.
@@ -39,53 +39,62 @@ public class DefaultDataPackagingService implements DataPackagingService {
 
     long maxFileSize = 0;
     int numOfFiles = 0;
-    FilePathUrl[] jsonRequest;
-    BundleNameFilePathUrl bundleRequest;
-    DefaultDataPackager dp;
+  
+    
     String domains;
     DownloadBundlePlanner dwnldPlanner;
 
     public DefaultDataPackagingService() {
 	// Default constructor
     }
-
-    public DefaultDataPackagingService(long maxFileSize, int numOfFiles, FilePathUrl[] jsonRequest) {
+    
+    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles){
 	this.maxFileSize = maxFileSize;
 	this.numOfFiles = numOfFiles;
-	this.jsonRequest = jsonRequest;
-	dp = new DefaultDataPackager(jsonRequest, maxFileSize, numOfFiles);
-    }
-
-    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
-	    BundleNameFilePathUrl bundleRequest) {
-	this.maxFileSize = maxFileSize;
-	this.numOfFiles = numOfFiles;
-	this.bundleRequest = bundleRequest;
 	this.domains = domains;
-	dp = new DefaultDataPackager(bundleRequest, maxFileSize, numOfFiles, domains);
     }
 
-    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
-	    BundleNameFilePathUrl bundleRequest, String bundleName) {
-	this.maxFileSize = maxFileSize;
-	this.numOfFiles = numOfFiles;
-	this.bundleRequest = bundleRequest;
-	this.domains = domains;
-	dwnldPlanner = new DownloadBundlePlanner(bundleRequest, maxFileSize, numOfFiles, domains, bundleName);
-    }
+//    public DefaultDataPackagingService(long maxFileSize, int numOfFiles, FileRequest[] jsonRequest) {
+//	this.maxFileSize = maxFileSize;
+//	this.numOfFiles = numOfFiles;
+//	this.jsonRequest = jsonRequest;
+//	dp = new DefaultDataPackager(jsonRequest, maxFileSize, numOfFiles);
+//    }
 
-    /*
-     * Get zip package for give array of filepath and urls
-     * 
-     * @see
-     * gov.nist.oar.distrib.service.DataPackagingService#getZipPackage(gov.nist.
-     * oar.distrib.web.FilePathUrl[], java.lang.String)
-     */
-    @Override
-    public void getZipPackage(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException {
-	dp.validateRequest();
-	dp.writeData(zout);
-    }
+//    /**
+//     * 
+//     * @param domains
+//     * @param maxFileSize
+//     * @param numOfFiles
+//     * @param bundleRequest
+//     */
+//    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
+//	    BundleRequest bundleRequest) {
+//	this.maxFileSize = maxFileSize;
+//	this.numOfFiles = numOfFiles;
+//	this.bundleRequest = bundleRequest;
+//	this.domains = domains;
+//	dp = new DefaultDataPackager(bundleRequest, maxFileSize, numOfFiles, domains);
+//    }
+
+//    /**
+//     * 
+//     * @param domains
+//     * @param maxFileSize
+//     * @param numOfFiles
+//     * @param bundleRequest
+//     * @param bundleName
+//     */
+//    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
+//	    BundleRequest bundleRequest, String bundleName) {
+//	this.maxFileSize = maxFileSize;
+//	this.numOfFiles = numOfFiles;
+//	this.bundleRequest = bundleRequest;
+//	this.domains = domains;
+//	dwnldPlanner = new DownloadBundlePlanner(bundleRequest, maxFileSize, numOfFiles, domains, bundleName);
+//    }
+
+
 
     /*
      * Wtite data in the zipoutput format.
@@ -95,7 +104,10 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * oar.distrib.web.FilePathUrl[], java.lang.String)
      */
     @Override
-    public void getBundledZipPackage(ZipOutputStream zout) throws DistributionException {
+    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException,  IOException, InputLimitException
+    {
+	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
+	dp.validateBundleRequest();
 	dp.writeData(zout);
     }
 
@@ -106,7 +118,8 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * @see gov.nist.oar.distrib.service.DataPackagingService#validateRequest()
      */
     @Override
-    public void validateRequest() throws DistributionException, IOException, InputLimitException {
+    public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {
+	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
 	dp.validateBundleRequest();
     }
 
@@ -114,7 +127,8 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * Get the Plan for downloading requested data
      */
     @Override
-    public BundleDownloadPlan getBundlePlan() throws JsonProcessingException {
+    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName) throws JsonProcessingException {
+	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName);
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 

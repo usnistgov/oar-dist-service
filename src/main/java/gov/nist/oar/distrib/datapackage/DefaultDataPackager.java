@@ -28,11 +28,10 @@ import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.DownloadBundlePlanner;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * DefaultDataPackager implements DataPackager interface and gives a default
@@ -48,8 +47,8 @@ public class DefaultDataPackager implements DataPackager {
 
     private long mxFileSize;
     private int mxFilesCount;
-    private FilePathUrl[] inputfileList;
-    private BundleNameFilePathUrl bundleRequest;
+    private FileRequest[] inputfileList;
+    private BundleRequest bundleRequest;
     private String domains;
     String bundlelogfile = " Information about this bundle and contents as below:\n";
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
@@ -67,7 +66,7 @@ public class DefaultDataPackager implements DataPackager {
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(FilePathUrl[] inputjson, long maxFileSize, int numOfFiles) {
+    public DefaultDataPackager(FileRequest[] inputjson, long maxFileSize, int numOfFiles) {
 	this.inputfileList = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
@@ -82,7 +81,7 @@ public class DefaultDataPackager implements DataPackager {
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles) {
+    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
@@ -97,7 +96,7 @@ public class DefaultDataPackager implements DataPackager {
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles, String domains) {
+    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
@@ -119,7 +118,7 @@ public class DefaultDataPackager implements DataPackager {
 	int len, l;
 	byte[] buf = new byte[100000];
 	for (int i = 0; i < inputfileList.length; i++) {
-	    FilePathUrl jobject = inputfileList[i];
+	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
 	    bundlelogfile += "If there are any issues with any files/urls it will be listed below.";
@@ -226,9 +225,9 @@ public class DefaultDataPackager implements DataPackager {
 	    this.validateInput();
 	    this.inputfileList = this.bundleRequest.getIncludeFiles();
 	}
-	List<FilePathUrl> list = Arrays.asList(this.inputfileList);
+	List<FileRequest> list = Arrays.asList(this.inputfileList);
 
-	List<String> downloadurls = list.stream().map(FilePathUrl::getDownloadUrl).collect(Collectors.toList());
+	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
 	long totalSize = 0;
 	for (int i = 0; i < downloadurls.size(); i++) {
 	    try {

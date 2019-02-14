@@ -16,7 +16,7 @@ package gov.nist.oar.distrib;
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class InputLimitException extends Exception {
+public class InputLimitException extends DistributionException {
     /**
      * Create an exception with an arbitrary message
      */

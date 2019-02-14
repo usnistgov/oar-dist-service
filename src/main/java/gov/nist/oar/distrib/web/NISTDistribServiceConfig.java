@@ -18,6 +18,8 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.FromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.service.DataPackagingService;
+import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
     
 import java.io.InputStream;
@@ -200,7 +202,23 @@ public class NISTDistribServiceConfig {
     public PreservationBagService getPreservationBagService() {
 	return new DefaultPreservationBagService(lts, mimemap);
     }
+    
 
+
+    @Value("${distrib.filesizelimit}")
+    long maxfileSize;
+
+    @Value("${distrib.numberoffiles}")
+    int numofFiles;
+
+    @Value("${distrib.validdomains}")
+    String validdomains;
+    
+    @Bean
+    public DataPackagingService getDatapackagingService(){
+	return new DefaultDataPackagingService( this.validdomains,this.maxfileSize, this.numofFiles);
+    }
+    
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.
      * <p>

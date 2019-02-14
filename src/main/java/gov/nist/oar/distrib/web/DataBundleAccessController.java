@@ -21,6 +21,7 @@ import javax.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
@@ -32,10 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.ErrorInfo;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.ErrorInfo;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import springfox.documentation.annotations.ApiIgnore;
@@ -51,68 +53,11 @@ import io.swagger.annotations.ApiResponse;
 public class DataBundleAccessController {
 
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);
+   
+    @Autowired
+    DataPackagingService df;
 
-    @Value("${distrib.filesizelimit}")
-    long maxfileSize;
-
-    @Value("${distrib.numberoffiles}")
-    int numofFiles;
-
-    @Value("${distrib.validdomains}")
-    String validdomains;
-
-    /**
-     * download a bundle of data files requested
-     * 
-     * @param jsonarray
-     *            of type { "filePath":"", "downloadUrl":""}
-     * @param response
-     *            the output HTTP response object, used to write the output data
-     * @throws DistributionException
-     *             catches all exceptions and throws as distribution service
-     *             exception
-     * @throws InputLimitException
-     * 
-     */
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
-	    @ApiResponse(code = 400, message = "Malformed request."),
-	    @ApiResponse(code = 403, message = "Download not allowed"),
-	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
-    @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get all files", notes = "download the bundle of files")
-    @PostMapping(value = "/ds/_bundleNoName", consumes = "application/json", produces = "application/zip")
-    public void getbundle(@Valid @RequestBody FilePathUrl[] jsonarray, @ApiIgnore HttpServletResponse response,
-	    @ApiIgnore Errors errors) throws DistributionException, InputLimitException {
-	try {
-
-	    response.setHeader("Content-Type", "application/zip");
-	    response.setHeader("Content-Disposition", "attachment;filename=\"downloadall.zip\"");
-	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-
-	    DefaultDataPackagingService df = new DefaultDataPackagingService(this.maxfileSize, this.numofFiles,
-		    jsonarray);
-
-	    df.getZipPackage(zout);
-	    zout.close();
-	    response.flushBuffer();
-	    logger.info("Data bundled in zip delivered");
-	} catch (org.apache.catalina.connector.ClientAbortException ex) {
-	    logger.info("Client cancelled the download");
-
-	    throw new DistributionException(ex.getMessage());
-	} catch (IOException ex) {
-	    logger.debug("IOException type: " + ex.getClass().getName());
-
-	    // "Connection reset by peer" gets thrown if the user cancels the
-	    // download
-	    if (ex.getMessage().contains("Connection reset by peer")) {
-		logger.info("Client cancelled download");
-	    } else {
-		logger.error("IO error while sending file, " + ": " + ex.getMessage());
-		throw new DistributionException(ex.getMessage());
-	    }
-	}
-
-    }
+    
 
     /**
      * download a bundle of data files requested
@@ -133,19 +78,19 @@ public class DataBundleAccessController {
 	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
-    public void getbundlewithname(@Valid @RequestBody BundleNameFilePathUrl jsonObject,
+    public void getbundlewithname(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
 	    throws DistributionException, InputLimitException {
 	try {
 	    String bundleName = "download";
 
-	    DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
-		    this.numofFiles, jsonObject);
+//	    DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
+//		    this.numofFiles, jsonObject, bundleName);
 	    try{
-		df.validateRequest();
+		df.validateRequest(bundleRequest);
 
-		if (jsonObject.getBundleName() != null && !jsonObject.getBundleName().isEmpty()) {
-		    bundleName = jsonObject.getBundleName();
+		if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+		    bundleName = bundleRequest.getBundleName();
 		}
 	    } catch (DistributionException | IOException e) {
 
@@ -156,7 +101,7 @@ public class DataBundleAccessController {
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
 	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
 
-	    df.getBundledZipPackage(zout);
+	    df.getBundledZipPackage(bundleRequest, zout);
 
 	    zout.close();
 	    response.flushBuffer();

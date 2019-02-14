@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /***
  * ObjectUtils class provides the functionality to validate objects and text.
@@ -71,10 +71,10 @@ public class ObjectUtils {
      *            input list of filepathurls provided by user.
      * @return Updated list.
      */
-    public static FilePathUrl[] removeDuplicates(FilePathUrl[] inputfileList) {
-	List<FilePathUrl> list = Arrays.asList(inputfileList);
-	List<FilePathUrl> newfilelist = list.stream().distinct().collect(Collectors.toList());
-	return newfilelist.toArray(new FilePathUrl[0]);
+    public static FileRequest[] removeDuplicates(FileRequest[] inputfileList) {
+	List<FileRequest> list = Arrays.asList(inputfileList);
+	List<FileRequest> newfilelist = list.stream().distinct().collect(Collectors.toList());
+	return newfilelist.toArray(new FileRequest[0]);
     }
 
     private static final String HTML_PATTERN = "<(\"[^\"]*\"|'[^']*'|[^'\">])*>";

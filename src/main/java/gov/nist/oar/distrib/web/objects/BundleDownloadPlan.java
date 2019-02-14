@@ -25,7 +25,7 @@ public class BundleDownloadPlan {
     /**
      * FilePAths and Urls json array
      */
-    private BundleNameFilePathUrl[] requests;
+    private BundleRequest[] requests;
     /**
      * Status of the service/request
      */
@@ -61,7 +61,7 @@ public class BundleDownloadPlan {
      * @param notIncluded
      *            If files are not included in the bundle.
      */
-    public BundleDownloadPlan(String postEachTo, String status, BundleNameFilePathUrl[] requests, String[] messages,
+    public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, String[] messages,
 	    NotIncludedFiles[] notIncluded) {
 	this.postEachTo = postEachTo;
 	this.status = status;
@@ -84,7 +84,7 @@ public class BundleDownloadPlan {
      * 
      * @param requests
      */
-    public void setBundleNameFilePathUrl(BundleNameFilePathUrl[] requests) {
+    public void setBundleNameFilePathUrl(BundleRequest[] requests) {
 	this.requests = requests;
     }
 
@@ -129,7 +129,7 @@ public class BundleDownloadPlan {
      * 
      * @return
      */
-    public BundleNameFilePathUrl[] getBundleNameFilePathUrl() {
+    public BundleRequest[] getBundleNameFilePathUrl() {
 	return this.requests;
     }
 

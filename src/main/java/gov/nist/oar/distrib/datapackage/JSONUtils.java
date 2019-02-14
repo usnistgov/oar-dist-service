@@ -18,8 +18,8 @@ import java.util.Arrays;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * JSONUtils class provides some static functions to parse and validate json
@@ -58,11 +58,11 @@ public final class JSONUtils {
      * @param jsonInString
      * @return boolean
      */
-    public static boolean isJSONValid(FilePathUrl[] jsonInString) {
+    public static boolean isJSONValid(FileRequest[] jsonInString) {
 	try {
 	    final ObjectMapper mapper = new ObjectMapper();
 	    String test = mapper.writeValueAsString(jsonInString);
-	    List<FilePathUrl> myObjects = Arrays.asList(jsonInString);
+	    List<FileRequest> myObjects = Arrays.asList(jsonInString);
 	    if (myObjects.contains(null))
 		throw new IOException("There are null values in the input");
 	    return true;
@@ -79,7 +79,7 @@ public final class JSONUtils {
      * @throws JsonMappingException
      * @throws IOException
      */
-    public static void isJSONValid(BundleNameFilePathUrl inputJson)
+    public static void isJSONValid(BundleRequest inputJson)
 	    throws JsonParseException, JsonMappingException, IOException {
 	try {
 	    final ObjectMapper mapper = new ObjectMapper();

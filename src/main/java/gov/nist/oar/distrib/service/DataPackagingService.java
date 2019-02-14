@@ -22,18 +22,18 @@ import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
 public interface DataPackagingService {
-    public void getZipPackage(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException;
+   
+    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException,  IOException, InputLimitException;
 
-    public void getBundledZipPackage(ZipOutputStream zout) throws DistributionException;
+    public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException;
 
-    public void validateRequest() throws DistributionException, IOException, InputLimitException;
-
-    public BundleDownloadPlan getBundlePlan() throws JsonProcessingException;
+    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName) throws JsonProcessingException;
 }

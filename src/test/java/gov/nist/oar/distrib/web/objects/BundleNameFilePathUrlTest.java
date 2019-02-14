@@ -29,12 +29,12 @@ public class BundleNameFilePathUrlTest {
 
     @Test
     public void testBundleNameFilePathUrl() {
-	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
+	FileRequest fpathUrl_1 = new FileRequest("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	FilePathUrl fpathUrl_2 = new FilePathUrl("/filepath/file-2.pdf",
+	FileRequest fpathUrl_2 = new FileRequest("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
-		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
+	BundleRequest bundle1 = new BundleRequest("download_data_1",
+		new FileRequest[] { fpathUrl_1, fpathUrl_2 });
 
 	assertEquals("download_data_1", bundle1.getBundleName());
 	assertEquals("/filepath/file-1.pdf", bundle1.getIncludeFiles()[0].getFilePath());
@@ -51,33 +51,33 @@ public class BundleNameFilePathUrlTest {
 	String bundleNAme = "\"bundleName\":\"download_data_1\" ";
 	String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" + "}";
 
-	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
+	FileRequest fpathUrl_1 = new FileRequest("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	FilePathUrl fpathUrl_2 = new FilePathUrl("/filepath/file-2.pdf",
+	FileRequest fpathUrl_2 = new FileRequest("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
-		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
+	BundleRequest bundle1 = new BundleRequest("download_data_1",
+		new FileRequest[] { fpathUrl_1, fpathUrl_2 });
 
 	String json = new ObjectMapper().writeValueAsString(bundle1);
 	JSONAssert.assertEquals(bundleJson, json, true);
     }
 
-    public BundleNameFilePathUrl[] makeBundles() {
-	FilePathUrl fpathUrl_1 = new FilePathUrl("/filepath/file-1.pdf",
+    public BundleRequest[] makeBundles() {
+	FileRequest fpathUrl_1 = new FileRequest("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	FilePathUrl fpathUrl_2 = new FilePathUrl("/filepath/file-2.pdf",
+	FileRequest fpathUrl_2 = new FileRequest("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	BundleNameFilePathUrl bundle1 = new BundleNameFilePathUrl("download_data_1",
-		new FilePathUrl[] { fpathUrl_1, fpathUrl_2 });
+	BundleRequest bundle1 = new BundleRequest("download_data_1",
+		new FileRequest[] { fpathUrl_1, fpathUrl_2 });
 
-	FilePathUrl fpathUrl_3 = new FilePathUrl("/filepath-2/testfile-1.pdf",
+	FileRequest fpathUrl_3 = new FileRequest("/filepath-2/testfile-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	FilePathUrl fpathUrl_4 = new FilePathUrl("/filepath-2/testfile-2.pdf",
+	FileRequest fpathUrl_4 = new FileRequest("/filepath-2/testfile-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
-	BundleNameFilePathUrl bundle2 = new BundleNameFilePathUrl("download_data_2",
-		new FilePathUrl[] { fpathUrl_3, fpathUrl_4 });
+	BundleRequest bundle2 = new BundleRequest("download_data_2",
+		new FileRequest[] { fpathUrl_3, fpathUrl_4 });
 
-	return new BundleNameFilePathUrl[] { bundle1, bundle2 };
+	return new BundleRequest[] { bundle1, bundle2 };
     }
 
 }

@@ -18,6 +18,7 @@ import javax.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
@@ -31,10 +32,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.ErrorInfo;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.ErrorInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -60,15 +62,8 @@ import springfox.documentation.annotations.ApiIgnore;
 public class BundleDownloadPlanController {
 
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
-
-    @Value("${distrib.filesizelimit}")
-    long maxfileSize;
-
-    @Value("${distrib.numberoffiles}")
-    int numofFiles;
-
-    @Value("${distrib.validdomains}")
-    String validdomains;
+    @Autowired
+    DataPackagingService df;
 
     /**
      * The controller api endpoint to accept list of requested files in json
@@ -88,17 +83,17 @@ public class BundleDownloadPlanController {
     @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.", notes = "This api endpoint provides the information to client to how to divide request for number of files download "
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
-    public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleNameFilePathUrl jsonObject,
+    public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) throws JsonProcessingException {
 
 	String bundleName = "Download-data";
-	if (jsonObject.getBundleName() != null && !jsonObject.getBundleName().isEmpty()) {
-	    bundleName = jsonObject.getBundleName();
+	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+	    bundleName = bundleRequest.getBundleName();
 	}
-	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
-		this.numofFiles, jsonObject, bundleName);
+//	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
+//		this.numofFiles, jsonObject, bundleName);
 	response.setHeader("Content-Type", "application/json");
-	return df.getBundlePlan();
+	return df.getBundlePlan(bundleRequest, bundleName);
 
     }
 

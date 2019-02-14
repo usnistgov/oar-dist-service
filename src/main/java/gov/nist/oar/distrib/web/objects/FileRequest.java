@@ -11,7 +11,7 @@
  * @author: Deoyani Nandrekar-Heinis
  */
 
-package gov.nist.oar.distrib.web;
+package gov.nist.oar.distrib.web.objects;
 
 import javax.validation.constraints.NotNull;
 
@@ -23,7 +23,7 @@ import org.hibernate.validator.constraints.NotBlank;
  * of requested files with given URLs
  */
 
-public class FilePathUrl {
+public class FileRequest {
 
     /*
      * Name of the file along with path within the bundle
@@ -31,14 +31,13 @@ public class FilePathUrl {
     @NotNull
     private String filePath;
 
-    /**
+    /*
      * Url related to filename above, to be used to download data
      */
     @NotNull
-    @NotBlank
     private String downloadUrl;
 
-    public FilePathUrl() {
+    public FileRequest() {
 	// DefaultConstructor
     }
 
@@ -49,7 +48,7 @@ public class FilePathUrl {
      * @param filepath
      * @param downloadurl
      */
-    public FilePathUrl(String filepath, String downloadurl) {
+    public FileRequest(String filepath, String downloadurl) {
 	this.filePath = filepath;
 	this.downloadUrl = downloadurl;
     }
@@ -97,10 +96,10 @@ public class FilePathUrl {
 
     @Override
     public boolean equals(Object obj) {
-	if (!(obj instanceof FilePathUrl))
+	if (!(obj instanceof FileRequest))
 	    return false;
 
-	FilePathUrl mdc = (FilePathUrl) obj;
+	FileRequest mdc = (FileRequest) obj;
 	return mdc.filePath.equals(filePath) && mdc.downloadUrl.equals(downloadUrl);
     }
 

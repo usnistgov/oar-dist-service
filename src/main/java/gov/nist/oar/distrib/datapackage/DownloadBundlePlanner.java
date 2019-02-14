@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib;
+package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,11 +21,9 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.datapackage.JSONUtils;
-import gov.nist.oar.distrib.datapackage.ObjectUtils;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 import gov.nist.oar.distrib.web.objects.NotIncludedFiles;
 
 /**
@@ -43,8 +41,8 @@ public class DownloadBundlePlanner {
 
     protected static Logger logger = LoggerFactory.getLogger(DownloadBundlePlanner.class);
     List<NotIncludedFiles> notIncludedFiles;
-    List<FilePathUrl> filePathUrls;
-    List<BundleNameFilePathUrl> bundleFilePathUrls;
+    List<FileRequest> filePathUrls;
+    List<BundleRequest> bundleFilePathUrls;
     List<String> messages;
     BundleDownloadPlan finalPlan;
     long bundleSize = 0;
@@ -53,8 +51,8 @@ public class DownloadBundlePlanner {
     String bundleName = "";
     boolean unsupportedSource;
     String status = "complete";
-    private FilePathUrl[] inputfileList;
-    private BundleNameFilePathUrl bundleRequest;
+    private FileRequest[] inputfileList;
+    private BundleRequest bundleRequest;
     private long mxFilesBundleSize;
     private int mxBundledFilesCount;
     private String validdomains;
@@ -63,7 +61,7 @@ public class DownloadBundlePlanner {
 	// Default constructor
     }
 
-    public DownloadBundlePlanner(BundleNameFilePathUrl inputjson, long maxFileSize, int numOfFiles, String validdomains,
+    public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
 	    String bundleName) {
 	this.bundleRequest = inputjson;
 	this.mxFilesBundleSize = maxFileSize;
@@ -82,8 +80,8 @@ public class DownloadBundlePlanner {
     public BundleDownloadPlan getBundleDownloadPlan() throws JsonProcessingException {
 
 	notIncludedFiles = new ArrayList<NotIncludedFiles>();
-	filePathUrls = new ArrayList<FilePathUrl>();
-	bundleFilePathUrls = new ArrayList<BundleNameFilePathUrl>();
+	filePathUrls = new ArrayList<FileRequest>();
+	bundleFilePathUrls = new ArrayList<BundleRequest>();
 	messages = new ArrayList<String>();
 
 	ObjectMapper mapper = new ObjectMapper();
@@ -101,7 +99,7 @@ public class DownloadBundlePlanner {
 	    this.inputfileList = this.bundleRequest.getIncludeFiles();
 	    ObjectUtils.removeDuplicates(this.inputfileList);
 	    for (int i = 0; i < inputfileList.length; i++) {
-		FilePathUrl jobject = inputfileList[i];
+		FileRequest jobject = inputfileList[i];
 		String filepath = jobject.getFilePath();
 		String downloadurl = jobject.getDownloadUrl();
 		if (ObjectUtils.validateUrlDomain(downloadurl, validdomains)) {
@@ -134,23 +132,23 @@ public class DownloadBundlePlanner {
      * @param jobject
      * @throws IOException
      */
-    public void makeBundles(FilePathUrl jobject) throws IOException {
+    public void makeBundles(FileRequest jobject) throws IOException {
 	bundledFilesCount++;
 	long indiviualFileSize = ObjectUtils.getFileSize(jobject.getDownloadUrl());
 	if(indiviualFileSize >= this.mxFilesBundleSize){
-	    List<FilePathUrl> onefilePathUrls = new ArrayList<FilePathUrl>();
-	    onefilePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
+	    onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	    this.makePlan(onefilePathUrls);
 	}else{
 	 bundleSize += indiviualFileSize;
 	 if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-	    filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	 } else {
 	    makePlan(filePathUrls);
 	    filePathUrls.clear();
 	    bundleSize = 0;
 	    bundledFilesCount = 1;
-	    filePathUrls.add(new FilePathUrl(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	 }
 	}
     }
@@ -174,10 +172,10 @@ public class DownloadBundlePlanner {
      * Make the bundle of the files provided by list
      * @param fPathUrls
      */
-    public void makePlan(List<FilePathUrl> fPathUrls){
+    public void makePlan(List<FileRequest> fPathUrls){
 	 bundleCount++;
-	 FilePathUrl[] bundlefilePathUrls = fPathUrls.toArray(new FilePathUrl[0]);
-	 bundleFilePathUrls.add(new BundleNameFilePathUrl(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls)); 
+	 FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
+	 bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls)); 
     }
 
     /**
@@ -186,7 +184,7 @@ public class DownloadBundlePlanner {
      */
     public void makeBundlePlan() {
 	this.finalPlan = new BundleDownloadPlan("_bundle", this.status,
-		bundleFilePathUrls.toArray(new BundleNameFilePathUrl[0]), messages.toArray(new String[0]),
+		bundleFilePathUrls.toArray(new BundleRequest[0]), messages.toArray(new String[0]),
 		notIncludedFiles.toArray(new NotIncludedFiles[0]));
     }
 

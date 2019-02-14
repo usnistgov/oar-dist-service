@@ -32,8 +32,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -43,20 +43,20 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
-    private static FilePathUrl[] inputfileList;
-    private static BundleNameFilePathUrl bundleRequest;
+    private static FileRequest[] inputfileList;
+    private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
     DefaultDataPackager dp;
 
     public static void createInput() throws JsonParseException, JsonMappingException, IOException {
 
-	inputfileList = new FilePathUrl[2];
+	inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 
@@ -111,16 +111,16 @@ public class DefaultDataPackagerTest {
 
     public void createBundleTestdata() throws JsonParseException, JsonMappingException, IOException {
 
-	inputfileList = new FilePathUrl[2];
+	inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	bundleRequest = new BundleNameFilePathUrl("testdatabundle", inputfileList);
+	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
     }
 
     @Rule
@@ -136,15 +136,15 @@ public class DefaultDataPackagerTest {
 
     public void createBundleErrorTestdata() throws JsonParseException, JsonMappingException, IOException {
 
-	inputfileList = new FilePathUrl[2];
+	inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"jgkdfghjkdf\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	bundleRequest = new BundleNameFilePathUrl("testdatabundle", inputfileList);
+	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
     }
 }

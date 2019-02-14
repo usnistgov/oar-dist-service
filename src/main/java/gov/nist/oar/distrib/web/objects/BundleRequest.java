@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web;
+package gov.nist.oar.distrib.web.objects;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -23,7 +23,7 @@ package gov.nist.oar.distrib.web;
  * of requested files with given URLs. It also holds name of the bundle given by
  * client.
  */
-public class BundleNameFilePathUrl {
+public class BundleRequest {
 
     /**
      * Name of the bundle to be downloaded
@@ -32,12 +32,12 @@ public class BundleNameFilePathUrl {
     /**
      * FilePAths and Urls json array
      */
-    private FilePathUrl[] includeFiles;
+    private FileRequest[] includeFiles;
 
     /**
      * Default Constructor
      */
-    public BundleNameFilePathUrl() {
+    public BundleRequest() {
 	// default constructor
     }
 
@@ -47,7 +47,7 @@ public class BundleNameFilePathUrl {
      * @param bundleName
      * @param includeFiles
      */
-    public BundleNameFilePathUrl(String bundleName, FilePathUrl[] includeFiles) {
+    public BundleRequest(String bundleName, FileRequest[] includeFiles) {
 	this.bundleName = bundleName;
 	this.includeFiles = includeFiles;
     }
@@ -75,7 +75,7 @@ public class BundleNameFilePathUrl {
      * 
      * @param includeFiles
      */
-    public void setIncludeFiles(FilePathUrl[] includeFiles) {
+    public void setIncludeFiles(FileRequest[] includeFiles) {
 	this.includeFiles = includeFiles;
     }
 
@@ -84,7 +84,7 @@ public class BundleNameFilePathUrl {
      * 
      * @return FilePathUrl[]
      */
-    public FilePathUrl[] getIncludeFiles() {
+    public FileRequest[] getIncludeFiles() {
 	return this.includeFiles;
     }
 }

@@ -38,8 +38,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -69,17 +69,17 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testDownloadAllFiles()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
-	FilePathUrl[] inputfileList = new FilePathUrl[2];
+	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/projectopen.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	RequestEntity<BundleNameFilePathUrl> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
@@ -102,21 +102,21 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testDownloadAllFilesException()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
-	FilePathUrl[] inputfileList = new FilePathUrl[3];
+	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"<html>/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1895/license2.pdf</body>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val3 = "{\"filePath\":\"/1896/license3.pdf<i>TEST Erro Here</i>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
-	FilePathUrl testval3 = mapper.readValue(val3, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
+	FileRequest testval3 = mapper.readValue(val3, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	RequestEntity<BundleNameFilePathUrl> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
@@ -137,7 +137,7 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testDownloadAllFiles2()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
-	FilePathUrl[] inputfileList = new FilePathUrl[5];
+	FileRequest[] inputfileList = new FileRequest[5];
 	String val1 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
 	String val2 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";
 	String val3 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-003.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-003.json\"}";
@@ -145,11 +145,11 @@ public class BundleDownloadPlanControllerTest {
 	String val5 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-005.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-005.json\"}";
 		    
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
-	FilePathUrl testval3 = mapper.readValue(val3, FilePathUrl.class);
-	FilePathUrl testval4 = mapper.readValue(val4, FilePathUrl.class);
-	FilePathUrl testval5 = mapper.readValue(val5, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
+	FileRequest testval3 = mapper.readValue(val3, FileRequest.class);
+	FileRequest testval4 = mapper.readValue(val4, FileRequest.class);
+	FileRequest testval5 = mapper.readValue(val5, FileRequest.class);
 	
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
@@ -157,8 +157,8 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[3] = testval4;
 	inputfileList[4] = testval5;
 	
-	BundleNameFilePathUrl bFL = new BundleNameFilePathUrl("testdownload", inputfileList);
-	RequestEntity<BundleNameFilePathUrl> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);

@@ -21,15 +21,17 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.web.objects.FileRequest;
+
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class FilePathUrlTest {
+public class FileReuestTest {
 
     @Test
     public void testFilePathUrl() {
-	FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf",
+	FileRequest fpathUrl = new FileRequest("/1894/license.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	assertEquals("/1894/license.pdf", fpathUrl.getFilePath());
 	assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf", fpathUrl.getDownloadUrl());
@@ -38,7 +40,7 @@ public class FilePathUrlTest {
     @Test
     public void testJson() throws JsonProcessingException, JSONException {
 	String testJson = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	FilePathUrl fpathUrl = new FilePathUrl("/1894/license.pdf",
+	FileRequest fpathUrl = new FileRequest("/1894/license.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	String json = new ObjectMapper().writeValueAsString(fpathUrl);
 	JSONAssert.assertEquals(testJson, json, true);

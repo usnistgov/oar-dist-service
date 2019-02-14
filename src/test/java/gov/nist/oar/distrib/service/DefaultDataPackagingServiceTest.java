@@ -39,8 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleNameFilePathUrl;
-import gov.nist.oar.distrib.web.objects.FilePathUrl;
+import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -51,11 +51,11 @@ public class DefaultDataPackagingServiceTest {
     private static Logger logger = LoggerFactory.getLogger(DefaultDataPackagingServiceTest.class);
 
     DefaultDataPackagingService ddp;
-    static FilePathUrl[] requestedUrls = new FilePathUrl[2];
+    static FileRequest[] requestedUrls = new FileRequest[2];
     long maxFileSize = 1000000;
     int numOfFiles = 100;
     String domains = "nist.gov|s3.amazonaws.com/nist-midas";
-    static BundleNameFilePathUrl bundleRequest;
+    static BundleRequest bundleRequest;
 
     public static void createRequest() throws JsonParseException, JsonMappingException, IOException {
 
@@ -63,11 +63,11 @@ public class DefaultDataPackagingServiceTest {
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
-	FilePathUrl testval1 = mapper.readValue(val1, FilePathUrl.class);
-	FilePathUrl testval2 = mapper.readValue(val2, FilePathUrl.class);
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	requestedUrls[0] = testval1;
 	requestedUrls[1] = testval2;
-	bundleRequest = new BundleNameFilePathUrl("testdatabundle", requestedUrls);
+	bundleRequest = new BundleRequest("testdatabundle", requestedUrls);
     }
 
     @BeforeClass
@@ -77,7 +77,7 @@ public class DefaultDataPackagingServiceTest {
 
     @Before
     public void setUp() {
-	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles, bundleRequest);
+	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles);
     }
 
     @Rule
@@ -87,14 +87,14 @@ public class DefaultDataPackagingServiceTest {
     public void getBundledZip() throws DistributionException, InputLimitException {
 	try {
 	    String bundleName = "example";
-	    ddp.validateRequest();
+	    ddp.validateRequest(bundleRequest);
 	    if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
 		bundleName = bundleRequest.getBundleName();
 
 	    Path path = Files.createTempFile(bundleName, ".zip");
 	    OutputStream os = Files.newOutputStream(path);
 	    ZipOutputStream zos = new ZipOutputStream(os);
-	    ddp.getBundledZipPackage(zos);
+	    ddp.getBundledZipPackage(bundleRequest, zos);
 	    zos.close();
 	    int len = (int) Files.size(path);
 	    System.out.println("Len:" + len);
