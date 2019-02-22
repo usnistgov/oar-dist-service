@@ -10,7 +10,7 @@ spring:
 server:
     port: 8083
     servlet:
-      context-path:  /oar-dist-service
+      context-path:  /od/ds
     error:
       include-stacktrace: never
     connection-timeout: 300000
@@ -31,7 +31,7 @@ security:
     
 logging:
   file: distservice.log
-  path : /var/log/dist-service
+  path : /tmp/dist
   exception-conversion-word: '%wEx'
 
 

@@ -34,7 +34,7 @@ import io.swagger.annotations.Api;
  */
 @RestController
 @Api
-@RequestMapping(value = "/ds")
+@RequestMapping(value = "/")
 public class VersionController {
 
     /**
@@ -80,15 +80,15 @@ public class VersionController {
         return new VersionInfo(NAME, VERSION);
     }
 
-    /**
-     * redirect "/ds" to "/ds/"
-     */
-    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
-                  notes = "This returns the name and version label for this service")
-    @GetMapping(value = "")
-    public void redirectToServiceVersion(HttpServletResponse resp) throws IOException {
-        resp.sendRedirect("ds/");
-    }
+//    /**
+//     * redirect "/ds" to "/ds/"
+//     */
+//    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
+//                  notes = "This returns the name and version label for this service")
+//    @GetMapping(value = "")
+//    public void redirectToServiceVersion(HttpServletResponse resp) throws IOException {
+//        resp.sendRedirect("ds/");
+//    }
 
     public static class VersionInfo {
         public String serviceName = null;

@@ -66,7 +66,7 @@ import springfox.documentation.annotations.ApiIgnore;
  */
 @RestController
 @Api
-@RequestMapping(value = "/ds/_aip")
+@RequestMapping(value = "/_aip")
 public class AIPAccessController {
 
     Logger logger = LoggerFactory.getLogger(AIPAccessController.class);

@@ -73,7 +73,7 @@ import springfox.documentation.annotations.ApiIgnore;
  */
 @RestController
 @Api
-@RequestMapping(value = "/ds")
+//@RequestMapping(value = "/")
 public class DatasetAccessController {
 
     Logger logger = LoggerFactory.getLogger(DatasetAccessController.class);
@@ -301,13 +301,14 @@ public class DatasetAccessController {
 
         String filepath = (String) request.getAttribute(
                                       HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-        filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
+        filepath = filepath.substring( dsid.length() + 2);
 
         String ver = null;
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0) filepath = filepath.substring(i+1);
+            if (i >= 0) 
+        	filepath = filepath.substring(i+1);
         }
         checkFilePath(filepath);
 
