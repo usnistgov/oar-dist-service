@@ -65,7 +65,7 @@ public class AIPAccessControllerTest {
     public void testDescribeAIP() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                          "/ds/_aip/mds1491.mbag0_2-0.zip/_info",
+                                                          "/_aip/mds1491.mbag0_2-0.zip/_info",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -83,10 +83,10 @@ public class AIPAccessControllerTest {
     @Test
     public void testDescribeAIPsBadID() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/goober.zip",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/_aip/goober.zip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/_aip/goober.zip\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/_aip/goober.zip\"," +
                                  "status:404,message:\"AIP file not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -95,7 +95,7 @@ public class AIPAccessControllerTest {
     public void testDownloadAIP() {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                          "/ds/_aip/mds1491.mbag0_2-0.zip",
+                                                          "/_aip/mds1491.mbag0_2-0.zip",
                                                       HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -104,6 +104,6 @@ public class AIPAccessControllerTest {
     }
 
     private String getBaseURL() {
-        return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/od/ds";
     }
 }

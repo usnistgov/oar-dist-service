@@ -63,13 +63,13 @@ public class DatasetAccessControllerTest {
     HttpHeaders headers = new HttpHeaders();
 
     private String getBaseURL() {
-        return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/od/ds";
     }
 
     @Test
     public void testDescribeAIPs() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_aip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -84,10 +84,10 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDescribeAIPsBadID() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goober/_aip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -96,7 +96,7 @@ public class DatasetAccessControllerTest {
     public void testDescribeAIPsEvil() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                      "/ds/%3Cscript%3Egoober%3C%2Fscript%3E/_aip",
+                                                      "/%3Cscript%3Egoober%3C%2Fscript%3E/_aip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertFalse(resp.getBody().contains("script>"));
@@ -107,7 +107,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testListAIPVersions() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -119,10 +119,10 @@ public class DatasetAccessControllerTest {
     @Test
     public void testListAIPVersionsBadID() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_v",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goober/_aip/_v",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_v\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_v\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -130,7 +130,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDescribeAIPsForVersion() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/0",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v/0",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -141,7 +141,7 @@ public class DatasetAccessControllerTest {
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
 
         
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/1.1.0",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v/1.1.0",
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -156,7 +156,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDescribeHeadAIPForVersion() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/0/_head",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v/0/_head",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -167,7 +167,7 @@ public class DatasetAccessControllerTest {
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
 
         
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/1.1.0/_head",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v/1.1.0/_head",
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -182,18 +182,18 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDescribeAIPsForVersionBadIn() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_v/0",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goober/_aip/_v/0",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_v/0\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_v/0\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
         req = new HttpEntity<String>(null, headers);
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/12.32",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_v/12.32",
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/_aip/_v/12.32\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/_aip/_v/12.32\"," +
                            "status:404,message:\"Requested version of resource not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -201,7 +201,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDdescribeLatestHeadAIP() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_head",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_aip/_head",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
@@ -215,10 +215,10 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDescribeHeadAIPForVersionBadInp() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_head",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goober/_aip/_head",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_head\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_head\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
@@ -227,7 +227,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDownloadFile() {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/trial1.json",
                                                       HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -238,23 +238,23 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDownloadFileBadInp() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/trial1.json",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goober/trial1.json",
                                                       HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/trial1.json\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
 
         req = new HttpEntity<String>(null, headers);
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/goober/trial1.json",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/goober/trial1.json",
                                HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/goober/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/goober/trial1.json\"," +
                                  "status:404,message:\"File not found in requested dataset\",method:GET}",
                                 resp.getBody(), true);
 
@@ -263,12 +263,12 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDownloadFileMalInp() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goob er/trial1.json",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/goob er/trial1.json",
                                                       HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goob%20er/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goob%20er/trial1.json\"," +
                                  "status:400,message:\"Malformed input\",method:GET}",
                                 resp.getBody(), true);
 
@@ -288,12 +288,12 @@ public class DatasetAccessControllerTest {
         */
 
         req = new HttpEntity<String>(null, headers);
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/.trial3a.json",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/.trial3a.json",
                                HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/.trial3a.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/.trial3a.json\"," +
                                  "status:400,message:\"Malformed input\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -301,7 +301,7 @@ public class DatasetAccessControllerTest {
     @Test
     public void testDownloadFileFromVersion() {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/0/trial1.json",
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/mds1491/_v/0/trial1.json",
                                                       HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -309,7 +309,7 @@ public class DatasetAccessControllerTest {
         assertEquals(69, resp.getBody().length());
 
         req = new HttpEntity<String>(null, headers);
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/1.1.0/trial1.json",
+        resp = websvc.exchange(getBaseURL() + "/mds1491/_v/1.1.0/trial1.json",
                                HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());

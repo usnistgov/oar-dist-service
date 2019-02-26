@@ -34,7 +34,7 @@ import io.swagger.annotations.Api;
  */
 @RestController
 @Api
-@RequestMapping(value = "/")
+//@RequestMapping(value = "/")
 public class VersionController {
 
     /**
@@ -75,7 +75,7 @@ public class VersionController {
      */
     @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
                   notes = "This returns the name and version label for this service")
-    @GetMapping(value = "/")
+    @GetMapping(value = "")
     public VersionInfo getServiceVersion() {
         return new VersionInfo(NAME, VERSION);
     }
