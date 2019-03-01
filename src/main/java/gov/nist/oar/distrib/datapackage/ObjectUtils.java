@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -29,7 +30,7 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
  * @author Deoyani Nandrekar-Heinis
  */
 public class ObjectUtils {
-    private ObjectUtils() {
+    public ObjectUtils() {
     }
 
     /**
@@ -56,11 +57,43 @@ public class ObjectUtils {
      */
    // private 
     //private 
-    public static boolean validateUrlDomain(String url, String domains) throws IOException {	
-	Pattern dpattern = Pattern.compile(domains);
+    public static boolean validateUrlDomain(String url, String domains) throws IOException {
 	URL obj = new URL(url);
-	Matcher matcher = dpattern.matcher(obj.toString());
-	return matcher.find();	
+	String[] domainList = domains.split("\\|");
+	List<Boolean> list=new ArrayList<Boolean>();
+	//Looping over all the whitelist domains
+	for(int i=0; i< domainList.length; i++){
+	    String host = ""; 
+	    String context = "";
+	    //If domains have path included in the config list check host and path.
+	    if(domainList[i].contains("/")){
+		String[] parts = domainList[i].split("/", 2);
+		host = parts[0];
+		if(getPatternMatch(host, obj.getHost())){
+		  context = parts[1];
+		  list.add(getPatternMatch(context, obj.getPath()));
+		  
+		}else{
+		    list.add(false);
+		}
+	    }//else check only the host
+	    else{
+		host = domainList[i];
+		list.add(getPatternMatch(host, obj.getHost()));
+	    }
+	    
+	}
+	//if all the values in list are false, return false.
+	//It means none of the domain and host matches return false.
+	return !(list.stream().allMatch(val -> val == false));
+
+    }
+    
+    //Patten matching for give pattern in requested string
+    private static boolean getPatternMatch(String pattern, String requestString){
+	 Pattern dpattern = Pattern.compile(pattern);
+	 Matcher matcher = dpattern.matcher(requestString);
+	 return matcher.find();
     }
 
     /**
