@@ -71,17 +71,18 @@ public class ObjectUtils {
 		host = parts[0];
 		if(getPatternMatch(host, obj.getHost())){
 		  context = parts[1];
-		  list.add(getPatternMatch(context, obj.getPath()));
+		  String[] paths = obj.getPath().split("/");
+		  list.add(getPatternMatch(context, obj.getPath().split("/")[1]));
 		  
 		}else{
 		    list.add(false);
 		}
 	    }//else check only the host
 	    else{
-		host = domainList[i];
-		list.add(getPatternMatch(host, obj.getHost()));
+		host = ".*"+domainList[i];
+		list.add(getPatternMatch(host.trim(), obj.getHost()));
 	    }
-	    
+	   
 	}
 	//if all the values in list are false, return false.
 	//It means none of the domain and host matches return false.
@@ -89,11 +90,12 @@ public class ObjectUtils {
 
     }
     
-    //Patten matching for give pattern in requested string
+    //Pattern matching for give pattern in requested string
     private static boolean getPatternMatch(String pattern, String requestString){
-	 Pattern dpattern = Pattern.compile(pattern);
-	 Matcher matcher = dpattern.matcher(requestString);
-	 return matcher.find();
+	 pattern= pattern.trim();
+	 Pattern dpattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+	 Matcher matcher = dpattern.matcher(requestString);	 
+	 return matcher.matches();
     }
 
     /**
