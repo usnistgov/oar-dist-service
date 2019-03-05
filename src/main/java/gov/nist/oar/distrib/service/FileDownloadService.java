@@ -12,7 +12,6 @@
 package gov.nist.oar.distrib.service;
 
 import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.web.objects.FileRequest;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
@@ -27,70 +26,47 @@ import java.util.List;
 public interface FileDownloadService {
 
     /**
-     * Return the filepaths of data files available from the dataset with a
-     * given identifier
+     * Return the filepaths of data files available from the dataset with a given identifier
      *
-     * @param dsid
-     *            the dataset identifier for the desired dataset
-     * @param version
-     *            the version of the dataset. If null, the latest version is
-     *            returned.
-     * @throws ResourceNotFoundException
-     *             if the dsid is not recognized or there is no such version
-     *             available for the dataset with dsid.
-     * @throws DistributionException
-     *             if an internal error has occurred
+     * @param dsid      the dataset identifier for the desired dataset
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @throws ResourceNotFoundException   if the dsid is not recognized or there is no such version
+     *                                        available for the dataset with dsid.
+     * @throws DistributionException       if an internal error has occurred
      */
-    public List<String> listDataFiles(String dsid, String version)
-	    throws ResourceNotFoundException, DistributionException;
+    public List<String> listDataFiles(String dsid, String version) 
+        throws ResourceNotFoundException, DistributionException;
 
     /**
      * Download the data file with the given filepath
      *
-     * @param dsid
-     *            the dataset identifier for the desired dataset
-     * @param filepath
-     *            the path within the dataset to the desired file
-     * @param version
-     *            the version of the dataset. If null, the latest version is
-     *            returned.
-     * @return StreamHandle - an open stream to the file data accompanied by
-     *         file metadata (like content length, type, checksum).
-     * @throws ResourceNotFoundException
-     *             if the dsid is not recognized or there is no such version
-     *             available for the dataset with dsid.
-     * @throws FileNotFoundException
-     *             if the filepath is not found in the requested version of the
-     *             identified dataset
-     * @throws DistributionException
-     *             if an internal error has occurred
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @return StreamHandle - an open stream to the file data accompanied by file metadata (like 
+     *                  content length, type, checksum).
+     * @throws ResourceNotFoundException   if the dsid is not recognized or there is no such version
+     *                                        available for the dataset with dsid.
+     * @throws FileNotFoundException       if the filepath is not found in the requested version of 
+     *                                        the identified dataset
+     * @throws DistributionException       if an internal error has occurred
      */
     public StreamHandle getDataFile(String dsid, String filepath, String version)
-	    throws ResourceNotFoundException, DistributionException, FileNotFoundException;
+        throws ResourceNotFoundException, DistributionException, FileNotFoundException;
 
     /**
-     * Describe the data file with the given filepath. The returned information
-     * includes the file size, type, and checksum information.
+     * Describe the data file with the given filepath.  The returned information includes the 
+     * file size, type, and checksum information.  
      *
-     * @param dsid
-     *            the dataset identifier
-     * @param filepath
-     *            the path within the dataset to the desired file
-     * @param version
-     *            the version of the dataset. If null, the latest version is
-     *            returned.
-     * @throws ResourceNotFoundException
-     *             if the dsid is not recognized or there is no such version
-     *             available for the dataset with dsid.
-     * @throws FileNotFoundException
-     *             if the filepath is not found in the requested version of the
-     *             identified dataset
-     * @throws DistributionException
-     *             if an internal error has occurred
+     * @param dsid      the dataset identifier 
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @throws ResourceNotFoundException   if the dsid is not recognized or there is no such version
+     *                                        available for the dataset with dsid.
+     * @throws FileNotFoundException       if the filepath is not found in the requested version of 
+     *                                        the identified dataset
+     * @throws DistributionException       if an internal error has occurred
      */
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
-	    throws ResourceNotFoundException, DistributionException, FileNotFoundException;
-
-    public StreamHandle getDataFilesBundle(FileRequest[] filesArray) throws DistributionException;
-
+        throws ResourceNotFoundException, DistributionException, FileNotFoundException;
 }

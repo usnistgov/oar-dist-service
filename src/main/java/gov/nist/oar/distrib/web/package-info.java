@@ -13,10 +13,11 @@
  */
 
 /**
- * a package that implements web service frontends to the functionality of the
- * {@link gov.nist.oar.distrib distrib} package.
+ * a package that implements web service frontends to the functionality of the 
+ * {@link gov.nist.oar.distrib distrib} package.  
  * <p>
- * The web service implementation is based on the
+ * The web service implementation is based on the 
  * <a href="https://spring.io/" target="_top">spring framework</a>.
  */
 package gov.nist.oar.distrib.web;
+

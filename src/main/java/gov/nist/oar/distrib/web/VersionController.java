@@ -48,52 +48,55 @@ public class VersionController {
     public final static String VERSION;
 
     static {
-	String name = null;
-	String version = null;
-	try (InputStream verf = VersionController.class.getResourceAsStream("/VERSION")) {
-	    if (verf == null) {
-		name = "oar-dist-service";
-		version = "not set";
-	    } else {
-		BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
-		String line = vrdr.readLine();
-		String[] parts = line.split("\\s+");
-		name = parts[0];
-		version = (parts.length > 1) ? parts[1] : "missing";
-	    }
-	} catch (Exception ex) {
-	    name = "oar-dist-service";
-	    version = "unknown";
-	}
-	NAME = name;
-	VERSION = version;
+        String name = null;
+        String version = null;
+        try (InputStream verf = VersionController.class.getResourceAsStream("/VERSION")) {
+            if (verf == null) {
+                name = "oar-dist-service";
+                version = "not set";
+            }
+            else {
+                BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
+                String line = vrdr.readLine();
+                String[] parts = line.split("\\s+");
+                name = parts[0];
+                version = (parts.length > 1) ? parts[1] : "missing";
+            }
+        } catch (Exception ex) {
+            name = "oar-dist-service";
+            version = "unknown";
+        }
+        NAME = name;
+        VERSION = version;
     }
 
     /**
      * return the version of the service
      */
-    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion", notes = "This returns the name and version label for this service")
+    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
+                  notes = "This returns the name and version label for this service")
     @GetMapping(value = "/")
     public VersionInfo getServiceVersion() {
-	return new VersionInfo(NAME, VERSION);
+        return new VersionInfo(NAME, VERSION);
     }
 
     /**
      * redirect "/ds" to "/ds/"
      */
-    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion", notes = "This returns the name and version label for this service")
+    @ApiOperation(value = "Return the version data for the service", nickname = "getServiceVersion",
+                  notes = "This returns the name and version label for this service")
     @GetMapping(value = "")
     public void redirectToServiceVersion(HttpServletResponse resp) throws IOException {
-	resp.sendRedirect("ds/");
+        resp.sendRedirect("ds/");
     }
 
     public static class VersionInfo {
-	public String serviceName = null;
-	public String version = null;
+        public String serviceName = null;
+        public String version = null;
 
-	public VersionInfo(String name, String ver) {
-	    serviceName = name;
-	    version = ver;
-	}
+        public VersionInfo(String name, String ver) {
+            serviceName = name;
+            version = ver;
+        }
     }
 }

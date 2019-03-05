@@ -13,12 +13,12 @@
  */
 
 /**
- * a package that implements interfaces for accessing and interacting with
- * storage. This includes, in particular, the
- * {@link gov.nist.oar.distrib.LongTermStorage} interface.
+ * a package that implements interfaces for accessing and interacting with storage.  This includes,
+ * in particular, the {@link gov.nist.oar.distrib.LongTermStorage} interface.
  * <p>
- * This package makes use of the {@link gov.nist.oar.bags oar.bags} and
- * {@link gov.nist.oar.distrib oar.distrib} packages. It does not have any
- * dependencies on the sibling {@link gov.nist.oar.distrib.web web} package.
+ * This package makes use of the {@link gov.nist.oar.bags oar.bags} and 
+ * {@link gov.nist.oar.distrib oar.distrib} packages.  It does not have any dependencies 
+ * on the sibling {@link gov.nist.oar.distrib.web web} package.
  */
 package gov.nist.oar.distrib.storage;
+

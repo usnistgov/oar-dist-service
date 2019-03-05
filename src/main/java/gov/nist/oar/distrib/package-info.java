@@ -15,12 +15,11 @@
 /**
  * a package with classes for finding, preparing, and serving data
  * <p>
- * This package provides the general-purpose infrastructure classes supporting
- * the PDR data distribution service. The {@link gov.nist.oar.distrib.service
- * service} sub-package provides the service classes that represent the Java API
- * for data access. These services are exposed as REST web services via
- * implementations found the {@link gov.nist.oar.distrib.web web} sub-package
- * (implemented using the <a href="https://spring.io/" target="_top">spring boot
- * framework</a>.
+ * This package provides the general-purpose infrastructure classes supporting the PDR data 
+ * distribution service.  The {@link gov.nist.oar.distrib.service service} sub-package provides the 
+ * service classes that represent the Java API for data access.  These services are exposed as REST 
+ * web services via implementations found the {@link gov.nist.oar.distrib.web web} sub-package 
+ * (implemented using the <a href="https://spring.io/" target="_top">spring boot framework</a>.  
  */
 package gov.nist.oar.distrib;
+

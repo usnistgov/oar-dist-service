@@ -33,51 +33,63 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @Configuration
 @EnableSwagger2
-@ComponentScan({ "gov.nist.oar.distrib.web" })
+@ComponentScan({"gov.nist.oar.distrib.web"})
 /**
  * Configuration for Swagger-generated API documentation.
  * <p>
- * This class enables Swagger to generate API documentation drawn from REST
- * controller class markup. An HTML rendering of that document is made available
- * from {@code /swagger-ui.html}.
+ * This class enables Swagger to generate API documentation drawn from REST controller class 
+ * markup.  An HTML rendering of that document is made available from {@code /swagger-ui.html}.
  * 
  * @author dsn1 Deoyani Nandrekar-Heinis
  */
 public class DistribSwaggerConfig {
-
+        
     private static List<ResponseMessage> responseMessageList = new ArrayList<>();
 
     static {
-	responseMessageList.add(new ResponseMessageBuilder().code(500).message("500 - Internal Server Error")
-		.responseModel(new ModelRef("Error")).build());
-	responseMessageList.add(new ResponseMessageBuilder().code(403).message("403 - Forbidden").build());
+        responseMessageList.add(new ResponseMessageBuilder()
+                                   .code(500)
+                                   .message("500 - Internal Server Error")
+                                   .responseModel(new ModelRef("Error")).build()
+        );
+        responseMessageList.add(new ResponseMessageBuilder()
+                                   .code(403)
+                                   .message("403 - Forbidden")
+                                   .build()
+        );
     }
-
+    
     @Bean
     /**
      * Create the Swagger documentation builder object
-     * 
      * @return Docket
      */
     public Docket api() {
-	return new Docket(DocumentationType.SWAGGER_2).select()
-		.apis(RequestHandlerSelectors.basePackage("gov.nist.oar.distrib.web")).paths(PathSelectors.any())
-		.build().apiInfo(apiInfo());
+        return new Docket(DocumentationType.SWAGGER_2)
+                  .select()
+                  .apis(RequestHandlerSelectors.basePackage("gov.nist.oar.distrib.web"))
+                  .paths(PathSelectors.any())
+                  .build()
+                  .apiInfo(apiInfo());
     }
 
     /**
-     * Return the basic
-     * 
+     * Return the basic 
      * @return return ApiInfo
      */
     private ApiInfo apiInfo() {
 
-	ApiInfo apiInfo = new ApiInfo("Data Distribution Service API (" + VersionController.NAME + ")",
-		"An API for accessing data products from the NIST Public Data Repository "
-			+ "(along with information about them)",
-		VersionController.VERSION, "https://www.nist.gov/director/licensing",
-		new Contact("OAR Data Support Team", "https://www.nist.gov/data", "datasupport@nist.gov"),
-		"NIST Public licence", "https://www.nist.gov/director/licensing", new HashSet<VendorExtension>());
-	return apiInfo;
+        ApiInfo apiInfo = 
+            new ApiInfo("Data Distribution Service API (" + VersionController.NAME + ")", 
+                        "An API for accessing data products from the NIST Public Data Repository " +
+                           "(along with information about them)",
+                        VersionController.VERSION,
+                        "https://www.nist.gov/director/licensing", 
+                        new Contact("OAR Data Support Team", "https://www.nist.gov/data",
+                                    "datasupport@nist.gov"),
+                        "NIST Public licence", 
+                        "https://www.nist.gov/director/licensing",
+                        new HashSet<VendorExtension>());
+        return apiInfo;
     }
 }

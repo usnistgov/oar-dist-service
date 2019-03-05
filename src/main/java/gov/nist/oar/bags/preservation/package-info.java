@@ -13,8 +13,7 @@
  */
 
 /**
- * a package for handling BagIt data packages that comply with the NIST
- * Preservation BagIt Profile.
+ * a package for handling BagIt data packages that comply with the NIST Preservation BagIt Profile.   
  *
  */
 package gov.nist.oar.bags.preservation;
