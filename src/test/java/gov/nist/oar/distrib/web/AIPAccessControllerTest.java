@@ -41,13 +41,18 @@ import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
-	"distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas" })
+@SpringBootTest(classes = NISTDistribServiceConfig.class,
+                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = {
+        "distrib.bagstore.mode=local",
+        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.baseurl=http://localhost/oar-distrb-service",
+        "distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
+        "distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas",
+        "logging.path=${basedir}/target/surefire-reports"
+})
 public class AIPAccessControllerTest {
 
     Logger logger = LoggerFactory.getLogger(AIPAccessControllerTest.class);
@@ -60,44 +65,47 @@ public class AIPAccessControllerTest {
 
     @Test
     public void testDescribeAIP() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/mds1491.mbag0_2-0.zip/_info",
-		HttpMethod.GET, req, String.class);
-	assertEquals(HttpStatus.OK, resp.getStatusCode());
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
+                                                          "/ds/_aip/mds1491.mbag0_2-0.zip/_info",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-	// logger.info("testDescribeAIP(): got:\n " + resp.getBody());
+        // logger.info("testDescribeAIP(): got:\n  " + resp.getBody());
 
-	String expect = "{ name:mds1491.mbag0_2-0.zip, contentType: \"application/zip\","
-		+ "contentLength:9841, aipid:mds1491, serialization:zip}";
+        String expect = "{ name:mds1491.mbag0_2-0.zip, contentType: \"application/zip\"," +
+                          "contentLength:9841, aipid:mds1491, serialization:zip}";
 
-	String got = resp.getBody();
-	JSONAssert.assertEquals(expect, got, false);
-	assertTrue(got.contains("\"downloadURL\":"));
-	assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        String got = resp.getBody();
+        JSONAssert.assertEquals(expect, got, false);
+        assertTrue(got.contains("\"downloadURL\":"));
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
     }
 
     @Test
     public void testDescribeAIPsBadID() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/goober.zip", HttpMethod.GET, req,
-		String.class);
-	assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-	JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/_aip/goober.zip\","
-		+ "status:404,message:\"AIP file not found\",method:GET}", resp.getBody(), true);
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/goober.zip",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/_aip/goober.zip\"," +
+                                 "status:404,message:\"AIP file not found\",method:GET}",
+                                resp.getBody(), true);
     }
 
     @Test
     public void testDownloadAIP() {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/mds1491.mbag0_2-0.zip", HttpMethod.GET,
-		req, String.class);
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
+                                                          "/ds/_aip/mds1491.mbag0_2-0.zip",
+                                                      HttpMethod.GET, req, String.class);
 
-	assertEquals(HttpStatus.OK, resp.getStatusCode());
-	assertEquals("application/zip", resp.getHeaders().getFirst("Content-Type"));
-	assertEquals(9841, resp.getBody().length());
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("application/zip", resp.getHeaders().getFirst("Content-Type"));
+        assertEquals(9841, resp.getBody().length());
     }
 
     private String getBaseURL() {
-	return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/oar-dist-service";
     }
 }

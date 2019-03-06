@@ -27,12 +27,16 @@ import org.junit.After;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = NISTDistribServiceConfig.class)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources", "distrib.baseurl=http://localhost/oar-dist-service",
-	"distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas" })
+@TestPropertySource(properties = {
+        "distrib.bagstore.mode=local",
+        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
+        "distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas",
+        "distrib.baseurl=http://localhost/oar-dist-service"
+})
 public class NISTDistribServiceConfigTest {
 
     @Autowired
@@ -40,11 +44,10 @@ public class NISTDistribServiceConfigTest {
 
     @Test
     public void testInjection() {
-	assertEquals("local", config.mode);
-	assertTrue(config.bagstore.endsWith("src/test/resources"));
-	assertNotNull(config.mimemap);
-	assertNotNull(config.lts);
-	assertTrue(config.lts instanceof FilesystemLongTermStorage);
+        assertEquals("local", config.mode);
+        assertTrue(config.bagstore.endsWith("src/test/resources"));
+        assertNotNull(config.mimemap);
+        assertNotNull(config.lts);
+        assertTrue(config.lts instanceof FilesystemLongTermStorage);
     }
-
 }

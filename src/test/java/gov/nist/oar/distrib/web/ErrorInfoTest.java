@@ -27,43 +27,46 @@ public class ErrorInfoTest {
 
     @Test
     public void testCtor() {
-	ErrorInfo e = new ErrorInfo("/goober", 403, "Rude!", "HEAD");
-	assertEquals("/goober", e.requestURL);
-	assertEquals(403, e.status);
-	assertEquals("Rude!", e.message);
-	assertEquals("HEAD", e.method);
+        ErrorInfo e = new ErrorInfo("/goober", 403, "Rude!", "HEAD");
+        assertEquals("/goober", e.requestURL);
+        assertEquals(403,       e.status);
+        assertEquals("Rude!",   e.message);
+        assertEquals("HEAD", e.method);
 
-	e = new ErrorInfo("/goober", 410, "Rude!");
-	assertEquals("/goober", e.requestURL);
-	assertEquals(410, e.status);
-	assertEquals("Rude!", e.message);
-	assertEquals("GET", e.method);
+        e = new ErrorInfo("/goober", 410, "Rude!");
+        assertEquals("/goober", e.requestURL);
+        assertEquals(410,       e.status);
+        assertEquals("Rude!",   e.message);
+        assertEquals("GET", e.method);
 
-	e = new ErrorInfo(410, "Rude!");
-	assertEquals(null, e.requestURL);
-	assertEquals(410, e.status);
-	assertEquals("Rude!", e.message);
-	assertEquals(null, e.method);
+
+        e = new ErrorInfo(410, "Rude!");
+        assertEquals(null, e.requestURL);
+        assertEquals(410,       e.status);
+        assertEquals("Rude!",   e.message);
+        assertEquals(null, e.method);
     }
 
     @Test
     public void testJSON() throws Exception {
-	ErrorInfo e = new ErrorInfo("/goober", 403, "Rude!", "HEAD");
-	String json = new ObjectMapper().writeValueAsString(e);
-	JSONAssert.assertEquals("{requestURL:\"/goober\", status:403, message:Rude!, method:HEAD}", json, true);
+        ErrorInfo e = new ErrorInfo("/goober", 403, "Rude!", "HEAD");
+        String json = new ObjectMapper().writeValueAsString(e);
+        JSONAssert.assertEquals("{requestURL:\"/goober\", status:403, message:Rude!, method:HEAD}",
+                                json, true);
 
-	e.method = null;
-	json = new ObjectMapper().writeValueAsString(e);
-	JSONAssert.assertEquals("{requestURL:\"/goober\", status:403, message:Rude!}", json, true);
+        e.method = null;
+        json = new ObjectMapper().writeValueAsString(e);
+        JSONAssert.assertEquals("{requestURL:\"/goober\", status:403, message:Rude!}",
+                                json, true);
 
-	e.requestURL = null;
-	json = new ObjectMapper().writeValueAsString(e);
-	JSONAssert.assertEquals("{status:403, message:Rude!}", json, true);
+        e.requestURL = null;
+        json = new ObjectMapper().writeValueAsString(e);
+        JSONAssert.assertEquals("{status:403, message:Rude!}", json, true);
 
-	e.message = null;
-	json = new ObjectMapper().writeValueAsString(e);
-	JSONAssert.assertEquals("{status:403}", json, true);
-
+        e.message = null;
+        json = new ObjectMapper().writeValueAsString(e);
+        JSONAssert.assertEquals("{status:403}", json, true);
+                                
     }
 
 }

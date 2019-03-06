@@ -33,11 +33,15 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "cloud.aws.region=us-east-1",
-	"logging.path=${basedir}/target/surefire-reports", "distrib.filesizelimit = 100000",
-	"distrib.numberoffiles = 2", "distrib.validdomains =nist.gov|s3.amazonaws.com/nist-midas" })
+@TestPropertySource(properties = {
+        "distrib.bagstore.mode=local",
+        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.baseurl=http://localhost/oar-distrb-service",
+        "cloud.aws.region=us-east-1",
+        "distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
+        "distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas",
+        "logging.path=${basedir}/target/surefire-reports",
+})
 public class VersionControllerTest {
 
     Logger logger = LoggerFactory.getLogger(VersionControllerTest.class);
@@ -49,54 +53,59 @@ public class VersionControllerTest {
     HttpHeaders headers = new HttpHeaders();
 
     private String getBaseURL() {
-	return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/oar-dist-service";
     }
 
     @Test
     public void testGetServiceVersion() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.GET, req, String.class);
-	assertEquals(HttpStatus.OK, resp.getStatusCode());
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-	String expect = "{ serviceName: oar-dist-service }";
-	String got = resp.getBody();
-	logger.info("### version response: " + got);
-	JSONAssert.assertEquals(expect, got, false);
-	assertTrue(got.contains("\"version\":"));
-	assertTrue(!got.contains("\"version\":\"unknown\""));
-	assertTrue(!got.contains("\"version\":\"missing\""));
-	assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        String expect = "{ serviceName: oar-dist-service }";
+        String got = resp.getBody();
+        logger.info("### version response: "+got);
+        JSONAssert.assertEquals(expect, got, false);
+        assertTrue(got.contains("\"version\":"));
+        assertTrue(! got.contains("\"version\":\"unknown\""));
+        assertTrue(! got.contains("\"version\":\"missing\""));
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
     }
 
     @Test
     public void testDeleteNotAllowed() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.DELETE, req, String.class);
-	assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
+                                                      HttpMethod.DELETE, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
 
-	req = new HttpEntity<String>(null, headers);
-	resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.POST, req, String.class);
-	assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.POST, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
 
-	req = new HttpEntity<String>(null, headers);
-	resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.PATCH, req, String.class);
-	assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.PATCH, req, String.class);
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resp.getStatusCode());
     }
+
 
     @Test
     public void testHEAD() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/", HttpMethod.HEAD, req, String.class);
-	assertEquals(HttpStatus.OK, resp.getStatusCode());
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/",
+                                                      HttpMethod.HEAD, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
     }
-
+    
     @Test
     public void testRedirectToServiceVersion() throws JSONException {
-	HttpEntity<String> req = new HttpEntity<String>(null, headers);
-	ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds", HttpMethod.GET, req, String.class);
-	assertEquals(HttpStatus.FOUND, resp.getStatusCode());
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.FOUND, resp.getStatusCode());
 
-	assertTrue(resp.getHeaders().getFirst("Location").endsWith("/oar-dist-service/ds/"));
+        assertTrue(resp.getHeaders().getFirst("Location").endsWith("/oar-dist-service/ds/"));
     }
 
 }

@@ -13,6 +13,7 @@
  */
 package gov.nist.oar.bags.preservation;
 
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,140 +32,141 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 
 public class ZipBagUtilsTest {
-
+    
     Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
-
-    public ZipBagUtilsTest() {
-    }
+    public ZipBagUtilsTest() {}
 
     @Test
     public void testOpenEntryCtoR() throws IOException {
-	ZipBagUtils.OpenEntry oe = new ZipBagUtils.OpenEntry();
-	assertNull(oe.name);
-	assertNull(oe.info);
-	assertNull(oe.stream);
+        ZipBagUtils.OpenEntry oe = new ZipBagUtils.OpenEntry();
+        assertNull(oe.name);
+        assertNull(oe.info);
+        assertNull(oe.stream);
 
-	ZipInputStream zis = new ZipInputStream(getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip"));
-	ZipEntry ze = zis.getNextEntry();
-	oe = new ZipBagUtils.OpenEntry(ze.getName(), ze, zis);
+        ZipInputStream zis =
+            new ZipInputStream(getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip"));
+        ZipEntry ze = zis.getNextEntry();
+        oe = new ZipBagUtils.OpenEntry(ze.getName(), ze, zis);
 
-	assertNotNull(oe.stream);
-	assertSame(ze, oe.info);
-	assertEquals(ze.getName(), oe.name);
+        assertNotNull(oe.stream);
+        assertSame(ze, oe.info);
+        assertEquals(ze.getName(), oe.name);
     }
 
     @Test
     public void testOpenFile() throws IOException, FileNotFoundException {
-	InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
-	ZipBagUtils.OpenEntry oe = ZipBagUtils.openFile(zis, "mds1491.mbag0_2-0/bagit.txt");
+        InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
+        ZipBagUtils.OpenEntry oe = ZipBagUtils.openFile(zis, "mds1491.mbag0_2-0/bagit.txt");
 
-	assertEquals("mds1491.mbag0_2-0/bagit.txt", oe.name);
-	assertEquals("mds1491.mbag0_2-0/bagit.txt", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.mbag0_2-0/bagit.txt", oe.name);
+        assertEquals("mds1491.mbag0_2-0/bagit.txt", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	String line = rdr.readLine();
-	assertTrue(line.startsWith("BagIt-Version: 0.97"));
-	rdr.close();
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        String line = rdr.readLine();
+        assertTrue(line.startsWith("BagIt-Version: 0.97"));
+        rdr.close();
     }
 
     @Test
     public void testOpenDataFile() throws IOException, FileNotFoundException {
-	InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
-	ZipBagUtils.OpenEntry oe = ZipBagUtils.openDataFile(zis, "mds1491.mbag0_2-0", "trial3/trial3a.json");
+        InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
+        ZipBagUtils.OpenEntry oe = ZipBagUtils.openDataFile(zis, "mds1491.mbag0_2-0",
+                                                            "trial3/trial3a.json");
 
-	assertEquals("mds1491.mbag0_2-0/data/trial3/trial3a.json", oe.name);
-	assertEquals("mds1491.mbag0_2-0/data/trial3/trial3a.json", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.mbag0_2-0/data/trial3/trial3a.json", oe.name);
+        assertEquals("mds1491.mbag0_2-0/data/trial3/trial3a.json", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	String line = rdr.readLine();
-	assertTrue(line.startsWith("{"));
-	rdr.close();
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        String line = rdr.readLine();
+        assertTrue(line.startsWith("{"));
+        rdr.close();
     }
 
     @Test
     public void testOpenMemberBags() throws IOException, FileNotFoundException {
-	InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
-	ZipBagUtils.OpenEntry oe = ZipBagUtils.openMemberBags("0.2", zis, "mds1491.mbag0_2-0");
+        InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
+        ZipBagUtils.OpenEntry oe = ZipBagUtils.openMemberBags("0.2", zis, "mds1491.mbag0_2-0");
 
-	assertEquals("mds1491.mbag0_2-0/multibag/group-members.txt", oe.name);
-	assertEquals("mds1491.mbag0_2-0/multibag/group-members.txt", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.mbag0_2-0/multibag/group-members.txt", oe.name);
+        assertEquals("mds1491.mbag0_2-0/multibag/group-members.txt", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	String line = rdr.readLine();
-	assertTrue(line.startsWith("mds1491.mbag0_2-0"));
-	rdr.close();
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        String line = rdr.readLine();
+        assertTrue(line.startsWith("mds1491.mbag0_2-0"));
+        rdr.close();
 
-	zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
-	oe = ZipBagUtils.openMemberBags("0.4", zis, "mds1491.1_1_0.mbag0_4-1");
+        zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
+        oe = ZipBagUtils.openMemberBags("0.4", zis, "mds1491.1_1_0.mbag0_4-1");
 
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.name);
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.name);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	line = rdr.readLine();
-	assertTrue(line.startsWith("mds1491.mbag0_2-0"));
-	line = rdr.readLine();
-	assertTrue(line.startsWith("mds1491.1_1_0.mbag0_4-1"));
-	rdr.close();
+        rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        line = rdr.readLine();
+        assertTrue(line.startsWith("mds1491.mbag0_2-0"));
+        line = rdr.readLine();
+        assertTrue(line.startsWith("mds1491.1_1_0.mbag0_4-1"));
+        rdr.close();
 
-	// assume latest version of profile
-	zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
-	oe = ZipBagUtils.openMemberBags(zis, "mds1491.1_1_0.mbag0_4-1");
+        // assume latest version of profile
+        zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
+        oe = ZipBagUtils.openMemberBags(zis, "mds1491.1_1_0.mbag0_4-1");
 
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.name);
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.name);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/member-bags.tsv", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	line = rdr.readLine();
-	assertTrue(line.startsWith("mds1491.mbag0_2-0"));
-	line = rdr.readLine();
-	assertTrue(line.startsWith("mds1491.1_1_0.mbag0_4-1"));
-	rdr.close();
+        rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        line = rdr.readLine();
+        assertTrue(line.startsWith("mds1491.mbag0_2-0"));
+        line = rdr.readLine();
+        assertTrue(line.startsWith("mds1491.1_1_0.mbag0_4-1"));
+        rdr.close();
     }
 
     @Test
     public void testOpenFileLookup() throws IOException, FileNotFoundException {
-	InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
-	ZipBagUtils.OpenEntry oe = ZipBagUtils.openFileLookup("0.2", zis, "mds1491.mbag0_2-0");
+        InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip");
+        ZipBagUtils.OpenEntry oe = ZipBagUtils.openFileLookup("0.2", zis, "mds1491.mbag0_2-0");
 
-	assertEquals("mds1491.mbag0_2-0/multibag/group-directory.txt", oe.name);
-	assertEquals("mds1491.mbag0_2-0/multibag/group-directory.txt", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.mbag0_2-0/multibag/group-directory.txt", oe.name);
+        assertEquals("mds1491.mbag0_2-0/multibag/group-directory.txt", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	String line = rdr.readLine();
-	assertTrue(line.contains(" mds1491.mbag0_2-0"));
-	rdr.close();
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        String line = rdr.readLine();
+        assertTrue(line.contains(" mds1491.mbag0_2-0"));
+        rdr.close();
 
-	zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
-	oe = ZipBagUtils.openFileLookup("0.4", zis, "mds1491.1_1_0.mbag0_4-1");
+        zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
+        oe = ZipBagUtils.openFileLookup("0.4", zis, "mds1491.1_1_0.mbag0_4-1");
 
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.name);
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.name);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	line = rdr.readLine();
-	assertTrue(line.contains("\tmds1491.1_1_0.mbag0_4-1"));
-	rdr.close();
+        rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        line = rdr.readLine();
+        assertTrue(line.contains("\tmds1491.1_1_0.mbag0_4-1"));
+        rdr.close();
 
-	// assume latest version of profile
-	zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
-	oe = ZipBagUtils.openFileLookup(zis, "mds1491.1_1_0.mbag0_4-1");
+        // assume latest version of profile
+        zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip");
+        oe = ZipBagUtils.openFileLookup(zis, "mds1491.1_1_0.mbag0_4-1");
 
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.name);
-	assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.info.getName());
-	assertNotNull(oe.stream);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.name);
+        assertEquals("mds1491.1_1_0.mbag0_4-1/multibag/file-lookup.tsv", oe.info.getName());
+        assertNotNull(oe.stream);
 
-	rdr = new BufferedReader(new InputStreamReader(oe.stream));
-	line = rdr.readLine();
-	assertTrue(line.contains("\tmds1491.1_1_0.mbag0_4-1"));
-	rdr.close();
+        rdr = new BufferedReader(new InputStreamReader(oe.stream));
+        line = rdr.readLine();
+        assertTrue(line.contains("\tmds1491.1_1_0.mbag0_4-1"));
+        rdr.close();
 
+        
     }
 }
