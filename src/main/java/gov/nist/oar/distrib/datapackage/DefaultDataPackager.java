@@ -261,7 +261,7 @@ public class DefaultDataPackager implements DataPackager {
     @Override
     public boolean validateUrl(String url) throws IOException, DistributionException {
 	try {
-	    if (!ObjectUtils.validateUrlDomain(url, this.domains)) {
+	    if (!ObjectUtils.isAllowedURL(url, this.domains)) {
 		this.bundlelogfile += "\n Url here:" + url
 			+ " does not belong to allowed domains, so no file is downnloaded for this";
 		return false;

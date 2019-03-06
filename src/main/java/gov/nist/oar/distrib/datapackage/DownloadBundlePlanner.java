@@ -102,7 +102,7 @@ public class DownloadBundlePlanner {
 		FileRequest jobject = inputfileList[i];
 		String filepath = jobject.getFilePath();
 		String downloadurl = jobject.getDownloadUrl();
-		if (ObjectUtils.validateUrlDomain(downloadurl, validdomains)) {
+		if (ObjectUtils.isAllowedURL(downloadurl, validdomains)) {
 		    this.makeBundles(jobject);
 		} else {
 		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "Not valid Url."));

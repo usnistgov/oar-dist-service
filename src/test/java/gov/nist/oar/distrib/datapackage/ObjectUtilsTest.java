@@ -30,22 +30,20 @@ import gov.nist.oar.distrib.datapackage.ObjectUtils;
 public class ObjectUtilsTest {
 
     @Test
-    public void testValidateUrlDomain() throws IOException {
+    public void testIsAllowedURL() throws IOException {
         // this is what is currently set in production
         String allowed = "nist.gov|s3.amazonaws.com/nist-midas";
 
-        assertTrue(ObjectUtils.validateUrlDomain("https://nist.gov/datafile.dat", allowed));
-        assertTrue(ObjectUtils.validateUrlDomain("http://srd.nist.gov/srd13/datafile.dat", allowed));
-        assertTrue(ObjectUtils.validateUrlDomain("https://s3.amazonaws.com/nist-midas/bigbag.zip",
-                                                 allowed));
-        assertTrue(ObjectUtils.validateUrlDomain("http://srdnist.gov/srd13/datafile.dat", allowed));
+        assertTrue(ObjectUtils.isAllowedURL("https://nist.gov/datafile.dat", allowed));
+        assertTrue(ObjectUtils.isAllowedURL("http://srd.nist.gov/srd13/datafile.dat", allowed));
+        assertTrue(ObjectUtils.isAllowedURL("https://s3.amazonaws.com/nist-midas/bigbag.zip", allowed));
+        assertTrue(ObjectUtils.isAllowedURL("http://srdnist.gov/srd13/datafile.dat", allowed));
 
         assertFalse("Don't allow the domain part appear anywhere in the URL path",
-                    ObjectUtils.validateUrlDomain("http://example.com/nist.gov/anyolfile.exe",
-                                                  allowed));
+                    ObjectUtils.isAllowedURL("http://example.com/nist.gov/anyolfile.exe", allowed));
         assertFalse("Pay attention to field boundaries",
-                    ObjectUtils.validateUrlDomain("https://s3.amazonaws.com/nist-midas-games/doom.zip",
-                                                  allowed));
+                    ObjectUtils.isAllowedURL("https://s3.amazonaws.com/nist-midas-games/doom.zip",
+                                             allowed));
     }
 
 }

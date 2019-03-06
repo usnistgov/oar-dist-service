@@ -123,20 +123,20 @@ public class NISTDistribServiceConfig {
      * the maximum allowed size of a data package.  A package will only exceed this size if it contains
      * a single file (that would not fit otherwise).
      */
-    @Value("${distrib.filesizelimit:500000000}")
-    long maxfileSize;
+    @Value("${distrib.packaging.maxpackagesize:500000000}")
+    long maxPkgSize;
 	
     /**
      * the maximum number of files to allow in a single data package
      */
-    @Value("${distrib.numberoffiles:200}")
-    int numofFiles;
+    @Value("${distrib.packaging.maxfilecount:200}")
+    int maxFileCount;
 	
     /**
      * a white list of allowed URL patterns from which to retrieve data to include in data packages
      */
-    @Value("${distrib.validdomains:}")
-    String validdomains;
+    @Value("${distrib.packaging.allowedurls:}")
+    String allowedUrls;
 	
     @Autowired LongTermStorage          lts;    // set via getter below
     @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
@@ -215,7 +215,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public DataPackagingService getDataPackagingService(){
-        return new DefaultDataPackagingService(validdomains, maxfileSize, numofFiles);
+        return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount);
     }
 
     /**

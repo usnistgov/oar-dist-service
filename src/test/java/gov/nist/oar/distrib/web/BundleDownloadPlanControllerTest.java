@@ -48,11 +48,14 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
+@TestPropertySource(properties = {
+        "distrib.bagstore.mode=local",
 	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=${basedir}/target/surefire-reports",
-	"distrib.filesizelimit = 2000000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas" })
+	"distrib.baseurl=http://localhost/oar-distrb-service",
+        "logging.path=${basedir}/target/surefire-reports",
+	"distrib.packaging.maxpackagesize = 2000000",
+        "distrib.packaging.maxfilecount = 2",
+	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas" })
 public class BundleDownloadPlanControllerTest {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
 
@@ -89,6 +92,7 @@ public class BundleDownloadPlanControllerTest {
 
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
+	System.out.println("Response :"+responsetest);
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
 
 	assertEquals("warnings", testResponse.getStatus());

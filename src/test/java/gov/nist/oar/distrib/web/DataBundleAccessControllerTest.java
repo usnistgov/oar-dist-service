@@ -52,11 +52,14 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
+@TestPropertySource(properties = {
+        "distrib.bagstore.mode=local",
 	"distrib.bagstore.location=./src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service", "logging.path=./target/surefire-reports",
-	"distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
-	"distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas"
+	"distrib.baseurl=http://localhost/oar-distrb-service",
+        "logging.path=./target/surefire-reports",
+	"distrib.packaging.maxpackagesize = 100000",
+        "distrib.packaging.maxfilecount = 2",
+	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
 	// "logging.level.org.springframework.web=DEBUG"
 })
 public class DataBundleAccessControllerTest {

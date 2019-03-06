@@ -46,20 +46,20 @@ public class ObjectUtils {
 	return conn.getContentLength();
     }
 
-    /***
-     * Accepts given url and allowed domains. And checks whether url requested
-     * from valid domain.
+    /**
+     * Return true if a given URL matches one of the set of allowed URL patterns.  
      * 
-     * @param url
-     * @param domains
-     * @return boolean
+     * @param url           the URL to test
+     * @param allowedUrls   a regular expression string for allowed URLs.  Multiple URL patterns 
+     *                      can be concatonated with a pipe (|) character.
+     * @return boolean      True if the URL matches one of the given patterns; false, otherwise
      * @throws IOException
      */
    // private 
     //private 
-    public static boolean validateUrlDomain(String url, String domains) throws IOException {
+    public static boolean isAllowedURL(String url, String allowedUrls) throws IOException {
 	URL obj = new URL(url);
-	String[] domainList = domains.split("\\|");
+	String[] domainList = allowedUrls.split("\\|");
 	List<Boolean> list=new ArrayList<Boolean>();
 	//Looping over all the whitelist domains
 	for(int i=0; i< domainList.length; i++){
