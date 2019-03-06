@@ -78,8 +78,18 @@ import com.amazonaws.regions.RegionUtils;
  *   <dd> The base URL for the service (as seen by external, public users); this should include 
  *        everything up to but not including the "/ds" part of the path. </dd>
  *   <dt> {@code cloud.aws.region} </dt>
- *   <dd> The AWS service region (e.g. "us-east-1") to use.  This is ignore if 
+ *   <dd> The AWS service region (e.g. "us-east-1") to use.  This is ignored if 
  *        {@code distrib.bagstore.mode}=local. </dd>
+ *   <dt> {@code distrib.packaging.maxfilecount} </dt>
+ *   <dd> The maximum number of files that can be included within a single data package (see 
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
+ *   <dt> {@code distrib.packaging.maxpackagesize} </dt>
+ *   <dd> The maximum file size for a single data package
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
+ *   <dt> {@code distrib.packaging.allowedurls} </dt>
+ *   <dd> a pipe-delimited list of regular expressions for URLs that are allowed to appear in a data 
+ *        packaging request (see
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
  * </dl>
  * <p>
  * See also 
@@ -133,7 +143,12 @@ public class NISTDistribServiceConfig {
     int maxFileCount;
 	
     /**
-     * a white list of allowed URL patterns from which to retrieve data to include in data packages
+     * a white list of allowed URL patterns from which to retrieve data to include in data packages.
+     * This value is given as a regular expression Strings delimited by pipe (|) characters; each 
+     * expression represents a pattern for a URL that is allowed to appear in a data packaging request.
+     * A URL can match any of the patterns to be considered allowed.  A pattern is matched against a 
+     * URL starting with the authority field (i.e. just the "://") and may include parts of the URL 
+     * path.  
      */
     @Value("${distrib.packaging.allowedurls:}")
     String allowedUrls;

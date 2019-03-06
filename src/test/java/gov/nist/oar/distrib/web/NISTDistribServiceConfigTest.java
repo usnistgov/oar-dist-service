@@ -33,9 +33,9 @@ import static org.junit.Assert.*;
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.maxpackagesize = 100000",
-        "distrib.maxfilecount = 2",
-        "distrib.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
+        "distrib.packaging.maxpackagesize = 100000",
+        "distrib.packaging.maxfilecount = 2",
+        "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
         "distrib.baseurl=http://localhost/oar-dist-service"
 })
 public class NISTDistribServiceConfigTest {
