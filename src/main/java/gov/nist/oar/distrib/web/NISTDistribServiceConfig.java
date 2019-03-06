@@ -95,7 +95,7 @@ public class NISTDistribServiceConfig {
      * is "local",  this value is a directory path.  If the mode is "aws" or "remote", then this is
      * an S3 bucket name.  
      */
-    @Value("${distrib.bagstore.location:/data/bags}")
+    @Value("${distrib.bagstore.location}")
     String bagstore;
 
     /**
@@ -110,7 +110,7 @@ public class NISTDistribServiceConfig {
      *                       (testing or development mode); in this case, bagstore identifies the 
      *                       bags' parent directory.  </li>
      */
-    @Value("${distrib.bagstore.mode:local}")
+    @Value("${distrib.bagstore.mode}")
     String mode;
 
     /**

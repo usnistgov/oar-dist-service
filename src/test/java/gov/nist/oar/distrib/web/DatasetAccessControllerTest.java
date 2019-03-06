@@ -49,8 +49,6 @@ import org.slf4j.LoggerFactory;
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
-        "distrib.filesizelimit = 100000", "distrib.numberoffiles = 2",
-        "distrib.validdomains = nist.gov|s3.amazonaws.com/nist-midas",
         "logging.path=${basedir}/target/surefire-reports",
         // "logging.level.org.springframework.web=DEBUG"
 })
