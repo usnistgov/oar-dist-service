@@ -86,7 +86,7 @@ public class AIPAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/goober.zip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/_aip/goober.zip\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/_aip/goober.zip\"," +
                                  "status:404,message:\"AIP file not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -104,6 +104,6 @@ public class AIPAccessControllerTest {
     }
 
     private String getBaseURL() {
-        return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/od";
     }
 }

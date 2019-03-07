@@ -51,7 +51,7 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
 	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/oar-distrb-service",
+	"distrib.baseurl=http://localhost/od/ds",
         "logging.path=${basedir}/target/surefire-reports",
 	"distrib.packaging.maxpackagesize = 2000000",
         "distrib.packaging.maxfilecount = 2",
@@ -66,7 +66,7 @@ public class BundleDownloadPlanControllerTest {
     HttpHeaders headers = new HttpHeaders();
 
     private String getBaseURL() {
-	return "http://localhost:" + port + "/oar-dist-service";
+	return "http://localhost:" + port + "/od";
     }
 
     @Test
