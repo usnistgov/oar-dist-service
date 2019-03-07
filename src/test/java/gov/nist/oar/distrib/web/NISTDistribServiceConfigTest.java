@@ -33,7 +33,7 @@ import static org.junit.Assert.*;
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.baseurl=http://localhost/oar-dist-service"
+        "distrib.baseurl=http://localhost/od"
 })
 public class NISTDistribServiceConfigTest {
 

@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.baseurl=http://localhost/oar-distrb-service",
+        "distrib.baseurl=http://localhost/od",
         "cloud.aws.region=us-east-1",
         "logging.path=${basedir}/target/surefire-reports",
 })
@@ -51,7 +51,7 @@ public class VersionControllerTest {
     HttpHeaders headers = new HttpHeaders();
 
     private String getBaseURL() {
-        return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/od";
     }
 
     @Test
@@ -103,7 +103,7 @@ public class VersionControllerTest {
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.FOUND, resp.getStatusCode());
 
-        assertTrue(resp.getHeaders().getFirst("Location").endsWith("/oar-dist-service/ds/"));
+        assertTrue(resp.getHeaders().getFirst("Location").endsWith("/od/ds/"));
     }
 
 }
