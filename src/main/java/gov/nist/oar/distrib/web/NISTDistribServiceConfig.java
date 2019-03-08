@@ -18,7 +18,9 @@ import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.FromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
-    
+import gov.nist.oar.distrib.service.DataPackagingService;
+import gov.nist.oar.distrib.service.DefaultDataPackagingService;
+
 import java.io.InputStream;
 import java.io.FileNotFoundException;
 import javax.activation.MimetypesFileTypeMap;
@@ -78,8 +80,18 @@ import com.amazonaws.regions.RegionUtils;
  *   <dd> The base URL for the service (as seen by external, public users); this should include 
  *        everything up to but not including the "/ds" part of the path. </dd>
  *   <dt> {@code cloud.aws.region} </dt>
- *   <dd> The AWS service region (e.g. "us-east-1") to use.  This is ignore if 
+ *   <dd> The AWS service region (e.g. "us-east-1") to use.  This is ignored if 
  *        {@code distrib.bagstore.mode}=local. </dd>
+ *   <dt> {@code distrib.packaging.maxfilecount} </dt>
+ *   <dd> The maximum number of files that can be included within a single data package (see 
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
+ *   <dt> {@code distrib.packaging.maxpackagesize} </dt>
+ *   <dd> The maximum file size for a single data package
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
+ *   <dt> {@code distrib.packaging.allowedurls} </dt>
+ *   <dd> a pipe-delimited list of regular expressions for URLs that are allowed to appear in a data 
+ *        packaging request (see
+ *        {@link gov.nist.oar.distrib.service.DataPackagingService}) </dd>
  * </dl>
  * <p>
  * See also 
@@ -91,7 +103,9 @@ public class NISTDistribServiceConfig {
     private static Logger logger = LoggerFactory.getLogger(NISTDistribServiceConfig.class);
 
     /**
-     * the S3 bucket where preservation bags are located
+     * the location where preservation bags can be found.  If <code>distrib.bagstore.mode</code> 
+     * is "local",  this value is a directory path.  If the mode is "aws" or "remote", then this is
+     * an S3 bucket name.  
      */
     @Value("${distrib.bagstore.location}")
     String bagstore;
@@ -117,6 +131,30 @@ public class NISTDistribServiceConfig {
     @Value("${cloud.aws.region:@null}")
     String region;
 
+    /**
+     * the maximum allowed size of a data package.  A package will only exceed this size if it contains
+     * a single file (that would not fit otherwise).
+     */
+    @Value("${distrib.packaging.maxpackagesize:500000000}")
+    long maxPkgSize;
+	
+    /**
+     * the maximum number of files to allow in a single data package
+     */
+    @Value("${distrib.packaging.maxfilecount:200}")
+    int maxFileCount;
+	
+    /**
+     * a white list of allowed URL patterns from which to retrieve data to include in data packages.
+     * This value is given as a regular expression Strings delimited by pipe (|) characters; each 
+     * expression represents a pattern for a URL that is allowed to appear in a data packaging request.
+     * A URL can match any of the patterns to be considered allowed.  A pattern is matched against a 
+     * URL starting with the authority field (i.e. just the "://") and may include parts of the URL 
+     * path.  
+     */
+    @Value("${distrib.packaging.allowedurls:}")
+    String allowedUrls;
+	
     @Autowired LongTermStorage          lts;    // set via getter below
     @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
 
@@ -187,6 +225,14 @@ public class NISTDistribServiceConfig {
     @Bean
     public PreservationBagService getPreservationBagService() {
         return new DefaultPreservationBagService(lts, mimemap);
+    }
+
+    /**
+     * the service implementation to use to package data into bundles
+     */
+    @Bean
+    public DataPackagingService getDataPackagingService(){
+        return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount);
     }
 
     /**
