@@ -318,6 +318,17 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
+    public void testDownloadFileInfo() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
+    }
+
+    @Test
     public void testBadDatasetIDPattern() {
         assertTrue(DatasetAccessController.baddsid.matcher("goober gurn").find());
         assertTrue(DatasetAccessController.baddsid.matcher("goober\tgurn").find());
