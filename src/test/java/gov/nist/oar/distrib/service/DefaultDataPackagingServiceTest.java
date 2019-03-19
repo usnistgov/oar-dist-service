@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
@@ -130,5 +131,48 @@ public class DefaultDataPackagingServiceTest {
 	} catch (IOException ixp) {
 
 	}
+    }
+    
+    @Test
+    public void testBundleWithWarnings() throws JsonParseException, JsonMappingException, IOException, InputLimitException, DistributionException{
+	requestedUrls = new FileRequest[2];
+	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://test.testnew.com/nist-midas/1894/license.pdf\"}";
+
+	ObjectMapper mapper = new ObjectMapper();
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
+	requestedUrls[0] = testval1;
+	requestedUrls[1] = testval2;
+	bundleRequest = new BundleRequest("testdatabundle", requestedUrls);
+	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles);
+	Path path = Files.createTempFile("testdatabundle", ".zip");
+	    OutputStream os = Files.newOutputStream(path);
+	    ZipOutputStream zos = new ZipOutputStream(os);
+	    ddp.getBundledZipPackage(bundleRequest, zos);
+	    zos.close();
+	
+       	
+	    try (ZipFile file = new ZipFile(path.toString())) {
+		    FileSystem fileSystem = FileSystems.getDefault();
+		    // Get file entries
+		    Enumeration<? extends ZipEntry> entries = file.entries();
+		    ZipEntry entry1 = entries.nextElement();
+		    // Just check first entry in zip
+		    assertEquals(entry1.getName(), "/1894/license.pdf");
+
+		    // Iterate over entries
+		     while (entries.hasMoreElements())
+		     {
+		     ZipEntry entry = entries.nextElement();
+
+
+		     assertEquals(entry.getName(),"BundleInfo.txt");
+
+		     }
+		} catch (IOException ixp) {
+
+		}    
+	
     }
 }
