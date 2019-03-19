@@ -90,8 +90,8 @@ public class DefaultDataPackagingServiceTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void getBundledZip() throws DistributionException, InputLimitException {
-	try {
+    public void getBundledZip() throws DistributionException, InputLimitException, IOException {
+	
 	    String bundleName = "example";
 	    ddp.validateRequest(bundleRequest);
 	    if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
@@ -109,14 +109,11 @@ public class DefaultDataPackagingServiceTest {
 	    checkFilesinZip(path);
 	    Files.delete(path);
 
-	} catch (IOException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
+	
 
     }
 
-    public void checkFilesinZip(Path filepath) {
+    public void checkFilesinZip(Path filepath) throws IOException {
 	int count = 0;
 	try (ZipFile file = new ZipFile(filepath.toString())) {
 	    FileSystem fileSystem = FileSystems.getDefault();
@@ -141,7 +138,7 @@ public class DefaultDataPackagingServiceTest {
 	    assertEquals(count, 3);
 
 	} catch (IOException ixp) {
-
+	    throw ixp;
 	}
     }
 
@@ -209,7 +206,7 @@ public class DefaultDataPackagingServiceTest {
 
 	    }
 	} catch (IOException ixp) {
-
+	    throw ixp;
 	}
 
     }
