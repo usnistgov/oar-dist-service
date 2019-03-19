@@ -12,14 +12,14 @@
  */
 package gov.nist.oar.distrib.service;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -29,7 +29,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -44,7 +43,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
@@ -91,25 +89,23 @@ public class DefaultDataPackagingServiceTest {
 
     @Test
     public void getBundledZip() throws DistributionException, InputLimitException, IOException {
-	
-	    String bundleName = "example";
-	    ddp.validateRequest(bundleRequest);
-	    if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
-		bundleName = bundleRequest.getBundleName();
 
-	    Path path = Files.createTempFile(bundleName, ".zip");
-	    OutputStream os = Files.newOutputStream(path);
-	    ZipOutputStream zos = new ZipOutputStream(os);
-	    ddp.getBundledZipPackage(bundleRequest, zos);
-	    zos.close();
-	    int len = (int) Files.size(path);
-	    System.out.println("Len:" + len);
-	    // assertEquals(len, 59903);
-	    assertNotNull(zos);
-	    checkFilesinZip(path);
-	    Files.delete(path);
+	String bundleName = "example";
+	ddp.validateRequest(bundleRequest);
+	if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
+	    bundleName = bundleRequest.getBundleName();
 
-	
+	Path path = Files.createTempFile(bundleName, ".zip");
+	OutputStream os = Files.newOutputStream(path);
+	ZipOutputStream zos = new ZipOutputStream(os);
+	ddp.getBundledZipPackage(bundleRequest, zos);
+	zos.close();
+	int len = (int) Files.size(path);
+	System.out.println("Len:" + len);
+	// assertEquals(len, 59903);
+	assertNotNull(zos);
+	checkFilesinZip(path);
+	Files.delete(path);
 
     }
 
@@ -138,6 +134,8 @@ public class DefaultDataPackagingServiceTest {
 	    assertEquals(count, 3);
 
 	} catch (IOException ixp) {
+	    logger.error(
+		    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
 	    throw ixp;
 	}
     }
@@ -201,11 +199,15 @@ public class DefaultDataPackagingServiceTest {
 		    try {
 			stream.close();
 		    } catch (Throwable ignore) {
+			logger.error(
+				"There is an error while closing stream of bundleInfo.txt, in the testBundleWithWarnings. "
+					+ ignore.getMessage());
 		    }
 		}
 
 	    }
 	} catch (IOException ixp) {
+	    logger.error("There is an error while reading bundled Zip in testBundleWithWarnings. " + ixp.getMessage());
 	    throw ixp;
 	}
 
