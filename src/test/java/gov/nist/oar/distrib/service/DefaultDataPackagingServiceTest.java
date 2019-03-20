@@ -12,9 +12,13 @@
  */
 package gov.nist.oar.distrib.service;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -84,51 +88,128 @@ public class DefaultDataPackagingServiceTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void getBundledZip() throws DistributionException, InputLimitException {
-	try {
-	    String bundleName = "example";
-	    ddp.validateRequest(bundleRequest);
-	    if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
-		bundleName = bundleRequest.getBundleName();
+    public void getBundledZip() throws DistributionException, InputLimitException, IOException {
 
-	    Path path = Files.createTempFile(bundleName, ".zip");
-	    OutputStream os = Files.newOutputStream(path);
-	    ZipOutputStream zos = new ZipOutputStream(os);
-	    ddp.getBundledZipPackage(bundleRequest, zos);
-	    zos.close();
-	    int len = (int) Files.size(path);
-	    System.out.println("Len:" + len);
-	    assertEquals(len, 59903);
-	    checkFilesinZip(path);
-	    Files.delete(path);
+	String bundleName = "example";
+	ddp.validateRequest(bundleRequest);
+	if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
+	    bundleName = bundleRequest.getBundleName();
 
-	} catch (IOException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
+	Path path = Files.createTempFile(bundleName, ".zip");
+	OutputStream os = Files.newOutputStream(path);
+	ZipOutputStream zos = new ZipOutputStream(os);
+	ddp.getBundledZipPackage(bundleRequest, zos);
+	zos.close();
+	int len = (int) Files.size(path);
+	System.out.println("Len:" + len);
+	// assertEquals(len, 59903);
+	assertNotNull(zos);
+	checkFilesinZip(path);
+	Files.delete(path);
 
     }
 
-    public void checkFilesinZip(Path filepath) {
-
+    public void checkFilesinZip(Path filepath) throws IOException {
+	int count = 0;
 	try (ZipFile file = new ZipFile(filepath.toString())) {
 	    FileSystem fileSystem = FileSystems.getDefault();
 	    // Get file entries
 	    Enumeration<? extends ZipEntry> entries = file.entries();
-	    ZipEntry entry = entries.nextElement();
-	    // Just check first entry in zip
-	    assertEquals(entry.getName(), "/1894/license.pdf");
-	    // Iterate over entries
-	    // while (entries.hasMoreElements())
-	    // {
-	    // ZipEntry entry = entries.nextElement();
-	    // if (entry.isDirectory()){
-	    // System.out.println("entryname:"+entry.getName());
-	    // assertEquals(entry.getName(),entry.getName());
-	    // }
-	    // }
-	} catch (IOException ixp) {
 
+	    // ZipEntry entry = entries.nextElement();
+	    // Just check first entry in zip
+	    // assertEquals(entry.getName(), "/1894/license.pdf");
+	    // Iterate over entries
+	    while (entries.hasMoreElements()) {
+		count++;
+		ZipEntry entry = entries.nextElement();
+		// if (entry.isDirectory())
+		// System.out.println("entryname:"+entry.getName());
+		if (count == 1)
+		    assertEquals(entry.getName(), "/1894/license.pdf");
+		if (count == 2)
+		    assertEquals(entry.getName(), "/1894/license2.pdf");
+
+	    }
+	    assertEquals(count, 3);
+
+	} catch (IOException ixp) {
+	    logger.error(
+		    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
+	    throw ixp;
 	}
+    }
+
+    @Test
+    public void testBundleWithWarnings()
+	    throws JsonParseException, JsonMappingException, IOException, InputLimitException, DistributionException {
+
+	DefaultDataPackagingService ddpkService;
+	FileRequest[] rUrls = new FileRequest[2];
+	long maxFSize = 1000000;
+	int nOfFiles = 100;
+	String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+	BundleRequest bRequest;
+	rUrls = new FileRequest[2];
+	String file1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String file2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://test.testnew.com/nist-midas/1894/license.pdf\"}";
+
+	ObjectMapper mapper = new ObjectMapper();
+	FileRequest fileReq1 = mapper.readValue(file1, FileRequest.class);
+	FileRequest fileReq2 = mapper.readValue(file2, FileRequest.class);
+	rUrls[0] = fileReq1;
+	rUrls[1] = fileReq2;
+	bRequest = new BundleRequest("testdatabundle", rUrls);
+	ddpkService = new DefaultDataPackagingService(domains, maxFSize, nOfFiles);
+	Path path = Files.createTempFile("testdatabundle", ".zip");
+	OutputStream os = Files.newOutputStream(path);
+	ZipOutputStream zos = new ZipOutputStream(os);
+	ddpkService.getBundledZipPackage(bRequest, zos);
+	zos.close();
+
+	try (ZipFile file = new ZipFile(path.toString())) {
+	    FileSystem fileSystem = FileSystems.getDefault();
+	    // Get file entries
+	    Enumeration<? extends ZipEntry> entries = file.entries();
+	    ZipEntry entry1 = entries.nextElement();
+	    // Just check first entry in zip
+	    assertEquals(entry1.getName(), "/1894/license.pdf");
+
+	    // Iterate over entries
+	    while (entries.hasMoreElements()) {
+		ZipEntry entry = entries.nextElement();
+
+		assertEquals(entry.getName(), "BundleInfo.txt");
+		InputStream stream = file.getInputStream(entry);
+
+		String expectedStr = "Url here:https://test.testnew.com/nist-midas/1894/license.pdf does not belong to allowed domains, so no file is downnloaded for this";
+		String str;
+		int count = 0;
+		try {
+		    BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+		    if (stream != null) {
+			count++;
+			while ((str = reader.readLine()) != null) {
+			    // System.out.println("line no:"+count+"::::"+str);
+			    if (count == 4)
+				assertEquals(str, expectedStr);
+			}
+		    }
+		} finally {
+		    try {
+			stream.close();
+		    } catch (Throwable ignore) {
+			logger.error(
+				"There is an error while closing stream of bundleInfo.txt, in the testBundleWithWarnings. "
+					+ ignore.getMessage());
+		    }
+		}
+
+	    }
+	} catch (IOException ixp) {
+	    logger.error("There is an error while reading bundled Zip in testBundleWithWarnings. " + ixp.getMessage());
+	    throw ixp;
+	}
+
     }
 }

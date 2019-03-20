@@ -50,7 +50,9 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
-    String bundlelogfile = " Information about this bundle and contents as below:\n";
+    String bundlelogfile = "";
+    String bundlelogError = "";
+    int filecount = 0;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 
     public DefaultDataPackager() {
@@ -115,14 +117,12 @@ public class DefaultDataPackager implements DataPackager {
     public void writeData(ZipOutputStream zout) throws DistributionException {
 	logger.info("Forming zip file from the the input fileurls");
 
-	int len, l;
+	int len;
 	byte[] buf = new byte[100000];
 	for (int i = 0; i < inputfileList.length; i++) {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
-	    bundlelogfile += "If there are any issues with any files/urls it will be listed below.";
-
 	    try {
 
 		if (this.validateUrl(downloadurl)) {
@@ -133,10 +133,11 @@ public class DefaultDataPackager implements DataPackager {
 		    }
 		    zout.closeEntry();
 		    fstream.close();
+		    filecount++;
 		}
 	    } catch (IOException ie) {
 
-		bundlelogfile += "\n Exception in getting data for: " + filepath + " at " + downloadurl;
+		bundlelogError += "\n Exception in getting data for: " + filepath + " at " + downloadurl;
 
 		logger.info("There is an error reading this file at location: " + downloadurl + "Exception: "
 			+ ie.getMessage());
@@ -150,9 +151,19 @@ public class DefaultDataPackager implements DataPackager {
 
     private void writeLog(ZipOutputStream zout) {
 	try {
-	    int len, l;
+	    int l;
 	    byte[] buf = new byte[10000];
-	    InputStream nStream = new ByteArrayInputStream(bundlelogfile.getBytes());
+	    String bundleInfo = "Information about status of this bundle and contents is as below:\n";
+	    if (!bundlelogfile.isEmpty())
+		bundleInfo += " Following files are not included in the bundle : \n" + this.bundlelogfile;
+
+	    if (!bundlelogError.isEmpty())
+		bundleInfo += " There is an Error accessing some of the data files : \n" + bundlelogError;
+
+	    if ((bundlelogfile.isEmpty() && bundlelogError.isEmpty()) && filecount > 0)
+		bundleInfo += " All requested files are successsfully added to this bundle.";
+
+	    InputStream nStream = new ByteArrayInputStream(bundleInfo.getBytes());
 	    zout.putNextEntry(new ZipEntry("BundleInfo.txt"));
 	    while ((l = nStream.read(buf)) != -1) {
 		zout.write(buf, 0, l);
@@ -176,12 +187,13 @@ public class DefaultDataPackager implements DataPackager {
 	if (this.inputfileList.length > 0) {
 
 	    ObjectUtils.removeDuplicates(this.inputfileList);
-	   
-	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() >1){
-		    throw new InputLimitException("Total filesize is beyond allowed limit of." + this.mxFileSize);
-	    }	
+
+	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() > 1) {
+		throw new InputLimitException("Total filesize is beyond allowed limit of." + this.mxFileSize);
+	    }
 	    if (this.getFilesCount() > this.mxFilesCount)
-		throw new InputLimitException("Total number of files requested is beyond allowed limit." + this.mxFilesCount);
+		throw new InputLimitException(
+			"Total number of files requested is beyond allowed limit." + this.mxFilesCount);
 
 	} else {
 	    throw new DistributionException("Requested files jsonobject is empty.");
