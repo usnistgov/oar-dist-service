@@ -290,7 +290,7 @@ public class DatasetAccessController {
      * @throws IOException                if an error occurs while streaming the data to the client
      */
     @ApiOperation(value = "stream the data product with the given name", nickname = "get file",
-                  notes = "download the file")
+                  notes = "This is the primary way to download a data file")
     @GetMapping(value = "/{dsid}/**")
     public void downloadFile(@PathVariable("dsid") String dsid,
                              @ApiIgnore HttpServletRequest request,
@@ -322,7 +322,7 @@ public class DatasetAccessController {
             sh = downl.getDataFile(dsid, filepath, ver);
 
             /*
-             * Need encodeDigest implementat that converts hex to base64
+             * Need encodeDigest implementation that converts hex to base64
              *
             if (sh.getInfo().checksum != null) 
                 response.setHeader("Digest", encodeDigest(sh.getInfo().checksum));
@@ -363,6 +363,61 @@ public class DatasetAccessController {
         finally {
             if (sh != null) sh.close();
         }
+    }
+
+    /**
+     * download a data file information (via header fields).  This method responds to HEAD requests
+     * on a downloadable file.  
+     * 
+     * @param dsid      the dataset identifier
+     * @param request   the input HTTP request object 
+     * @param response  the output HTTP response object, used to write the output data
+     * @throws ResourceNotFoundException  if the given ID does not exist
+     * @throws FileNotFoundException      if the file does not exist in the dataset with given ID
+     * @throws DistributionException      if an internal service error occurs
+     * @throws IOException                if an error occurs while streaming the data to the client
+     */
+    @ApiOperation(value = "return info (via the HTTP header) about a downloadable file with a given name",
+                  nickname = "get file info",
+                  notes = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
+    @RequestMapping(value = "/{dsid}/**", method=RequestMethod.HEAD)
+    public void downloadFileInfo(@PathVariable("dsid") String dsid,
+                                 @ApiIgnore HttpServletRequest request,
+                                 @ApiIgnore HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
+        checkDatasetID(dsid);
+
+        String filepath = (String) request.getAttribute(
+                                      HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
+
+        String ver = null;
+        if (filepath.startsWith("_v/")) {
+            filepath = filepath.substring(3);
+            int i = filepath.indexOf('/');
+            if (i >= 0) filepath = filepath.substring(i+1);
+        }
+        checkFilePath(filepath);
+
+        if (logger.isInfoEnabled()) {
+            String msg = "Data file info requested for "+dsid+"/"+filepath;
+            if (ver != null)
+                msg += " (version "+ver+")";
+            logger.info(msg);
+        }
+        FileDescription fi = downl.getDataFileInfo(dsid, filepath, ver);
+
+        /*
+         * Need encodeDigest implementation that converts hex to base64
+         *
+        if (sh.getInfo().checksum != null) 
+            response.setHeader("Digest", encodeDigest(sh.getInfo().checksum));
+         */
+        response.setHeader("Content-Length",      Long.toString(fi.contentLength));
+        response.setHeader("Content-Type",        fi.contentType);
+        response.setHeader("Content-Disposition", "filename=\"" +
+                           Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
     }
 
     static Pattern baddsid = Pattern.compile("[\\s]");
