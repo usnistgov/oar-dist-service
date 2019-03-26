@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
@@ -113,58 +112,116 @@ public class DefaultDataPackager implements DataPackager {
      *            ZipOutputStream
      * @throws DistributionException
      */
+    int tryAccessUrl;
+
     @Override
     public void writeData(ZipOutputStream zout) throws DistributionException {
 	logger.info("Forming zip file from the the input fileurls");
-
 	int len;
 	byte[] buf = new byte[100000];
 	for (int i = 0; i < inputfileList.length; i++) {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
+	    tryAccessUrl = 1;
 	    try {
-
-		if (this.validateUrl(downloadurl)) {
-		    zout.putNextEntry(new ZipEntry(filepath));
-		    InputStream fstream = new URL(downloadurl).openStream();
-		    while ((len = fstream.read(buf)) != -1) {
-			zout.write(buf, 0, len);
-		    }
-		    zout.closeEntry();
-		    fstream.close();
+		if (this.validateUrl(downloadurl) && this.checkFileURLResponse(downloadurl)) {
+		    this.writeDataFile(zout, filepath, downloadurl);
 		    filecount++;
 		}
 	    } catch (IOException ie) {
-
 		bundlelogError += "\n Exception in getting data for: " + filepath + " at " + downloadurl;
-
-		logger.info("There is an error reading this file at location: " + downloadurl + "Exception: "
+		logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
 			+ ie.getMessage());
-
 	    }
-
 	}
 	this.writeLog(zout);
 
     }
 
+    /**
+     * 
+     * @param downloadurl
+     * @param filepath
+     * @param zout
+     * @throws IOException
+     */
+    private boolean checkFileURLResponse(String downloadurl) {
+	UrlStatusLocation uloc = ObjectUtils.getURLStatus(downloadurl);
+	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
+
+	    logger.info(downloadurl + " Error accessing this url: " + uloc.getStatus());
+	    this.bundlelogError = "\n " + downloadurl
+		    + " There is an Error accessing this file, Server returned status " + uloc.getStatus()
+		    + " with message:" + ObjectUtils.getStatusMessage(uloc.getStatus());
+	    return false;
+
+	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
+
+	    tryAccessUrl++;
+	    if (tryAccessUrl > 4)
+		return false;
+
+	    checkFileURLResponse(uloc.getLocation());
+	} else if (uloc.getStatus() >= 500) {
+	    this.bundlelogError = "\n" + downloadurl + " There is an internal server error accessing this url."
+		    + " Server returned code :" + uloc.getStatus();
+	    return false;
+	} else if (uloc.getStatus() == 200) {
+
+	    return true;
+	}
+
+	return false;
+    }
+
+    /**
+     * Write data files in the output bundle/package.
+     * 
+     * @param zout
+     *            OutputStream
+     * @param filepath
+     *            File with the path information to create similar structure in
+     *            package
+     * @param downloadurl
+     *            URL to download data
+     * @throws IOException
+     */
+    private void writeDataFile(ZipOutputStream zout, String filepath, String downloadurl) throws IOException {
+	int len;
+	byte[] buf = new byte[100000];
+	zout.putNextEntry(new ZipEntry(filepath));
+	InputStream fstream = new URL(downloadurl).openStream();
+	while ((len = fstream.read(buf)) != -1) {
+	    zout.write(buf, 0, len);
+	}
+	zout.closeEntry();
+	fstream.close();
+    }
+
     private void writeLog(ZipOutputStream zout) {
 	try {
+	    String filename = "";
 	    int l;
 	    byte[] buf = new byte[10000];
 	    String bundleInfo = "Information about status of this bundle and contents is as below:\n";
-	    if (!bundlelogfile.isEmpty())
+	    if (!bundlelogfile.isEmpty()) {
 		bundleInfo += " Following files are not included in the bundle : \n" + this.bundlelogfile;
+		filename = "PackagingErrors.txt";
+	    }
 
-	    if (!bundlelogError.isEmpty())
+	    if (!bundlelogError.isEmpty()) {
 		bundleInfo += " There is an Error accessing some of the data files : \n" + bundlelogError;
+		filename = "PackagingErrors.txt";
+	    }
 
-	    if ((bundlelogfile.isEmpty() && bundlelogError.isEmpty()) && filecount > 0)
+	    if ((bundlelogfile.isEmpty() && bundlelogError.isEmpty()) && filecount > 0) {
 		bundleInfo += " All requested files are successsfully added to this bundle.";
+		filename = "PackagingSuccessful.txt";
+	    }
 
 	    InputStream nStream = new ByteArrayInputStream(bundleInfo.getBytes());
-	    zout.putNextEntry(new ZipEntry("BundleInfo.txt"));
+	    zout.putNextEntry(new ZipEntry(filename));
 	    while ((l = nStream.read(buf)) != -1) {
 		zout.write(buf, 0, l);
 	    }

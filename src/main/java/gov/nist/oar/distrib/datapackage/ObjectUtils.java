@@ -13,6 +13,7 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -22,6 +23,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /***
@@ -30,8 +34,8 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
  * @author Deoyani Nandrekar-Heinis
  */
 public class ObjectUtils {
-    public ObjectUtils() {
-    }
+    protected static Logger logger = LoggerFactory.getLogger(ObjectUtils.class);
+
 
     /**
      * Read the url header to get the size of file.
@@ -47,55 +51,89 @@ public class ObjectUtils {
     }
 
     /**
-     * Return true if a given URL matches one of the set of allowed URL patterns.  
+     * Return true if a given URL matches one of the set of allowed URL
+     * patterns.
      * 
-     * @param url           the URL to test
-     * @param allowedUrls   a regular expression string for allowed URLs.  Multiple URL patterns 
-     *                      can be concatonated with a pipe (|) character.
-     * @return boolean      True if the URL matches one of the given patterns; false, otherwise
+     * @param url
+     *            the URL to test
+     * @param allowedUrls
+     *            a regular expression string for allowed URLs. Multiple URL
+     *            patterns can be concatonated with a pipe (|) character.
+     * @return boolean True if the URL matches one of the given patterns; false,
+     *         otherwise
      * @throws IOException
      */
-   // private 
-    //private 
+    // private
+    // private
     public static boolean isAllowedURL(String url, String allowedUrls) throws IOException {
 	URL obj = new URL(url);
 	String[] domainList = allowedUrls.split("\\|");
-	List<Boolean> list=new ArrayList<Boolean>();
-	//Looping over all the whitelist domains
-	for(int i=0; i< domainList.length; i++){
-	    String host = ""; 
+	List<Boolean> list = new ArrayList<Boolean>();
+	// Looping over all the whitelist domains
+	for (int i = 0; i < domainList.length; i++) {
+	    String host = "";
 	    String context = "";
-	    //If domains have path included in the config list check host and path.
-	    if(domainList[i].contains("/")){
+	    // If domains have path included in the config list check host and
+	    // path.
+	    if (domainList[i].contains("/")) {
 		String[] parts = domainList[i].split("/", 2);
 		host = parts[0];
-		if(getPatternMatch(host, obj.getHost())){
-		  context = parts[1];
-		  String[] paths = obj.getPath().split("/");
-		  list.add(getPatternMatch(context, obj.getPath().split("/")[1]));
-		  
-		}else{
+		if (getPatternMatch(host, obj.getHost())) {
+		    context = parts[1];
+		    String[] paths = obj.getPath().split("/");
+		    list.add(getPatternMatch(context, obj.getPath().split("/")[1]));
+
+		} else {
 		    list.add(false);
 		}
-	    }//else check only the host
-	    else{
-		host = ".*"+domainList[i];
+	    } // else check only the host
+	    else {
+		host = ".*" + domainList[i];
 		list.add(getPatternMatch(host.trim(), obj.getHost()));
 	    }
-	   
+
 	}
-	//if all the values in list are false, return false.
-	//It means none of the domain and host matches return false.
+	// if all the values in list are false, return false.
+	// It means none of the domain and host matches return false.
 	return !(list.stream().allMatch(val -> val == false));
 
     }
     
-    //Pattern matching for give pattern in requested string
-    private static boolean getPatternMatch(String pattern, String requestString){
-	 pattern= pattern.trim();
-	 Pattern dpattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-	 Matcher matcher = dpattern.matcher(requestString);	 
-	 return matcher.matches();
+    public static UrlStatusLocation  getURLStatus(String url){
+	
+	try{
+	    URL obj = new URL(url);
+	    HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+	    con.setConnectTimeout(10000);
+	    con.setReadTimeout(10000);
+	    con.connect();
+
+//	    System.out.println( "connected url: "+status+" :: " + con.getURL() 
+//	    +" ::"+con.getHeaderField( "Location" ) + "::"+con.getResponseCode());
+          
+	    UrlStatusLocation uLoc = new UrlStatusLocation(con.getResponseCode(),con.getHeaderField( "Location" ));
+	    con.disconnect();
+	    
+	    return uLoc;
+	}catch(IOException iexp){
+	    System.out.println("IOException:"+iexp.getMessage());
+	    logger.error(iexp.getMessage());
+	    return new UrlStatusLocation(-1, "");
+	    
+	}catch(Exception exp){
+	    System.out.println("Exception:"+exp.getMessage());
+	    logger.error(exp.getMessage());
+	    return new UrlStatusLocation(-1, "");
+	}
+
+    }
+
+    // Pattern matching for give pattern in requested string
+    private static boolean getPatternMatch(String pattern, String requestString) {
+	pattern = pattern.trim();
+	Pattern dpattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+	Matcher matcher = dpattern.matcher(requestString);
+	return matcher.matches();
     }
 
     /**
@@ -124,5 +162,52 @@ public class ObjectUtils {
     public static boolean hasHTMLTags(String text) {
 	Matcher matcher = pattern.matcher(text);
 	return matcher.find();
+    }
+    
+    /***
+     * Ststus messages in user readable format for response with 400* errors 
+     * @param statuscode
+     * @return String Readable error message
+     */
+    public static String getStatusMessage(int statuscode) {
+
+	switch (statuscode) {
+	case 400:
+	    return "The given URL is malformed.";
+	case 401:
+	    return "This URL request needs authorized user access.";
+	case 403:
+	    return "Access to this URL is forbidden";
+	case 404:
+	    return "The requested file by given URL is not found on server.";
+	case 405:
+	    return "Requested file/URL can not be accessed because method is not allowed.";
+	case 409:
+	    return "There is some conflict accessing this URL.";
+	case 410:
+	    return "This file represented by given URL is no longer available on the server.";
+	default:
+	    return "There is an error accessing this file/URL.";
+	}
+
+    }
+    
+}
+
+class UrlStatusLocation {
+    private  int status;
+    private  String location;
+
+    public UrlStatusLocation(int status, String location) {
+        this.status = status;
+        this.location = location;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public String getLocation() {
+        return location;
     }
 }
