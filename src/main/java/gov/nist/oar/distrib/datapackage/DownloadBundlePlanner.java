@@ -135,52 +135,39 @@ public class DownloadBundlePlanner {
     public void makeBundles(FileRequest jobject) throws IOException {
 	bundledFilesCount++;
 	long indiviualFileSize = ObjectUtils.getFileSize(jobject.getDownloadUrl());
-	if(indiviualFileSize >= this.mxFilesBundleSize){
+	if (indiviualFileSize >= this.mxFilesBundleSize) {
 	    List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
 	    onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	    this.makePlan(onefilePathUrls);
-	}else{
-	 bundleSize += indiviualFileSize;
-	 if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-	    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-	 } else {
-	    makePlan(filePathUrls);
-	    filePathUrls.clear();
-	    bundleSize = 0;
-	    bundledFilesCount = 1;
-	    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-	 }
+	} else {
+	    bundleSize += indiviualFileSize;
+	    if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
+		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    } else {
+		makePlan(filePathUrls);
+		filePathUrls.clear();
+		bundleSize = 0;
+		bundledFilesCount = 1;
+		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+	    }
 	}
     }
 
-//    /**
-//     * Put together the list of files and urls to make a bundle in a planned
-//     * bundle array and clear out the filespathurl for the rest of the files
-//     */
-//    public void makePlan() {
-//	if (!filePathUrls.isEmpty()) {
-//	    bundleCount++;
-//	    FilePathUrl[] fpathUrls = filePathUrls.toArray(new FilePathUrl[0]);
-//	    bundleFilePathUrls.add(new BundleNameFilePathUrl(bundleName + "-" + bundleCount + ".zip", fpathUrls));
-//	    filePathUrls.clear();
-//	    bundlePlanSize = 0;
-//	    bundlePlanCount = 1;
-//	}
-//    }
-    
+
     /***
      * Make the bundle of the files provided by list
+     * 
      * @param fPathUrls
      */
-    public void makePlan(List<FileRequest> fPathUrls){
-	 bundleCount++;
-	 FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-	 bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls)); 
+    public void makePlan(List<FileRequest> fPathUrls) {
+	bundleCount++;
+	FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
+	bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls));
     }
 
     /**
-     * Make the Final Bundle plan json data to return to client.
-     * It creates Java Object of BundleDownloadPlan after processing input request.
+     * Make the Final Bundle plan json data to return to client. It creates Java
+     * Object of BundleDownloadPlan after processing input request.
      */
     public void makeBundlePlan() {
 	this.finalPlan = new BundleDownloadPlan("_bundle", this.status,

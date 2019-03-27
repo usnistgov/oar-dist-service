@@ -53,11 +53,9 @@ import io.swagger.annotations.ApiResponse;
 public class DataBundleAccessController {
 
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);
-   
+
     @Autowired
     DataPackagingService df;
-
-    
 
     /**
      * download a bundle of data files requested
@@ -81,22 +79,21 @@ public class DataBundleAccessController {
     public void getbundlewithname(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
 	    throws DistributionException, InputLimitException {
+
+	String bundleName = "download";
+
 	try {
-	    String bundleName = "download";
+	    df.validateRequest(bundleRequest);
 
-//	    DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
-//		    this.numofFiles, jsonObject, bundleName);
-	    try{
-		df.validateRequest(bundleRequest);
-
-		if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
-		    bundleName = bundleRequest.getBundleName();
-		}
-	    } catch (DistributionException | IOException e) {
-
-		throw new ServiceSyntaxException(e.getMessage());
+	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+		bundleName = bundleRequest.getBundleName();
 	    }
+	} catch (DistributionException | IOException e) {
 
+	    throw new ServiceSyntaxException(e.getMessage());
+	}
+
+	try {
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
 	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
@@ -106,7 +103,9 @@ public class DataBundleAccessController {
 	    zout.close();
 	    response.flushBuffer();
 	    logger.info("Data bundled in zip delivered");
-	} catch (org.apache.catalina.connector.ClientAbortException ex) {
+	}
+
+	catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");
 
 	    throw new DistributionException(ex.getMessage());

@@ -39,62 +39,19 @@ public class DefaultDataPackagingService implements DataPackagingService {
 
     long maxFileSize = 0;
     int numOfFiles = 0;
-  
-    
+
     String domains;
     DownloadBundlePlanner dwnldPlanner;
 
     public DefaultDataPackagingService() {
 	// Default constructor
     }
-    
-    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles){
+
+    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles) {
 	this.maxFileSize = maxFileSize;
 	this.numOfFiles = numOfFiles;
 	this.domains = domains;
     }
-
-//    public DefaultDataPackagingService(long maxFileSize, int numOfFiles, FileRequest[] jsonRequest) {
-//	this.maxFileSize = maxFileSize;
-//	this.numOfFiles = numOfFiles;
-//	this.jsonRequest = jsonRequest;
-//	dp = new DefaultDataPackager(jsonRequest, maxFileSize, numOfFiles);
-//    }
-
-//    /**
-//     * 
-//     * @param domains
-//     * @param maxFileSize
-//     * @param numOfFiles
-//     * @param bundleRequest
-//     */
-//    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
-//	    BundleRequest bundleRequest) {
-//	this.maxFileSize = maxFileSize;
-//	this.numOfFiles = numOfFiles;
-//	this.bundleRequest = bundleRequest;
-//	this.domains = domains;
-//	dp = new DefaultDataPackager(bundleRequest, maxFileSize, numOfFiles, domains);
-//    }
-
-//    /**
-//     * 
-//     * @param domains
-//     * @param maxFileSize
-//     * @param numOfFiles
-//     * @param bundleRequest
-//     * @param bundleName
-//     */
-//    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles,
-//	    BundleRequest bundleRequest, String bundleName) {
-//	this.maxFileSize = maxFileSize;
-//	this.numOfFiles = numOfFiles;
-//	this.bundleRequest = bundleRequest;
-//	this.domains = domains;
-//	dwnldPlanner = new DownloadBundlePlanner(bundleRequest, maxFileSize, numOfFiles, domains, bundleName);
-//    }
-
-
 
     /*
      * Wtite data in the zipoutput format.
@@ -104,8 +61,8 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * oar.distrib.web.FilePathUrl[], java.lang.String)
      */
     @Override
-    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException,  IOException, InputLimitException
-    {
+    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout)
+	    throws DistributionException, IOException, InputLimitException {
 	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
 	dp.validateBundleRequest();
 	dp.writeData(zout);
