@@ -30,7 +30,7 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /***
  * ObjectUtils class provides the functionality to validate objects and text.
- * 
+ * It also use to work with server responses and response codes
  * @author Deoyani Nandrekar-Heinis
  */
 public class ObjectUtils {
@@ -97,6 +97,11 @@ public class ObjectUtils {
 
     }
 
+    /**
+     * Using Url connection get the response code from server
+     * @param con
+     * @return UrlStatusLocation Object
+     */
     public static UrlStatusLocation getURLStatus(HttpURLConnection con) {
 
 	try {
@@ -156,8 +161,7 @@ public class ObjectUtils {
     }
 
     /***
-     * Ststus messages in user readable format for response with 400* errors
-     * 
+     * Status messages in user readable format for response with 400* errors
      * @param statuscode
      * @return String Readable error message
      */
@@ -186,6 +190,11 @@ public class ObjectUtils {
 
 }
 
+/**
+ * Class is a POJO to return server response code with the url location
+ * @author Deoyani Nandrekar-Heinis
+ *
+ */
 class UrlStatusLocation {
     private int status;
     private String location;

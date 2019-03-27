@@ -132,7 +132,7 @@ public class DefaultDataPackager implements DataPackager {
 		    URL obj = new URL(downloadurl);
 		    con = (HttpURLConnection) obj.openConnection();
 		}
-		if (con != null && this.checkFileURLResponse(con)) {
+		if (con != null && this.checkResponse(con)) {
 		    this.writeDataFile(zout, filepath, con);
 		    filecount++;
 		}
@@ -159,9 +159,33 @@ public class DefaultDataPackager implements DataPackager {
      * @return boolean
      * @throws IOException
      */
-    private boolean checkFileURLResponse(HttpURLConnection con) throws IOException {
+    private boolean checkResponse(HttpURLConnection con) throws IOException {
 	UrlStatusLocation uloc = ObjectUtils.getURLStatus(con);
-	String requestedUrl = con.getURL().toString();
+
+	if (uloc.getStatus() == 200) {
+	    return true;
+	} else if (uloc.getStatus() >= 300) {
+	    dealWithErrors(uloc);
+	    return false;
+	} else if (uloc.getStatus() == -1) {
+	    this.bundlelogError.append("\n " + con.getURL());
+	    this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	    return false;
+	}
+	return false;
+
+    }
+
+    /**
+     * If the error code is returned, handle the error and create proper
+     * response message.
+     * 
+     * @param uloc
+     * @throws IOException
+     */
+    private void dealWithErrors(UrlStatusLocation uloc) throws IOException {
+
+	String requestedUrl = uloc.getLocation();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
 
 	    logger.info(requestedUrl + " Error accessing this url: " + uloc.getStatus());
@@ -170,31 +194,24 @@ public class DefaultDataPackager implements DataPackager {
 		    .append(" There is an Error accessing this file, Server returned status with response code  ");
 	    this.bundlelogError
 		    .append(uloc.getStatus() + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus()));
-	    return false;
 
 	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
 
 	    tryAccessUrl++;
 	    if (tryAccessUrl > 4) {
 		this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
-		return false;
+
+	    } else {
+		URL obj = new URL(uloc.getLocation());
+		HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
+		checkResponse(connect);
 	    }
-	    URL obj = new URL(uloc.getLocation());
-	    HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
-	    checkFileURLResponse(connect);
 	} else if (uloc.getStatus() >= 500) {
 	    this.bundlelogError.append("\n" + requestedUrl + " There is an internal server error accessing this url.");
 	    this.bundlelogError.append(" Server returned status with response code :" + uloc.getStatus());
-	    return false;
-	} else if (uloc.getStatus() == -1) {
-	    this.bundlelogError.append("\n " + requestedUrl);
-	    this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
-	    return false;
-	} else if (uloc.getStatus() == 200) {
-	    return true;
+
 	}
 
-	return false;
     }
 
     /**
@@ -353,7 +370,7 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * Validate input url.
+     * Validate requested URL by checking whether it is from allowed domains.
      */
     @Override
     public boolean validateUrl(String url) throws IOException, DistributionException {
