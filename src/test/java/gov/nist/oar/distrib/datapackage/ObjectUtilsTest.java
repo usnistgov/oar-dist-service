@@ -45,5 +45,27 @@ public class ObjectUtilsTest {
                     ObjectUtils.isAllowedURL("https://s3.amazonaws.com/nist-midas-games/doom.zip",
                                              allowed));
     }
+    
+    @Test
+    public void testGetUrlStatus(){
+	String testurlError = "https://data.nist.gov/od/ds/69BEF4C29F700451E053B357068186906918/ngc0055%2B3.con.fits"; 
+	String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";
+	
+	UrlStatusLocation urlLoc = ObjectUtils.getURLStatus(testurlError);
+	assertEquals(urlLoc.getStatus(), 404);
+	urlLoc = ObjectUtils.getURLStatus(testUrlRedirect); 
+	assertEquals(urlLoc.getStatus(), 301);
+	
+    }
+    
+    @Test
+    public void testUrlCode(){
+	String expectedMessage = "The requested file by given URL is not found on server.";
+	String message = ObjectUtils.getStatusMessage(404);
+	assertEquals(message, expectedMessage);
+	expectedMessage = "The given URL is malformed.";
+	message = ObjectUtils.getStatusMessage(400);
+	assertEquals(message, expectedMessage);
+    }
 
 }
