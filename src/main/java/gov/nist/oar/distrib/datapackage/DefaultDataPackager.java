@@ -50,8 +50,8 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
-    String bundlelogfile = "";
-    String bundlelogError = "";
+    StringBuilder bundlelogfile = new StringBuilder("");
+    StringBuilder bundlelogError = new StringBuilder("");
     int filecount = 0;
     int tryAccessUrl;
 
@@ -128,15 +128,17 @@ public class DefaultDataPackager implements DataPackager {
 	    tryAccessUrl = 1;
 	    HttpURLConnection con = null;
 	    try {
-		URL obj = new URL(downloadurl);
-		con = (HttpURLConnection) obj.openConnection();
-		if (this.validateUrl(downloadurl) && this.checkFileURLResponse(con)) {
+		if (this.validateUrl(downloadurl)) {
+		    URL obj = new URL(downloadurl);
+		    con = (HttpURLConnection) obj.openConnection();
+		}
+		if (con != null && this.checkFileURLResponse(con)) {
 		    this.writeDataFile(zout, filepath, con);
 		    filecount++;
 		}
 
 	    } catch (IOException ie) {
-		bundlelogError += "\n Exception in getting data for: " + filepath + " at " + downloadurl;
+		bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
 		logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
 			+ ie.getMessage());
 	    } finally {
@@ -149,42 +151,46 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
+     * This method/function gets an open validated url connection to check the
+     * status of the URL response. Creates appropriate log messages and returns
+     * true on successfully accessing data.
      * 
-     * @param downloadurl
-     * @param filepath
-     * @param zout
+     * @param con
+     * @return boolean
      * @throws IOException
      */
-    private boolean checkFileURLResponse( HttpURLConnection con) throws IOException {
+    private boolean checkFileURLResponse(HttpURLConnection con) throws IOException {
 	UrlStatusLocation uloc = ObjectUtils.getURLStatus(con);
 	String requestedUrl = con.getURL().toString();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
-	   
+
 	    logger.info(requestedUrl + " Error accessing this url: " + uloc.getStatus());
-	    this.bundlelogError = "\n " + requestedUrl
-		    + " There is an Error accessing this file, Server returned status with response code  "
-		    + uloc.getStatus() + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus());
+	    this.bundlelogError.append("\n " + requestedUrl);
+	    this.bundlelogError
+		    .append(" There is an Error accessing this file, Server returned status with response code  ");
+	    this.bundlelogError
+		    .append(uloc.getStatus() + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus()));
 	    return false;
 
 	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
 
 	    tryAccessUrl++;
 	    if (tryAccessUrl > 4) {
-		this.bundlelogError = "\n" + requestedUrl + " There are too many redirects for this URL.";
+		this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
 		return false;
 	    }
 	    URL obj = new URL(uloc.getLocation());
 	    HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
-	    checkFileURLResponse( connect);
+	    checkFileURLResponse(connect);
 	} else if (uloc.getStatus() >= 500) {
-	    this.bundlelogError = "\n" + requestedUrl + " There is an internal server error accessing this url."
-		    + " Server returned status with response code :" + uloc.getStatus();
+	    this.bundlelogError.append("\n" + requestedUrl + " There is an internal server error accessing this url.");
+	    this.bundlelogError.append(" Server returned status with response code :" + uloc.getStatus());
 	    return false;
 	} else if (uloc.getStatus() == -1) {
-	    this.bundlelogError = "\n " + requestedUrl
-		    + " There is an Error accessing this file. Could not connect successfully. ";
+	    this.bundlelogError.append("\n " + requestedUrl);
+	    this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	    return false;
 	} else if (uloc.getStatus() == 200) {
-
 	    return true;
 	}
 
@@ -195,12 +201,8 @@ public class DefaultDataPackager implements DataPackager {
      * Write data files in the output bundle/package.
      * 
      * @param zout
-     *            OutputStream
      * @param filepath
-     *            File with the path information to create similar structure in
-     *            package
-     * @param downloadurl
-     *            URL to download data
+     * @param httpConnect
      * @throws IOException
      */
     private void writeDataFile(ZipOutputStream zout, String filepath, HttpURLConnection httpConnect)
@@ -216,29 +218,37 @@ public class DefaultDataPackager implements DataPackager {
 	fstream.close();
     }
 
+    /**
+     * Write a log file in the bundle/package based on the response from
+     * accessing requested URLs
+     * 
+     * @param zout
+     */
     private void writeLog(ZipOutputStream zout) {
 	try {
 	    String filename = "";
 	    int l;
 	    byte[] buf = new byte[10000];
-	    String bundleInfo = "Information about requested bundle/package is given below.\n";
-	    if (!bundlelogfile.isEmpty()) {
-		bundleInfo += " Following files are not included in the bundle for the reasons given: \n"
-			+ this.bundlelogfile;
+	    StringBuilder bundleInfo = new StringBuilder(
+		    "Information about requested bundle/package is given below.\n");
+	    if (bundlelogfile.length() != 0) {
+		bundleInfo.append(" Following files are not included in the bundle for the reasons given: \n");
+		bundleInfo.append(this.bundlelogfile);
 		filename = "PackagingErrors.txt";
 	    }
 
-	    if (!bundlelogError.isEmpty()) {
-		bundleInfo += " Following files are not included in the bundle because of errors: \n" + bundlelogError;
+	    if (bundlelogError.length() != 0) {
+		bundleInfo.append(
+			" Following files are not included in the bundle because of errors: \n" + bundlelogError);
 		filename = "PackagingErrors.txt";
 	    }
 
-	    if ((bundlelogfile.isEmpty() && bundlelogError.isEmpty()) && filecount > 0) {
-		bundleInfo += " All requested files are successfully added to this bundle.";
+	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && filecount > 0) {
+		bundleInfo.append(" All requested files are successfully added to this bundle.");
 		filename = "PackagingSuccessful.txt";
 	    }
 
-	    InputStream nStream = new ByteArrayInputStream(bundleInfo.getBytes());
+	    InputStream nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
 	    zout.putNextEntry(new ZipEntry(filename));
 	    while ((l = nStream.read(buf)) != -1) {
 		zout.write(buf, 0, l);
@@ -349,14 +359,15 @@ public class DefaultDataPackager implements DataPackager {
     public boolean validateUrl(String url) throws IOException, DistributionException {
 	try {
 	    if (!ObjectUtils.isAllowedURL(url, this.domains)) {
-		this.bundlelogfile += "\n Url here:" + url
-			+ " does not belong to allowed domains, so this file is not downnloaded in the bundle/package.";
+		this.bundlelogfile.append("\n Url here:" + url);
+		this.bundlelogfile.append(
+			" does not belong to allowed domains, so this file is not downnloaded in the bundle/package.");
 		return false;
 	    }
 	    return true;
 	} catch (IOException ie) {
 	    logger.info("There is an issue accessing this url:" + url + " Excption here" + ie.getMessage());
-	    this.bundlelogfile += "\n There is an issue accessing this url:" + url;
+	    this.bundlelogfile.append("\n There is an issue accessing this url:" + url);
 	    return false;
 	}
     }
