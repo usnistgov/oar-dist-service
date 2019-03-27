@@ -36,7 +36,6 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 public class ObjectUtils {
     protected static Logger logger = LoggerFactory.getLogger(ObjectUtils.class);
 
-
     /**
      * Read the url header to get the size of file.
      * 
@@ -73,8 +72,7 @@ public class ObjectUtils {
 	for (int i = 0; i < domainList.length; i++) {
 	    String host = "";
 	    String context = "";
-	    // If domains have path included in the config list check host and
-	    // path.
+	    // If domains have path included in the config list check host and path.
 	    if (domainList[i].contains("/")) {
 		String[] parts = domainList[i].split("/", 2);
 		host = parts[0];
@@ -98,27 +96,23 @@ public class ObjectUtils {
 	return !(list.stream().allMatch(val -> val == false));
 
     }
-    
-    public static UrlStatusLocation  getURLStatus(String url){
-	
-	try{
-	    URL obj = new URL(url);
-	    HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+
+    public static UrlStatusLocation getURLStatus(HttpURLConnection con) {
+
+	try {
+
 	    HttpURLConnection.setFollowRedirects(false);
 	    con.setFollowRedirects(false);
 	    con.setConnectTimeout(10000);
 	    con.setReadTimeout(10000);
 	    con.connect();
-	    UrlStatusLocation uLoc = new UrlStatusLocation(con.getResponseCode(),con.getHeaderField( "Location" ));
-	    con.disconnect();
-	    return uLoc;
-	}catch(IOException iexp){
-	    System.out.println("IOException:"+iexp.getMessage());
+	    return new UrlStatusLocation(con.getResponseCode(), con.getHeaderField("Location"));
+
+	} catch (IOException iexp) {
 	    logger.error(iexp.getMessage());
 	    return new UrlStatusLocation(-1, "");
-	    
-	}catch(Exception exp){
-	    System.out.println("Exception:"+exp.getMessage());
+
+	} catch (Exception exp) {
 	    logger.error(exp.getMessage());
 	    return new UrlStatusLocation(-1, "");
 	}
@@ -160,9 +154,10 @@ public class ObjectUtils {
 	Matcher matcher = pattern.matcher(text);
 	return matcher.find();
     }
-    
+
     /***
-     * Ststus messages in user readable format for response with 400* errors 
+     * Ststus messages in user readable format for response with 400* errors
+     * 
      * @param statuscode
      * @return String Readable error message
      */
@@ -188,23 +183,23 @@ public class ObjectUtils {
 	}
 
     }
-    
+
 }
 
 class UrlStatusLocation {
-    private  int status;
-    private  String location;
+    private int status;
+    private String location;
 
     public UrlStatusLocation(int status, String location) {
-        this.status = status;
-        this.location = location;
+	this.status = status;
+	this.location = location;
     }
 
     public int getStatus() {
-        return status;
+	return status;
     }
 
     public String getLocation() {
-        return location;
+	return location;
     }
 }
