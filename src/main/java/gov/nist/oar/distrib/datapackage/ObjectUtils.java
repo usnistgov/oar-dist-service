@@ -104,16 +104,13 @@ public class ObjectUtils {
 	try{
 	    URL obj = new URL(url);
 	    HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+	    HttpURLConnection.setFollowRedirects(false);
+	    con.setFollowRedirects(false);
 	    con.setConnectTimeout(10000);
 	    con.setReadTimeout(10000);
 	    con.connect();
-
-//	    System.out.println( "connected url: "+status+" :: " + con.getURL() 
-//	    +" ::"+con.getHeaderField( "Location" ) + "::"+con.getResponseCode());
-          
 	    UrlStatusLocation uLoc = new UrlStatusLocation(con.getResponseCode(),con.getHeaderField( "Location" ));
 	    con.disconnect();
-	    
 	    return uLoc;
 	}catch(IOException iexp){
 	    System.out.println("IOException:"+iexp.getMessage());

@@ -52,6 +52,8 @@ public class DefaultDataPackager implements DataPackager {
     String bundlelogfile = "";
     String bundlelogError = "";
     int filecount = 0;
+    int tryAccessUrl;
+    
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 
     public DefaultDataPackager() {
@@ -112,7 +114,7 @@ public class DefaultDataPackager implements DataPackager {
      *            ZipOutputStream
      * @throws DistributionException
      */
-    int tryAccessUrl;
+  
 
     @Override
     public void writeData(ZipOutputStream zout) throws DistributionException {
@@ -152,22 +154,26 @@ public class DefaultDataPackager implements DataPackager {
 
 	    logger.info(downloadurl + " Error accessing this url: " + uloc.getStatus());
 	    this.bundlelogError = "\n " + downloadurl
-		    + " There is an Error accessing this file, Server returned status " + uloc.getStatus()
-		    + " with message:" + ObjectUtils.getStatusMessage(uloc.getStatus());
+		    + " There is an Error accessing this file, Server returned status with response code  " + uloc.getStatus()
+		    + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus());
 	    return false;
 
 	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
 
 	    tryAccessUrl++;
-	    if (tryAccessUrl > 4)
+	    if (tryAccessUrl > 4){
+		this.bundlelogError = "\n" + downloadurl + " There are too many redirects for this URL.";
 		return false;
-
+	    }	
 	    checkFileURLResponse(uloc.getLocation());
 	} else if (uloc.getStatus() >= 500) {
 	    this.bundlelogError = "\n" + downloadurl + " There is an internal server error accessing this url."
-		    + " Server returned code :" + uloc.getStatus();
+		    + " Server returned status with response code :" + uloc.getStatus();
 	    return false;
-	} else if (uloc.getStatus() == 200) {
+	}else if(uloc.getStatus() == -1){
+	    this.bundlelogError = "\n " + downloadurl+ " There is an Error accessing this file. Could not connect successfully. ";
+	}
+	else if (uloc.getStatus() == 200) {
 
 	    return true;
 	}
@@ -204,19 +210,19 @@ public class DefaultDataPackager implements DataPackager {
 	    String filename = "";
 	    int l;
 	    byte[] buf = new byte[10000];
-	    String bundleInfo = "Information about status of this bundle and contents is as below:\n";
+	    String bundleInfo = "Information about requested bundle/package is given below.\n";
 	    if (!bundlelogfile.isEmpty()) {
-		bundleInfo += " Following files are not included in the bundle : \n" + this.bundlelogfile;
+		bundleInfo += " Following files are not included in the bundle for the reasons given: \n" + this.bundlelogfile;
 		filename = "PackagingErrors.txt";
 	    }
 
 	    if (!bundlelogError.isEmpty()) {
-		bundleInfo += " There is an Error accessing some of the data files : \n" + bundlelogError;
+		bundleInfo += " Following files are not included in the bundle because of errors: \n" + bundlelogError;
 		filename = "PackagingErrors.txt";
 	    }
 
 	    if ((bundlelogfile.isEmpty() && bundlelogError.isEmpty()) && filecount > 0) {
-		bundleInfo += " All requested files are successsfully added to this bundle.";
+		bundleInfo += " All requested files are successfully added to this bundle.";
 		filename = "PackagingSuccessful.txt";
 	    }
 
@@ -246,11 +252,11 @@ public class DefaultDataPackager implements DataPackager {
 	    ObjectUtils.removeDuplicates(this.inputfileList);
 
 	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() > 1) {
-		throw new InputLimitException("Total filesize is beyond allowed limit of." + this.mxFileSize);
+		throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
 	    }
 	    if (this.getFilesCount() > this.mxFilesCount)
 		throw new InputLimitException(
-			"Total number of files requested is beyond allowed limit." + this.mxFilesCount);
+			"Total number of files requested is beyond allowed limit " + this.mxFilesCount);
 
 	} else {
 	    throw new DistributionException("Requested files jsonobject is empty.");
@@ -332,7 +338,7 @@ public class DefaultDataPackager implements DataPackager {
 	try {
 	    if (!ObjectUtils.isAllowedURL(url, this.domains)) {
 		this.bundlelogfile += "\n Url here:" + url
-			+ " does not belong to allowed domains, so no file is downnloaded for this";
+			+ " does not belong to allowed domains, so this file is not downnloaded in the bundle/package.";
 		return false;
 	    }
 	    return true;
