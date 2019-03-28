@@ -185,7 +185,7 @@ public class DefaultDataPackager implements DataPackager {
      */
     private void dealWithErrors(UrlStatusLocation uloc) throws IOException {
 
-	String requestedUrl = uloc.getLocation();
+	String requestedUrl = uloc.getRequestedURL();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
 
 	    logger.info(requestedUrl + " Error accessing this url: " + uloc.getStatus());
