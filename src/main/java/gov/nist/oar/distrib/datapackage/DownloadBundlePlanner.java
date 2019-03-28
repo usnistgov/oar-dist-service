@@ -143,12 +143,13 @@ public class DownloadBundlePlanner {
 	    bundleSize += indiviualFileSize;
 	    if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
 		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-	    } else {
+	    }
+	    else {
 		makePlan(filePathUrls);
 		filePathUrls.clear();
-		bundleSize = 0;
 		bundledFilesCount = 1;
 		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+		bundleSize = indiviualFileSize;
 	    }
 	}
     }
