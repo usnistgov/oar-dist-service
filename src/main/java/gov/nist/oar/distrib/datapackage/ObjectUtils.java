@@ -45,8 +45,11 @@ public class ObjectUtils {
      */
     public static long getFileSize(String url) throws IOException {
 	URL obj = new URL(url);
-	URLConnection conn = obj.openConnection();
-	return conn.getContentLength();
+	HttpURLConnection conn = (HttpURLConnection)obj.openConnection();
+	conn.setRequestMethod("HEAD");
+	long length = conn.getContentLength();
+	conn.disconnect();
+	return length;
     }
 
     /**
@@ -111,15 +114,15 @@ public class ObjectUtils {
 	    con.setConnectTimeout(10000);
 	    con.setReadTimeout(10000);
 	    con.connect();
-	    return new UrlStatusLocation(con.getResponseCode(), con.getHeaderField("Location"));
+	    return new UrlStatusLocation(con.getResponseCode(), con.getHeaderField("Location"), con.getURL().toString());
 
 	} catch (IOException iexp) {
 	    logger.error(iexp.getMessage());
-	    return new UrlStatusLocation(-1, "");
+	    return new UrlStatusLocation(-1, "",con.getURL().toString());
 
 	} catch (Exception exp) {
 	    logger.error(exp.getMessage());
-	    return new UrlStatusLocation(-1, "");
+	    return new UrlStatusLocation(-1, "",con.getURL().toString());
 	}
 
     }
@@ -198,10 +201,12 @@ public class ObjectUtils {
 class UrlStatusLocation {
     private int status;
     private String location;
+    private String requestedURL;
 
-    public UrlStatusLocation(int status, String location) {
+    public UrlStatusLocation(int status, String location, String requestedURL) {
 	this.status = status;
 	this.location = location;
+	this.requestedURL = requestedURL;
     }
 
     public int getStatus() {
@@ -210,5 +215,9 @@ class UrlStatusLocation {
 
     public String getLocation() {
 	return location;
+    }
+    
+    public String getRequestedURL(){
+	return this.requestedURL;
     }
 }

@@ -78,22 +78,25 @@ public class DataBundleAccessController {
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
     public void getbundlewithname(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-	    throws DistributionException, InputLimitException {
+	    throws DistributionException, InputLimitException, IOException {
 
 	String bundleName = "download";
 
-	try {
-	    df.validateRequest(bundleRequest);
+//	try {
+	    //df.validateRequest(bundleRequest);
+//	 if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+//		bundleName = bundleRequest.getBundleName();
+//	    }
+	    
+//	} catch (DistributionException | IOException e) {
+//
+//	    throw new ServiceSyntaxException(e.getMessage());
+//	}
 
+	try {
 	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 		bundleName = bundleRequest.getBundleName();
 	    }
-	} catch (DistributionException | IOException e) {
-
-	    throw new ServiceSyntaxException(e.getMessage());
-	}
-
-	try {
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
 	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
@@ -104,7 +107,6 @@ public class DataBundleAccessController {
 	    response.flushBuffer();
 	    logger.info("Data bundled in zip delivered");
 	}
-
 	catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");
 
