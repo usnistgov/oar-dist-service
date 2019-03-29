@@ -45,8 +45,11 @@ public class ObjectUtils {
      */
     public static long getFileSize(String url) throws IOException {
 	URL obj = new URL(url);
-	URLConnection conn = obj.openConnection();
-	return conn.getContentLength();
+	HttpURLConnection conn = (HttpURLConnection)obj.openConnection();
+	conn.setRequestMethod("HEAD");
+	long length = conn.getContentLength();
+	conn.disconnect();
+	return length;
     }
 
     /**
