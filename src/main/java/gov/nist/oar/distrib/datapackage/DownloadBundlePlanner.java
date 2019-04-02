@@ -91,7 +91,6 @@ public class DownloadBundlePlanner {
 	    this.status = "Error";
 	    makeBundlePlan();
 	    return finalPlan;
-
 	}
 
 	try {
@@ -134,13 +133,18 @@ public class DownloadBundlePlanner {
      */
     public void makeBundles(FileRequest jobject) throws IOException {
 	bundledFilesCount++;
-	long indiviualFileSize = ObjectUtils.getFileSize(jobject.getDownloadUrl());
-	if (indiviualFileSize >= this.mxFilesBundleSize) {
+	long individualFileSize = ObjectUtils.getFileSize(jobject.getDownloadUrl());
+	if(individualFileSize < 0){
+	    notIncludedFiles.add(new NotIncludedFiles(jobject.getFilePath(), jobject.getDownloadUrl(), "Can not get filesize."));
+	    messages.add("Some URLs have problem accessing contents.");
+	    this.status = "warnings";
+	}else{
+	if (individualFileSize >= this.mxFilesBundleSize) {
 	    List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
 	    onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	    this.makePlan(onefilePathUrls);
 	} else {
-	    bundleSize += indiviualFileSize;
+	    bundleSize += individualFileSize;
 	    if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
 		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
 	    }
@@ -149,8 +153,9 @@ public class DownloadBundlePlanner {
 		filePathUrls.clear();
 		bundledFilesCount = 1;
 		filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-		bundleSize = indiviualFileSize;
+		bundleSize = individualFileSize;
 	    }
+	}
 	}
     }
 

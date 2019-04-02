@@ -36,6 +36,11 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 public class ObjectUtils {
     protected static Logger logger = LoggerFactory.getLogger(ObjectUtils.class);
 
+    static int countTryUrl = 0;
+    
+    public void setCountTryUrl(){
+	countTryUrl =  0;
+    }
     /**
      * Read the url header to get the size of file.
      * 
@@ -43,13 +48,34 @@ public class ObjectUtils {
      * @return long
      * @throws IOException
      */
-    public static long getFileSize(String url) throws IOException {
+    
+    public static long getFileSize(String url) {
+	try{
 	URL obj = new URL(url);
 	HttpURLConnection conn = (HttpURLConnection)obj.openConnection();
 	conn.setRequestMethod("HEAD");
+	//conn.getInputStream();
 	long length = conn.getContentLength();
+	int responseCode = conn.getResponseCode();
+	if( (responseCode >= 300 && responseCode < 400 ) && countTryUrl < 4){
+	    String location = conn.getHeaderField("Location");
+	    countTryUrl ++;
+	    conn.disconnect();
+	    length = -1;
+	    getFileSize(location);
+	}
+	if((responseCode >= 300 && responseCode < 400 ) && countTryUrl == 4){
+	    length = -1;
+	    countTryUrl = 0;	  
+	}	
 	conn.disconnect();
 	return length;
+	}catch(IOException exp){
+	    logger.error(exp.getMessage());
+	    logger.info("There is error reading this url:" + url);
+	    countTryUrl = 0;	
+	    return 0;
+	}
     }
 
     /**

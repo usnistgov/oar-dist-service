@@ -343,13 +343,9 @@ public class DefaultDataPackager implements DataPackager {
 
 	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
 	long totalSize = 0;
-	for (int i = 0; i < downloadurls.size(); i++) {
-	    try {
+	for (int i = 0; i < downloadurls.size(); i++) 
 		totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
-	    } catch (IOException ie) {
-		logger.info("There is error reading this url:" + downloadurls.get(i));
-	    }
-	}
+
 	return totalSize;
 
     }
