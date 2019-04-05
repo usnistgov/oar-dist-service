@@ -63,7 +63,7 @@ public class DatasetAccessControllerTest {
     HttpHeaders headers = new HttpHeaders();
 
     private String getBaseURL() {
-        return "http://localhost:" + port + "/oar-dist-service";
+        return "http://localhost:" + port + "/od";
     }
 
     @Test
@@ -87,7 +87,7 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -122,7 +122,7 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_v",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_v\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_v\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -185,7 +185,7 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_v/0",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_v/0\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_v/0\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
@@ -193,7 +193,7 @@ public class DatasetAccessControllerTest {
         resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v/12.32",
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/_aip/_v/12.32\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/_aip/_v/12.32\"," +
                            "status:404,message:\"Requested version of resource not found\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -218,7 +218,7 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/_aip/_head",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/_aip/_head\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/_aip/_head\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
@@ -243,7 +243,7 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goober/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goober/trial1.json\"," +
                                  "status:404,message:\"Resource ID not found\",method:GET}",
                                 resp.getBody(), true);
 
@@ -254,7 +254,7 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/goober/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/goober/trial1.json\"," +
                                  "status:404,message:\"File not found in requested dataset\",method:GET}",
                                 resp.getBody(), true);
 
@@ -268,7 +268,7 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/goob%20er/trial1.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/goob%20er/trial1.json\"," +
                                  "status:400,message:\"Malformed input\",method:GET}",
                                 resp.getBody(), true);
 
@@ -282,7 +282,7 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/trial3/../trial3/trial3a.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/trial3/../trial3/trial3a.json\"," +
                                  "status:400,message:\"Malformed input\",method:GET}",
                                 resp.getBody(), true);
         */
@@ -293,7 +293,7 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-        JSONAssert.assertEquals("{requestURL:\"/oar-dist-service/ds/mds1491/.trial3a.json\"," +
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/.trial3a.json\"," +
                                  "status:400,message:\"Malformed input\",method:GET}",
                                 resp.getBody(), true);
     }
@@ -315,6 +315,17 @@ public class DatasetAccessControllerTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertEquals(69, resp.getBody().length());
+    }
+
+    @Test
+    public void testDownloadFileInfo() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
     }
 
     @Test
