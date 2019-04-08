@@ -49,7 +49,7 @@ public class ObjectUtilsTest {
 
     @Test
     public void testGetUrlStatus() throws IOException {
-	String testurlError = "https://data.nist.gov/od/ds/69BEF4C29F700451E053B357068186906918/ngc0055%2B3.con.fits";
+	String testurlError = "https://www.nist.gov/does_not_exist.txt";
 	String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";
 	URL obj = new URL(testurlError);
 	HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
