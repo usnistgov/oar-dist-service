@@ -28,17 +28,15 @@ import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
  */
 public interface DataPackager {
 
-    public int writeData(ZipOutputStream zp) throws DistributionException;
-
-    void validateRequest() throws DistributionException, IOException, InputLimitException;
+    public int getData(ZipOutputStream zp) throws DistributionException, IOException, InputLimitException;
 
     long getTotalSize() throws IOException;
 
     int getFilesCount() throws IOException;
+    
+    String getBundleName() throws IOException;
 
     void validateBundleRequest() throws DistributionException, IOException, InputLimitException;
-
-    void validateInput() throws IOException;
 
     boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
 }

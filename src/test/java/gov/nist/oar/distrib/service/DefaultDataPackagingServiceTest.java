@@ -41,6 +41,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
@@ -94,11 +95,12 @@ public class DefaultDataPackagingServiceTest {
 	ddp.validateRequest(bundleRequest);
 	if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
 	    bundleName = bundleRequest.getBundleName();
-	
+
 	Path path = Files.createTempFile(bundleName, ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	ddp.getBundledZipPackage(bundleRequest, zos);
+	DataPackager dp = ddp.getBundledZipPackage(bundleRequest);
+	dp.getData(zos);
 	zos.close();
 	int len = (int) Files.size(path);
 	System.out.println("Len:" + len);
@@ -164,7 +166,8 @@ public class DefaultDataPackagingServiceTest {
 	Path path = Files.createTempFile("testdatabundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	ddpkService.getBundledZipPackage(bRequest, zos);
+	DataPackager dp = ddpkService.getBundledZipPackage(bRequest);
+	dp.getData(zos);
 	zos.close();
 
 	try (ZipFile file = new ZipFile(path.toString())) {
@@ -188,13 +191,13 @@ public class DefaultDataPackagingServiceTest {
 		try {
 		    BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 		    if (stream != null) {
-			
+
 			while ((str = reader.readLine()) != null) {
-//			    System.out.println("line no:"+count+"::::"+str);
+			    // System.out.println("line no:"+count+"::::"+str);
 			    if (count == 3)
 				assertEquals(str.trim(), expectedStr.trim());
 			    count++;
-				
+
 			}
 		    }
 		} finally {

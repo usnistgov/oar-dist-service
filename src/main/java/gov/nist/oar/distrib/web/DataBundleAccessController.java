@@ -31,8 +31,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.amazonaws.Response;
+
+import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
@@ -79,20 +83,25 @@ public class DataBundleAccessController {
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
 	    @ApiIgnore Errors errors) throws DistributionException {
 
-	String bundleName = "download";
+//	String bundleName = "download";
+	
+	try(ZipOutputStream zout = new ZipOutputStream(response.getOutputStream())) {
+	   
+	    //dpService.validateRequest(bundleRequest);
+//	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty())
+//		bundleName = bundleRequest.getBundleName();
 
-	try {
-	    dpService.validateRequest(bundleRequest);
-	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty())
-		bundleName = bundleRequest.getBundleName();
-
+	    DefaultDataPackager dataPackager = dpService.getBundledZipPackage(bundleRequest);
 	    response.setHeader("Content-Type", "application/zip");
-	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
-	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-	    int httpStatus = dpService.getBundledZipPackage(bundleRequest, zout);
-	    response.setStatus(httpStatus);
-	    zout.close();
-	    response.flushBuffer();
+	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
+	   
+		   
+	    int httpStatus = dataPackager.getData(zout);
+	    
+	    //	    zout = new ZipOutputStream(response.getOutputStream());
+//	    int httpStatus = dpService.getBundledZipPackage(bundleRequest, zout);
+	    //response.setStatus(httpStatus);
+	    response.flushBuffer();	   
 	    logger.info("Data bundled in zip delivered");
 	} catch (InputLimitException ie) {
 	    logger.error("There is an error with InputLimit");
@@ -114,6 +123,12 @@ public class DataBundleAccessController {
 	    } else {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
+	    }
+	}finally{
+	    try {
+		response.flushBuffer();
+	    } catch (IOException e) {
+		logger.error("Problem while calling repsonse.flushbuffer and outputstream close :"+e.getMessage());	    
 	    }
 	}
 
@@ -138,6 +153,7 @@ public class DataBundleAccessController {
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+	
 	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
     }

@@ -73,36 +73,6 @@ public class DefaultDataPackager implements DataPackager {
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(FileRequest[] inputjson, long maxFileSize, int numOfFiles) {
-	this.inputfileList = inputjson;
-	this.mxFileSize = maxFileSize;
-	this.mxFilesCount = numOfFiles;
-    }
-
-    /**
-     * Construct input parameters to be used within the class
-     * 
-     * @param inputjson
-     * @param maxFileSize
-     *            total file size allowed to download
-     * @param numOfFiles
-     *            total number of files allowed to download
-     */
-    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles) {
-	this.bundleRequest = inputjson;
-	this.mxFileSize = maxFileSize;
-	this.mxFilesCount = numOfFiles;
-    }
-
-    /**
-     * Construct input parameters to be used within the class
-     * 
-     * @param inputjson
-     * @param maxFileSize
-     *            total file size allowed to download
-     * @param numOfFiles
-     *            total number of files allowed to download
-     */
     public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
@@ -117,10 +87,14 @@ public class DefaultDataPackager implements DataPackager {
      * @param zout
      *            ZipOutputStream
      * @throws DistributionException
+     * @throws IOException
      */
 
     @Override
-    public int writeData(ZipOutputStream zout) throws DistributionException {
+    public int getData(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException {
+
+	this.validateBundleRequest();
+
 	logger.info("Forming zip file from the the input fileurls");
 	httpStatus = new int[inputfileList.length];
 	int len;
@@ -167,8 +141,6 @@ public class DefaultDataPackager implements DataPackager {
 	else
 	    return 500;
     }
-
-   
 
     /**
      * This method/function gets an open validated url connection to check the
@@ -299,13 +271,16 @@ public class DefaultDataPackager implements DataPackager {
     /**
      * Validate the request sent by client. Function checks and eliminates
      * duplicates, check total file size to compare with allowed size, Checks
-     * total number of files allowed
-     * 
-     * @throws DistributionException
-     * @throws IOException
+     * total number of files allowed This is to validate request and validate
+     * input JSON data sent by the client.
      */
     @Override
-    public void validateRequest() throws IOException, InputLimitException {
+    public void validateBundleRequest() throws IOException, InputLimitException {
+
+	basicValidation();
+
+	if (this.inputfileList.length <= 0)
+	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
 
 	ObjectUtils.removeDuplicates(this.inputfileList);
 	long totalFilesSize = this.getTotalSize();
@@ -322,32 +297,6 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * This is to validate request and validate input JSON data sent by the
-     * client.
-     */
-    @Override
-    public void validateBundleRequest() throws IOException, InputLimitException {
-
-	JSONUtils.isJSONValid(this.bundleRequest);
-
-	this.inputfileList = this.bundleRequest.getIncludeFiles();
-
-	if (this.inputfileList.length <= 0)
-	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
-
-	this.validateRequest();
-    }
-
-    /*
-     * Check whether input request is a valid json data.
-     */
-    @Override
-    public void validateInput() throws IOException {
-
-	JSONUtils.isJSONValid(this.bundleRequest);
-    }
-
-    /**
      * Function to get total files size requested by client throws IOException
      * if there is an issue accessing url.
      * 
@@ -357,10 +306,7 @@ public class DefaultDataPackager implements DataPackager {
      */
     @Override
     public long getTotalSize() throws IOException {
-	if (this.inputfileList == null) {
-	    this.validateInput();
-	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	}
+	basicValidation();
 	List<FileRequest> list = Arrays.asList(this.inputfileList);
 
 	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
@@ -380,10 +326,7 @@ public class DefaultDataPackager implements DataPackager {
      */
     @Override
     public int getFilesCount() throws IOException {
-	if (this.inputfileList == null) {
-	    this.validateInput();
-	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	}
+	basicValidation();
 	return this.inputfileList.length;
     }
 
@@ -404,6 +347,24 @@ public class DefaultDataPackager implements DataPackager {
 	    logger.info("There is an issue accessing this url:" + url + " Excption here" + ie.getMessage());
 	    this.bundlelogfile.append("\n There is an issue accessing this url:" + url);
 	    return false;
+	}
+    }
+
+    /*
+     * Get the name provided or use default bundle name.
+     */
+    @Override
+    public String getBundleName() throws IOException {
+	String bundleName;
+	basicValidation();
+	return ((bundleName = bundleRequest.getBundleName()) != null) ? bundleName : "download";
+
+    }
+
+    private void basicValidation() throws IOException {
+	if (this.inputfileList == null) {
+	    JSONUtils.isJSONValid(this.bundleRequest);
+	    this.inputfileList = this.bundleRequest.getIncludeFiles();
 	}
     }
 

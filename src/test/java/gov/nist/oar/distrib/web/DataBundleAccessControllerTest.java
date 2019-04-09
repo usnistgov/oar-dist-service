@@ -54,9 +54,9 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources",
+	"distrib.bagstore.location=./src/test/resources",
 	"distrib.baseurl=http://localhost/od/ds",
-        "logging.path=${basedir}/target/surefire-reports",
+        "logging.path=./target/surefire-reports",
 	"distrib.packaging.maxpackagesize = 100000",
         "distrib.packaging.maxfilecount = 2",
 	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
@@ -93,10 +93,9 @@ public class DataBundleAccessControllerTest {
 		.body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
-	// System.out.println("response.getStatusCode()
-	// :"+response.getStatusCode()+ " \n resp.getHeaders()
-	// :"+response.getHeaders()+"\n
-	// resp.getBody().length():"+response.getBody().length());
+//	 System.out.println("response.getStatusCode():"
+//	+response.getStatusCode()+ " \n resp.getHeaders():"+response.getHeaders()
+//	+"\n response.getBody().length():"+response.getBody().length());
 
 	assertEquals(HttpStatus.OK, response.getStatusCode());
 	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
@@ -131,7 +130,7 @@ public class DataBundleAccessControllerTest {
 
 	assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-	//assertEquals(1, response.getBody().length());
+	//assertEquals(22, response.getBody().length());
 
     }
 }

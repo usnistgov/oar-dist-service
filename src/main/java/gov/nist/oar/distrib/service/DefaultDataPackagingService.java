@@ -61,11 +61,12 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * oar.distrib.web.FilePathUrl[], java.lang.String)
      */
     @Override
-    public int getBundledZipPackage(BundleRequest br, ZipOutputStream zout)
-	    throws DistributionException, IOException {
-	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
-	dp.validateBundleRequest();
-	return dp.writeData(zout);
+    public DefaultDataPackager getBundledZipPackage(BundleRequest br)
+	    throws DistributionException {
+	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
+//	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
+//	dp.validateBundleRequest();
+//	return dp.writeData(zout);
     }
 
     /*

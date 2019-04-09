@@ -21,19 +21,42 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /**
+ * This service interface defines functions available to call datapackger for given request,
+ * Get request validated and get the bundle plan for given request.
  * @author Deoyani Nandrekar-Heinis
  *
  */
 public interface DataPackagingService {
    
-    public int getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException, IOException;
+   /**
+    * Accepts the bundle request and return bundlepackager to access data
+    * @param br BundleRequest 
+    * @return DataPackager
+    * @throws DistributionException
+    */
+    public DefaultDataPackager getBundledZipPackage(BundleRequest br) throws DistributionException;
 
+    /**
+     * Validate Bundle/package download request and validate it for syntax, valid urls and allowed sizes
+     * @param br
+     * @throws DistributionException
+     * @throws IOException
+     * @throws InputLimitException
+     */
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException;
 
+    /**
+     * Create bundle plan for the input request and return plan with or without name provided
+     * @param br
+     * @param bundleName
+     * @return
+     * @throws JsonProcessingException
+     */
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName) throws JsonProcessingException;
 }

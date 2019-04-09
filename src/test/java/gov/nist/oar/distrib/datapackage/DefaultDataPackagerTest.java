@@ -16,7 +16,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,6 +47,7 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
+    String domains = "nist.gov|s3.amazonaws.com/nist-midas";
     private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
@@ -64,7 +69,7 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(inputfileList, mxFileSize, numberofFiles);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
     }
 
     @Test
@@ -80,11 +85,11 @@ public class DefaultDataPackagerTest {
     @Test
     public void testValidateRequest() throws DistributionException, MalformedURLException, IOException, InputLimitException {
 	createInput();
-	dp = new DefaultDataPackager(inputfileList, mxFileSize, numberofFiles);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
 	assertTrue(dp.getFilesCount() < numberofFiles);
 	assertTrue(dp.getTotalSize() < mxFileSize);
 	int countBefore = 2;
-	dp.validateRequest();
+	dp.validateBundleRequest();
 	int countAfter = dp.getFilesCount();
 	assertTrue("No duplicates!", countBefore == countAfter);
     }
@@ -95,13 +100,19 @@ public class DefaultDataPackagerTest {
 	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	createBundle();
 	int countBefore = 2;
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles);
-	dp.validateInput();
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	
 	dp.validateBundleRequest();
 	assertTrue(dp.getFilesCount() < numberofFiles);
 	assertTrue(dp.getTotalSize() < mxFileSize);
 	int countAfter = dp.getFilesCount();
 	assertTrue("No duplicates!", countBefore == countAfter);
+	Path path = Files.createTempFile("testBundle", ".zip");
+	OutputStream os = Files.newOutputStream(path);
+	ZipOutputStream zos = new ZipOutputStream(os);
+	int cnt = dp.getData(zos);
+	zos.close();
+	System.out.println("TEst:"+cnt);
 
     }
 
@@ -121,8 +132,8 @@ public class DefaultDataPackagerTest {
 	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile.json\"}";
 	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
 	createBundle();
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles);
-	dp.validateInput();
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	
 	exception.expect(InputLimitException.class);
 	dp.validateBundleRequest();
     }
