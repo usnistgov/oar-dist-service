@@ -94,7 +94,7 @@ public class DefaultDataPackagingServiceTest {
 	ddp.validateRequest(bundleRequest);
 	if (!bundleRequest.getBundleName().isEmpty() && bundleRequest.getBundleName() != null)
 	    bundleName = bundleRequest.getBundleName();
-
+	
 	Path path = Files.createTempFile(bundleName, ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);

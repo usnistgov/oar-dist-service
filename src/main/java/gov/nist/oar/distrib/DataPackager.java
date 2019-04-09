@@ -28,7 +28,7 @@ import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
  */
 public interface DataPackager {
 
-    public void writeData(ZipOutputStream zp) throws DistributionException;
+    public int writeData(ZipOutputStream zp) throws DistributionException;
 
     void validateRequest() throws DistributionException, IOException, InputLimitException;
 

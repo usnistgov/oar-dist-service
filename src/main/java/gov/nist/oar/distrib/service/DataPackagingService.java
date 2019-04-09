@@ -31,7 +31,7 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
  */
 public interface DataPackagingService {
    
-    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException,  IOException, InputLimitException;
+    public int getBundledZipPackage(BundleRequest br, ZipOutputStream zout) throws DistributionException, IOException;
 
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException;
 

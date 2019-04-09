@@ -55,7 +55,7 @@ public class DataBundleAccessController {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);
 
     @Autowired
-    DataPackagingService df;
+    DataPackagingService dpService;
 
     /**
      * download a bundle of data files requested
@@ -76,44 +76,37 @@ public class DataBundleAccessController {
 	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
-    public void getbundlewithname(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-	    throws DistributionException, InputLimitException, IOException {
+    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
+	    @ApiIgnore Errors errors) throws DistributionException {
 
 	String bundleName = "download";
 
-//	try {
-	    //df.validateRequest(bundleRequest);
-//	 if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
-//		bundleName = bundleRequest.getBundleName();
-//	    }
-	    
-//	} catch (DistributionException | IOException e) {
-//
-//	    throw new ServiceSyntaxException(e.getMessage());
-//	}
-
 	try {
-	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+	    dpService.validateRequest(bundleRequest);
+	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty())
 		bundleName = bundleRequest.getBundleName();
-	    }
+
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
 	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-
-	    df.getBundledZipPackage(bundleRequest, zout);
-
+	    int httpStatus = dpService.getBundledZipPackage(bundleRequest, zout);
+	    response.setStatus(httpStatus);
 	    zout.close();
 	    response.flushBuffer();
 	    logger.info("Data bundled in zip delivered");
-	}
-	catch (org.apache.catalina.connector.ClientAbortException ex) {
+	} catch (InputLimitException ie) {
+	    logger.error("There is an error with InputLimit");
+	    throw new InputLimitException(ie);
+	} catch (DistributionException e) {
+	    logger.error("There is an error completing this request:" + e.getMessage());
+	    throw new ServiceSyntaxException(e.getMessage());
+	} catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");
-
+	    logger.error(ex.getMessage());
 	    throw new DistributionException(ex.getMessage());
 	} catch (IOException ex) {
 	    logger.debug("IOException type: " + ex.getClass().getName());
-
+	    logger.error("IOException in getBundle" + ex.getMessage());
 	    // "Connection reset by peer" gets thrown if the user cancels the
 	    // download
 	    if (ex.getMessage().contains("Connection reset by peer")) {
@@ -153,6 +146,13 @@ public class DataBundleAccessController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
 	logger.info("Streaming failure during request: " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+	logger.error("Runtime Exception: " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
     }
 }

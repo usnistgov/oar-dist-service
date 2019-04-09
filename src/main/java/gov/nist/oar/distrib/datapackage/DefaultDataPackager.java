@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.web.ServiceSyntaxException;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
@@ -52,8 +53,10 @@ public class DefaultDataPackager implements DataPackager {
     private String domains;
     StringBuilder bundlelogfile = new StringBuilder("");
     StringBuilder bundlelogError = new StringBuilder("");
-    int filecount = 0;
+    int urlCount, filecount = 0;
     int tryAccessUrl;
+    int bundleResponseHttpStatus;
+    int httpStatus[];
 
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 
@@ -117,8 +120,9 @@ public class DefaultDataPackager implements DataPackager {
      */
 
     @Override
-    public void writeData(ZipOutputStream zout) throws DistributionException {
+    public int writeData(ZipOutputStream zout) throws DistributionException {
 	logger.info("Forming zip file from the the input fileurls");
+	httpStatus = new int[inputfileList.length];
 	int len;
 	byte[] buf = new byte[100000];
 	for (int i = 0; i < inputfileList.length; i++) {
@@ -127,6 +131,7 @@ public class DefaultDataPackager implements DataPackager {
 	    String downloadurl = jobject.getDownloadUrl();
 	    tryAccessUrl = 1;
 	    HttpURLConnection con = null;
+
 	    try {
 		if (this.validateUrl(downloadurl)) {
 		    URL obj = new URL(downloadurl);
@@ -145,10 +150,25 @@ public class DefaultDataPackager implements DataPackager {
 		if (null != con)
 		    con.disconnect();
 	    }
+	    urlCount++;
 	}
 	this.writeLog(zout);
+	return this.setBundleResponseHttpStatus();
 
     }
+
+    public int setBundleResponseHttpStatus() {
+	if (this.inputfileList.length == filecount || (filecount < this.inputfileList.length && filecount > 0))
+	    return 200;
+	else if (filecount == 0)
+	    return 502;
+	else if (ObjectUtils.areAllUrlsInaccessible(400, httpStatus))
+	    return 404;
+	else
+	    return 500;
+    }
+
+   
 
     /**
      * This method/function gets an open validated url connection to check the
@@ -161,7 +181,7 @@ public class DefaultDataPackager implements DataPackager {
      */
     private boolean checkResponse(HttpURLConnection con) throws IOException {
 	UrlStatusLocation uloc = ObjectUtils.getURLStatus(con);
-
+	httpStatus[urlCount] = uloc.getStatus();
 	if (uloc.getStatus() == 200) {
 	    return true;
 	} else if (uloc.getStatus() >= 300) {
@@ -278,40 +298,42 @@ public class DefaultDataPackager implements DataPackager {
 
     /**
      * Validate the request sent by client. Function checks and eliminates
-     * duplicates, check total filesize to compare with allowed size, Checks
+     * duplicates, check total file size to compare with allowed size, Checks
      * total number of files allowed
      * 
      * @throws DistributionException
      * @throws IOException
      */
     @Override
-    public void validateRequest() throws DistributionException, IOException, InputLimitException {
-	if (this.inputfileList.length > 0) {
+    public void validateRequest() throws IOException, InputLimitException {
 
-	    ObjectUtils.removeDuplicates(this.inputfileList);
+	ObjectUtils.removeDuplicates(this.inputfileList);
+	long totalFilesSize = this.getTotalSize();
 
-	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() > 1) {
-		throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
-	    }
-	    if (this.getFilesCount() > this.mxFilesCount)
-		throw new InputLimitException(
-			"Total number of files requested is beyond allowed limit " + this.mxFilesCount);
-
-	} else {
-	    throw new DistributionException("Requested files jsonobject is empty.");
+	if (totalFilesSize > this.mxFileSize & this.getFilesCount() > 1) {
+	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
 	}
+	if (totalFilesSize <= 0)
+	    throw new InputLimitException("");
+	if (this.getFilesCount() > this.mxFilesCount)
+	    throw new InputLimitException(
+		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
 
     }
 
     /**
-     * This is to validate request and validate input json data sent.
+     * This is to validate request and validate input JSON data sent by the
+     * client.
      */
     @Override
-    public void validateBundleRequest() throws DistributionException, IOException, InputLimitException {
+    public void validateBundleRequest() throws IOException, InputLimitException {
 
 	JSONUtils.isJSONValid(this.bundleRequest);
 
 	this.inputfileList = this.bundleRequest.getIncludeFiles();
+
+	if (this.inputfileList.length <= 0)
+	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
 
 	this.validateRequest();
     }
@@ -343,8 +365,8 @@ public class DefaultDataPackager implements DataPackager {
 
 	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
 	long totalSize = 0;
-	for (int i = 0; i < downloadurls.size(); i++) 
-		totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
+	for (int i = 0; i < downloadurls.size(); i++)
+	    totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
 
 	return totalSize;
 

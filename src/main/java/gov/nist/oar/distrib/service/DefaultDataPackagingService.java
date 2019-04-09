@@ -54,18 +54,18 @@ public class DefaultDataPackagingService implements DataPackagingService {
     }
 
     /*
-     * Wtite data in the zipoutput format.
+     * Write data in the zipoutput format.
      * 
      * @see
      * gov.nist.oar.distrib.service.DataPackagingService#getZipPackage(gov.nist.
      * oar.distrib.web.FilePathUrl[], java.lang.String)
      */
     @Override
-    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout)
-	    throws DistributionException, IOException, InputLimitException {
+    public int getBundledZipPackage(BundleRequest br, ZipOutputStream zout)
+	    throws DistributionException, IOException {
 	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
 	dp.validateBundleRequest();
-	dp.writeData(zout);
+	return dp.writeData(zout);
     }
 
     /*

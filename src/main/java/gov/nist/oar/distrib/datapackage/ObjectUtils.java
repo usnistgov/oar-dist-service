@@ -54,7 +54,6 @@ public class ObjectUtils {
 	URL obj = new URL(url);
 	HttpURLConnection conn = (HttpURLConnection)obj.openConnection();
 	conn.setRequestMethod("HEAD");
-	//conn.getInputStream();
 	long length = conn.getContentLength();
 	int responseCode = conn.getResponseCode();
 	if( (responseCode >= 300 && responseCode < 400 ) && countTryUrl < 4){
@@ -91,8 +90,6 @@ public class ObjectUtils {
      *         otherwise
      * @throws IOException
      */
-    // private
-    // private
     public static boolean isAllowedURL(String url, String allowedUrls) throws IOException {
 	URL obj = new URL(url);
 	String[] domainList = allowedUrls.split("\\|");
@@ -216,6 +213,14 @@ public class ObjectUtils {
 	}
 
     }
+    
+    public static boolean areAllUrlsInaccessible(int limit, int[] data) {
+   	for (int k = 0; k < data.length; k++) {
+   	    if (data[k] < limit)
+   		return false;
+   	}
+   	return true;
+       }
 
 }
 

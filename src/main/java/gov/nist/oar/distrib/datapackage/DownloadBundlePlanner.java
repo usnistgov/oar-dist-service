@@ -104,7 +104,7 @@ public class DownloadBundlePlanner {
 		if (ObjectUtils.isAllowedURL(downloadurl, validdomains)) {
 		    this.makeBundles(jobject);
 		} else {
-		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "Not valid Url."));
+		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "URL not added in package; This URL is from unsupported domain/host."));
 		    messages.add("Some urls are not added due to unsupported host.");
 		    this.status = "warnings";
 		}
