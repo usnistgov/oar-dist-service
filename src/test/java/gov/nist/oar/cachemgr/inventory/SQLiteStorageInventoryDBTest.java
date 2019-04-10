@@ -11,7 +11,7 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.cachemgr.unit;
+package gov.nist.oar.cachemgr.inventory;
 
 import org.junit.Test;
 import org.junit.Before;
