@@ -27,9 +27,19 @@ import org.json.JSONException;
 public class CacheObject {
 
     /**
-     * the identifier for the CacheVolume that the object is located in.  
+     * the CacheVolume that the object is located in.  
+     *
+     * This may be null, e.g. when returned from {@link StorageInventorDB.findObject()} as 
+     * that class is not capable of instantiating CacheVolume objects.
      */
-    public String volume = null;
+    public CacheVolume volume = null;
+
+    /**
+     * the name of the CacheVolume that the object is located in.  If this name is null,
+     * this instance represents a placeholder for an object whose name is not known or 
+     * determined, yet.  If volume is not null, this should be set to the volume's name.
+     */
+    public String volname = null;
 
     /**
      * the name that the object has in the volume.  If the name is null, this
@@ -59,7 +69,7 @@ public class CacheObject {
     }
 
     /**
-     * initialize the CacheObject with null values
+     * initialize the CacheObject with an object name and volume name
      * @param name  the name of the object within the volume.  This may be 
      *                different from its location-idenpendent identifier.
      *                (may be null)
@@ -67,7 +77,22 @@ public class CacheObject {
      *                (may be null)
      */
     public CacheObject(String name, String vol) {
+        this.volname = vol;
+        this.name = name;
+        this._md = new JSONObject();
+    }
+
+    /**
+     * initialize the CacheObject with an object name and CacheVolume instance
+     * @param name  the name of the object within the volume.  This may be 
+     *                different from its location-idenpendent identifier.
+     *                (may be null)
+     * @param vol   a CacheVolume instance where the object is purported to be 
+     *                located (may be null)
+     */
+    public CacheObject(String name, CacheVolume vol) {
         this.volume = vol;
+        this.volname = vol.getName();
         this.name = name;
         this._md = new JSONObject();
     }
@@ -82,7 +107,7 @@ public class CacheObject {
      *                (may be null)
      */
     public CacheObject(String name, JSONObject md, String vol) {
-        this.volume = vol;
+        this.volname = vol;
         this.name = name;
         _md = md;
         if (_md == null)

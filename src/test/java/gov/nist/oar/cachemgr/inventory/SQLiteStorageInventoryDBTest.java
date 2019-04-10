@@ -221,7 +221,7 @@ public class SQLiteStorageInventoryDBTest {
         cos = sidb.findObject("gurn.fits");
         assertEquals(1, cos.size());
         assertEquals("a9ej_gurn.fits", cos.get(0).name);
-        assertEquals("foobar", cos.get(0).volume);
+        assertEquals("foobar", cos.get(0).volname);
         assertEquals(3196429990L, cos.get(0).getSize());
         assertEquals(4, cos.get(0).getMetadatumInt("priority", 10));
 
@@ -250,12 +250,12 @@ public class SQLiteStorageInventoryDBTest {
         List<CacheObject> cos = sidb.findObject("1234/goober.json", "fundrum");
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
-        assertEquals("fundrum", cos.get(0).volume);
+        assertEquals("fundrum", cos.get(0).volname);
         
         cos = sidb.findObject("1234/goober.json", "foobar");
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
-        assertEquals("foobar", cos.get(0).volume);
+        assertEquals("foobar", cos.get(0).volname);
         
     }
 

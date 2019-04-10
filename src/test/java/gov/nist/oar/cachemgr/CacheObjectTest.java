@@ -33,14 +33,15 @@ public class CacheObjectTest {
         CacheObject co = new CacheObject("hank");
         assertEquals(co.name, "hank");
         assertNull(co.volume);
+        assertNull(co.volname);
         assertEquals(co.metadatumNames().size(), 0);
     }
 
     @Test
-    public void testWithNameVol() {
+    public void testWithNameVolName() {
         CacheObject co = new CacheObject("hank", "trash");
         assertEquals(co.name, "hank");
-        assertEquals(co.volume, "trash");
+        assertEquals(co.volname, "trash");
         assertEquals(co.metadatumNames().size(), 0);
     }
 

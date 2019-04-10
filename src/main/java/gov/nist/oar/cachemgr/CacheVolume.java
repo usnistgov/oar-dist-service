@@ -34,6 +34,12 @@ import java.net.URL;
 public interface CacheVolume {
 
     /**
+     * return the identifier or name assigned to this volume.  If null is returned, 
+     * the name is not known.
+     */
+    public String getName();
+
+    /**
      * return True if an object with a given name exists in this storage volume
      * @param name  the name of the object
      * @throws CacheVolumeException   if there is an error accessing the 
@@ -61,6 +67,8 @@ public interface CacheVolume {
      * kinds of copies (e.g. S3 to S3).  
      * @param obj    an object in another storage volume.
      * @param name   the name to assign to the object within the storage.  
+     * @throws ObjectNotFoundException  if the object does not exist in specified
+     *                                     volume
      * @throws CacheVolumeException   if method fails to save the object correctly 
      *               or if the request calls for copying an object to itself.  
      */
@@ -94,7 +102,7 @@ public interface CacheVolume {
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      */
-    boolean remove(String name) throws CacheVolumeException;
+    public boolean remove(String name) throws CacheVolumeException;
 
     /**
      * return a URL that th eobject with the given name can be alternatively 
@@ -107,5 +115,5 @@ public interface CacheVolume {
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      */
-    public URL getRedirectFor(String name) throws CacheVolumeException;
+    public URL getRedirectFor(String name) throws CacheVolumeException, UnsupportedOperationException;
 }
