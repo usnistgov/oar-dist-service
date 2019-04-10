@@ -35,7 +35,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -92,7 +94,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     static final String find_sql = "SELECT d.name as name, v.name as volume, d.size as size, "+
-        "d.priority as priority, d.metadata as metadata " +
+        "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id AND d.objid='";
 
     /**
@@ -144,6 +146,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     md.put("size", rs.getLong("size"));
                 if (rs.getObject("priority") != null)
                     md.put("priority", rs.getInt("priority"));
+                if (rs.getObject("since") != null) {
+                    int since = rs.getInt("since");
+                    md.put("since", since);
+                    md.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(since),
+                                                                ZoneOffset.UTC)
+                                                     .format(DateTimeFormatter.ISO_INSTANT));
+                }
                 out.add(new CacheObject(rs.getString("name"), md, rs.getString("volume")));
             }
             return out;
@@ -170,7 +179,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     {
         // the time the file was added.  It is assumed that the file will actually be copied into the
         // volume soon before or after the call to this method.
-        long since = System.currentTimeMillis();
+        // long since = System.currentTimeMillis();
+        Instant since = Instant.now();
 
         int volid = getVolumeID(volname);
         if (volid < 0)
@@ -184,6 +194,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
         // pull info from metadata object that have their own columns in the table.
         if (metadata != null) {
+            metadata = this.copy(metadata);
+            metadata.put("since", since.toEpochMilli());
+            metadata.put("sinceDate", ZonedDateTime.ofInstant(since, ZoneOffset.UTC)
+                                                   .format(DateTimeFormatter.ISO_INSTANT));
+            
             jmd = metadata.toString();
             String nm = "size";
             try {
@@ -224,7 +239,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             stmt.setInt(5, algid);
             stmt.setInt(6, priority);
             stmt.setInt(7, volid);
-            stmt.setString(8, ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT));
+            stmt.setLong(8, since.toEpochMilli());
             stmt.setString(9, jmd);
             
             stmt.executeUpdate();
@@ -508,5 +523,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     protected void finalize() {
         try { disconnect(); } catch (SQLException ex) {} 
+    }
+
+    private JSONObject copy(JSONObject jo) {
+        return new JSONObject(jo, JSONObject.getNames(jo));
     }
 }

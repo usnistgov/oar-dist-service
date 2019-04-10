@@ -168,19 +168,25 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(2, cos.get(0).metadatumNames().size());
+        assertEquals(4, cos.get(0).metadatumNames().size());
         assertTrue("size not in metadata properties",
                    cos.get(0).metadatumNames().contains("size"));
         assertTrue("priority not in metadata properties",
                    cos.get(0).metadatumNames().contains("priority"));
+        assertTrue("since not in metadata properties",
+                   cos.get(0).metadatumNames().contains("since"));
+        assertTrue("sinceDate not in metadata properties",
+                   cos.get(0).metadatumNames().contains("sinceDate"));
+        long since = cos.get(0).getMetadatumLong("since", -1L);
+        assertTrue("unexpected since value: "+Long.toString(since), since > 0);
 
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
         cos = sidb.findObject("1234/goober.json");
         assertEquals(2, cos.size());
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(2, cos.get(0).metadatumNames().size());
+        assertEquals(4, cos.get(0).metadatumNames().size());
         assertEquals(-1L, cos.get(1).getSize());
-        assertEquals(2, cos.get(1).metadatumNames().size());
+        assertEquals(4, cos.get(1).metadatumNames().size());
 
         JSONObject md = new JSONObject();
         md.put("priority", 4);
@@ -201,11 +207,15 @@ public class SQLiteStorageInventoryDBTest {
         assertNotNull("Failed to find first registered object", first);
         assertNotNull("Failed to find 2nd (updated) registered object", second);
         assertEquals(456L, second.getSize());
-        assertEquals(5, second.metadatumNames().size());
+        assertEquals(7, second.metadatumNames().size());
         assertTrue("size not in metadata properties",
                    second.metadatumNames().contains("size"));
         assertTrue("priority not in metadata properties",
                    second.metadatumNames().contains("priority"));
+        assertTrue("since not in metadata properties",
+                   second.metadatumNames().contains("since"));
+        assertTrue("sinceDate not in metadata properties",
+                   second.metadatumNames().contains("sinceDate"));
         assertTrue("color not in metadata properties",
                    second.metadatumNames().contains("color"));
         assertTrue("checksum not in metadata properties",
@@ -214,7 +224,7 @@ public class SQLiteStorageInventoryDBTest {
                    second.metadatumNames().contains("checksumAlgorithm"));
         assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
         assertEquals(-1L, first.getSize());
-        assertEquals(2, first.metadatumNames().size());
+        assertEquals(4, first.metadatumNames().size());
 
         md.put("size", 3196429990L);
         sidb.addObject("gurn.fits", "foobar", "a9ej_gurn.fits", md);
@@ -224,6 +234,9 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals("foobar", cos.get(0).volname);
         assertEquals(3196429990L, cos.get(0).getSize());
         assertEquals(4, cos.get(0).getMetadatumInt("priority", 10));
+        assertTrue("unexpected since value: "+Long.toString(cos.get(0).getMetadatumLong("since", -1L))+
+                   "!>"+Long.toString(since),
+                   cos.get(0).getMetadatumLong("since", -1L) > since);
 
         sidb.removeObject("fundrum", "a9ej_gurn.fits");
         cos = sidb.findObject("gurn.fits");
