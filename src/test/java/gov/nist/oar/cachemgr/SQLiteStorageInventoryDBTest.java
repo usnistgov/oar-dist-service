@@ -224,6 +224,13 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals("foobar", cos.get(0).volume);
         assertEquals(3196429990L, cos.get(0).getSize());
         assertEquals(4, cos.get(0).getMetadatumInt("priority", 10));
+
+        sidb.removeObject("fundrum", "a9ej_gurn.fits");
+        cos = sidb.findObject("gurn.fits");
+        assertEquals(1, cos.size());
+        sidb.removeObject("foobar", "a9ej_gurn.fits");
+        cos = sidb.findObject("gurn.fits");
+        assertEquals(0, cos.size());
     }
 
     @Test
