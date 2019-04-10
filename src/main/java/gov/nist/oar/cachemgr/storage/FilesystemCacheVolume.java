@@ -29,7 +29,7 @@ import org.apache.commons.io.FileUtils;
  * When that name includes a slash, the object file is stored in a subdirectory 
  * consistent with directory path implied by the name.  
  */
-public class FilesystemCacheVolume implements CacheVolume {
+public class FilesystemCacheVolume /* implements CacheVolume */ {
 
     protected String root = null;
 
