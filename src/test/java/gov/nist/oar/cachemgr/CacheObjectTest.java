@@ -63,7 +63,7 @@ public class CacheObjectTest {
         job.put("checksumAlgorithm", "sha256");
         job.put("refcount", 3);
 
-        CacheObject co = new CacheObject("hank", job, null);
+        CacheObject co = new CacheObject("hank", job, (String)null);
 
         assertEquals(co.name, "hank");
         assertNull(co.volume);

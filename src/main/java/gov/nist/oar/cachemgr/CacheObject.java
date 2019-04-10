@@ -91,10 +91,22 @@ public class CacheObject {
      *                located (may be null)
      */
     public CacheObject(String name, CacheVolume vol) {
+        this(name, vol.getName());
         this.volume = vol;
-        this.volname = vol.getName();
-        this.name = name;
-        this._md = new JSONObject();
+    }
+
+    /**
+     * initialize the CacheObject with null values
+     * @param name  the name of the object within the volume.  This may be 
+     *                different from its location-idenpendent identifier.
+     *                (may be null)
+     * @param md    the object metadata provided as a JSON object
+     * @param vol   the identifer of the volume where the object is located
+     *                (may be null)
+     */
+    public CacheObject(String name, JSONObject md, CacheVolume vol) {
+        this(name, md, vol.getName());
+        this.volume = vol;
     }
 
     /**
