@@ -194,4 +194,11 @@ public class CacheObject {
             return defval;
         return _md.getString(name);
     }
+
+    /**
+     * return a copy of the metadata as a JSONObject instance
+     */
+    public JSONObject exportMetadata() {
+        return new JSONObject(_md, JSONObject.getNames(_md));
+    }
 }
