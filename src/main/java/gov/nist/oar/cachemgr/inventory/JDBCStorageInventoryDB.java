@@ -30,6 +30,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -95,7 +96,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     static final String find_sql = "SELECT d.name as name, v.name as volume, d.size as size, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
-        "FROM objects d, volumes v WHERE d.volume=v.id AND d.objid='";
+        "FROM objects d, volumes v WHERE d.volume=v.id ";
 
     /**
      * return all the known locations of an object with a given id in a specific
@@ -110,7 +111,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *                             an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id, String volume) throws InventoryException {
-        String sql = find_sql + id + "' AND v.name='" + volume + "';";
+        String sql = find_sql + "AND d.objid='" + id + "' AND v.name='" + volume + "';";
         return _findObject(sql);
     }
     
@@ -123,7 +124,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id) throws InventoryException {
-        String sql = find_sql + id + "';";
+        String sql = find_sql + "AND d.objid='" + id + "';";
         return _findObject(sql);
     }
 
@@ -221,7 +222,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
         // check to see if we have this record in the database already
         StringBuilder sb = new StringBuilder(find_sql);
-        sb.append(id).append("' AND v.name='").append(volname);
+        sb.append("AND d.objid='").append(id).append("' AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
         List<CacheObject> found = _findObject(sb.toString());
         for(CacheObject co : found)
@@ -247,6 +248,82 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to register object " + id + ": " + ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * update the metadata for an object already in the database.  The update will apply
+     * only to the entry for the object in the specified volume.  Only the entries for the 
+     * metadata with the provided names will be updated; all other values normally should 
+     * not change.  
+     * 
+     * @param volname     the name of the volume where the object of interest is stored
+     * @param objname     the storage-specific name assigned to the object of interest 
+     * @param metadata    the set of metadata to update.  Only the data associated in with 
+     *                       names in this container will be updated.  
+     * @returns boolean   false if the objname is not registered as in the specified volume
+     * @throws InventoryException   if there is a failure updating the database, including 
+     *                       consistency errors.
+     */
+    public boolean updateMetadata(String volname, String objname, JSONObject metadata)
+        throws InventoryException
+    {
+        String fsql = find_sql + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        List<CacheObject> objs = _findObject(fsql);
+        if (objs.size() == 0) return false;
+
+        int volid = getVolumeID(volname);
+        if (volid < 0)
+            // should not happen
+            throw new InventoryException("Not a registered volume: " + volname);
+
+        // update the metadata
+        String nm = null;
+        StringBuilder sql = new StringBuilder("UPDATE objects SET");
+        try {
+            if (metadata.has("size")) {
+                nm = "size";
+                sql.append(" size=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
+            if (metadata.has("checksum")) {
+                nm = "checksum";
+                sql.append(" checksum='").append(metadata.getString(nm)).append("'").append(",");
+            }
+            if (metadata.has("priority")) {
+                nm = "priority";
+                sql.append(" priority=").append(Integer.toString(metadata.getInt(nm))).append(",");
+            }
+        } catch (JSONException ex) {
+            throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
+                                                 ex.getMessage(), nm, ex);
+        }
+
+        Statement stmt = null;
+        try {
+            if (_conn == null) connect();
+            JSONObject md = objs.get(0).exportMetadata();
+            for (String prop : metadata.keySet())
+                md.put(prop, metadata.get(prop));
+
+            StringBuilder updsql = new StringBuilder(sql.toString());
+            updsql.append(" metadata='").append(md.toString())
+                  .append("' WHERE name='").append(objname)
+                  .append("' AND volume=").append(volid).append(";");
+
+            stmt = _conn.createStatement();
+            stmt.execute(updsql.toString());
+            if (stmt.getUpdateCount() < 1)
+                return false;
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failed to update object " + volname+":"+objname +
+                                         ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
+
+        return true;
     }
 
     private long getMetadatumLong(JSONObject md, String name, long defval) {

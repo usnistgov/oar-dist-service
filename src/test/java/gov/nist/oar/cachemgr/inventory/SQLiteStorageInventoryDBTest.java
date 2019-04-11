@@ -323,5 +323,79 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals("sha256", algs[0]);
         assertEquals("md5", algs[1]);
     }
+
+    @Test
+    public void testUpdateMetadata() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("size", 90L);
+        md.put("color", "red");
+        md.put("height", 72);
+        md.put("priority", 1);
+
+        // two entries with same id, name, and metadata in different volumes
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        List<CacheObject> cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        int fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        int foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+        
+        assertEquals("1234_goober.json", cos.get(foobar).name);
+        assertEquals(90L, cos.get(foobar).getSize());
+        assertEquals(1, cos.get(foobar).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(foobar).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(foobar).getMetadatumString("color", null));
+        assertFalse(cos.get(foobar).hasMetadatum("job"));
+        assertEquals("1234_goober.json", cos.get(fundrum).name);
+        assertEquals(90L, cos.get(fundrum).getSize());
+        assertEquals(1, cos.get(fundrum).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
+        assertFalse(cos.get(fundrum).hasMetadatum("job"));
+        
+        md = new JSONObject();
+        md.put("size", 45L);
+        md.put("color", "blue");
+        md.put("height", 70);
+        md.put("job", "retired");
+
+        // now update one of them
+        sidb.updateMetadata("foobar", "1234_goober.json", md);
+        cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+        assertNotEquals(fundrum, foobar);
+
+        // foobar has been updated...
+        assertEquals("1234_goober.json", cos.get(foobar).name);
+        assertEquals(45L, cos.get(foobar).getSize());
+        assertEquals(1, cos.get(foobar).getMetadatumInt("priority", -1));
+        assertEquals(70, cos.get(foobar).getMetadatumInt("height", -1));
+        assertEquals("blue", cos.get(foobar).getMetadatumString("color", null));
+        assertEquals("retired", cos.get(foobar).getMetadatumString("job", null));
+
+        // fundrum has not
+        assertEquals("1234_goober.json", cos.get(fundrum).name);
+        assertEquals(90L, cos.get(fundrum).getSize());
+        assertEquals(1, cos.get(fundrum).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
+        assertFalse(cos.get(fundrum).hasMetadatum("job"));
+    }
 }
 

@@ -30,7 +30,8 @@ public interface StorageInventoryDB {
      * managed by this database.  
      * @param id   the identifier for the desired object
      * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
-     *                             a copy in a different cache volume.
+     *                             a copy in a different cache volume.  This list will be empty if 
+     *                             the object is not registered.
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id) throws InventoryException;
@@ -44,6 +45,23 @@ public interface StorageInventoryDB {
      * @param metadata the metadata to be associated with that object (can be null)
      */
     public void addObject(String id, String volname, String objname, JSONObject metadata)
+        throws InventoryException;
+
+    /**
+     * update the metadata for an object already in the database.  The update will apply
+     * only to the entry for the object in the specified volume.  Only the entries for the 
+     * metadata with the provided names will be updated; all other values normally should 
+     * not change.  
+     * 
+     * @param volname     the name of the volume where the object of interest is stored
+     * @param objname     the storage-specific name assigned to the object of interest 
+     * @param metadata    the set of metadata to update.  Only the data associated in with 
+     *                       names in this container will be updated.  
+     * @returns boolean   false if the objname is not registered as in the specified volume
+     * @throws InventoryException   if there is a failure updating the database, including 
+     *                       consistency errors.
+     */
+    public boolean updateMetadata(String volname, String objname, JSONObject metadata)
         throws InventoryException;
 
     /**
