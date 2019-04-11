@@ -105,15 +105,15 @@ public interface CacheVolume {
     public boolean remove(String name) throws CacheVolumeException;
 
     /**
-     * return a URL that th eobject with the given name can be alternatively 
+     * return a URL that the object with the given name can be alternatively 
      * read from.  This allows for a potentially faster way to deliver a file
      * to web clients than via a Java stream copy.  Not all implementations may
      * support this. 
      * @param name       the name of the object to get
-     * @returns boolean  True if the file existed in the volume; false if it was 
-     *                       not found in this volume
+     * @returns URL      a URL where the object can be streamed from
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
+     * @throws UnsupportedOperationException  if this operation is not supported on this volume
      */
     public URL getRedirectFor(String name) throws CacheVolumeException, UnsupportedOperationException;
 }

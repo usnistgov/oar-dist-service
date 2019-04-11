@@ -27,14 +27,7 @@ import org.json.JSONException;
  * any remaining reserved space can be released.  
  */
 public class Reservation {
-    /**
-     * the name given to the reservation entered in the storage inventory
-     */
-    protected String name = null;
-
-    /**
-     * the number of bytes reserved by this reservation
-     */
+    private String _name = null;
     private long _size = 0L;
 
     /**
@@ -54,8 +47,9 @@ public class Reservation {
      * @param db        the StorageInventoryDB that should be used to update the volume changes after 
      *                    data are streamed into it.
      */
-    public Reservation(String resname, CacheVolume volume, StorageInventoryDB db) {
-        name = resname;
+    public Reservation(String resname, CacheVolume volume, StorageInventoryDB db, long size) {
+        _name = resname;
+        _size = size;
         vol = volume;
         db = db;
     }
@@ -71,6 +65,11 @@ public class Reservation {
      * return the name of the cache volume where the space is located
      */
     public String getVolumeName() { return vol.getName(); }
+
+    /**
+     * return the name given to the reservation entered in the storage inventory
+     */
+    protected String getReservationName() { return _name; }
 
     /**
      * use some of the reserved space to save a data object to the cache.  This will update the size 
@@ -144,7 +143,7 @@ public class Reservation {
     protected void updateReservationSize(long newsize) throws InventoryException {
         JSONObject md = new JSONObject();
         md.put("size", newsize);
-        db.updateMetadata(vol.getName(), this.name, md);
+        db.updateMetadata(vol.getName(), this._name, md);
     }
 
     class CountingInputStream extends InputStream {
