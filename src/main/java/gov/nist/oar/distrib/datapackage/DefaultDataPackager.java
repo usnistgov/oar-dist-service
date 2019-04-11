@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -51,13 +52,10 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
+    int fileCount;
     StringBuilder bundlelogfile = new StringBuilder("");
     StringBuilder bundlelogError = new StringBuilder("");
-    int urlCount, filecount = 0;
-    int tryAccessUrl;
-    int bundleResponseHttpStatus;
-    int httpStatus[];
-
+    List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 
     public DefaultDataPackager() {
@@ -91,55 +89,49 @@ public class DefaultDataPackager implements DataPackager {
      */
 
     @Override
-    public int getData(ZipOutputStream zout) throws DistributionException, IOException, InputLimitException {
-
+    public void getData(ZipOutputStream zout) throws DistributionException, IOException {
+	HttpURLConnection con = null;
 	this.validateBundleRequest();
 
 	logger.info("Forming zip file from the the input fileurls");
-	httpStatus = new int[inputfileList.length];
-	int len;
-	byte[] buf = new byte[100000];
+
 	for (int i = 0; i < inputfileList.length; i++) {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
-	    tryAccessUrl = 1;
-	    HttpURLConnection con = null;
+	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
+	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
+		URL obj = new URL(uLoc.getRequestedURL());
+		con = (HttpURLConnection) obj.openConnection();
+		try {
 
-	    try {
-		if (this.validateUrl(downloadurl)) {
-		    URL obj = new URL(downloadurl);
-		    con = (HttpURLConnection) obj.openConnection();
+		    int len;
+		    byte[] buf = new byte[100000];
+		    zout.putNextEntry(new ZipEntry(filepath));
+		    InputStream fstream = con.getInputStream();
+		    while ((len = fstream.read(buf)) != -1) {
+			zout.write(buf, 0, len);
+		    }
+		    zout.closeEntry();
+		    fstream.close();
+		    fileCount++;
+		} catch (IOException ie) {
+		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
+		    logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
+			    + ie.getMessage());
 		}
-		if (con != null && this.checkResponse(con)) {
-		    this.writeDataFile(zout, filepath, con);
-		    filecount++;
-		}
-
-	    } catch (IOException ie) {
-		bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
-		logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
-			+ ie.getMessage());
-	    } finally {
-		if (null != con)
+		if (con != null)
 		    con.disconnect();
 	    }
-	    urlCount++;
+
+	}
+
+	if (fileCount == 0) {
+	    logger.info("The package does not contain any data. These errors :" + this.bundlelogError);
+	    throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 	}
 	this.writeLog(zout);
-	return this.setBundleResponseHttpStatus();
 
-    }
-
-    public int setBundleResponseHttpStatus() {
-	if (this.inputfileList.length == filecount || (filecount < this.inputfileList.length && filecount > 0))
-	    return 200;
-	else if (filecount == 0)
-	    return 502;
-	else if (ObjectUtils.areAllUrlsInaccessible(400, httpStatus))
-	    return 404;
-	else
-	    return 500;
     }
 
     /**
@@ -151,21 +143,25 @@ public class DefaultDataPackager implements DataPackager {
      * @return boolean
      * @throws IOException
      */
-    private boolean checkResponse(HttpURLConnection con) throws IOException {
-	UrlStatusLocation uloc = ObjectUtils.getURLStatus(con);
-	httpStatus[urlCount] = uloc.getStatus();
+    private boolean checkResponse(URLStatusLocation uloc) throws IOException {
+
 	if (uloc.getStatus() == 200) {
 	    return true;
 	} else if (uloc.getStatus() >= 300) {
 	    dealWithErrors(uloc);
 	    return false;
-	} else if (uloc.getStatus() == -1) {
-	    this.bundlelogError.append("\n " + con.getURL());
-	    this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	} else if (uloc.getStatus() == 0) {
+	    this.bundlelogError.append("\n " + uloc.getRequestedURL());
+	    if (!uloc.isValidURL()) {
+		this.bundlelogError.append(
+			" does not belong to allowed/valid domains, so this file is not downnloaded in the bundle/package.");
+	    } else {
+
+		this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	    }
 	    return false;
 	}
 	return false;
-
     }
 
     /**
@@ -175,7 +171,7 @@ public class DefaultDataPackager implements DataPackager {
      * @param uloc
      * @throws IOException
      */
-    private void dealWithErrors(UrlStatusLocation uloc) throws IOException {
+    private void dealWithErrors(URLStatusLocation uloc) throws IOException {
 
 	String requestedUrl = uloc.getRequestedURL();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
@@ -185,46 +181,18 @@ public class DefaultDataPackager implements DataPackager {
 	    this.bundlelogError
 		    .append(" There is an Error accessing this file, Server returned status with response code  ");
 	    this.bundlelogError
-		    .append(uloc.getStatus() + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus()));
+		    .append(uloc.getStatus() + " and message:" + ValidationHelper.getStatusMessage(uloc.getStatus()));
 
 	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
 
-	    tryAccessUrl++;
-	    if (tryAccessUrl > 4) {
-		this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
+	    this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
 
-	    } else {
-		URL obj = new URL(uloc.getLocation());
-		HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
-		checkResponse(connect);
-	    }
 	} else if (uloc.getStatus() >= 500) {
 	    this.bundlelogError.append("\n" + requestedUrl + " There is an internal server error accessing this url.");
 	    this.bundlelogError.append(" Server returned status with response code :" + uloc.getStatus());
 
 	}
 
-    }
-
-    /**
-     * Write data files in the output bundle/package.
-     * 
-     * @param zout
-     * @param filepath
-     * @param httpConnect
-     * @throws IOException
-     */
-    private void writeDataFile(ZipOutputStream zout, String filepath, HttpURLConnection httpConnect)
-	    throws IOException {
-	int len;
-	byte[] buf = new byte[100000];
-	zout.putNextEntry(new ZipEntry(filepath));
-	InputStream fstream = httpConnect.getInputStream();
-	while ((len = fstream.read(buf)) != -1) {
-	    zout.write(buf, 0, len);
-	}
-	zout.closeEntry();
-	fstream.close();
     }
 
     /**
@@ -243,18 +211,18 @@ public class DefaultDataPackager implements DataPackager {
 	    if (bundlelogfile.length() != 0) {
 		bundleInfo.append(" Following files are not included in the bundle for the reasons given: \n");
 		bundleInfo.append(this.bundlelogfile);
-		filename = "PackagingErrors.txt";
+		filename = "/PackagingErrors.txt";
 	    }
 
 	    if (bundlelogError.length() != 0) {
 		bundleInfo.append(
 			" Following files are not included in the bundle because of errors: \n" + bundlelogError);
-		filename = "PackagingErrors.txt";
+		filename = "/PackagingErrors.txt";
 	    }
 
-	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && filecount > 0) {
+	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
 		bundleInfo.append(" All requested files are successfully added to this bundle.");
-		filename = "PackagingSuccessful.txt";
+		filename = "/PackagingSuccessful.txt";
 	    }
 
 	    InputStream nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
@@ -275,25 +243,26 @@ public class DefaultDataPackager implements DataPackager {
      * input JSON data sent by the client.
      */
     @Override
-    public void validateBundleRequest() throws IOException, InputLimitException {
+    public void validateBundleRequest() throws IOException, DistributionException {
 
 	basicValidation();
 
 	if (this.inputfileList.length <= 0)
 	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
 
-	ObjectUtils.removeDuplicates(this.inputfileList);
+	ValidationHelper.removeDuplicates(this.inputfileList);
 	long totalFilesSize = this.getTotalSize();
 
 	if (totalFilesSize > this.mxFileSize & this.getFilesCount() > 1) {
 	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
 	}
-	if (totalFilesSize <= 0)
-	    throw new InputLimitException("");
+
 	if (this.getFilesCount() > this.mxFilesCount)
 	    throw new InputLimitException(
 		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
 
+	if (!ValidationHelper.areAllUrlsInaccessible(this.listUrlsStatusSize))
+	    throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
     }
 
     /**
@@ -311,8 +280,12 @@ public class DefaultDataPackager implements DataPackager {
 
 	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
 	long totalSize = 0;
-	for (int i = 0; i < downloadurls.size(); i++)
-	    totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
+
+	for (int i = 0; i < downloadurls.size(); i++) {
+	    URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
+	    listUrlsStatusSize.add(uLoc);
+	    totalSize += uLoc.getLength();
+	}
 
 	return totalSize;
 
@@ -336,7 +309,7 @@ public class DefaultDataPackager implements DataPackager {
     @Override
     public boolean validateUrl(String url) throws IOException, DistributionException {
 	try {
-	    if (!ObjectUtils.isAllowedURL(url, this.domains)) {
+	    if (!ValidationHelper.isAllowedURL(url, this.domains)) {
 		this.bundlelogfile.append("\n Url here:" + url);
 		this.bundlelogfile.append(
 			" does not belong to allowed domains, so this file is not downnloaded in the bundle/package.");

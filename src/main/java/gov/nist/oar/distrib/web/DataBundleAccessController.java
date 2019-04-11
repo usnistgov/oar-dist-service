@@ -28,6 +28,7 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -82,25 +83,13 @@ public class DataBundleAccessController {
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
 	    @ApiIgnore Errors errors) throws DistributionException {
-
-//	String bundleName = "download";
 	
-	try(ZipOutputStream zout = new ZipOutputStream(response.getOutputStream())) {
-	   
-	    //dpService.validateRequest(bundleRequest);
-//	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty())
-//		bundleName = bundleRequest.getBundleName();
-
+	try{
 	    DefaultDataPackager dataPackager = dpService.getBundledZipPackage(bundleRequest);
+	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
-	   
-		   
-	    int httpStatus = dataPackager.getData(zout);
-	    
-	    //	    zout = new ZipOutputStream(response.getOutputStream());
-//	    int httpStatus = dpService.getBundledZipPackage(bundleRequest, zout);
-	    //response.setStatus(httpStatus);
+	    dataPackager.getData(zout);
 	    response.flushBuffer();	   
 	    logger.info("Data bundled in zip delivered");
 	} catch (InputLimitException ie) {
@@ -124,12 +113,6 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
-	}finally{
-	    try {
-		response.flushBuffer();
-	    } catch (IOException e) {
-		logger.error("Problem while calling repsonse.flushbuffer and outputstream close :"+e.getMessage());	    
-	    }
 	}
 
     }
@@ -143,6 +126,7 @@ public class DataBundleAccessController {
 
     @ExceptionHandler(InputLimitException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ResponseBody
     public ErrorInfo handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
 	logger.info("Bundle size and number of files in the bundle have some limits." + req.getRequestURI() + "\n  "
 		+ ex.getMessage());

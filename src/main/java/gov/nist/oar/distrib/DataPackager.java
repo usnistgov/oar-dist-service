@@ -28,7 +28,7 @@ import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
  */
 public interface DataPackager {
 
-    public int getData(ZipOutputStream zp) throws DistributionException, IOException, InputLimitException;
+    public void getData(ZipOutputStream zp) throws DistributionException, IOException;
 
     long getTotalSize() throws IOException;
 
@@ -36,7 +36,7 @@ public interface DataPackager {
     
     String getBundleName() throws IOException;
 
-    void validateBundleRequest() throws DistributionException, IOException, InputLimitException;
+    void validateBundleRequest() throws DistributionException, IOException;
 
-    boolean validateUrl(String url) throws DistributionException, IOException, InputLimitException;
+    boolean validateUrl(String url) throws DistributionException, IOException;
 }

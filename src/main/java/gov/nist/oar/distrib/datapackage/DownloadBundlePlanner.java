@@ -86,7 +86,7 @@ public class DownloadBundlePlanner {
 
 	ObjectMapper mapper = new ObjectMapper();
 	String requestString = mapper.writeValueAsString(this.bundleRequest);
-	if (ObjectUtils.hasHTMLTags(requestString)) {
+	if (ValidationHelper.hasHTMLTags(requestString)) {
 	    messages.add("Input contains html code, make sure to post proper request.");
 	    this.status = "Error";
 	    makeBundlePlan();
@@ -96,15 +96,15 @@ public class DownloadBundlePlanner {
 	try {
 	    JSONUtils.isJSONValid(this.bundleRequest);
 	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	    ObjectUtils.removeDuplicates(this.inputfileList);
+	    ValidationHelper.removeDuplicates(this.inputfileList);
 	    for (int i = 0; i < inputfileList.length; i++) {
 		FileRequest jobject = inputfileList[i];
 		String filepath = jobject.getFilePath();
 		String downloadurl = jobject.getDownloadUrl();
-		if (ObjectUtils.isAllowedURL(downloadurl, validdomains)) {
+		if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
 		    this.makeBundles(jobject);
 		} else {
-		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "URL not added in package; This URL is from unsupported domain/host."));
+		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "File not added in package; This URL is from unsupported domain/host."));
 		    messages.add("Some urls are not added due to unsupported host.");
 		    this.status = "warnings";
 		}
@@ -133,9 +133,11 @@ public class DownloadBundlePlanner {
      */
     public void makeBundles(FileRequest jobject) throws IOException {
 	bundledFilesCount++;
-	long individualFileSize = ObjectUtils.getFileSize(jobject.getDownloadUrl());
-	if(individualFileSize < 0){
-	    notIncludedFiles.add(new NotIncludedFiles(jobject.getFilePath(), jobject.getDownloadUrl(), "Can not get filesize."));
+;
+	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains);
+	long individualFileSize = uObj.getLength();
+	if(individualFileSize <= 0){
+	    notIncludedFiles.add(new NotIncludedFiles(jobject.getFilePath(), jobject.getDownloadUrl(), "File not added in package; File is not valid/accessible or it is empty."));
 	    messages.add("Some URLs have problem accessing contents.");
 	    this.status = "warnings";
 	}else{

@@ -15,66 +15,92 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import gov.nist.oar.distrib.web.objects.FileRequest;
 
 /***
- * ObjectUtils class provides the functionality to validate objects and text.
- * It also use to work with server responses and response codes
+ * ValidationHelper class provides different methods and functions to validate
+ * input request. Check against standards, connect the given URLs and get
+ * information from the remote servers about individual files. It provides a
+ * POJO representing information related each requested file. It also provides
+ * additional functions to return appropriate user readable messages for
+ * different HttpStatus representing different types of errors.
+ * 
  * @author Deoyani Nandrekar-Heinis
  */
-public class ObjectUtils {
-    protected static Logger logger = LoggerFactory.getLogger(ObjectUtils.class);
+public class ValidationHelper {
+    protected static Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
 
     static int countTryUrl = 0;
-    
-    public void setCountTryUrl(){
-	countTryUrl =  0;
+
+    public ValidationHelper() {
+	// Default Consrtuctor
     }
+
     /**
-     * Read the url header to get the size of file.
+     * This method takes input URL which is validated against valid domains, If
+     * it is valid URL, HEAD request is created to get the response code and
+     * content length of the file. If URL server redirects, methods attempts 4
+     * times to connect and get value otherwise set the contentLength to zero.
+     * If there is any other IO exception while connecting to URL it is caught
+     * and appropriate response code and information is sent back.
      * 
      * @param url
-     * @return long
-     * @throws IOException
+     *            URL to be validated
+     * @param domains
+     *            valida domains
+     * @return UrlStatusLocation
      */
-    
-    public static long getFileSize(String url) {
-	try{
-	URL obj = new URL(url);
-	HttpURLConnection conn = (HttpURLConnection)obj.openConnection();
-	conn.setRequestMethod("HEAD");
-	long length = conn.getContentLength();
-	int responseCode = conn.getResponseCode();
-	if( (responseCode >= 300 && responseCode < 400 ) && countTryUrl < 4){
-	    String location = conn.getHeaderField("Location");
-	    countTryUrl ++;
-	    conn.disconnect();
-	    length = -1;
-	    getFileSize(location);
-	}
-	if((responseCode >= 300 && responseCode < 400 ) && countTryUrl == 4){
-	    length = -1;
-	    countTryUrl = 0;	  
-	}	
-	conn.disconnect();
-	return length;
-	}catch(IOException exp){
+    public static URLStatusLocation getFileURLStatusSize(String url, String domains) {
+	boolean validURL = false;
+	long length = 0;
+	int responseCode = 0;
+	String location = "";
+	HttpURLConnection conn = null;
+	try {
+	    validURL = ValidationHelper.isAllowedURL(url, domains);
+	    if (validURL) {
+		URL obj = new URL(url);
+		conn = (HttpURLConnection) obj.openConnection();
+		HttpURLConnection.setFollowRedirects(false);
+		conn.setConnectTimeout(10000);
+		conn.setReadTimeout(10000);
+		conn.setRequestMethod("HEAD");
+		length = conn.getContentLength();
+		responseCode = conn.getResponseCode();
+		if ((responseCode >= 300 && responseCode < 400) && countTryUrl < 4) {
+		    location = conn.getHeaderField("Location");
+		    countTryUrl++;
+		    conn.disconnect();
+		    length = 0;
+		    getFileURLStatusSize(location, domains);
+		}
+		if ((responseCode >= 300 && responseCode < 400) && countTryUrl == 4) {
+		    length = 0;
+		    countTryUrl = 0;
+		}
+
+		conn.disconnect();
+	    }
+	} catch (IOException exp) {
 	    logger.error(exp.getMessage());
-	    logger.info("There is error reading this url:" + url);
-	    countTryUrl = 0;	
-	    return 0;
+	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
+	    countTryUrl = 0;
+
+	} finally {
+	    if (conn != null)
+		conn.disconnect();
 	}
+
+	return new URLStatusLocation(responseCode, location, url, length, validURL);
+
     }
 
     /**
@@ -98,7 +124,8 @@ public class ObjectUtils {
 	for (int i = 0; i < domainList.length; i++) {
 	    String host = "";
 	    String context = "";
-	    // If domains have path included in the config list check host and path.
+	    // If domains have path included in the config list check host and
+	    // path.
 	    if (domainList[i].contains("/")) {
 		String[] parts = domainList[i].split("/", 2);
 		host = parts[0];
@@ -120,33 +147,6 @@ public class ObjectUtils {
 	// if all the values in list are false, return false.
 	// It means none of the domain and host matches return false.
 	return !(list.stream().allMatch(val -> val == false));
-
-    }
-
-    /**
-     * Using Url connection get the response code from server
-     * @param con
-     * @return UrlStatusLocation Object
-     */
-    public static UrlStatusLocation getURLStatus(HttpURLConnection con) {
-
-	try {
-
-	    HttpURLConnection.setFollowRedirects(false);
-	    con.setFollowRedirects(false);
-	    con.setConnectTimeout(10000);
-	    con.setReadTimeout(10000);
-	    con.connect();
-	    return new UrlStatusLocation(con.getResponseCode(), con.getHeaderField("Location"), con.getURL().toString());
-
-	} catch (IOException iexp) {
-	    logger.error(iexp.getMessage());
-	    return new UrlStatusLocation(-1, "",con.getURL().toString());
-
-	} catch (Exception exp) {
-	    logger.error(exp.getMessage());
-	    return new UrlStatusLocation(-1, "",con.getURL().toString());
-	}
 
     }
 
@@ -188,6 +188,7 @@ public class ObjectUtils {
 
     /***
      * Status messages in user readable format for response with 400* errors
+     * 
      * @param statuscode
      * @return String Readable error message
      */
@@ -213,31 +214,51 @@ public class ObjectUtils {
 	}
 
     }
-    
-    public static boolean areAllUrlsInaccessible(int limit, int[] data) {
-   	for (int k = 0; k < data.length; k++) {
-   	    if (data[k] < limit)
-   		return false;
-   	}
-   	return true;
-       }
+
+    public static boolean areAllUrlsInaccessible(List<URLStatusLocation> lisULoc) {
+	for (int k = 0; k < lisULoc.size(); k++) {
+	    if (lisULoc.get(k).getStatus() >= 400)
+		return false;
+	}
+	return true;
+    }
 
 }
 
 /**
- * Class is a POJO to return server response code with the url location
+ * Class is a POJO to collect URL, status, content length, validation and
+ * redirect if any
+ * 
  * @author Deoyani Nandrekar-Heinis
  *
  */
-class UrlStatusLocation {
+class URLStatusLocation {
     private int status;
     private String location;
     private String requestedURL;
+    private long length;
+    private boolean validURL;
 
-    public UrlStatusLocation(int status, String location, String requestedURL) {
+    /**
+     * POJO constructor
+     * 
+     * @param status
+     *            HttpStatus code return by URL in terms of response
+     * @param location
+     *            Redirect location returned by header
+     * @param requestedURL
+     *            URL to be validated and connected
+     * @param length
+     *            ContentLegth of file at the given URL location
+     * @param validURL
+     *            boolean representing URL from valid domain
+     */
+    public URLStatusLocation(int status, String location, String requestedURL, long length, boolean validURL) {
 	this.status = status;
 	this.location = location;
 	this.requestedURL = requestedURL;
+	this.length = length;
+	this.validURL = validURL;
     }
 
     public int getStatus() {
@@ -247,8 +268,16 @@ class UrlStatusLocation {
     public String getLocation() {
 	return location;
     }
-    
-    public String getRequestedURL(){
+
+    public String getRequestedURL() {
 	return this.requestedURL;
+    }
+
+    public long getLength() {
+	return this.length;
+    }
+
+    public boolean isValidURL() {
+	return this.validURL;
     }
 }
