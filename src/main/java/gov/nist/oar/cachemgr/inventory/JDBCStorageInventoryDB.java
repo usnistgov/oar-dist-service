@@ -130,7 +130,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public List<CacheObject> findObject(String id, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql);
         sql.append("AND d.objid='").append(id).append("' AND v.status > ").append(purpose);
-        if (purpose > 1)
+        if (purpose >= VOL_FOR_GET)
             sql.append(" AND d.cached=1");
         sql.append(";");
         return _findObject(sql.toString());
