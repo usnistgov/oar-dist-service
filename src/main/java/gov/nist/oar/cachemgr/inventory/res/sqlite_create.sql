@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS volumes (
    name      text NOT NULL,
    priority  integer, 
    capacity  integer,
+   status    integer NOT NULL,
    metadata  text
 );
 
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS objects (
    name      text NOT NULL,
    volume    integer,
    since     integer,
+   cached    boolean,
    metadata  text,
    FOREIGN KEY (volume)    REFERENCES volumes(id),
    FOREIGN KEY (algorithm) REFERENCES algorithms(id)

@@ -55,7 +55,9 @@ import java.time.format.DateTimeFormatter;
  *    id        integer PRIMARY KEY,
  *    name      text NOT NULL,
  *    priority  integer, 
- *    capacity  integer
+ *    capacity  integer,
+ *    status    integer NOT NULL,    // 0=disabled, 1=can getinfo, 2=can get obj, 3=can update
+ *    metadata  text
  * );
  *
  * CREATE TABLE IF NOT EXISTS objects (
@@ -67,6 +69,7 @@ import java.time.format.DateTimeFormatter;
  *    volume    integer FOREIGN KEY,
  *    name      text NOT NULL,
  *    since     integer,
+ *    cached    boolean NOT NULL DEFAULT 0,
  *    metadata  text
  * );
  * </verbatim>
@@ -102,18 +105,43 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     /**
      * return all the known locations of an object with a given id in the volumes
-     * managed by this database.  
+     * managed by this database.  The implementation should minimize the assumptions 
+     * for the purpose of the query.  (VOL_FOR_GET is recommended.)
      * @param id   the identifier for the desired object
+     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.  This list will be empty if 
+     *                             the object is not registered.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public List<CacheObject> findObject(String id) throws InventoryException {
+        return this.findObject(id, VOL_FOR_GET);
+    }
+
+    /**
+     * return all the known locations of an object with a given id in the volumes
+     * managed by this database.  
+     * @param id       the identifier for the desired object
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     *                 values are defined in the {@list gov.nist.oar.cachemgr.VolumeStatus} interface.
      * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
-    public List<CacheObject> findObject(String id) throws InventoryException {
-        String sql = find_sql + "AND d.objid='" + id + "';";
-        return _findObject(sql);
+    public List<CacheObject> findObject(String id, int purpose) throws InventoryException {
+        StringBuilder sql = new StringBuilder(find_sql);
+        sql.append("AND d.objid='").append(id).append("' AND v.status > ").append(purpose);
+        if (purpose > 1)
+            sql.append(" AND d.cached=1");
+        sql.append(";");
+        return _findObject(sql.toString());
     }
 
-    private List<CacheObject> _findObject(String sql) throws InventoryException {
+    /**
+     * submit an SQL to the underlying data base to return matching objects.
+     *
+     * @param objsql   an SQL query that returns a list of data objects
+     */
+    protected List<CacheObject> _findObject(String objsql) throws InventoryException {
         String jmd = null;
         JSONObject md = null;
         CacheObject co = null;
@@ -121,7 +149,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         try {
             if (_conn == null) connect();
             Statement stmt = _conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
+            ResultSet rs = stmt.executeQuery(objsql);
             ArrayList<CacheObject> out = new ArrayList<CacheObject>();
             while (rs.next()) {
                 jmd = rs.getString("metadata");
@@ -168,8 +196,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     String add_sql = "INSERT INTO objects(" +
-        "objid,name,size,checksum,algorithm,priority,volume,since,metadata" +
-        ") VALUES (?,?,?,?,?,?,?,?,?)";
+        "objid,name,size,checksum,algorithm,priority,volume,since,cached,metadata" +
+        ") VALUES (?,?,?,?,?,?,?,?,?,?)";
     
     /**
      * record the addition of an object to a volume.  The metadata stored with the 
@@ -245,7 +273,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             stmt.setInt(6, priority);
             stmt.setInt(7, volid);
             stmt.setLong(8, since.toEpochMilli());
-            stmt.setString(9, jmd);
+            stmt.setBoolean(9, true);
+            stmt.setString(10, jmd);
             
             stmt.executeUpdate();
         }
@@ -429,7 +458,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         return out.intValue();
     }
 
-    String rm_sql = "DELETE FROM objects WHERE volume=? AND name=?";
+    String rm_sql = "UPDATE objects SET cached=0 WHERE volume=? AND name=?";
         
     /**
      * record the removal of the object with the given name from the given volume
@@ -501,8 +530,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-    String add_vol_sql = "INSERT INTO volumes(name,capacity,priority,metadata) VALUES (?,?,?,?)";
-    String upd_vol_sql = "UPDATE volumes SET capacity=?, priority=?, metadata=? where name=?";
+    String add_vol_sql = "INSERT INTO volumes(name,capacity,priority,status,metadata) VALUES (?,?,?,?,?)";
+    String upd_vol_sql = "UPDATE volumes SET capacity=?, priority=?, status=?, metadata=? WHERE name=?";
 
     /**
      * add a cache volume that is available for storage to the database.  
@@ -518,10 +547,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         int id = getVolumeID(name);
         
         Integer priority = null;
+        int status = 3;  // fully functional
         String nm = "priority", jmd = null;
         if (metadata != null) {
             try {
                 priority = (Integer) metadata.get(nm);
+                nm = "status";
+                status = metadata.optInt(nm, status);
             }
             catch (JSONException ex) {
                 throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
@@ -541,10 +573,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     stmt.setNull(3, Types.INTEGER);
                 else
                     stmt.setInt(3, priority.intValue());
+                stmt.setInt(4, status);
                 if (jmd == null)
-                    stmt.setNull(4, Types.VARCHAR);
+                    stmt.setNull(5, Types.VARCHAR);
                 else
-                    stmt.setString(4, jmd);
+                    stmt.setString(5, jmd);
 
                 stmt.executeUpdate();
             }
@@ -563,8 +596,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     stmt.setNull(2, Types.INTEGER);
                 else
                     stmt.setInt(2, priority.intValue());
-                stmt.setString(3, jmd);
-                stmt.setString(4, name);
+                stmt.setInt(3, status);
+                stmt.setString(4, jmd);
+                stmt.setString(5, name);
 
                 stmt.executeUpdate();
             }
@@ -576,7 +610,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         loadVolumes();
     }
 
-    String get_vol_info = "SELECT metadata,capacity,priority FROM volumes WHERE name=?";
+    String get_vol_info = "SELECT metadata,capacity,priority,status FROM volumes WHERE name=?";
 
     /**
      * return the information associated with the registered storage volume
@@ -601,6 +635,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 md.put("capacity", rs.getLong("capacity"));
             if (rs.getObject("priority") != null)
                 md.put("priority", rs.getInt("priority"));
+            if (rs.getObject("status") != null)
+                md.put("status", rs.getInt("status"));
 
             return md;
         }

@@ -23,11 +23,12 @@ import java.util.List;
  *
  * This interface allows for multiple implementations for the database.  
  */
-public interface StorageInventoryDB {
+public interface StorageInventoryDB extends VolumeStatus {
 
     /**
      * return all the known locations of an object with a given id in the volumes
-     * managed by this database.  
+     * managed by this database.  The implementation should minimize the assumptions 
+     * for the purpose of the query.  (VOL_FOR_GET is recommended.)
      * @param id   the identifier for the desired object
      * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.  This list will be empty if 
@@ -37,7 +38,20 @@ public interface StorageInventoryDB {
     public List<CacheObject> findObject(String id) throws InventoryException;
 
     /**
-     * return all the data object with a given name in a particular cache volume
+     * return all the known locations of an object with a given id in the volumes
+     * managed by this database.  
+     * @param id       the identifier for the desired object
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     *                 values are defined in the {@list gov.nist.oar.cachemgr.VolumeStatus} interface.
+     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.  This list will be empty if 
+     *                             the object is not registered.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public List<CacheObject> findObject(String id, int purpose) throws InventoryException;
+
+    /**
+     * return all the data object with a given name in a particular cache volume.  
      * @param volname  the name of the volume to search
      * @param objname  the name of the object was given in that volume
      * @returns CacheObject  the object in the cache or null if the object is not found in the volume
