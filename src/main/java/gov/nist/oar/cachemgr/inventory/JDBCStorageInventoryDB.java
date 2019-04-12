@@ -59,12 +59,13 @@ import java.time.format.DateTimeFormatter;
  * );
  *
  * CREATE TABLE IF NOT EXISTS objects (
- *    name      text NOT NULL,
+ *    objid     text NOT NULL,
  *    size      integer,
  *    checksum  text,
  *    algorithm aid FOREIGN KEY,
  *    priority  integer,
  *    volume    integer FOREIGN KEY,
+ *    name      text NOT NULL,
  *    since     integer,
  *    metadata  text
  * );
@@ -450,6 +451,28 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to remove object " + objname + " from volume " +
                                          volname + ": " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * remove all object entries.  This should be used when reinitializing the database.
+     * @returns boolean   false if the database was apparently empty already, true otherwise.
+     */
+    public boolean removeAllObjects() throws InventoryException {
+        String sql = "DELETE FROM objects;";
+        Statement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.createStatement();
+            stmt.execute(sql);
+            return (stmt.getUpdateCount() > 0);
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Problem emptying database: "+ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 

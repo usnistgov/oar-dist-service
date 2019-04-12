@@ -37,7 +37,7 @@ public abstract class Cache {
      * return true if the data object with the given identifier is held in the cache
      * @param id   the identifier for the data object of interest.
      */
-    public abstract boolean isCached(String id);
+    public abstract boolean isCached(String id) throws CacheManagementException;
 
     /**
      * remove all copies of the data object with the given ID from the cache
@@ -50,7 +50,7 @@ public abstract class Cache {
      * otherwise, return null. 
      * @param id       the identifier for the data object of interest.
      */
-    public abstract CacheObject findObject(String id);
+    public abstract CacheObject findObject(String id) throws CacheManagementException;
 
     /**
      * return a reservation for a given amount of space.  

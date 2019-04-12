@@ -168,6 +168,10 @@ public class Reservation {
         db.removeObject(vol.getName(), getReservationName());
     }
 
+    protected void finalize() {
+        try { drop(); } catch (InventoryException ex) {} 
+    }
+
     class CountingInputStream extends InputStream {
         private InputStream dep = null;
         private long bytesread = 0L;

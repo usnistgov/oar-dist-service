@@ -80,6 +80,12 @@ public interface StorageInventoryDB {
      */
     public void removeObject(String volname, String objname) throws InventoryException;
 
+    /*
+     * remove all object entries.  This should be used when reinitializing the database.
+     *
+    public void removeAllObjects() throws InventoryException;
+     */
+
     // need to add a method that returns records that can be used to create
     // deletion plans.
 
