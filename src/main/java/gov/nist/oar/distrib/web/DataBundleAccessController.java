@@ -22,7 +22,6 @@ import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,22 +31,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.amazonaws.Response;
-
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.InputLimitException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
+import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
 import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.ErrorInfo;
-import gov.nist.oar.distrib.web.objects.FileRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import springfox.documentation.annotations.ApiIgnore;
-import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -122,6 +117,20 @@ public class DataBundleAccessController {
     public ErrorInfo handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
 	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
+    }
+
+    @ExceptionHandler(NoContentInPackageException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleServiceSyntaxException(NoContentInPackageException ex, HttpServletRequest req) {
+	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 404, "There is no content in the package.", "POST");
+    }
+    
+    @ExceptionHandler(NoFilesAccesibleInPackageException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
+	logger.info("There are no files successfully accessed " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 502, "No files could be accessed successfully.", "POST");
     }
 
     @ExceptionHandler(InputLimitException.class)
