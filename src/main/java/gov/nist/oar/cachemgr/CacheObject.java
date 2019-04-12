@@ -49,6 +49,11 @@ public class CacheObject {
     public String name = null;
 
     /**
+     * the cache-volume-independent identifier for the object.  This may be null if not known
+     */
+    public String id = null;
+
+    /**
      * initialize the CacheObject with null values
      */
     public CacheObject() { }

@@ -94,27 +94,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-    static final String find_sql = "SELECT d.name as name, v.name as volume, d.size as size, "+
+    static final String find_sql =
+        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id ";
 
-    /**
-     * return all the known locations of an object with a given id in a specific
-     * volume
-     * @param id      the identifier for the desired object
-     * @param volume  the name of the volume
-     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
-     *                             a copy in a different cache volume.  Typically, there should 
-     *                             only be one item in the returned list.  The list will be empty
-     *                             the object is not found.  
-     * @throws InventoryException  if the named volume is not currently registered or if there is
-     *                             an error accessing the underlying database.
-     */
-    public List<CacheObject> findObject(String id, String volume) throws InventoryException {
-        String sql = find_sql + "AND d.objid='" + id + "' AND v.name='" + volume + "';";
-        return _findObject(sql);
-    }
-    
     /**
      * return all the known locations of an object with a given id in the volumes
      * managed by this database.  
@@ -131,6 +115,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     private List<CacheObject> _findObject(String sql) throws InventoryException {
         String jmd = null;
         JSONObject md = null;
+        CacheObject co = null;
         
         try {
             if (_conn == null) connect();
@@ -154,13 +139,31 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                                 ZoneOffset.UTC)
                                                      .format(DateTimeFormatter.ISO_INSTANT));
                 }
-                out.add(new CacheObject(rs.getString("name"), md, rs.getString("volume")));
+                co = new CacheObject(rs.getString("name"), md, rs.getString("volume"));
+                if (rs.getObject("id") != null)
+                    co.id = rs.getString("id");
+                out.add(co);
             }
             return out;
         }
         catch (SQLException ex) {
             throw new InventorySearchException(ex);
         }
+    }
+
+    /**
+     * return all the data object with a given name in a particular cache volume
+     * @param volname  the name of the volume to search
+     * @param objname  the name of the object was given in that volume
+     * @returns CacheObject  the object in the cache or null if the object is not found in the volume
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public CacheObject findObject(String volname, String objname) throws InventoryException {
+        String fsql = find_sql + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        List<CacheObject> objs = _findObject(fsql);
+        if (objs.size() == 0) return null;
+
+        return objs.get(0);
     }
 
     String add_sql = "INSERT INTO objects(" +
@@ -267,9 +270,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public boolean updateMetadata(String volname, String objname, JSONObject metadata)
         throws InventoryException
     {
-        String fsql = find_sql + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
-        List<CacheObject> objs = _findObject(fsql);
-        if (objs.size() == 0) return false;
+        CacheObject obj = findObject(volname, objname);
+        if (obj == null) return false;
 
         int volid = getVolumeID(volname);
         if (volid < 0)
@@ -300,7 +302,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         Statement stmt = null;
         try {
             if (_conn == null) connect();
-            JSONObject md = objs.get(0).exportMetadata();
+            JSONObject md = obj.exportMetadata();
             for (String prop : metadata.keySet())
                 md.put(prop, metadata.get(prop));
 

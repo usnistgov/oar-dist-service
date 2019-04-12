@@ -37,6 +37,15 @@ public interface StorageInventoryDB {
     public List<CacheObject> findObject(String id) throws InventoryException;
 
     /**
+     * return all the data object with a given name in a particular cache volume
+     * @param volname  the name of the volume to search
+     * @param objname  the name of the object was given in that volume
+     * @returns CacheObject  the object in the cache or null if the object is not found in the volume
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public CacheObject findObject(String volname, String objname) throws InventoryException;
+
+    /**
      * record the addition of an object to a volume.  The metadata stored with the 
      * object can vary by application.  
      * @param id       the identifier for the object being stored

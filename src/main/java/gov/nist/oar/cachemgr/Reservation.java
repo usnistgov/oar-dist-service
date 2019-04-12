@@ -19,6 +19,8 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.json.JSONException;
 
+import org.apache.commons.lang3.RandomStringUtils;
+
 /**
  * a claim on space in a {@list gov.nist.oar.cachemgr.Cache}.  An instance is normally received 
  * from a request for a particular amount of space via one of the cache's 
@@ -44,20 +46,21 @@ public class Reservation {
      * instantiate the reservation
      * @param resname   a name that this reservation is represented by within the StorageInventoryDB.
      * @param volume    the CacheVolume instance for the volume where the space has been reserved.
-     * @param db        the StorageInventoryDB that should be used to update the volume changes after 
+     * @param storedb   the StorageInventoryDB that should be used to update the volume changes after 
      *                    data are streamed into it.
+     * @param size      the amount of space to reserve in bytes.
      */
-    public Reservation(String resname, CacheVolume volume, StorageInventoryDB db, long size) {
+    public Reservation(String resname, CacheVolume volume, StorageInventoryDB storedb, long size) {
         _name = resname;
         _size = size;
         vol = volume;
-        db = db;
+        db = storedb;
     }
 
     /**
-     * return the remaining size of the reserved space.  As data is added the cache via this object,
-     * this number will go down.  It is possible for it to go negative.  Once it is equal or less than 
-     * zero, no more objects can be added.  
+     * return the remaining size (in bytes) of the reserved space.  As data is added the cache via this 
+     * object, this number will go down.  It is possible for it to go negative.  Once it is equal or 
+     * less than zero, no more objects can be added.  
      */
     public long getSize() { return _size; }
 
@@ -102,6 +105,9 @@ public class Reservation {
     public synchronized void saveAs(InputStream from, String id, String objname, JSONObject metadata)
         throws CacheManagementException
     {
+        if (_size <= 0)
+            throw new CacheManagementException("No more space left in this reservation");
+
         long size = -1L;
         if (metadata != null && metadata.has("size")) {
             try { size = metadata.getLong("size"); }
@@ -120,10 +126,10 @@ public class Reservation {
             _size -= is.count();
             updateReservationSize(_size);
 
-            if (metadata != null) {
-                if (size != is.count())
-                    metadata.put("size", is.count());
-            }
+            if (metadata == null) 
+                metadata = new JSONObject();
+            if (size != is.count())
+                metadata.put("size", is.count());
             db.addObject(id, vol.getName(), objname, metadata);
         }
         catch (CacheVolumeException ex) {
@@ -135,6 +141,12 @@ public class Reservation {
             throw new CacheManagementException("Problem updating inventory for id="+id+": "+
                                                ex.getMessage()+" (aborted save)", ex);
         }
+
+        if (_size <= 0) {
+            // unregister the reservation from the storage inventory
+            try { this.drop(); }
+            catch (InventoryException ex) { }
+        }
     }
 
     /**
@@ -144,6 +156,16 @@ public class Reservation {
         JSONObject md = new JSONObject();
         md.put("size", newsize);
         db.updateMetadata(vol.getName(), this._name, md);
+    }
+
+    /**
+     * indicate that this reservation is no longer.  This will remove its entry in the 
+     * storage inventory.  This method will get called automatically when the remaining size 
+     * goes to or dips below zero.
+     */
+    public void drop() throws InventoryException {
+        if (_size > 0) _size = -1L;
+        db.removeObject(vol.getName(), getReservationName());
     }
 
     class CountingInputStream extends InputStream {
@@ -159,15 +181,51 @@ public class Reservation {
         }
         public int read(byte[] b) throws IOException {
             _incr = dep.read(b);
-            bytesread += _incr;
+            if (_incr > 0) bytesread += _incr;
             return _incr;
         }
         public int read(byte[] b, int off, int len) throws IOException {
             _incr = dep.read(b, off, len);
-            bytesread += _incr;
+            if (_incr > 0) bytesread += _incr;
             return _incr;
         }
         public void close() throws IOException { dep.close(); }
         public long count() { return bytesread; }
+    }
+
+    /**
+     * generate a reservation name with a random suffix
+     */
+    public static String generateName(String prefix, int suffixLength) {
+        return prefix + RandomStringUtils.randomAlphanumeric(8);
+    }
+
+    static String resprefix = "<reserve#";
+
+    /**
+     * create a reservation of a given size for a volume.  An reservation entry will be entered 
+     * into the supplied inventory database.
+     * @param volume   the storage volume to reserve space in
+     * @param storedb  the inventory database for the volume (this will be updated)
+     * @param size     the amount of space to reserve in bytes.
+     */
+    public static Reservation reservationFor(CacheVolume volume, StorageInventoryDB storedb, long size)
+        throws InventoryException
+    {
+        String resname = null;
+        CacheObject co = null;
+        int i=0;
+        for (; resname == null && i < 10; i++) {
+            resname = generateName(resprefix, 8)+">";
+            co = storedb.findObject(volume.getName(), resname);
+            if (co != null) resname = null;
+        }
+        if (i >= 10)
+            throw new InventoryException("Failing to generate a unique reservation name");
+
+        JSONObject md = new JSONObject();
+        md.put("size", size);
+        storedb.addObject(volume.getName()+":"+resname, volume.getName(), resname, md);
+        return new Reservation(resname, volume, storedb, size);
     }
 }

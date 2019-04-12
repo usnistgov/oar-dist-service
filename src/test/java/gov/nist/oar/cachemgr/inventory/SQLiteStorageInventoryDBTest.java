@@ -260,16 +260,16 @@ public class SQLiteStorageInventoryDBTest {
         sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", null);
 
-        List<CacheObject> cos = sidb.findObject("1234/goober.json", "fundrum");
-        assertEquals(1, cos.size());
-        assertEquals("1234_goober.json", cos.get(0).name);
-        assertEquals("fundrum", cos.get(0).volname);
+        CacheObject co = sidb.findObject("fundrum", "1234_goober.json");
+        assertEquals("1234_goober.json", co.name);
+        assertEquals("fundrum", co.volname);
         
-        cos = sidb.findObject("1234/goober.json", "foobar");
-        assertEquals(1, cos.size());
-        assertEquals("1234_goober.json", cos.get(0).name);
-        assertEquals("foobar", cos.get(0).volname);
+        co = sidb.findObject("foobar", "1234_goober.json");
+        assertEquals("1234_goober.json", co.name);
+        assertEquals("foobar", co.volname);
         
+        co = sidb.findObject("foobar", "nope.json");
+        assertNull(co);
     }
 
     @Test
