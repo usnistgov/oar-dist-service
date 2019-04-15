@@ -18,14 +18,21 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Api;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * a simple controller for revealing the version of the deployed service
@@ -36,6 +43,8 @@ import io.swagger.annotations.Api;
 @Api
 @RequestMapping(value = "/ds")
 public class VersionController {
+
+    Logger logger = LoggerFactory.getLogger(VersionController.class);
 
     /**
      * The service name
@@ -98,5 +107,15 @@ public class VersionController {
             serviceName = name;
             version = ver;
         }
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex,
+                                          HttpServletRequest req)
+    {
+        logger.error("Unexpected failure during request: " + req.getRequestURI() +
+                     "\n  " + ex.getMessage(), ex);
+        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
     }
 }

@@ -175,9 +175,21 @@ public class FromBagFileDownloadService implements FileDownloadService {
 
         // find the bag containing file, open the bag, find the file, set stream to file's start
         // (see openDataFile() and findDataFile())
-        ZipBagUtils.OpenEntry fentry = openDataFile(dsid, filepath, version);
-
-        return new FileDescription(filepath, fentry.info.getSize(), ct);
+        ZipBagUtils.OpenEntry fentry = null;
+        try {
+            fentry = openDataFile(dsid, filepath, version);
+            return new FileDescription(filepath, fentry.info.getSize(), ct);
+        }
+        finally {
+            if (fentry != null && fentry.stream != null) {
+                try {
+                    fentry.stream.close();
+                } catch (IOException ex) {
+                    logger.warn("Trouble closing zipfile stream for " + filepath +
+                                ": " + ex.getMessage());
+                }
+            }
+        }
     }
 
     private ZipBagUtils.OpenEntry openDataFile(String dsid, String filepath, String version)

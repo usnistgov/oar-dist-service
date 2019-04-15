@@ -365,6 +365,24 @@ public class DatasetAccessController {
         }
     }
 
+    /*
+     * trigger an error response.  This is normally disabled (commented out); it is engaged 
+     * only during development.
+     * 
+     * @param request   the input HTTP request object 
+     * @param response  the output HTTP response object, used to write the output data
+     * @throws IllegalStateException  always
+    @ApiOperation(value = "return (via the HTTP header) an HTTP error response",
+                  nickname = "return error")
+    @RequestMapping(value = "/_error/**", method=RequestMethod.GET)
+    public void testErrorHandling(@ApiIgnore HttpServletRequest request,
+                                  @ApiIgnore HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
+        throw new IllegalStateException("fake state");
+    }
+     */
+
     /**
      * download a data file information (via header fields).  This method responds to HEAD requests
      * on a downloadable file.  
@@ -475,7 +493,7 @@ public class DatasetAccessController {
     public ErrorInfo handleInternalError(DistributionException ex,
                                          HttpServletRequest req)
     {
-        logger.info("Failure processing request: " + req.getRequestURI() +
+        logger.warn("Failure processing request: " + req.getRequestURI() +
                     "\n  " + ex.getMessage());
         return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
     }
@@ -495,9 +513,19 @@ public class DatasetAccessController {
     public ErrorInfo handleStreamingError(DistributionException ex,
                                           HttpServletRequest req)
     {
-        logger.info("Streaming failure during request: " + req.getRequestURI() +
+        logger.warn("Streaming failure during request: " + req.getRequestURI() +
                     "\n  " + ex.getMessage());
         return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex,
+                                          HttpServletRequest req)
+    {
+        logger.error("Unexpected failure during request: " + req.getRequestURI() +
+                     "\n  " + ex.getMessage(), ex);
+        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
     }
 }
 

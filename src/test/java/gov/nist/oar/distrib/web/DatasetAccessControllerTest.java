@@ -341,4 +341,16 @@ public class DatasetAccessControllerTest {
         assertTrue(DatasetAccessController.badpath.matcher("goober/../../../gurn").find());
         assertFalse(DatasetAccessController.badpath.matcher("goober..gurn").find());
     }
+
+    /*
+     * see comment for DatasetAccessController.testErrorHandling()
+     *
+    @Test
+    public void testIllegalStateExceptionHndling() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_error/goob",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getStatusCode());
+    }
+     */
 }

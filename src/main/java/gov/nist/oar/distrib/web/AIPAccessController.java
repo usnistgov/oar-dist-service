@@ -210,4 +210,14 @@ public class AIPAccessController {
         return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex,
+                                          HttpServletRequest req)
+    {
+        logger.error("Unexpected failure during request: " + req.getRequestURI() +
+                     "\n  " + ex.getMessage(), ex);
+        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+    }
+
 }
