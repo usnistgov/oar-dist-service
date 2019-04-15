@@ -236,6 +236,28 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
+    public void testDownloadFileMissingDSID() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491.json",
+                                                      HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491.json\"," +
+                                 "status:404,message:\"Resource ID not found\",method:GET}",
+                                resp.getBody(), true);
+
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/", HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/\"," +
+                                "status:404,message:\"File not found in requested dataset\",method:GET}",
+                                resp.getBody(), true);
+    }
+
+    @Test
     public void testDownloadFileBadInp() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/trial1.json",
