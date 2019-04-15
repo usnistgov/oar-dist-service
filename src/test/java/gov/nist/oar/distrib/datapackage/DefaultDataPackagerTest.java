@@ -154,13 +154,14 @@ public class DefaultDataPackagerTest {
 	createBundleRequest();
 	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
 	
-	Path path = Files.createTempFile(Paths.get("/Users/dsn1/DeoWork/Test"),"testBundle", ".zip");
+	Path path = Files.createTempFile("testBundle", ".zip");
 	System.out.println("PATH:"+path);
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
 	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
 	zos.close();
+	Files.delete(path);
         
     }
     
@@ -171,13 +172,14 @@ public class DefaultDataPackagerTest {
 	createBundleRequest();
 	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
 	
-	Path path = Files.createTempFile(Paths.get("/Users/dsn1/DeoWork/Test"),"testBundle", ".zip");
+	Path path = Files.createTempFile("testBundle", ".zip");
 	System.out.println("PATH:"+path);
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
 	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
 	zos.close();
+	Files.delete(path);
     }
 
     private static void createBundleRequest() throws IOException {
