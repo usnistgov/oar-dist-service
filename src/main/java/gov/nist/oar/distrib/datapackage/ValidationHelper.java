@@ -222,6 +222,15 @@ public class ValidationHelper {
 	}
 	return true;
     }
+    
+    public static int noOfNotAcceccibleURLs(List<URLStatusLocation> lisULoc){
+	int count =0;
+	for (int k = 0; k < lisULoc.size(); k++) {
+	    if (lisULoc.get(k).getStatus() >= 400)
+		count ++;
+	}
+	return count;
+    }
 
 }
 

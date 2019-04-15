@@ -39,8 +39,8 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
  * DefaultDataPackager implements DataPackager interface and gives a default
  * functionality of downloading data from provided list of data urls. This class
  * processes request and validate the requested information. It checks if there
- * are any duplicates in the requested list of files and if the requested list of
- * files is in JSON[] format. Class also checks the allowed size and allowed
+ * are any duplicates in the requested list of files and if the requested list
+ * of files is in JSON[] format. Class also checks the allowed size and allowed
  * number of files per package.
  * 
  * @author Deoyani Nandrekar-Heinis
@@ -52,11 +52,11 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
-    
-    int fileCount;
-    StringBuilder bundlelogfile = new StringBuilder("");
-    StringBuilder bundlelogError = new StringBuilder("");
-    List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
+
+    private int fileCount;
+    private StringBuilder bundlelogfile = new StringBuilder("");
+    private StringBuilder bundlelogError = new StringBuilder("");
+    private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 
     public DefaultDataPackager() {
@@ -66,7 +66,8 @@ public class DefaultDataPackager implements DataPackager {
     /**
      * Construct input parameters to be used within the class
      * 
-     * @param inputjson requested Bundle 
+     * @param inputjson
+     *            requested Bundle
      * @param maxFileSize
      *            total file size allowed to download
      * @param numOfFiles
@@ -136,9 +137,9 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * This method/function accepts URLStatusLocation to check the
-     * status of the URL response. Creates appropriate log messages and returns
-     * true on successfully accessing data.
+     * This method/function accepts URLStatusLocation to check the status of the
+     * URL response. Creates appropriate log messages and returns true on
+     * successfully accessing data.
      * 
      * @param URLStatusLocation
      * @return boolean
@@ -262,8 +263,17 @@ public class DefaultDataPackager implements DataPackager {
 	    throw new InputLimitException(
 		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
 
-	if (!ValidationHelper.areAllUrlsInaccessible(this.listUrlsStatusSize))
+	// if
+	// (!ValidationHelper.areAllUrlsInaccessible(this.listUrlsStatusSize)){
+	// if(countFiles == this.getFilesCount()){
+	// throw new NoFilesAccesibleInPackageException("None of the URLs
+	// returned data requested.");
+	// }
+	// }
+	int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
+	if (countNotAccessible == this.getFilesCount())
 	    throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
+
     }
 
     /**
@@ -298,8 +308,8 @@ public class DefaultDataPackager implements DataPackager {
      * @return boolean based on comparison
      * @throws IOException
      */
-    @Override
-    public int getFilesCount() throws IOException {
+
+    private int getFilesCount() throws IOException {
 	basicValidation();
 	return this.inputfileList.length;
     }
@@ -325,7 +335,8 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * Read the name from Bundle Request, if no name is provided, default name prefix 'download' is returned
+     * Read the name from Bundle Request, if no name is provided, default name
+     * prefix 'download' is returned
      */
     @Override
     public String getBundleName() throws IOException {
@@ -336,7 +347,9 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * This checks whether file list is populated if not parse input JSON, validate and get files.
+     * This checks whether file list is populated if not parse input JSON,
+     * validate and get files.
+     * 
      * @throws IOException
      */
     private void basicValidation() throws IOException {

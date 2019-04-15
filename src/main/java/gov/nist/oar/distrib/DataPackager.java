@@ -43,12 +43,6 @@ public interface DataPackager {
      */
     long getTotalSize() throws IOException;
 
-    /**
-     * Get total file count
-     * @return int
-     * @throws IOException
-     */
-    int getFilesCount() throws IOException;
     
     /***
      * get Name of requested bundle

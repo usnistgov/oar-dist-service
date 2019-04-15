@@ -12,18 +12,23 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -49,13 +54,15 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
-    String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas";
     private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
-    DefaultDataPackager dp;
+    private static DefaultDataPackager dp;
     private static String val1 = "";
     private static String val2 = "";
+    Path path;
+    ZipOutputStream zos;
 
     public static void createInput() throws JsonParseException, JsonMappingException, IOException {
 
@@ -74,66 +81,49 @@ public class DefaultDataPackagerTest {
 	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
     }
 
+    @After
+    public void closeAll() throws IOException {
+	if (zos != null)
+	    zos.close();
+	if (path != null)
+	    Files.delete(path);
+    }
+
     @Test
     public void testSize() throws MalformedURLException, IOException {
-	System.out.println("Size"+dp.getTotalSize());
 	assertEquals(dp.getTotalSize(), 62562);
     }
 
     @Test
-    public void testNumOfFiles() throws IOException {
-	assertEquals(dp.getFilesCount(), 2);
-    }
-
-    @Test
     public void testValidateRequest() throws DistributionException, IOException {
-	createInput();
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
-	assertTrue(dp.getFilesCount() < numberofFiles);
-	assertTrue(dp.getTotalSize() < mxFileSize);
-	int countBefore = 2;
 	dp.validateBundleRequest();
-	int countAfter = dp.getFilesCount();
-	assertTrue("No duplicates!", countBefore == countAfter);
+	assertTrue(dp.getTotalSize() < mxFileSize);
     }
 
     @Test
-    public void testValidateBundleRequest() throws DistributionException,  IOException {
+    public void testValidateBundleRequest() throws DistributionException, IOException {
 	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	createBundleRequest();
-	int countBefore = 2;
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
-	
-	dp.validateBundleRequest();
-	assertTrue(dp.getFilesCount() < numberofFiles);
-	assertTrue(dp.getTotalSize() < mxFileSize);
-	int countAfter = dp.getFilesCount();
-	assertTrue("No duplicates!", countBefore == countAfter);
-	Path path = Files.createTempFile("testBundle", ".zip");
-	OutputStream os = Files.newOutputStream(path);
-	ZipOutputStream zos = new ZipOutputStream(os);
-	
-	zos.close();
-	Files.delete(path);
 
+	dp.validateBundleRequest();
+
+	assertTrue(dp.getTotalSize() < mxFileSize);
 
     }
-    
+
     @Test
     public void testGetData() throws DistributionException, MalformedURLException, IOException, InputLimitException {
 	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
 	createBundleRequest();
 	int countBefore = 2;
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
-
-	Path path = Files.createTempFile("testBundle", ".zip");
-	OutputStream os = Files.newOutputStream(path);
-	ZipOutputStream zos = new ZipOutputStream(os);
+	this.createBundleStream();
 	dp.getData(zos);
 	zos.close();
-	Files.delete(path);
+	int countAfter = this.checkFilesinZip(path);
+	assertNotEquals(countBefore, countAfter);
+
     }
 
     @Rule
@@ -152,34 +142,19 @@ public class DefaultDataPackagerTest {
 	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile.json\"}";
 	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
 	createBundleRequest();
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
-	
-	Path path = Files.createTempFile("testBundle", ".zip");
-	System.out.println("PATH:"+path);
-	OutputStream os = Files.newOutputStream(path);
-	ZipOutputStream zos = new ZipOutputStream(os);
+	this.createBundleStream();
 	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
-	zos.close();
-	Files.delete(path);
-        
     }
-    
+
     @Test
-    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException{
+    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
 	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile1.txt\"}";
 	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
 	createBundleRequest();
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
-	
-	Path path = Files.createTempFile("testBundle", ".zip");
-	System.out.println("PATH:"+path);
-	OutputStream os = Files.newOutputStream(path);
-	ZipOutputStream zos = new ZipOutputStream(os);
+	this.createBundleStream();
 	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
-	zos.close();
-	Files.delete(path);
     }
 
     private static void createBundleRequest() throws IOException {
@@ -190,5 +165,39 @@ public class DefaultDataPackagerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+    }
+
+    private void createBundleStream() throws IOException {
+	path = Files.createTempFile("testBundle", ".zip");
+	System.out.println("PATH:" + path);
+	OutputStream os = Files.newOutputStream(path);
+	zos = new ZipOutputStream(os);
+    }
+
+    public int checkFilesinZip(Path filepath) throws IOException {
+	int count = 0;
+	try (ZipFile file = new ZipFile(filepath.toString())) {
+	    FileSystem fileSystem = FileSystems.getDefault();
+	    // Get file entries
+	    Enumeration<? extends ZipEntry> entries = file.entries();
+
+	    // Iterate over entries
+	    while (entries.hasMoreElements()) {
+
+		ZipEntry entry = entries.nextElement();
+		System.out.println("entryname:" + entry.getName());
+		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
+		    count++;
+
+	    }
+
+	    return count;
+
+	} catch (IOException ixp) {
+	    logger.error(
+		    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
+	    throw ixp;
+	}
     }
 }
