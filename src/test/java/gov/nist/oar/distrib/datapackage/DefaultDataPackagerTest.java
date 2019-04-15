@@ -115,6 +115,7 @@ public class DefaultDataPackagerTest {
 	ZipOutputStream zos = new ZipOutputStream(os);
 	
 	zos.close();
+	Files.delete(path);
 
 
     }
@@ -127,12 +128,12 @@ public class DefaultDataPackagerTest {
 	int countBefore = 2;
 	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
 
-	Path path = Files.createTempFile(Paths.get("/Users/dsn1/DeoWork/Test"),"testBundle", ".zip");
-	System.out.println("PATH:"+path);
+	Path path = Files.createTempFile("testBundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
 	dp.getData(zos);
 	zos.close();
+	Files.delete(path);
     }
 
     @Rule
