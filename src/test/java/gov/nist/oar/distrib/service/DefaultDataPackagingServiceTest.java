@@ -99,7 +99,7 @@ public class DefaultDataPackagingServiceTest {
 	Path path = Files.createTempFile(bundleName, ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	DataPackager dp = ddp.getBundledZipPackage(bundleRequest);
+	DataPackager dp = ddp.getDataPackager(bundleRequest);
 	dp.getData(zos);
 	zos.close();
 	int len = (int) Files.size(path);
@@ -166,7 +166,7 @@ public class DefaultDataPackagingServiceTest {
 	Path path = Files.createTempFile("testdatabundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	DataPackager dp = ddpkService.getBundledZipPackage(bRequest);
+	DataPackager dp = ddpkService.getDataPackager(bRequest);
 	dp.getData(zos);
 	zos.close();
 

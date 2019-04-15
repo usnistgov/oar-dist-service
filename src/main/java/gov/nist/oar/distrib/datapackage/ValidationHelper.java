@@ -45,7 +45,7 @@ public class ValidationHelper {
     }
 
     /**
-     * This method takes input URL which is validated against valid domains, If
+     * This method takes input URL If
      * it is valid URL, HEAD request is created to get the response code and
      * content length of the file. If URL server redirects, methods attempts 4
      * times to connect and get value otherwise set the contentLength to zero.

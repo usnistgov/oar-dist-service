@@ -40,7 +40,7 @@ public interface DataPackagingService {
     * @return DataPackager
     * @throws DistributionException
     */
-    public DefaultDataPackager getBundledZipPackage(BundleRequest br) throws DistributionException;
+    public DefaultDataPackager getDataPackager(BundleRequest br) throws DistributionException;
 
     /**
      * Validate Bundle/package download request and validate it for syntax, valid urls and allowed sizes

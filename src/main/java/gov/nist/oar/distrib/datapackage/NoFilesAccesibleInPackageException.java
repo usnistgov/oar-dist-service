@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import gov.nist.oar.distrib.DistributionException;
 
 /**
+ * This exception is thrown if there is an exception reading content from URL/file
  * @author Deoyani Nandrekar-Heinis
  *
  */

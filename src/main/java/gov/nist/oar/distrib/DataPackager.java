@@ -28,15 +28,48 @@ import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
  */
 public interface DataPackager {
 
+    /**
+     * Returns the outpustream of bundled data
+     * @param zp Zip Output stream
+     * @throws DistributionException
+     * @throws IOException
+     */
     public void getData(ZipOutputStream zp) throws DistributionException, IOException;
 
+    /**
+     * Get total size of requested bundle
+     * @return long
+     * @throws IOException
+     */
     long getTotalSize() throws IOException;
 
+    /**
+     * Get total file count
+     * @return int
+     * @throws IOException
+     */
     int getFilesCount() throws IOException;
     
+    /***
+     * get Name of requested bundle
+     * @return String
+     * @throws IOException
+     */
     String getBundleName() throws IOException;
 
+    /**
+     * Validate Request from syntax validation to content validation
+     * @throws DistributionException
+     * @throws IOException
+     */
     void validateBundleRequest() throws DistributionException, IOException;
 
+    /**
+     * Check is URL is from valid domains
+     * @param url
+     * @return
+     * @throws DistributionException
+     * @throws IOException
+     */
     boolean validateUrl(String url) throws DistributionException, IOException;
 }

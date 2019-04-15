@@ -47,33 +47,30 @@ public class DefaultDataPackagingService implements DataPackagingService {
 	// Default constructor
     }
 
+    /**
+     * Parameterized constructor for creating service.
+     * @param domains
+     * @param maxFileSize
+     * @param numOfFiles
+     */
     public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles) {
 	this.maxFileSize = maxFileSize;
 	this.numOfFiles = numOfFiles;
 	this.domains = domains;
     }
 
-    /*
-     * Write data in the zipoutput format.
-     * 
-     * @see
-     * gov.nist.oar.distrib.service.DataPackagingService#getZipPackage(gov.nist.
-     * oar.distrib.web.FilePathUrl[], java.lang.String)
+    /**
+     * GEt input request and return DataPackager.
      */
     @Override
-    public DefaultDataPackager getBundledZipPackage(BundleRequest br)
+    public DefaultDataPackager getDataPackager(BundleRequest br)
 	    throws DistributionException {
 	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
-//	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
-//	dp.validateBundleRequest();
-//	return dp.writeData(zout);
     }
 
     /*
      * ValidateBundled request, this includes checking input for json
      * validation, checking duplicates and checking size and files count.
-     * 
-     * @see gov.nist.oar.distrib.service.DataPackagingService#validateRequest()
      */
     @Override
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {

@@ -80,7 +80,7 @@ public class DataBundleAccessController {
 	    @ApiIgnore Errors errors) throws DistributionException {
 	
 	try{
-	    DefaultDataPackager dataPackager = dpService.getBundledZipPackage(bundleRequest);
+	    DefaultDataPackager dataPackager = dpService.getDataPackager(bundleRequest);
 	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");

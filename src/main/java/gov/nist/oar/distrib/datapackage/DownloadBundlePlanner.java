@@ -125,7 +125,7 @@ public class DownloadBundlePlanner {
     }
 
     /**
-     * Add to the Bundle of the input requested based on the size and number of
+     * Add to Bundle of the input requested based on the size and number of
      * files allowed per bundle request.
      * 
      * @param jobject
@@ -163,8 +163,7 @@ public class DownloadBundlePlanner {
 
 
     /***
-     * Make the bundle of the files provided by list
-     * 
+     * Create Bundle of FileList
      * @param fPathUrls
      */
     public void makePlan(List<FileRequest> fPathUrls) {
@@ -174,7 +173,7 @@ public class DownloadBundlePlanner {
     }
 
     /**
-     * Make the Final Bundle plan json data to return to client. It creates Java
+     * Create final Bundle plan (JSON) to return to client. It creates Java
      * Object of BundleDownloadPlan after processing input request.
      */
     public void makeBundlePlan() {

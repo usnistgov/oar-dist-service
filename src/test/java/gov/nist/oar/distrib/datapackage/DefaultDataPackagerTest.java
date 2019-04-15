@@ -76,6 +76,7 @@ public class DefaultDataPackagerTest {
 
     @Test
     public void testSize() throws MalformedURLException, IOException {
+	System.out.println("Size"+dp.getTotalSize());
 	assertEquals(dp.getTotalSize(), 62562);
     }
 
@@ -146,7 +147,7 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void TestErrorUrls() throws IOException, DistributionException {
+    public void testErrorUrls() throws IOException, DistributionException {
 	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile.json\"}";
 	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
 	createBundleRequest();
@@ -160,6 +161,22 @@ public class DefaultDataPackagerTest {
 	dp.getData(zos);
 	zos.close();
         
+    }
+    
+    @Test
+    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException{
+	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile1.txt\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
+	createBundleRequest();
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	
+	Path path = Files.createTempFile(Paths.get("/Users/dsn1/DeoWork/Test"),"testBundle", ".zip");
+	System.out.println("PATH:"+path);
+	OutputStream os = Files.newOutputStream(path);
+	ZipOutputStream zos = new ZipOutputStream(os);
+	exception.expect(NoFilesAccesibleInPackageException.class);
+	dp.getData(zos);
+	zos.close();
     }
 
     private static void createBundleRequest() throws IOException {
