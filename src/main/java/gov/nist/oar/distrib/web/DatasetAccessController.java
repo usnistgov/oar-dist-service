@@ -301,7 +301,11 @@ public class DatasetAccessController {
 
         String filepath = (String) request.getAttribute(
                                       HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-        filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
+        filepath = filepath.substring("/ds/".length() + dsid.length());
+        if (filepath.startsWith("/")) filepath = filepath.substring(1);
+        
+        // If filepath now equals "", a FileNotFoundException will get thrown if dsid exists; 
+        // otherwise a ResourceNotFoundException will be thrown.
 
         String ver = null;
         if (filepath.startsWith("_v/")) {
