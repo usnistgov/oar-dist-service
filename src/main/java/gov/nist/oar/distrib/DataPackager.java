@@ -41,7 +41,7 @@ public interface DataPackager {
      * @return long
      * @throws IOException
      */
-    long getTotalSize() throws IOException;
+    Long getTotalSize() throws IOException;
 
     
     /***
@@ -56,7 +56,7 @@ public interface DataPackager {
      * @throws DistributionException
      * @throws IOException
      */
-    void validateBundleRequest() throws DistributionException, IOException;
+    Boolean validateBundleRequest() throws DistributionException, IOException;
 
     /**
      * Check is URL is from valid domains

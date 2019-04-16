@@ -58,6 +58,8 @@ public class DefaultDataPackager implements DataPackager {
     private StringBuilder bundlelogError = new StringBuilder("");
     private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
+    private Long totalRequestedPackageSize = null;
+    private Boolean requestValid = null;
 
     public DefaultDataPackager() {
 	// Default Constructor
@@ -91,7 +93,7 @@ public class DefaultDataPackager implements DataPackager {
      */
 
     @Override
-    public void getData(ZipOutputStream zout) throws DistributionException, IOException {
+    public void getData(ZipOutputStream zout) throws IOException, DistributionException {
 	HttpURLConnection con = null;
 	this.validateBundleRequest();
 
@@ -103,9 +105,9 @@ public class DefaultDataPackager implements DataPackager {
 	    String downloadurl = jobject.getDownloadUrl();
 	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
-		URL obj = new URL(uLoc.getRequestedURL());
-		con = (HttpURLConnection) obj.openConnection();
 		try {
+		    URL obj = new URL(uLoc.getRequestedURL());
+		    con = (HttpURLConnection) obj.openConnection();
 
 		    int len;
 		    byte[] buf = new byte[100000];
@@ -145,7 +147,7 @@ public class DefaultDataPackager implements DataPackager {
      * @return boolean
      * @throws IOException
      */
-    private boolean checkResponse(URLStatusLocation uloc) throws IOException {
+    private boolean checkResponse(URLStatusLocation uloc) {
 
 	if (uloc.getStatus() == 200) {
 	    return true;
@@ -173,7 +175,7 @@ public class DefaultDataPackager implements DataPackager {
      * @param uloc
      * @throws IOException
      */
-    private void dealWithErrors(URLStatusLocation uloc) throws IOException {
+    private void dealWithErrors(URLStatusLocation uloc) {
 
 	String requestedUrl = uloc.getRequestedURL();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
@@ -245,34 +247,32 @@ public class DefaultDataPackager implements DataPackager {
      * input JSON data sent by the client.
      */
     @Override
-    public void validateBundleRequest() throws IOException, DistributionException {
+    public Boolean validateBundleRequest() throws IOException, DistributionException {
+	if (requestValid == null) {
 
-	basicValidation();
+	    basicValidation();
 
-	if (this.inputfileList.length <= 0)
-	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
+	    if (this.inputfileList.length <= 0)
+		throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
 
-	ValidationHelper.removeDuplicates(this.inputfileList);
-	long totalFilesSize = this.getTotalSize();
+	    ValidationHelper.removeDuplicates(this.inputfileList);
+	    long totalFilesSize = this.getTotalSize();
 
-	if (totalFilesSize > this.mxFileSize & this.getFilesCount() > 1) {
-	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+	    if (totalFilesSize > this.mxFileSize & this.getFilesCount() > 1) {
+		throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+	    }
+
+	    if (this.getFilesCount() > this.mxFilesCount)
+		throw new InputLimitException(
+			"Total number of files requested is beyond allowed limit " + this.mxFilesCount);
+
+	    int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
+	    if (countNotAccessible == this.getFilesCount())
+		throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
+
+	    requestValid = true;
 	}
-
-	if (this.getFilesCount() > this.mxFilesCount)
-	    throw new InputLimitException(
-		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
-
-	// if
-	// (!ValidationHelper.areAllUrlsInaccessible(this.listUrlsStatusSize)){
-	// if(countFiles == this.getFilesCount()){
-	// throw new NoFilesAccesibleInPackageException("None of the URLs
-	// returned data requested.");
-	// }
-	// }
-	int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
-	if (countNotAccessible == this.getFilesCount())
-	    throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
+	return requestValid;
 
     }
 
@@ -284,21 +284,23 @@ public class DefaultDataPackager implements DataPackager {
      * @throws MalformedURLException
      * @throws IOException
      */
-    @Override
-    public long getTotalSize() throws IOException {
-	basicValidation();
-	List<FileRequest> list = Arrays.asList(this.inputfileList);
 
-	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
-	long totalSize = 0;
+    public Long getTotalSize() throws IOException {
+	if (this.totalRequestedPackageSize == null) {
+	    basicValidation();
+	    List<FileRequest> list = Arrays.asList(this.inputfileList);
 
-	for (int i = 0; i < downloadurls.size(); i++) {
-	    URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
-	    listUrlsStatusSize.add(uLoc);
-	    totalSize += uLoc.getLength();
+	    List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
+	    long totalSize = 0;
+
+	    for (int i = 0; i < downloadurls.size(); i++) {
+		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
+		listUrlsStatusSize.add(uLoc);
+		totalSize += uLoc.getLength();
+	    }
+	    this.totalRequestedPackageSize = totalSize;
 	}
-
-	return totalSize;
+	return totalRequestedPackageSize;
 
     }
 
