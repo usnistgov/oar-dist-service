@@ -170,7 +170,7 @@ public class DefaultDataPackagerTest {
 
     private void createBundleStream() throws IOException {
 	path = Files.createTempFile("testBundle", ".zip");
-	System.out.println("PATH:" + path);
+//	System.out.println("PATH:" + path);
 	OutputStream os = Files.newOutputStream(path);
 	zos = new ZipOutputStream(os);
     }
@@ -186,7 +186,7 @@ public class DefaultDataPackagerTest {
 	    while (entries.hasMoreElements()) {
 
 		ZipEntry entry = entries.nextElement();
-		System.out.println("entryname:" + entry.getName());
+//		System.out.println("entryname:" + entry.getName());
 		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
 		    count++;
 

@@ -59,7 +59,7 @@ public class DefaultDataPackager implements DataPackager {
     private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
     private Long totalRequestedPackageSize = null;
-    private Boolean requestValid = null;
+    private int requestValidity = 0;
 
     public DefaultDataPackager() {
 	// Default Constructor
@@ -247,33 +247,63 @@ public class DefaultDataPackager implements DataPackager {
      * input JSON data sent by the client.
      */
     @Override
-    public Boolean validateBundleRequest() throws IOException, DistributionException {
-	if (requestValid == null) {
+    public void validateBundleRequest() throws IOException, DistributionException {
+	if (requestValidity == 0) {
 
-	    basicValidation();
+	    try {
+		basicValidation();
 
-	    if (this.inputfileList.length <= 0)
-		throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
+		if (this.inputfileList.length <= 0) {
+		    requestValidity = 3;
 
-	    ValidationHelper.removeDuplicates(this.inputfileList);
-	    long totalFilesSize = this.getTotalSize();
+		} else {
+		    ValidationHelper.removeDuplicates(this.inputfileList);
+		    long totalFilesSize = this.getTotalSize();
 
-	    if (totalFilesSize > this.mxFileSize & this.getFilesCount() > 1) {
-		throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() > 1) {
+			requestValidity = 4;
+
+		    } else if (this.getFilesCount() > this.mxFilesCount) {
+			requestValidity = 5;
+		    } else {
+			int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
+			if (countNotAccessible == this.getFilesCount()) {
+			    requestValidity = 6;
+
+			} else if (requestValidity == 0)
+			    requestValidity = 1;
+		    }
+		}
+
+	    } catch (IOException ie) {
+		requestValidity = 2;
 	    }
 
-	    if (this.getFilesCount() > this.mxFilesCount)
-		throw new InputLimitException(
-			"Total number of files requested is beyond allowed limit " + this.mxFilesCount);
-
-	    int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
-	    if (countNotAccessible == this.getFilesCount())
-		throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
-
-	    requestValid = true;
 	}
-	return requestValid;
 
+	getServiceErrorStatus(requestValidity);
+
+    }
+
+    private void getServiceErrorStatus(int status) throws IOException, DistributionException {
+	switch (status) {
+	case 1:
+	    requestValidity = 1;
+	    return;
+	case 2:
+	    throw new IOException("IOException while validating request.");
+	case 3:
+	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
+	case 4:
+	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+	case 5:
+	    throw new InputLimitException(
+		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
+	case 6:
+	    throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
+	default:
+	    return;
+	}
     }
 
     /**

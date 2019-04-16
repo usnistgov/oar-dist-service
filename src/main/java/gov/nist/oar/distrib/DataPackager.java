@@ -56,7 +56,7 @@ public interface DataPackager {
      * @throws DistributionException
      * @throws IOException
      */
-    Boolean validateBundleRequest() throws DistributionException, IOException;
+    void validateBundleRequest() throws DistributionException, IOException;
 
     /**
      * Check is URL is from valid domains
