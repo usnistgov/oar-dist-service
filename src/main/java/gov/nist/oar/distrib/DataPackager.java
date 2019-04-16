@@ -29,7 +29,7 @@ import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
 public interface DataPackager {
 
     /**
-     * Returns the outpustream of bundled data
+     * Returns the outpustream of bundled/packaged data
      * @param zp Zip Output stream
      * @throws DistributionException
      * @throws IOException
@@ -41,7 +41,7 @@ public interface DataPackager {
      * @return long
      * @throws IOException
      */
-    Long getTotalSize() throws IOException;
+    long getTotalSize() throws IOException;
 
     
     /***
@@ -52,14 +52,14 @@ public interface DataPackager {
     String getBundleName() throws IOException;
 
     /**
-     * Validate Request from syntax validation to content validastion
+     * Validate Request from syntax validation to content validation
      * @throws DistributionException
      * @throws IOException
      */
     void validateBundleRequest() throws DistributionException, IOException;
 
     /**
-     * Check is URL is from valid domains
+     * Check if URL is from valid domains
      * @param url
      * @return
      * @throws DistributionException

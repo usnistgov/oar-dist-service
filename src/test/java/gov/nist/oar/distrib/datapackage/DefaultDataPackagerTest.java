@@ -91,7 +91,7 @@ public class DefaultDataPackagerTest {
 
     @Test
     public void testSize() throws MalformedURLException, IOException {
-	assertEquals(dp.getTotalSize().longValue(), 62562);
+	assertEquals(dp.getTotalSize(), 62562);
     }
 
     @Test

@@ -241,10 +241,14 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * Validate the request sent by client. Function checks and removes
-     * duplicates, checks total file size to compare with allowed size, Checks
-     * total number of files allowed. This is to validate request and validate
-     * input JSON data sent by the client.
+     * If called for the first time within the Datapackager life cycle, this
+     * function/method validates the request. It checks and removes duplicates,
+     * checks total file size to compare with allowed size, Checks total number
+     * of files allowed. This is to validate request and validate input JSON
+     * data sent by the client. If this function is already called by a
+     * DataPackager, code uses existing non-zero status to return appropriate
+     * error message, to avoid redoing HEAD calls to get required information
+     * for validation.
      */
     @Override
     public void validateBundleRequest() throws IOException, DistributionException {
@@ -285,13 +289,24 @@ public class DefaultDataPackager implements DataPackager {
 
     }
 
+    /**
+     * This method, helps check validation status internally to avoid doing it
+     * multiple times. As validation status is cached for the DataPackager life
+     * cycle this helps return appropriate exception if any without redoing
+     * HEAD/Get calls.
+     * 
+     * @param status
+     *            takes requestValidity variable input
+     * @throws IOException
+     * @throws DistributionException
+     */
     private void getServiceErrorStatus(int status) throws IOException, DistributionException {
 	switch (status) {
 	case 1:
 	    requestValidity = 1;
 	    return;
 	case 2:
-	    throw new IOException("IOException while validating request.");
+	    throw new IOException("IOException while validating request and parsing input.");
 	case 3:
 	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
 	case 4:
@@ -315,13 +330,14 @@ public class DefaultDataPackager implements DataPackager {
      * @throws IOException
      */
 
-    public Long getTotalSize() throws IOException {
+    public long getTotalSize() throws IOException {
+	long totalSize = 0;
 	if (this.totalRequestedPackageSize == null) {
 	    basicValidation();
 	    List<FileRequest> list = Arrays.asList(this.inputfileList);
 
 	    List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
-	    long totalSize = 0;
+	    totalSize = 0;
 
 	    for (int i = 0; i < downloadurls.size(); i++) {
 		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
@@ -330,7 +346,7 @@ public class DefaultDataPackager implements DataPackager {
 	    }
 	    this.totalRequestedPackageSize = totalSize;
 	}
-	return totalRequestedPackageSize;
+	return totalSize;
 
     }
 
