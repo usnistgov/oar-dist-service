@@ -58,7 +58,7 @@ public class DefaultDataPackager implements DataPackager {
     private StringBuilder bundlelogError = new StringBuilder("");
     private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
-    private Long totalRequestedPackageSize = null;
+    private long totalRequestedPackageSize = -1;
     private int requestValidity = 0;
 
     public DefaultDataPackager() {
@@ -331,13 +331,13 @@ public class DefaultDataPackager implements DataPackager {
      */
 
     public long getTotalSize() throws IOException {
-	long totalSize = 0;
-	if (this.totalRequestedPackageSize == null) {
+	
+	if (this.totalRequestedPackageSize != -1) {
 	    basicValidation();
 	    List<FileRequest> list = Arrays.asList(this.inputfileList);
 
 	    List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
-	    totalSize = 0;
+	    long totalSize = 0;
 
 	    for (int i = 0; i < downloadurls.size(); i++) {
 		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
@@ -346,8 +346,7 @@ public class DefaultDataPackager implements DataPackager {
 	    }
 	    this.totalRequestedPackageSize = totalSize;
 	}
-	return totalSize;
-
+	return totalRequestedPackageSize;
     }
 
     /**
