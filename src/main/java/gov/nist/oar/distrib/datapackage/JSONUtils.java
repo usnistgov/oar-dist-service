@@ -14,6 +14,11 @@ package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
 import java.util.List;
+
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -31,7 +36,8 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 public final class JSONUtils {
 
     private static String bundleName = "";
-
+    protected static Logger logger = LoggerFactory.getLogger(JSONUtils.class);
+    
     private JSONUtils() {
 	// Default
     }
@@ -63,8 +69,10 @@ public final class JSONUtils {
 	    final ObjectMapper mapper = new ObjectMapper();
 	    String test = mapper.writeValueAsString(jsonInString);
 	    List<FileRequest> myObjects = Arrays.asList(jsonInString);
-	    if (myObjects.contains(null))
-		throw new IOException("There are null values in the input");
+	    if (myObjects.contains(null)){
+		logger.error("Error in isJSONValid, there are null values in input.");
+		throw new IOException("There are null values in the input.");
+	    }
 	    return true;
 	} catch (IOException e) {
 	    return false;
@@ -90,6 +98,7 @@ public final class JSONUtils {
 		bundleName = inputJson.getBundleName();
 	    isJSONValid(inputJson.getIncludeFiles());
 	} catch (IOException e) {
+	    logger.error("The input json is not valid."+e.getMessage());
 	    throw new IOException("The input json is not valid.");
 	}
     }

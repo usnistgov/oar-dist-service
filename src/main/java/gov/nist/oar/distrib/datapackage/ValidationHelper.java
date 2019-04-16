@@ -45,12 +45,12 @@ public class ValidationHelper {
     }
 
     /**
-     * This method takes input URL If
-     * it is valid URL, HEAD request is created to get the response code and
-     * content length of the file. If URL server redirects, methods attempts 4
-     * times to connect and get value otherwise set the contentLength to zero.
-     * If there is any other IO exception while connecting to URL it is caught
-     * and appropriate response code and information is sent back.
+     * This method takes input URL If it is valid URL, HEAD request is created
+     * to get the response code and content length of the file. If URL server
+     * redirects, methods attempts 4 times to connect and get value otherwise
+     * set the contentLength to zero. If there is any other IO exception while
+     * connecting to URL it is caught and appropriate response code and
+     * information is sent back.
      * 
      * @param url
      *            URL to be validated
@@ -222,12 +222,12 @@ public class ValidationHelper {
 	}
 	return true;
     }
-    
-    public static int noOfNotAcceccibleURLs(List<URLStatusLocation> lisULoc){
-	int count =0;
+
+    public static int noOfNotAcceccibleURLs(List<URLStatusLocation> lisULoc) {
+	int count = 0;
 	for (int k = 0; k < lisULoc.size(); k++) {
 	    if (lisULoc.get(k).getStatus() >= 400)
-		count ++;
+		count++;
 	}
 	return count;
     }
@@ -236,7 +236,8 @@ public class ValidationHelper {
 
 /**
  * Class is a POJO to collect URL, status, content length, validation and
- * redirect if any
+ * redirect if any. After parsing and checking HEAD requests of each unique URL
+ * in the given request, this data is collected.
  * 
  * @author Deoyani Nandrekar-Heinis
  *

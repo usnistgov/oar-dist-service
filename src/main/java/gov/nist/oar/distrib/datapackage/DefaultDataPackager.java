@@ -332,7 +332,7 @@ public class DefaultDataPackager implements DataPackager {
 
     public long getTotalSize() throws IOException {
 	
-	if (this.totalRequestedPackageSize != -1) {
+	if (this.totalRequestedPackageSize == -1) {
 	    basicValidation();
 	    List<FileRequest> list = Arrays.asList(this.inputfileList);
 

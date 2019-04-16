@@ -60,7 +60,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     }
 
     /**
-     * GEt input request and return DataPackager.
+     * Get input request and return DataPackager.
      */
     @Override
     public DefaultDataPackager getDataPackager(BundleRequest br)
