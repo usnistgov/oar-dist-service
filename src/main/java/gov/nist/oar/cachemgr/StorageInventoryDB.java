@@ -60,6 +60,20 @@ public interface StorageInventoryDB extends VolumeStatus {
     public CacheObject findObject(String volname, String objname) throws InventoryException;
 
     /**
+     * return all data objects found in the specified data volume for a particular purpose.  The 
+     * purpose specified can affect what files are selected and/or how they are sorted in the returned 
+     * list.  The default behavior is to assume that the listing for creating a deletion plan for the
+     * the specified volume.  It is recommended that implementations then sort these results to put 
+     * files more likely to be deleted first.  
+     * @param volname     the name of the volume to list objects from.
+     * @param purpose     an integer that indicates the purpose for retrieving the list so as to 
+     *                    affect object selection and sorting.  The recognized values are implementation-
+     *                    specific except that if set to zero, it should be assumed that the list 
+     *                    is for determining a deletion strategy.  
+     */
+    public List<CacheObject> listObjectsIn(String volname, int purpose) throws InventoryException;
+
+    /**
      * record the addition of an object to a volume.  The metadata stored with the 
      * object can vary by application.  
      * @param id       the identifier for the object being stored

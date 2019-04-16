@@ -76,14 +76,43 @@ import java.time.format.DateTimeFormatter;
  */
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
+    public final String defaultDeletionPlanSelect =
+        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                 + "ORDER BY d.since ASC";
+
     protected String _dburl = null;
     protected Connection _conn = null;
 
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
 
+    protected String dplanselect = defaultDeletionPlanSelect;
+
+    /**
+     * create an inventory database around a database accessible via a given JDBC URL.  
+     * It is assumed that a JDBC driver for the database exists in the Java CLASSPATH.  
+     * The value of {@link defaultDeletePlanSelect} will be loaded as the SQL SELECT 
+     * will be used to select deletable objects from a data volume (see 
+     * {@link JDBCStorageInventoryDB(String,String)}).
+     * 
+     * @param dburl    the JDBC URL to use to connect to the existing database.  
+     */
     protected JDBCStorageInventoryDB(String dburl) {
         _dburl = dburl;
+    }
+
+    /**
+     * create an inventory database around a database accessible via a given JDBC URL.  
+     * It is assumed that a JDBC driver for the database exists in the Java CLASSPATH.  
+     * @param dburl        the JDBC URL to use to connect to the existing database.  
+     * @param dplanselect  the SQL SELECT statement to use to generate a list of deletable 
+     *                     cache objects from a cache volume.  It must be in PreparedStatement
+     *                     style with one '?', representing the name of the data volume to 
+     *                     search.  
+     */
+    protected JDBCStorageInventoryDB(String dburl, String dplanselect) {
+        this(dburl);
+        this.dplanselect = dplanselect;
     }
 
     protected void connect() throws SQLException {
@@ -142,41 +171,83 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param objsql   an SQL query that returns a list of data objects
      */
     protected List<CacheObject> _findObject(String objsql) throws InventoryException {
-        String jmd = null;
-        JSONObject md = null;
-        CacheObject co = null;
-        
         try {
             if (_conn == null) connect();
             Statement stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(objsql);
             ArrayList<CacheObject> out = new ArrayList<CacheObject>();
             while (rs.next()) {
-                jmd = rs.getString("metadata");
-                if (jmd != null)
-                    md = parseMetadata(jmd);
-                else 
-                    md = new JSONObject();
-                if (rs.getObject("size") != null)
-                    md.put("size", rs.getLong("size"));
-                if (rs.getObject("priority") != null)
-                    md.put("priority", rs.getInt("priority"));
-                if (rs.getObject("since") != null) {
-                    int since = rs.getInt("since");
-                    md.put("since", since);
-                    md.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(since),
-                                                                ZoneOffset.UTC)
-                                                     .format(DateTimeFormatter.ISO_INSTANT));
-                }
-                co = new CacheObject(rs.getString("name"), md, rs.getString("volume"));
-                if (rs.getObject("id") != null)
-                    co.id = rs.getString("id");
-                out.add(co);
+                out.add(_extractObject(rs));
             }
             return out;
         }
         catch (SQLException ex) {
             throw new InventorySearchException(ex);
+        }
+    }
+
+    /*
+     * convert the current database result into a CacheObject
+     */
+    private CacheObject _extractObject(ResultSet rs) throws SQLException, InventoryException {
+        String jmd = null;
+        JSONObject md = null;
+        CacheObject co = null;
+
+        jmd = rs.getString("metadata");
+        if (jmd != null)
+            md = parseMetadata(jmd);
+        else 
+            md = new JSONObject();
+        if (rs.getObject("size") != null)
+            md.put("size", rs.getLong("size"));
+        if (rs.getObject("priority") != null)
+            md.put("priority", rs.getInt("priority"));
+        if (rs.getObject("since") != null) {
+            int since = rs.getInt("since");
+            md.put("since", since);
+            md.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(since),
+                                                        ZoneOffset.UTC)
+                                             .format(DateTimeFormatter.ISO_INSTANT));
+        }
+        co = new CacheObject(rs.getString("name"), md, rs.getString("volume"));
+        if (rs.getObject("id") != null)
+            co.id = rs.getString("id");
+        return co;
+    }
+
+    /**
+     * return all data objects found in the specified data volume for a particular purpose.  The 
+     * purpose specified can affect what files are selected and/or how they are sorted in the returned 
+     * list.  The default behavior is to assume that the listing for creating a deletion plan for the
+     * the specified volume.  This implementation ignores the purpose parameter and always returns
+     * objects appropriate for deletion.
+     * @param volname     the name of the volume to list objects from.
+     * @param purpose     an integer that indicates the purpose for retrieving the list so as to 
+     *                    affect object selection and sorting.  The recognized values are implementation-
+     *                    specific except that if set to zero, it should be assumed that the list 
+     *                    is for determining a deletion strategy.  
+     */
+    public List<CacheObject> listObjectsIn(String volname, int purpose) throws InventoryException {
+        int i=0, lim = 5000;   // TODO: make limit configurable
+        
+        try {
+            if (_conn == null) connect();
+            PreparedStatement stmt = _conn.prepareStatement(dplanselect);
+            stmt.setString(1, volname);
+
+            ResultSet rs = stmt.executeQuery();
+            ArrayList<CacheObject> out = new ArrayList<CacheObject>();
+            while (i < lim && rs.next()) {
+                out.add(_extractObject(rs));
+                i++;
+            }
+            // log limit reached?
+            return out;
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failure while listing objects in vol=" + volname +
+                                         ": " + ex.getMessage(), ex);
         }
     }
 

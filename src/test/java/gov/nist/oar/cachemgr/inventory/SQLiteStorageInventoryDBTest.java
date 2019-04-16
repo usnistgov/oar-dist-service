@@ -273,6 +273,43 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     @Test
+    public void testListObjectsIn() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        md.put("priority", 0);
+        md.put("size", 910000L);
+        sidb.addObject("9999/barry.json", "foobar", "9999_barry.json", md);
+        md.put("priority", 9);
+        md.put("size", 910000L);
+        sidb.addObject("0000/hank.json", "foobar", "0000_hank.json", md);
+        md.put("priority", 1);
+        md.put("size", 50000L);
+        sidb.addObject("9999/jerry.json", "foobar", "9999_jerry.json", md);
+
+        List<CacheObject> cos = sidb.listObjectsIn("foobar", 8);
+        assertEquals(3, cos.size());
+        // order should be the order they were put in.  should not include priority=0 or items from fundrum
+        assertEquals(cos.get(0).name, "1234_goober.json");
+        assertEquals(cos.get(0).volname, "foobar");
+        assertEquals(cos.get(1).name, "0000_hank.json");
+        assertEquals(cos.get(2).name, "9999_jerry.json");
+    }
+
+    @Test
     public void testFailAddObject() throws InventoryException, IOException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());
