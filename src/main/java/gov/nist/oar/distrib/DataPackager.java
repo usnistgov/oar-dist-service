@@ -52,7 +52,7 @@ public interface DataPackager {
     String getBundleName() throws IOException;
 
     /**
-     * Validate Request from syntax validation to content validation
+     * Validate Request from syntax validation to content validastion
      * @throws DistributionException
      * @throws IOException
      */
