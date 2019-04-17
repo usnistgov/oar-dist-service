@@ -152,6 +152,42 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     @Test
+    public void testGetSetVolumeStatus() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerVolume("fundrum", 150000, null);
+        assertEquals(sidb.VOL_FOR_UPDATE, sidb.getVolumeStatus("fundrum"));
+
+        sidb.setVolumeStatus("fundrum", 0);
+        assertEquals(sidb.VOL_DISABLED, sidb.getVolumeStatus("fundrum"));
+
+        sidb.setVolumeStatus("fundrum", 8);
+        assertEquals(8, sidb.getVolumeStatus("fundrum"));
+
+        try {
+            sidb.getVolumeStatus("goober");
+            fail("setVolumeStatus() Failed to detect unregistered volume");
+        }
+        catch (InventoryException ex) {
+            assertTrue(ex.getMessage().contains("goober"));
+            assertTrue(ex.getMessage().contains("not registered"));
+        }
+
+        try {
+            sidb.setVolumeStatus("goober", 1);
+            fail("setVolumeStatus() failed to detect unregistered volume");
+        }
+        catch (InventoryException ex) {
+            assertTrue("Unexpected message: "+ex.getMessage(),
+                       ex.getMessage().contains("goober"));
+            assertTrue("Unexpected message: "+ex.getMessage(),
+                       ex.getMessage().contains("registered"));
+        }
+    }
+
+    @Test
     public void testAddObject() throws InventoryException, IOException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());

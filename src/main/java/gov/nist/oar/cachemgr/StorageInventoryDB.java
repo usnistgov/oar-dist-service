@@ -143,4 +143,22 @@ public interface StorageInventoryDB extends VolumeStatus {
      */
     public void registerVolume(String name, long capacity, JSONObject metadata)
         throws InventoryException;
+
+    /**
+     * return the information associated with the registered storage volume
+     * with the given name.
+     */
+    public JSONObject getVolumeInfo(String name) throws InventoryException;
+
+    /**
+     * update the status of a registered volume
+     */
+    public void setVolumeStatus(String volname, int status) throws InventoryException;
+
+    /**
+     * get the current status of a registered volume.  Recognized values are defined in the 
+     * {@list gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
+     * are allowed. 
+     */
+    public int getVolumeStatus(String volname) throws InventoryException;
 }

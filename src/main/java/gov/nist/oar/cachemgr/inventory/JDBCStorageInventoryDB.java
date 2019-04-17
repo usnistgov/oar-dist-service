@@ -162,7 +162,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (purpose >= VOL_FOR_GET)
             sql.append(" AND d.cached=1");
         sql.append(";");
-        return _findObject(sql.toString());
+
+        // lock access to the db in case a deletion plan is progress, unless the caller just
+        // wants information. 
+        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
+        synchronized (lock) {
+            return _findObject(sql.toString());
+        }
     }
 
     /**
@@ -412,10 +418,12 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                   .append("' WHERE name='").append(objname)
                   .append("' AND volume=").append(volid).append(";");
 
-            stmt = _conn.createStatement();
-            stmt.execute(updsql.toString());
-            if (stmt.getUpdateCount() < 1)
-                return false;
+            synchronized (this) {
+                stmt = _conn.createStatement();
+                stmt.execute(updsql.toString());
+                if (stmt.getUpdateCount() < 1)
+                    return false;
+            }
         }
         catch (SQLException ex) {
             throw new InventoryException("Failed to update object " + volname+":"+objname +
@@ -541,9 +549,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (volid < 0)
             throw new InventoryException("Not a registered volume: " + volname);
 
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(rm_sql);
+            stmt = _conn.prepareStatement(rm_sql);
             stmt.setInt(1, volid);
             stmt.setString(2, objname);
             stmt.executeUpdate();
@@ -551,6 +560,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to remove object " + objname + " from volume " +
                                          volname + ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
@@ -618,7 +631,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         int id = getVolumeID(name);
         
         Integer priority = null;
-        int status = 3;  // fully functional
+        int status = VOL_FOR_UPDATE;  // fully functional
         String nm = "priority", jmd = null;
         if (metadata != null) {
             try {
@@ -714,6 +727,59 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to pull info for volume "+name+
                                          ": "+ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * update the status of a registered volume
+     */
+    public void setVolumeStatus(String volname, int status) throws InventoryException {
+        int volid = getVolumeID(volname);
+        if (volid < 0)
+            throw new InventoryException("Not a registered volume: " + volname);
+
+        String sql = "UPDATE volumes SET status="+Integer.toString(status)+" WHERE id="+volid+";";
+
+        Statement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.createStatement();
+            stmt.executeUpdate(sql);
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failed to update status of volume " +
+                                         volname + ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
+    }
+
+    /**
+     * get the current status of a registered volume.  Recognized values are defined in the 
+     * {@list gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
+     * are allowed. 
+     */
+    public int getVolumeStatus(String volname) throws InventoryException {
+        String sql = "SELECT status FROM volumes WHERE name='"+volname+"';";
+
+        Statement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            if (! rs.next())
+                throw new InventoryException(volname + ": Volume not registered");
+            return rs.getInt("status");
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failed to pull info for volume "+volname+
+                                         ": "+ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
