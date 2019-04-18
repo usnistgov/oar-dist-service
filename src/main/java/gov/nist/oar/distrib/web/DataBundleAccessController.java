@@ -78,21 +78,16 @@ public class DataBundleAccessController {
     @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
 	    @ApiIgnore Errors errors) throws DistributionException {
-	
+	 ZipOutputStream zout = null;
 	try{
 	    DefaultDataPackager dataPackager = dpService.getDataPackager(bundleRequest);
-	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
+	    zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
 	    dataPackager.getData(zout);
 	    response.flushBuffer();	   
 	    logger.info("Data bundled in zip delivered");
-	} catch (InputLimitException ie) {
-	    logger.error("There is an error with InputLimit");
-	    throw new InputLimitException(ie);
-	} catch (DistributionException e) {
-	    logger.error("There is an error completing this request:" + e.getMessage());
-	    throw new ServiceSyntaxException(e.getMessage());
+	
 	} catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");
 	    logger.error(ex.getMessage());
@@ -108,6 +103,19 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
+	}
+	finally{
+	    try{
+		if(response != null)
+		    response.flushBuffer();
+	    if(zout != null)
+		zout.close();
+	    }catch(IOException ie)
+	    {
+		logger.error("Error while closing the outputStream."+ie.getMessage());
+		throw new DistributionException("IOException while closing the outputStream"+ie.getMessage());
+	    }
+	    
 	}
 
     }
