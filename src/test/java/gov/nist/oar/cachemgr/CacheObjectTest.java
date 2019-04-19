@@ -35,6 +35,7 @@ public class CacheObjectTest {
         assertNull(co.volume);
         assertNull(co.volname);
         assertEquals(co.metadatumNames().size(), 0);
+        assertEquals(co.score, 0.0, 0.00000001);
     }
 
     @Test

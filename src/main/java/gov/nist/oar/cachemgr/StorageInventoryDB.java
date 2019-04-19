@@ -15,6 +15,7 @@ package gov.nist.oar.cachemgr;
 
 import org.json.JSONObject;
 import java.util.List;
+import java.util.Map;
 
 /**
  * an interface for storing metadata about objects in the cache, including
@@ -161,4 +162,16 @@ public interface StorageInventoryDB extends VolumeStatus {
      * are allowed. 
      */
     public int getVolumeStatus(String volname) throws InventoryException;
+
+    /**
+     * return the amount of available (unused) space in the specified volume, in bytes
+     */
+    public Map<String, Long> getAvailableSpace() throws InventoryException;
+
+    /**
+     * return the amount of space currently being used in the specified volume, in bytes.  
+     * This is the sum of the sizes of all data objects and reservations currently in the 
+     * the volume.  
+     */
+    public Map<String, Long> getUsedSpace() throws InventoryException;
 }

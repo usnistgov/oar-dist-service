@@ -31,6 +31,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -76,7 +77,12 @@ import java.time.format.DateTimeFormatter;
  */
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
-    public final String defaultDeletionPlanSelect =
+    static final String find_sql =
+        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, "+
+        "d.priority as priority, d.since as since, d.metadata as metadata " +
+        "FROM objects d, volumes v WHERE d.volume=v.id ";
+
+    static final String defaultDeletionPlanSelect =
         find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
                  + "ORDER BY d.since ASC";
 
@@ -126,11 +132,6 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             _conn = null;
         }
     }
-
-    static final String find_sql =
-        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, "+
-        "d.priority as priority, d.since as since, d.metadata as metadata " +
-        "FROM objects d, volumes v WHERE d.volume=v.id ";
 
     /**
      * return all the known locations of an object with a given id in the volumes
@@ -236,29 +237,37 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      */
     public List<CacheObject> listObjectsIn(String volname, int purpose) throws InventoryException {
         int i=0, lim = 5000;   // TODO: make limit configurable
-        
+
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(dplanselect);
+            stmt = _conn.prepareStatement(dplanselect);
             stmt.setString(1, volname);
 
-            ResultSet rs = stmt.executeQuery();
-            ArrayList<CacheObject> out = new ArrayList<CacheObject>();
-            while (i < lim && rs.next()) {
-                out.add(_extractObject(rs));
-                i++;
+            synchronized (this) {
+                ResultSet rs = stmt.executeQuery();
+                ArrayList<CacheObject> out = new ArrayList<CacheObject>();
+                while (i < lim && rs.next()) {
+                    out.add(_extractObject(rs));
+                    i++;
+                }
+
+                // log limit reached?
+                return out;
             }
-            // log limit reached?
-            return out;
         }
         catch (SQLException ex) {
             throw new InventoryException("Failure while listing objects in vol=" + volname +
                                          ": " + ex.getMessage(), ex);
         }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
     }
 
     /**
-     * return all the data object with a given name in a particular cache volume
+     * return all the data objects with a given name in a particular cache volume
      * @param volname  the name of the volume to search
      * @param objname  the name of the object was given in that volume
      * @returns CacheObject  the object in the cache or null if the object is not found in the volume
@@ -266,7 +275,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
         String fsql = find_sql + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
-        List<CacheObject> objs = _findObject(fsql);
+        List<CacheObject> objs = null;
+
+        // lock access to the db in case a deletion plan is progress, unless the caller just
+        // wants information. 
+        synchronized (this) {
+            objs = _findObject(fsql);
+        }
         if (objs.size() == 0) return null;
 
         return objs.get(0);
@@ -783,6 +798,53 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
+    /**
+     * return the amount of available (unused) space in the specified volume, in bytes
+     */
+    public Map<String, Long> getAvailableSpace() throws InventoryException {
+        String sum_sql =
+            "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
+            "WHERE d.volume=v.id GROUP BY v.name";
+        return _get_sum(sum_sql);
+    }
+
+    /**
+     * return the amount of space currently being used in each of the volumes, in bytes.  
+     * This is the sum of the sizes of all data objects and reservations currently in each
+     * volume.  
+     */
+    public Map<String, Long> getUsedSpace() throws InventoryException {
+        String sum_sql =
+            "SELECT v.name as volume, sum(d.size) as size FROM objects d, volumes v "+
+            "WHERE d.volume=v.id GROUP BY v.name";
+        return _get_sum(sum_sql);
+    }
+
+    private Map<String, Long> _get_sum(String sql) throws InventoryException {
+        Statement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            HashMap<String, Long> out = new HashMap<String, Long>(20);
+            String name = null;
+            while (rs.next()) {
+                name = rs.getString(1);
+                if (name != null)
+                    out.put(name, new Long(rs.getLong(2)));
+            }
+            return out;
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) {  }
+        }
+    }
+    
     private JSONObject parseMetadata(String jencoded) throws InventoryException {
         try {
             return new JSONObject(new JSONTokener(jencoded));

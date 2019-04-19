@@ -59,6 +59,13 @@ public class CacheObject {
     public CacheObject() { }
 
     /**
+     * a deletability score.  This value will only be meaningful in the context of deletion plan.
+     * It allows a list of CacheObjects to be ordered according to their readiness to be deleted.  
+     * The higher the score, the more deletable the object is.
+     */
+    public double score = 0.0;
+
+    /**
      * the object metadata
      */
     protected JSONObject _md = null;

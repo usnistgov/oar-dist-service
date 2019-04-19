@@ -54,7 +54,8 @@ public interface CacheVolume {
      * name; it is the responsibility of the CacheVolume implementation to 
      * determine the actual location for the given name.  
      * @param from   an InputStream that contains the bytes the make up object 
-     *                 to save
+     *                 to save.  (The caller is responsible for closing the stream
+     *                 after this method returns.)
      * @param name   the name to assign to the object within the storage.  
      * @throws CacheVolumeException  if the method fails to save the object correctly.
      */
@@ -75,7 +76,8 @@ public interface CacheVolume {
     public void saveAs(CacheObject obj, String name) throws CacheVolumeException;
 
     /**
-     * return an open InputStream to the object with the given name
+     * return an open InputStream to the object with the given name.  The caller is 
+     * responsible for closing the stream after reading from it.  
      * @param name   the name of the object to get
      * @throws ObjectNotFoundException  if the named object does not exist in this 
      *                                     volume
