@@ -29,6 +29,7 @@ import gov.nist.oar.cachemgr.inventory.SQLiteStorageInventoryDB;
 import java.io.IOException;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
 
 import org.json.JSONObject;
@@ -469,6 +470,60 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
         assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
         assertFalse(cos.get(fundrum).hasMetadatum("job"));
+    }
+
+    @Test
+    public void testGetSpace() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+
+        String nm = null;
+        JSONObject md = null;
+        int[] sizes = { 229, 9321, 44001, 100311, 953, 2230, 100 };
+        long total = 0L;
+        for (int i=0; i < sizes.length; i++) {
+            nm = Integer.toString(i);
+            md = new JSONObject();
+            md.put("size", sizes[i]);
+            sidb.addObject("file" + nm, "foobar", nm, md);
+            total += sizes[i];
+        }
+
+        Map<String, Long> used = sidb.getUsedSpace();
+        assertEquals(total, used.get("foobar").longValue());
+        assertEquals(used.size(), 1);
+
+        used = sidb.getAvailableSpace();
+        assertEquals(450000 - total, used.get("foobar").longValue());
+        assertEquals(used.size(), 1);
+
+        sidb.registerVolume("fundrum", 250000, null);
+        for (int i=0; i < sizes.length; i++) {
+            nm = Integer.toString(i);
+            md = new JSONObject();
+            md.put("size", sizes[i]+100);
+            sidb.addObject("file" + nm, "fundrum", nm, md);
+        }
+
+        // make sure foobar is unaffected
+        used = sidb.getUsedSpace();
+        assertEquals(total, used.get("foobar").longValue());
+        assertEquals(used.size(), 2);
+
+        // now check fundrum
+        used = sidb.getUsedSpace();
+        assertEquals(total + sizes.length*100, used.get("fundrum").longValue());
+
+        used = sidb.getAvailableSpace();
+        assertEquals(450000 - total, used.get("foobar").longValue());
+        assertEquals(used.size(), 2);
+
+        assertEquals(250000 - total - sizes.length*100, used.get("fundrum").longValue());
     }
 }
 
