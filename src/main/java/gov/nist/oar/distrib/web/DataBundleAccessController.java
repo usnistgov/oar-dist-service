@@ -75,19 +75,21 @@ public class DataBundleAccessController {
 	    @ApiResponse(code = 403, message = "Download not allowed"),
 	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
-    @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
+    @PostMapping(value = "/ds/_bundle", consumes = "application/json")
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
 	    @ApiIgnore Errors errors) throws DistributionException {
-	 ZipOutputStream zout = null;
-	try{
+	ZipOutputStream zout = null;
+	try {
 	    DefaultDataPackager dataPackager = dpService.getDataPackager(bundleRequest);
+	    dataPackager.validateBundleRequest();
 	    zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
 	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
 	    dataPackager.getData(zout);
-	    response.flushBuffer();	   
+	    response.flushBuffer();
+	    zout.close();
 	    logger.info("Data bundled in zip delivered");
-	
+
 	} catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");
 	    logger.error(ex.getMessage());
@@ -103,20 +105,7 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
-	}
-	finally{
-	    try{
-		if(response != null)
-		    response.flushBuffer();
-	    if(zout != null)
-		zout.close();
-	    }catch(IOException ie)
-	    {
-		logger.error("Error while closing the outputStream."+ie.getMessage());
-		throw new DistributionException("IOException while closing the outputStream"+ie.getMessage());
-	    }
-	    
-	}
+	} 
 
     }
 
@@ -133,7 +122,7 @@ public class DataBundleAccessController {
 	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 404, "There is no content in the package.", "POST");
     }
-    
+
     @ExceptionHandler(NoFilesAccesibleInPackageException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
@@ -154,7 +143,7 @@ public class DataBundleAccessController {
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
-	
+
 	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
     }
@@ -169,11 +158,8 @@ public class DataBundleAccessController {
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 
-    public ErrorInfo handleStreamingError(RuntimeException ex,
-                                          HttpServletRequest req)
-    {
-        logger.error("Unexpected failure during request: " + req.getRequestURI() +
-                     "\n  " + ex.getMessage(), ex);
-        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+	logger.error("Unexpected failure during request: " + req.getRequestURI() + "\n  " + ex.getMessage(), ex);
+	return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
     }
 }

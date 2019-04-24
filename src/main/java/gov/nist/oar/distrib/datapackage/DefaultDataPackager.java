@@ -213,19 +213,19 @@ public class DefaultDataPackager implements DataPackager {
 	    StringBuilder bundleInfo = new StringBuilder(
 		    "Information about requested bundle/package is given below.\n");
 	    if (bundlelogfile.length() != 0) {
-		bundleInfo.append(" Following files are not included in the bundle for the reasons given: \n");
+		bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 		bundleInfo.append(this.bundlelogfile);
 		filename = "/PackagingErrors.txt";
 	    }
 
 	    if (bundlelogError.length() != 0) {
 		bundleInfo.append(
-			" Following files are not included in the bundle because of errors: \n" + bundlelogError);
+			"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
 		filename = "/PackagingErrors.txt";
 	    }
 
 	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
-		bundleInfo.append(" All requested files are successfully added to this bundle.");
+		bundleInfo.append("\n All requested files are successfully added to this bundle.");
 		filename = "/PackagingSuccessful.txt";
 	    }
 
@@ -274,7 +274,8 @@ public class DefaultDataPackager implements DataPackager {
 			if (countNotAccessible == this.getFilesCount()) {
 			    requestValidity = 6;
 
-			} else if (requestValidity == 0)
+			} 
+			else if (requestValidity == 0)
 			    requestValidity = 1;
 		    }
 		}
