@@ -72,7 +72,7 @@ public class DeletionPlan {
     /**
      * the score associated with this plan where a lower score is more desirable.  A "perfect"
      * score is 0 and should be assigned to plan in which no objects need to be deleted to 
-     * free the specific space (given by {@link byteCount}).  Negative scores are allowed.  
+     * free the specific space (given by {@link spaceNeeded}).  Negative scores are allowed.  
      */
     public double score = 0.0;
 

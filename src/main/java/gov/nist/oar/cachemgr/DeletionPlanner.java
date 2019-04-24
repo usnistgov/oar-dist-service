@@ -18,8 +18,20 @@ import java.util.List;
 /**
  * an interface for determining deletion plans that clear up space in volumes tracked by a storage
  * inventory database.  The implementation has a specific algorithm embedded in it for selecting 
- * the files to delete and giving the plan a score indicating how relatively desirable it is compared 
- * to other plans.  
+ * the files to delete and giving the plan a score indicating how relatively desirable it is 
+ * compared to other plans.  
+ *
+ * Creating a deletion plan for a volume involves calculating a deletability score for each object 
+ * in the volume and then sorting the list of deletable objects based on the assigned score.  The 
+ * calculation might have built into it a preference for deleting, say, older and/or larger files.  
+ * A plan is then assigned an overall score for how desirable the plan is; a more desirable plan 
+ * may favor, say, deleting older files or deleting fewer files (for faster plan execution).  
+ *
+ * In general, a deletion planner will be dependent on the data model built into the storage 
+ * inventory database used.  (For this reason, implementations included in this package can be 
+ * found in {@list gov.nist.oar.cachemgr.inventory}.)  Some planner implementations may be built 
+ * directly into {@list gov.nist.oar.cachemgr.StorageInventoryDB} implementation if the sorting 
+ * and scoring of plans are implemented via database functions and queries.
  */
 public interface DeletionPlanner {
 
@@ -33,7 +45,8 @@ public interface DeletionPlanner {
      * from most-favorable to least favorable.  
      *
      * Typically, the caller would execute the first plan in the set; if that failed, the caller 
-     * could try the next one in the list. 
+     * could try the next one in the list.  Generally, this method should not return plans
+     * for volumes whose status does not permit deletions.  
      */
     List<DeletionPlan> orderDeletionPlans(long size) throws InventoryException;
 }
