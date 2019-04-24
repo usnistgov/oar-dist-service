@@ -1,4 +1,4 @@
-/**
+/*
  * This software was developed at the National Institute of Standards and Technology by employees of
  * the Federal Government in the course of their official duties. Pursuant to title 17 Section 105
  * of the United States Code this software is not subject to copyright protection and is in the
@@ -8,13 +8,28 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
+ * 
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 /**
+ * A representation of a plan for bundling a requested list of data files into one or more data 
+ * bundles (zip files).  
+ * <p>
+ * The {@link DataPackager} class will write out a data bundle containing files accessible via 
+ * a list of URLs.  The packager implementation, however, will enforce various policies regarding
+ * the origin of the URLs and how much data can go into a bundle.  To avoid violating these 
+ * policies, a client can use the {@link DownloadBundlePlanner} to learn how to segregate the URLs
+ * into separate requests to the {@link DataPackager} that are guaranteed to meet restrictions.  
+ * The {@link DownloadBundlePlanner} gives the client a plan in the form of an instance of this 
+ * {@link BundleDownloadPlan}.  
+ * <p>
+ * A plan is made up of a list of requests that should be given to a {@link DataPackager}.  The 
+ * plan can also include a list of requested URLs that should <i>not</i> be included in a bundling 
+ * request, because a problem was detected either with the origin or the content of the URL.  
+ * 
  * @author Deoyani Nandrekar-Heinis
- *
  */
 public class BundleDownloadPlan {
 
@@ -37,7 +52,7 @@ public class BundleDownloadPlan {
     /**
      * List of files not included in the bundle
      */
-    private NotIncludedFiles[] notIncluded;
+    private NotIncludedFile[] notIncluded;
 
     /**
      * Default Constructor
@@ -62,7 +77,7 @@ public class BundleDownloadPlan {
      *            If files are not included in the bundle.
      */
     public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, String[] messages,
-	    NotIncludedFiles[] notIncluded) {
+	    NotIncludedFile[] notIncluded) {
 	this.postEachTo = postEachTo;
 	this.status = status;
 	this.requests = requests;
@@ -71,7 +86,7 @@ public class BundleDownloadPlan {
     }
 
     /**
-     * Set the api endpoint to post the request to.
+     * Set the API endpoint to post the request to.
      * 
      * @param postEachTo
      */
@@ -111,12 +126,12 @@ public class BundleDownloadPlan {
      * 
      * @param notIncluded
      */
-    public void setNotIncluded(NotIncludedFiles[] notIncluded) {
+    public void setNotIncluded(NotIncludedFile[] notIncluded) {
 	this.notIncluded = notIncluded;
     }
 
     /**
-     * Set the post method api endpoint name.
+     * Set the post method API endpoint name.
      * 
      * @return
      */
@@ -134,7 +149,7 @@ public class BundleDownloadPlan {
     }
 
     /**
-     * Get the service/api endpoint status.
+     * Return a label indicating how successful this plan is.  
      * 
      * @return
      */
@@ -156,7 +171,7 @@ public class BundleDownloadPlan {
      * 
      * @return
      */
-    public NotIncludedFiles[] getNotIncluded() {
+    public NotIncludedFile[] getNotIncluded() {
 	return this.notIncluded;
     }
 

@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
-import gov.nist.oar.distrib.web.objects.NotIncludedFiles;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.datapackage.NotIncludedFile;
 
 /**
  * DownloadBundlePlanner class takes input bundle request with the limits of
@@ -40,7 +40,7 @@ import gov.nist.oar.distrib.web.objects.NotIncludedFiles;
 public class DownloadBundlePlanner {
 
     protected static Logger logger = LoggerFactory.getLogger(DownloadBundlePlanner.class);
-    List<NotIncludedFiles> notIncludedFiles;
+    List<NotIncludedFile> notIncludedFiles;
     List<FileRequest> filePathUrls;
     List<BundleRequest> bundleFilePathUrls;
     List<String> messages;
@@ -79,7 +79,7 @@ public class DownloadBundlePlanner {
      */
     public BundleDownloadPlan getBundleDownloadPlan() throws JsonProcessingException {
 
-	notIncludedFiles = new ArrayList<NotIncludedFiles>();
+	notIncludedFiles = new ArrayList<NotIncludedFile>();
 	filePathUrls = new ArrayList<FileRequest>();
 	bundleFilePathUrls = new ArrayList<BundleRequest>();
 	messages = new ArrayList<String>();
@@ -104,7 +104,7 @@ public class DownloadBundlePlanner {
 		if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
 		    this.makeBundles(jobject);
 		} else {
-		    notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl, "File not added in package; This URL is from unsupported domain/host."));
+		    notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl, "File not added in package; This URL is from unsupported domain/host."));
 		    messages.add("Some urls are not added due to unsupported host.");
 		    this.status = "warnings";
 		}
@@ -137,7 +137,7 @@ public class DownloadBundlePlanner {
 	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains);
 	long individualFileSize = uObj.getLength();
 	if(individualFileSize <= 0){
-	    notIncludedFiles.add(new NotIncludedFiles(jobject.getFilePath(), jobject.getDownloadUrl(), "File not added in package; File is not valid/accessible or it is empty."));
+	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), "File not added in package; File is not valid/accessible or it is empty."));
 	    messages.add("Some URLs have problem accessing contents.");
 	    this.status = "warnings";
 	}else{
@@ -179,7 +179,7 @@ public class DownloadBundlePlanner {
     public void makeBundlePlan() {
 	this.finalPlan = new BundleDownloadPlan("_bundle", this.status,
 		bundleFilePathUrls.toArray(new BundleRequest[0]), messages.toArray(new String[0]),
-		notIncludedFiles.toArray(new NotIncludedFiles[0]));
+		notIncludedFiles.toArray(new NotIncludedFile[0]));
     }
 
 }
