@@ -67,7 +67,7 @@ public class DeletionPlan {
      * may have more objects in than theorectically needed; this allows extra files to be deleted if 
      * there are failures deleting some of the files (other than if the are missing from the volume).
      */
-    List<CacheObject> doomed = null;
+    protected List<CacheObject> doomed = null;
 
     /**
      * the score associated with this plan where a lower score is more desirable.  A "perfect"
@@ -77,12 +77,65 @@ public class DeletionPlan {
     public double score = 0.0;
 
     /**
+     * initialize a deletion plan.  The provided list does not have to be complete: the caller 
+     * can fill it later.  
+     *
+     * @param volname     the name of the cache volume this plan applies to
+     * @param db          the inventory database that tracks the contents of the volume
+     * @param objlist     the list that can/will hold the list of objects to be deleted.
+     * @param target      the number of bytes that this plan plans to free up by remving the files
+     *                       in objlist.
+     * @param need        the number of bytes needed to be free (for a new object to be added).
+     */
+    public DeletionPlan(String volname, StorageInventoryDB db, List<CacheObject> objlist,
+                        long target, long need)
+    {
+        this.volname = volname;
+        inventory = db;
+        doomed = objlist;
+        toBeRemoved = target;
+        spaceNeeded = need;
+    }
+
+    /**
+     * initialize a deletion plan.  The provided list does not have to be complete: the caller 
+     * can fill it later.  
+     *
+     * @param volname     the name of the cache volume this plan applies to
+     * @param db          the inventory database that tracks the contents of the volume
+     * @param objlist     the list that can/will hold the list of objects to be deleted.
+     * @param target      the number of bytes that this plan plans to free up by remving the files
+     *                       in objlist.
+     * @param need        the number of bytes needed to be free (for a new object to be added).
+     */
+    public DeletionPlan(CacheVolume vol, StorageInventoryDB db, List<CacheObject> objlist,
+                        long target, long need)
+    {
+        this(vol.getName(), db, objlist, target, need);
+        volume = vol;
+    }
+
+    /**
      * return the name of the volume that this plan is to be applied to.
      */
     public String getVolumeName() {
         if (volume != null)
             return volume.getName();
         return volname;
+    }
+
+    /**
+     * return the number of bytes that this plan expects to remove when the plan is executed.
+     */
+    public long getByteCountToBeRemoved() {
+        return toBeRemoved;
+    }
+
+    /**
+     * return the number of bytes that this plan expects to remove when the plan is executed.
+     */
+    public long getByteCountNeeded() {
+        return spaceNeeded;
     }
 
     /**
@@ -99,7 +152,7 @@ public class DeletionPlan {
 
         long removed = 0L;
         synchronized (inventory) {
-            if (inventory.getVolumeStatus(volume.getName()) >= inventory.VOL_FOR_UPDATE)
+            if (inventory.getVolumeStatus(volume.getName()) < inventory.VOL_FOR_UPDATE)
                 throw new IllegalStateException("CacheVolume "+volume.getName()+
                                                 " not available for updates");
 
@@ -107,11 +160,11 @@ public class DeletionPlan {
             // exhausted.  
             for(CacheObject co : doomed) {
                 try {
-                    if (removed > spaceNeeded)
+                    if (removed > toBeRemoved)
                         break;
                     volume.remove(co.name);
                     inventory.removeObject(volume.getName(), co.name);
-                    removed -= co.getSize();
+                    removed += co.getSize();
                 } catch (CacheVolumeException ex) {
                     // log failure?
                 }

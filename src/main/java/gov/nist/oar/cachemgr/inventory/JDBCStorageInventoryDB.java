@@ -804,7 +804,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public Map<String, Long> getAvailableSpace() throws InventoryException {
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
         return _get_sum(sum_sql);
     }
 
@@ -816,7 +816,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public Map<String, Long> getUsedSpace() throws InventoryException {
         String sum_sql =
             "SELECT v.name as volume, sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
         return _get_sum(sum_sql);
     }
 
