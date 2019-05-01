@@ -93,7 +93,7 @@ public class DataBundleAccessControllerTest {
 
 	assertEquals(HttpStatus.OK, response.getStatusCode());
 	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
-	assertEquals(59917, response.getBody().length());
+	assertEquals(59918, response.getBody().length());
 
     }
 
@@ -118,10 +118,10 @@ public class DataBundleAccessControllerTest {
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders() :"
-		+ response.getHeaders() + "\n resp.getBody().length():" + response.getBody().length());
+		+ response.getHeaders() + "\n resp.getBody():" + response.getBody());
 
-	// assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-	// assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+	 assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+	 assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
 	// assertEquals(22, response.getBody().length());
 
     }

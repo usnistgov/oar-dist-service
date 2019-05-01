@@ -193,8 +193,8 @@ public class DefaultDataPackagingServiceTest {
 		    if (stream != null) {
 
 			while ((str = reader.readLine()) != null) {
-			    // System.out.println("line no:"+count+"::::"+str);
-			    if (count == 3)
+			    System.out.println("line no:"+count+"::::"+str);
+			    if (count == 4)
 				assertEquals(str.trim(), expectedStr.trim());
 			    count++;
 

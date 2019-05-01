@@ -96,6 +96,9 @@ public class DefaultDataPackagerTest {
 
     @Test
     public void testValidateRequest() throws DistributionException, IOException {
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	createBundleRequest();
 	dp.validateBundleRequest();
 	assertTrue(dp.getTotalSize() < mxFileSize);
     }
@@ -143,7 +146,7 @@ public class DefaultDataPackagerTest {
 	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoContentInPackageException.class);
+	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
     }
 

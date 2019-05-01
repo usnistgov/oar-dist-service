@@ -64,6 +64,7 @@ public class ValidationHelper {
 	int responseCode = 0;
 	String location = "";
 	HttpURLConnection conn = null;
+
 	try {
 	    validURL = ValidationHelper.isAllowedURL(url, domains);
 	    if (validURL) {
@@ -85,6 +86,7 @@ public class ValidationHelper {
 		if ((responseCode >= 300 && responseCode < 400) && countTryUrl == 4) {
 		    length = 0;
 		    countTryUrl = 0;
+
 		}
 
 		conn.disconnect();
@@ -226,7 +228,7 @@ public class ValidationHelper {
     public static int noOfNotAcceccibleURLs(List<URLStatusLocation> lisULoc) {
 	int count = 0;
 	for (int k = 0; k < lisULoc.size(); k++) {
-	    if (lisULoc.get(k).getStatus() >= 400)
+	    if (lisULoc.get(k).getStatus() >= 300)
 		count++;
 	}
 	return count;
@@ -290,4 +292,5 @@ class URLStatusLocation {
     public boolean isValidURL() {
 	return this.validURL;
     }
+
 }
