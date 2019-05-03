@@ -32,7 +32,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
 import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
@@ -105,7 +106,10 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
-	} 
+	} catch (EmptyBundleRequestException ex) {
+            logger.warn("Empty bundle request sent");
+            throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
+        }
 
     }
 

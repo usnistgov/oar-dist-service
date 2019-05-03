@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;

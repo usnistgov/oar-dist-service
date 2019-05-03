@@ -118,7 +118,7 @@ public class DownloadBundlePlanner {
 		    this.status = "warnings";
 		}
 	    } catch (IOException ie) {
-		notIncludedFiles.add(new NotIncludedFiles(filepath, downloadurl,
+		notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
 			"File not added in package; There is an error while checking URL domain."));
 	    }
 	}

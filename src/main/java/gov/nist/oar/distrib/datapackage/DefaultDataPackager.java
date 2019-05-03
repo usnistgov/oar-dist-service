@@ -28,10 +28,10 @@ import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.ServiceSyntaxException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
 
@@ -309,7 +309,7 @@ public class DefaultDataPackager implements DataPackager {
 	case 2:
 	    throw new IOException("IOException while validating request and parsing input.");
 	case 3:
-	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
+	    throw new EmptyBundleRequestException();
 	case 4:
 	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
 	case 5:
