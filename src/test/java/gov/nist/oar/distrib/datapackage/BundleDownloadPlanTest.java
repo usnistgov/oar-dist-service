@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 import static org.junit.Assert.assertEquals;
 

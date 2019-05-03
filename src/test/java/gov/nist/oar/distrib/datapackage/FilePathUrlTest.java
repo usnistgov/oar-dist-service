@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 import static org.junit.Assert.assertEquals;
 
@@ -21,31 +21,29 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.datapackage.FileRequest;
+
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class NotIncludedFilesTest {
+public class FilePathUrlTest {
 
     @Test
-    public void testNotIncludedFiles() {
-
-	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/testFile",
-		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
-	assertEquals("/testPath/testFile", notIn.getFilePath());
-	assertEquals("https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", notIn.getDownloadUrl());
-	assertEquals("Not allowed domain.", notIn.getMessage());
+    public void testFilePathUrl() {
+	FileRequest fpathUrl = new FileRequest("/1894/license.pdf",
+		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+	assertEquals("/1894/license.pdf", fpathUrl.getFilePath());
+	assertEquals("https://s3.amazonaws.com/nist-midas/1894/license.pdf", fpathUrl.getDownloadUrl());
     }
 
     @Test
-    public void testNotIncludedFilesJson() throws JsonProcessingException, JSONException {
-	String testJson = "{\"filePath\":\"/testPath/license.pdf\","
-		+ "\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf\","
-		+ "\"message\": \"Not allowed domain.\"}";
-	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/license.pdf",
-		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
-	String json = new ObjectMapper().writeValueAsString(notIn);
+    public void testJson() throws JsonProcessingException, JSONException {
+	String testJson = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	FileRequest fpathUrl = new FileRequest("/1894/license.pdf",
+		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+	String json = new ObjectMapper().writeValueAsString(fpathUrl);
 	JSONAssert.assertEquals(testJson, json, true);
-    }
 
+    }
 }
