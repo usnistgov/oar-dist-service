@@ -17,7 +17,7 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.zip.ZipOutputStream;
 
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 
 /**
  * DataPackager interface declares the methods to be used when data download

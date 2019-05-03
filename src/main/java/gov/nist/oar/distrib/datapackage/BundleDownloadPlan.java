@@ -76,8 +76,9 @@ public class BundleDownloadPlan {
      * @param notIncluded
      *            If files are not included in the bundle.
      */
-    public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, String[] messages,
-	    NotIncludedFile[] notIncluded) {
+    public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, 
+                              String[] messages, NotIncludedFile[] notIncluded)
+    {
 	this.postEachTo = postEachTo;
 	this.status = status;
 	this.requests = requests;
@@ -86,27 +87,28 @@ public class BundleDownloadPlan {
     }
 
     /**
-     * Set the API endpoint to post the request to.
+     * Set the API endpoint to POST each request in the plan to
      * 
-     * @param postEachTo
+     * @param postEachTo -- the URL endpoint
      */
     public void setPostEachTo(String postEachTo) {
 	this.postEachTo = postEachTo;
     }
 
     /**
-     * Set the requests in the form of bundlename and urls.
+     * Set the series of bundling requests that constitutes this plan
      * 
-     * @param requests
+     * @param requests   the list of requests that should be made to the bundling endpoint (given 
+     *                   by {@link getPostEachTo})
      */
     public void setBundleNameFilePathUrl(BundleRequest[] requests) {
 	this.requests = requests;
     }
 
     /**
-     * Set the status of the service.
+     * Set the status of the plan.  See {@link getStatus}.
      * 
-     * @param status
+     * @param status    a label that indicates the success of this plan
      */
     public void setStatus(String status) {
 	this.status = status;
@@ -115,7 +117,7 @@ public class BundleDownloadPlan {
     /**
      * Set messages related to requested bundle.
      * 
-     * @param msgs
+     * @param msgs    a list of messages
      */
     public void setMessages(String[] msgs) {
 	this.messages = msgs;
@@ -124,52 +126,59 @@ public class BundleDownloadPlan {
     /**
      * Set list of files not included in the plan for downloading bundles.
      * 
-     * @param notIncluded
+     * @param notIncluded   a list of the files not included in the plan, each wrapped in a 
+     *                      NotIncludedFile instance.
      */
     public void setNotIncluded(NotIncludedFile[] notIncluded) {
 	this.notIncluded = notIncluded;
     }
 
     /**
-     * Set the post method API endpoint name.
+     * return the API endpoint to POST each request in the plan to. 
      * 
-     * @return
+     * @return String -- the endpoint URL
      */
     public String getPostEachTo() {
 	return this.postEachTo;
     }
 
     /**
-     * Sets bundles for requested list of files.
+     * Return the list of bundling requests that should be made to the bundling API endpoint 
+     * (given by {@link getPostEachTo}) in order to carry out this plan.  
      * 
-     * @return
+     * @return BundleRequest[] -- the list of requests
      */
     public BundleRequest[] getBundleNameFilePathUrl() {
 	return this.requests;
     }
 
     /**
-     * Return a label indicating how successful this plan is.  
+     * Return a label indicating how successful this plan is.  The status is a String label that 
+     * indicates that how successful the plan is at meeting the initial request that this plan is 
+     * derived from.  For example, if not all of the originally requested data files could not be 
+     * included in the plan, the status might be set to "warnings".
      * 
-     * @return
+     * @return String -- the status label
      */
     public String getStatus() {
 	return this.status;
     }
 
     /**
-     * Get the messages if any, associated with the request.
+     * Get the messages associated with the request.
      * 
-     * @return
+     * @return String[] -- the list of messages.  If there are no messages, the returned array will 
+     *                     be empty.
      */
     public String[] getMessages() {
 	return this.messages;
     }
 
     /**
-     * Get number of files not included in the proposed bundle plan.
+     * return the list of the originally-requested files that are <i>not</i> included in this 
+     * bundle plan.
      * 
-     * @return
+     * @return NotIncludedFile[] -- the list of files, each wrapped in a NotIncludedFile.
      */
     public NotIncludedFile[] getNotIncluded() {
 	return this.notIncluded;
