@@ -114,8 +114,6 @@ public class DownloadBundlePlanner {
 		} else {
 		    notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
                             "File not added in package; This URL is from unsupported domain/host."));
-		    messages.add("Some urls are not added due to unsupported host.");
-		    this.status = "warnings";
 		}
 	    } catch (IOException ie) {
 		notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
@@ -145,9 +143,7 @@ public class DownloadBundlePlanner {
 	long individualFileSize = uObj.getLength();
 	if (individualFileSize <= 0) {
 	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
-                    "File not added in package; File is not valid/accessible or it is empty."));
-	    messages.add("Some URLs have problem accessing contents.");
-	    this.status = "warnings";
+		    "File not added in package; " + ValidationHelper.getStatusMessage(uObj.getStatus())));
 	} else {
             if (individualFileSize >= this.mxFilesBundleSize) {
                 List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
