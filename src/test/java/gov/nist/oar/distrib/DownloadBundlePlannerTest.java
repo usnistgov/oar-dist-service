@@ -23,9 +23,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis

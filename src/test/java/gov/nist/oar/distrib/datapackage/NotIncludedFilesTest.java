@@ -28,9 +28,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class NotIncludedFilesTest {
 
     @Test
-    public void testNotIncludedFiles() {
+    public void testNotIncludedFile() {
 
-	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/testFile",
+	NotIncludedFile notIn = new NotIncludedFile("/testPath/testFile",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
 	assertEquals("/testPath/testFile", notIn.getFilePath());
 	assertEquals("https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", notIn.getDownloadUrl());
@@ -38,11 +38,11 @@ public class NotIncludedFilesTest {
     }
 
     @Test
-    public void testNotIncludedFilesJson() throws JsonProcessingException, JSONException {
+    public void testNotIncludedFileJson() throws JsonProcessingException, JSONException {
 	String testJson = "{\"filePath\":\"/testPath/license.pdf\","
 		+ "\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf\","
 		+ "\"message\": \"Not allowed domain.\"}";
-	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/license.pdf",
+	NotIncludedFile notIn = new NotIncludedFile("/testPath/license.pdf",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
 	String json = new ObjectMapper().writeValueAsString(notIn);
 	JSONAssert.assertEquals(testJson, json, true);
