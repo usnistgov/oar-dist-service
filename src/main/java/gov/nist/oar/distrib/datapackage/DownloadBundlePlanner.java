@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
@@ -74,24 +75,30 @@ public class DownloadBundlePlanner {
      * Get the plan to download all files after checking various limits and
      * criteria
      * 
-     * @return JsonObject of type BundleDownloadPlan
-     * @throws JsonProcessingException
+     * @return BundleDownloadPlan -- the recommended plan
+     * @throws DistributionException 
      */
-    public BundleDownloadPlan getBundleDownloadPlan() throws JsonProcessingException {
+    public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException {
 
 	notIncludedFiles = new ArrayList<NotIncludedFile>();
 	filePathUrls = new ArrayList<FileRequest>();
 	bundleFilePathUrls = new ArrayList<BundleRequest>();
 	messages = new ArrayList<String>();
 
-	ObjectMapper mapper = new ObjectMapper();
-	String requestString = mapper.writeValueAsString(this.bundleRequest);
-	if (ValidationHelper.hasHTMLTags(requestString)) {
-	    messages.add("Input contains html code, make sure to post proper request.");
-	    this.status = "Error";
-	    return makeBundlePlan();
-	 
-	}
+        try {
+	    ObjectMapper mapper = new ObjectMapper();
+	    String requestString = mapper.writeValueAsString(this.bundleRequest);
+	    if (ValidationHelper.hasHTMLTags(requestString)) {
+	        messages.add("Input contains html code, make sure to post proper request.");
+	        this.status = "Error";
+	        return makeBundlePlan();
+	     
+	    }
+        } catch (JsonProcessingException ex) {
+            // should not happen
+            throw new DistributionException("Trouble validating request: unable to conver to JSON: " +
+                                            ex.getMessage());
+        }
 
 	try {
 	    JSONUtils.isJSONValid(this.bundleRequest);

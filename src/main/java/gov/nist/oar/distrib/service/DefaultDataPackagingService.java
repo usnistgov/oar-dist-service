@@ -82,7 +82,9 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * Get the Plan for downloading requested data
      */
     @Override
-    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName) throws JsonProcessingException {
+    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
+        throws DistributionException
+    {
 	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName);
 	return dwnldPlanner.getBundleDownloadPlan();
     }

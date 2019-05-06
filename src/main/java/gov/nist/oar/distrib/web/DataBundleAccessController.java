@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
 import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
 import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
 import gov.nist.oar.distrib.service.DataPackagingService;
@@ -81,7 +81,7 @@ public class DataBundleAccessController {
 	    @ApiIgnore Errors errors) throws DistributionException {
 	ZipOutputStream zout = null;
 	try {
-	    DefaultDataPackager dataPackager = dpService.getDataPackager(bundleRequest);
+	    DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
 	    dataPackager.validateBundleRequest();
 	    zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");

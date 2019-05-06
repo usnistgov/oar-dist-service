@@ -84,8 +84,9 @@ public class BundleDownloadPlanController {
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) throws JsonProcessingException {
-
+	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
+        throws DistributionException
+    {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
