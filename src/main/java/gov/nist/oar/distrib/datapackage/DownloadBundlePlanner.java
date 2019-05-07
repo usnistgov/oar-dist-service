@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.MalformedURLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,17 +116,17 @@ public class DownloadBundlePlanner {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
-	    try {
-		if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
-		    this.makeBundles(jobject);
-		} else {
-		    notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
-                            "File not added in package; This URL is from unsupported domain/host."));
-		}
-	    } catch (IOException ie) {
-		notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
-			"File not added in package; There is an error while checking URL domain."));
-	    }
+            try {
+                if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
+                    this.makeBundles(jobject);
+                } else {
+                    notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
+                        "File not added in package; This URL is from unsupported domain/host."));
+                }
+            } catch (MalformedURLException ex) {
+                notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
+                                                         "File not added in package; malformed URL"));
+            }
 	}
 
 	if (!this.filePathUrls.isEmpty()) {

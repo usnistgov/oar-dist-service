@@ -51,9 +51,9 @@ public interface DataPackager {
      * determine their sizes.  The size returned may be approximate as it may not account for 
      * packaging overhead.  
      * @return long -- the size of the output zip file in bytes
-     * @throws IOException -- if an error occurs while examining the files
+     * @throws IOException -- if a non-recoverable error occurs while examining the files
      */
-    long getTotalSize() throws IOException;
+    public long getTotalSize() throws IOException;
 
     
     /***
@@ -63,21 +63,27 @@ public interface DataPackager {
      * @return String -- the recommended name for the output zip file
      * @throws IOException
      */
-    String getBundleName() throws IOException;
+    public String getBundleName() throws IOException;
 
     /**
-     * Validate Request from syntax validation to content validation
-     * @throws DistributionException
-     * @throws IOException
+     * validate the client's request (provided at construction time) for compliance with 
+     * policies and limits.  The method may require examining the files (either on a filesystem or 
+     * across the network) in order to, for example, determine their sizes.  If the request is 
+     * invalid, an exception will be thrown.
+     * @throws InputLimitException -- if the request exceeds the packager's configured limits on 
+     *                                the output bundle file (such as for size).  
+     * @throws DistributionException -- if the request violates any other policy restrictions, it can 
+     *                                not include any of the requested files in a bundle, or if a
+     *                                failure occurs with the underlying distribution infrastructure.
+     * @throws IOException -- if a non-recoverable error occurs while examining the files
      */
-    void validateBundleRequest() throws DistributionException, IOException;
+    public void validateBundleRequest() throws DistributionException, IOException;
 
     /**
-     * Check if URL is from valid domains
-     * @param url
-     * @return
-     * @throws DistributionException
-     * @throws IOException
+     * Check if a given URL can be included as the source of a data file for a data bundle.  
+     * @param url   the URL to check
+     * @return boolean -- False if the input is not a legal URL or it violates some policy 
+     *                    regarding data sources (such as whether it is from an allowed location).  
      */
-    boolean validateUrl(String url) throws DistributionException, IOException;
+    public boolean validateUrl(String url);
 }

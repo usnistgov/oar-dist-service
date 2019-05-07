@@ -366,20 +366,22 @@ public class DefaultDataPackager implements DataPackager {
      * Validate requested URL by checking whether it is from allowed domains.
      */
     @Override
-    public boolean validateUrl(String url) throws IOException, DistributionException {
-	try {
-	    if (!ValidationHelper.isAllowedURL(url, this.domains)) {
-		this.bundlelogfile.append("\n Url here:" + url);
-		this.bundlelogfile.append(
-			" does not belong to allowed domains, so this file is not downnloaded in the bundle/package.");
-		return false;
-	    }
-	    return true;
-	} catch (IOException ie) {
-	    logger.info("There is an issue accessing this url:" + url + " Excption here" + ie.getMessage());
-	    this.bundlelogfile.append("\n There is an issue accessing this url:" + url);
-	    return false;
-	}
+    public boolean validateUrl(String url) {
+        try {
+            if (!ValidationHelper.isAllowedURL(url, this.domains)) {
+                this.bundlelogfile.append("\n Url here:" + url);
+                this.bundlelogfile.append(" does not belong to allowed domains, so this file is "+
+                                          "not downnloaded in the bundle/package.");
+                return false;
+            }
+            return true;
+        }
+        catch (MalformedURLException ex) {
+            this.bundlelogfile.append("\n Url here:" + url);
+            this.bundlelogfile.append(", is not a legal URL, so this file is "+
+                                      "not downnloaded in the bundle/package.");
+            return false;
+        }
     }
 
     /**
