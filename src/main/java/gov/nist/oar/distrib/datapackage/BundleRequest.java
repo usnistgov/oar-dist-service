@@ -1,4 +1,4 @@
-/**
+/*
  * This software was developed at the National Institute of Standards and Technology by employees of
  * the Federal Government in the course of their official duties. Pursuant to title 17 Section 105
  * of the United States Code this software is not subject to copyright protection and is in the
@@ -8,20 +8,15 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
- * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 /**
- * @author Deoyani Nandrekar-Heinis
+ * a container for holding a request for set of files to be packaged up into a bundle (or bundles).
+ * A request is composed of a list of file requests (as {@link FileRequest} objects) and an optional
+ * name for the bundle.  
  *
- */
-
-/**
- * Jackson json framework to form a request data to a download controller. This
- * class is used to represent the requested post object to dowload bundled zip
- * of requested files with given URLs. It also holds name of the bundle given by
- * client.
+ * @author Deoyani Nandrekar-Heinis
  */
 public class BundleRequest {
 
@@ -42,7 +37,7 @@ public class BundleRequest {
     }
 
     /**
-     * Create an object with bundle name and array of files with urls.
+     * Create an object with bundle name and array of files with URLs.
      * 
      * @param bundleName
      * @param includeFiles
@@ -53,36 +48,36 @@ public class BundleRequest {
     }
 
     /**
-     * Set the name of the bundle to be downloaded
+     * Set the requested name to give to the bundle
      * 
-     * @param bundleName
+     * @param bundleName  the name to give to the bundle
      */
     public void setBundleName(String bundleName) {
 	this.bundleName = bundleName;
     }
 
     /**
-     * Get the name to be downloaded
+     * Return the name requested to be assigned to the bundle
      * 
-     * @return String
+     * @return String -- the desired name for the bundle
      */
     public String getBundleName() {
 	return this.bundleName;
     }
 
     /**
-     * Set the url associated with filename to download data from
+     * Set the list of requested files to include in the bundle
      * 
-     * @param includeFiles
+     * @param includeFiles    the list of requested files
      */
     public void setIncludeFiles(FileRequest[] includeFiles) {
 	this.includeFiles = includeFiles;
     }
 
     /**
-     * get the url associated with filename to download data from
+     * Return the list of files to requested to be bundled
      * 
-     * @return FilePathUrl[]
+     * @return FilePathUrl[] -- the list of requested files
      */
     public FileRequest[] getIncludeFiles() {
 	return this.includeFiles;

@@ -41,11 +41,11 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis

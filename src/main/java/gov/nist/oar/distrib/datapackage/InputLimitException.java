@@ -1,4 +1,4 @@
-/**
+/*
  * This software was developed at the National Institute of Standards and Technology by employees of
  * the Federal Government in the course of their official duties. Pursuant to title 17 Section 105
  * of the United States Code this software is not subject to copyright protection and is in the
@@ -10,11 +10,15 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib;
+package gov.nist.oar.distrib.datapackage;
+
+import gov.nist.oar.distrib.DistributionException;
 
 /**
- * @author Deoyani Nandrekar-Heinis
+ * An exception indicating that a request for a data package exceeds the configured limits of 
+ * the service.  
  *
+ * @author Deoyani Nandrekar-Heinis
  */
 public class InputLimitException extends DistributionException {
     /**

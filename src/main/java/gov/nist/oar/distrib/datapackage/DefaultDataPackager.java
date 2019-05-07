@@ -28,12 +28,12 @@ import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.ServiceSyntaxException;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * DefaultDataPackager implements DataPackager interface and gives a default
@@ -309,7 +309,7 @@ public class DefaultDataPackager implements DataPackager {
 	case 2:
 	    throw new IOException("IOException while validating request and parsing input.");
 	case 3:
-	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls.");
+	    throw new EmptyBundleRequestException();
 	case 4:
 	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
 	case 5:
@@ -366,20 +366,22 @@ public class DefaultDataPackager implements DataPackager {
      * Validate requested URL by checking whether it is from allowed domains.
      */
     @Override
-    public boolean validateUrl(String url) throws IOException, DistributionException {
-	try {
-	    if (!ValidationHelper.isAllowedURL(url, this.domains)) {
-		this.bundlelogfile.append("\n Url here:" + url);
-		this.bundlelogfile.append(
-			" does not belong to allowed domains, so this file is not downnloaded in the bundle/package.");
-		return false;
-	    }
-	    return true;
-	} catch (IOException ie) {
-	    logger.info("There is an issue accessing this url:" + url + " Excption here" + ie.getMessage());
-	    this.bundlelogfile.append("\n There is an issue accessing this url:" + url);
-	    return false;
-	}
+    public boolean validateUrl(String url) {
+        try {
+            if (!ValidationHelper.isAllowedURL(url, this.domains)) {
+                this.bundlelogfile.append("\n Url here:" + url);
+                this.bundlelogfile.append(" does not belong to allowed domains, so this file is "+
+                                          "not downnloaded in the bundle/package.");
+                return false;
+            }
+            return true;
+        }
+        catch (MalformedURLException ex) {
+            this.bundlelogfile.append("\n Url here:" + url);
+            this.bundlelogfile.append(", is not a legal URL, so this file is "+
+                                      "not downnloaded in the bundle/package.");
+            return false;
+        }
     }
 
     /**

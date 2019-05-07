@@ -31,11 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.web.ErrorInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -84,8 +84,9 @@ public class BundleDownloadPlanController {
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors) throws JsonProcessingException {
-
+	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
+        throws DistributionException
+    {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();

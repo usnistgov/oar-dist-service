@@ -32,12 +32,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
 import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
 import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -80,7 +81,7 @@ public class DataBundleAccessController {
 	    @ApiIgnore Errors errors) throws DistributionException {
 	ZipOutputStream zout = null;
 	try {
-	    DefaultDataPackager dataPackager = dpService.getDataPackager(bundleRequest);
+	    DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
 	    dataPackager.validateBundleRequest();
 	    zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
@@ -105,7 +106,10 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
-	} 
+	} catch (EmptyBundleRequestException ex) {
+            logger.warn("Empty bundle request sent");
+            throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
+        }
 
     }
 

@@ -21,7 +21,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis

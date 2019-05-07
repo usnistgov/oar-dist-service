@@ -23,9 +23,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -34,7 +34,9 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 public class DownloadBundlePlannerTest {
 
     @Test
-    public void getBundleDownloadPlanTest() throws JsonParseException, JsonMappingException, IOException {
+    public void getBundleDownloadPlanTest()
+        throws JsonParseException, JsonMappingException, IOException, DistributionException
+    {
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
@@ -56,7 +58,9 @@ public class DownloadBundlePlannerTest {
     }
 
     @Test
-    public void getBundleDownloadPlan2Test() throws JsonParseException, JsonMappingException, IOException {
+    public void getBundleDownloadPlan2Test()
+        throws JsonParseException, JsonMappingException, IOException, DistributionException
+    {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
@@ -82,7 +86,9 @@ public class DownloadBundlePlannerTest {
     }
     
     @Test
-    public void getBundleDownloadPlan3Test() throws JsonParseException, JsonMappingException, IOException {
+    public void getBundleDownloadPlan3Test()
+        throws JsonParseException, JsonMappingException, IOException, DistributionException
+    {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";

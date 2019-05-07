@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +24,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /***
  * ValidationHelper class provides different methods and functions to validate
@@ -116,9 +117,9 @@ public class ValidationHelper {
      *            patterns can be concatonated with a pipe (|) character.
      * @return boolean True if the URL matches one of the given patterns; false,
      *         otherwise
-     * @throws IOException
+     * @throws MalformedURLException  if the input is not a legal URL
      */
-    public static boolean isAllowedURL(String url, String allowedUrls) throws IOException {
+    public static boolean isAllowedURL(String url, String allowedUrls) throws MalformedURLException {
 	URL obj = new URL(url);
 	String[] domainList = allowedUrls.split("\\|");
 	List<Boolean> list = new ArrayList<Boolean>();
