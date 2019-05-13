@@ -22,27 +22,28 @@ import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
+import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
 import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.service.DefaultDataPackagingService;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.ErrorInfo;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import springfox.documentation.annotations.ApiIgnore;
-import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -55,7 +56,7 @@ public class DataBundleAccessController {
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);
 
     @Autowired
-    DataPackagingService df;
+    DataPackagingService dpService;
 
     /**
      * download a bundle of data files requested
@@ -75,45 +76,28 @@ public class DataBundleAccessController {
 	    @ApiResponse(code = 403, message = "Download not allowed"),
 	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
     @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
-    @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/zip")
-    public void getbundlewithname(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-	    throws DistributionException, InputLimitException, IOException {
-
-	String bundleName = "download";
-
-//	try {
-	    //df.validateRequest(bundleRequest);
-//	 if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
-//		bundleName = bundleRequest.getBundleName();
-//	    }
-	    
-//	} catch (DistributionException | IOException e) {
-//
-//	    throw new ServiceSyntaxException(e.getMessage());
-//	}
-
+    @PostMapping(value = "/ds/_bundle", consumes = "application/json")
+    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
+	    @ApiIgnore Errors errors) throws DistributionException {
+	ZipOutputStream zout = null;
 	try {
-	    if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
-		bundleName = bundleRequest.getBundleName();
-	    }
+	    DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
+	    dataPackager.validateBundleRequest();
+	    zout = new ZipOutputStream(response.getOutputStream());
 	    response.setHeader("Content-Type", "application/zip");
-	    response.setHeader("Content-Disposition", "attachment;filename=\"" + bundleName + " \"");
-	    ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
-
-	    df.getBundledZipPackage(bundleRequest, zout);
-
-	    zout.close();
+	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
+	    dataPackager.getData(zout);
 	    response.flushBuffer();
+	    zout.close();
 	    logger.info("Data bundled in zip delivered");
-	}
-	catch (org.apache.catalina.connector.ClientAbortException ex) {
-	    logger.info("Client cancelled the download");
 
+	} catch (org.apache.catalina.connector.ClientAbortException ex) {
+	    logger.info("Client cancelled the download");
+	    logger.error(ex.getMessage());
 	    throw new DistributionException(ex.getMessage());
 	} catch (IOException ex) {
 	    logger.debug("IOException type: " + ex.getClass().getName());
-
+	    logger.error("IOException in getBundle" + ex.getMessage());
 	    // "Connection reset by peer" gets thrown if the user cancels the
 	    // download
 	    if (ex.getMessage().contains("Connection reset by peer")) {
@@ -122,7 +106,10 @@ public class DataBundleAccessController {
 		logger.error("IO error while sending file, " + ": " + ex.getMessage());
 		throw new DistributionException(ex.getMessage());
 	    }
-	}
+	} catch (EmptyBundleRequestException ex) {
+            logger.warn("Empty bundle request sent");
+            throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
+        }
 
     }
 
@@ -133,8 +120,23 @@ public class DataBundleAccessController {
 	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
     }
 
+    @ExceptionHandler(NoContentInPackageException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleServiceSyntaxException(NoContentInPackageException ex, HttpServletRequest req) {
+	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 404, "There is no content in the package.", "POST");
+    }
+
+    @ExceptionHandler(NoFilesAccesibleInPackageException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
+	logger.info("There are no files successfully accessed " + req.getRequestURI() + "\n  " + ex.getMessage());
+	return new ErrorInfo(req.getRequestURI(), 502, "No files could be accessed successfully.", "POST");
+    }
+
     @ExceptionHandler(InputLimitException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ResponseBody
     public ErrorInfo handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
 	logger.info("Bundle size and number of files in the bundle have some limits." + req.getRequestURI() + "\n  "
 		+ ex.getMessage());
@@ -145,6 +147,7 @@ public class DataBundleAccessController {
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+
 	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
     }
@@ -158,11 +161,9 @@ public class DataBundleAccessController {
 
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(RuntimeException ex,
-                                          HttpServletRequest req)
-    {
-        logger.error("Unexpected failure during request: " + req.getRequestURI() +
-                     "\n  " + ex.getMessage(), ex);
-        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+	logger.error("Unexpected failure during request: " + req.getRequestURI() + "\n  " + ex.getMessage(), ex);
+	return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
     }
 }

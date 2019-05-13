@@ -28,6 +28,13 @@ public class ServiceSyntaxException extends RuntimeException {
     }
 
     /**
+     * Create an exception with an arbitrary message
+     */
+    public ServiceSyntaxException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
+
+    /**
      * initialize the exception indicating a problem with a particular parameter
      */
     public ServiceSyntaxException(String param, String val, String expl, Throwable cause) {

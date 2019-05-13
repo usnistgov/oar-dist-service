@@ -69,7 +69,7 @@ public class AIPAccessControllerTest {
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-        // logger.info("testDescribeAIP(): got:\n  " + resp.getBody());
+        logger.info("testDescribeAIP(): got:\n  " + resp.getBody());
 
         String expect = "{ name:mds1491.mbag0_2-0.zip, contentType: \"application/zip\"," +
                           "contentLength:9841, aipid:mds1491, serialization:zip}";

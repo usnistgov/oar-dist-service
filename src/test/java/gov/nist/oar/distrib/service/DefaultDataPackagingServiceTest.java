@@ -42,9 +42,10 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -98,7 +99,8 @@ public class DefaultDataPackagingServiceTest {
 	Path path = Files.createTempFile(bundleName, ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	ddp.getBundledZipPackage(bundleRequest, zos);
+	DataPackager dp = ddp.getDataPackager(bundleRequest);
+	dp.getData(zos);
 	zos.close();
 	int len = (int) Files.size(path);
 	System.out.println("Len:" + len);
@@ -164,7 +166,8 @@ public class DefaultDataPackagingServiceTest {
 	Path path = Files.createTempFile("testdatabundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);
-	ddpkService.getBundledZipPackage(bRequest, zos);
+	DataPackager dp = ddpkService.getDataPackager(bRequest);
+	dp.getData(zos);
 	zos.close();
 
 	try (ZipFile file = new ZipFile(path.toString())) {
@@ -179,22 +182,22 @@ public class DefaultDataPackagingServiceTest {
 	    while (entries.hasMoreElements()) {
 		ZipEntry entry = entries.nextElement();
 
-		assertEquals(entry.getName(), "PackagingErrors.txt");
+		assertEquals(entry.getName(), "/PackagingErrors.txt");
 		InputStream stream = file.getInputStream(entry);
 
-		String expectedStr = "Url here:https://test.testnew.com/nist-midas/1894/license.pdf does not belong to allowed domains, so this file is not downnloaded in the bundle/package.";
+		String expectedStr = "https://test.testnew.com/nist-midas/1894/license.pdf does not belong to allowed/valid domains, so this file is not downnloaded in the bundle/package.";
 		String str;
 		int count = 0;
 		try {
 		    BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 		    if (stream != null) {
-			
+
 			while ((str = reader.readLine()) != null) {
-//			    System.out.println("line no:"+count+"::::"+str);
-			    if (count == 3)
+			    System.out.println("line no:"+count+"::::"+str);
+			    if (count == 4)
 				assertEquals(str.trim(), expectedStr.trim());
 			    count++;
-				
+
 			}
 		    }
 		} finally {

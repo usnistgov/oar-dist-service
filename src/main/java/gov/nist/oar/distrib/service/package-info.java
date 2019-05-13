@@ -15,9 +15,20 @@
 /**
  * a package that implements services that constitute the OAR data distribution service.
  * <p>
- * This package makes use of the {@link gov.nist.oar.bags oar.bags} and 
- * {@link gov.nist.oar.cachemgr oar.cachemgr} packages.  It does not have any dependencies 
- * on the sibling {@link gov.nist.oar.distrib.web web} package.
+ * This package provides interfaces for accessing repository files in various contexts:
+ * <ul>
+ *   <li> individual data file that are part of published dataset, </li>
+ *   <li> archive packages of datasets that were created for preservation purposes, </li>
+ *   <li> user-defined data packages containing arbitrary data files from datasets. </li>
+ * </ul>
+ * Generally, a service can be instantiated and live for a long time, responding to many requests.
+ * <p>
+ * The services in this package interact with underlying implementations primarily via the abstract 
+ * interfaces and common classes provided by the parent {@link gov.nist.oar.distrib distrib} package.  
+ * (An exception is the {@link gov.nist.oar.distrib.DataPackagingService} which leverages the 
+ * {@link gov.nist.oar.distrib.datapackage} package.)  The implementations also make use of the 
+ * {@link gov.nist.oar.bags oar.bags} and {@link gov.nist.oar.cachemgr oar.cachemgr} packages.  
+ * It does not have any dependencies on the sibling {@link gov.nist.oar.distrib.web web} package.
  */
 package gov.nist.oar.distrib.service;
 

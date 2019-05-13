@@ -20,14 +20,14 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * This class implements the functionalities defined in DataPackagingService.
@@ -47,32 +47,30 @@ public class DefaultDataPackagingService implements DataPackagingService {
 	// Default constructor
     }
 
+    /**
+     * Parameterized constructor for creating service.
+     * @param domains
+     * @param maxFileSize
+     * @param numOfFiles
+     */
     public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles) {
 	this.maxFileSize = maxFileSize;
 	this.numOfFiles = numOfFiles;
 	this.domains = domains;
     }
 
-    /*
-     * Wtite data in the zipoutput format.
-     * 
-     * @see
-     * gov.nist.oar.distrib.service.DataPackagingService#getZipPackage(gov.nist.
-     * oar.distrib.web.FilePathUrl[], java.lang.String)
+    /**
+     * Get input request and return DataPackager.
      */
     @Override
-    public void getBundledZipPackage(BundleRequest br, ZipOutputStream zout)
-	    throws DistributionException, IOException, InputLimitException {
-	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
-	dp.validateBundleRequest();
-	dp.writeData(zout);
+    public DefaultDataPackager getDataPackager(BundleRequest br)
+	    throws DistributionException {
+	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
     }
 
     /*
      * ValidateBundled request, this includes checking input for json
      * validation, checking duplicates and checking size and files count.
-     * 
-     * @see gov.nist.oar.distrib.service.DataPackagingService#validateRequest()
      */
     @Override
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {
@@ -84,7 +82,9 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * Get the Plan for downloading requested data
      */
     @Override
-    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName) throws JsonProcessingException {
+    public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
+        throws DistributionException
+    {
 	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName);
 	return dwnldPlanner.getBundleDownloadPlan();
     }

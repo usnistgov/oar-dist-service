@@ -37,9 +37,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.objects.BundleDownloadPlan;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -173,12 +173,48 @@ public class BundleDownloadPlanControllerTest {
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
-	System.out.println("Response :"+responsetest);
-	assertEquals("complete", testResponse.getStatus());
+	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
+	String message = "No Files added in the Bundle, there are problems accessing URLs.".trim();
+	assertEquals("Error", testResponse.getStatus());
 	assertEquals("_bundle", testResponse.getPostEachTo());
-	assertEquals(3,testResponse.getBundleNameFilePathUrl().length);
-	assertEquals("ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-003.json",
-		testResponse.getBundleNameFilePathUrl()[1].getIncludeFiles()[0].getFilePath());
+	assertEquals(message,testResponse.getMessages()[0].trim());
+
+    }
+    
+    @Test
+    public void testDownloadAllFiles3()
+	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+	FileRequest[] inputfileList = new FileRequest[3];
+	String val1 = "{\"filePath\":\"someid/path/file1\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val2 = "{\"filePath\":\"someid/path/file2\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";
+	String val3 = "{\"filePath\":\"someid/path/file3\",\"downloadUrl\":\"https://www.nist.gov/srdtest/test1.txt\"}";
+		    
+	ObjectMapper mapper = new ObjectMapper();
+	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
+	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
+	FileRequest testval3 = mapper.readValue(val3, FileRequest.class);
+	
+	inputfileList[0] = testval1;
+	inputfileList[1] = testval2;
+	inputfileList[2] = testval3;
+	
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+		.body(bFL);
+
+	ResponseEntity<String> response = websvc.exchange(request, String.class);
+
+	assertEquals(HttpStatus.OK, response.getStatusCode());
+	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+
+	ObjectMapper mapperResults = new ObjectMapper();
+	String responsetest = response.getBody();
+	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
+	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
+	String message = "Some URLs have problem accessing contents.".trim();
+	assertEquals("warnings", testResponse.getStatus());
+	assertEquals("_bundle", testResponse.getPostEachTo());
+	assertEquals(message,testResponse.getMessages()[0].trim());
 
     }
 }

@@ -10,7 +10,7 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 import static org.junit.Assert.assertEquals;
 
@@ -44,13 +44,13 @@ public class BundleDownloadPlanTest {
 	return new String[] { "Some files are not included.", "Domains are not allowed." };
     }
 
-    public NotIncludedFiles[] makeNotIncluded() {
-	NotIncludedFiles notIn = new NotIncludedFiles("/testPath/testFile",
+    public NotIncludedFile[] makeNotIncluded() {
+	NotIncludedFile notIn = new NotIncludedFile("/testPath/testFile",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license.pdf", "Not allowed domain.");
-	NotIncludedFiles notIn2 = new NotIncludedFiles("/testPath/testFile2",
+	NotIncludedFile notIn2 = new NotIncludedFile("/testPath/testFile2",
 		"https://s3.amazonaws.com/nist-midas-org/1894/license2.pdf", "Not allowed domain.");
 
-	return new NotIncludedFiles[] { notIn, notIn2 };
+	return new NotIncludedFile[] { notIn, notIn2 };
     }
 
     @Test
