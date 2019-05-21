@@ -40,85 +40,106 @@ public class ValidationHelper {
     protected static Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
 
     static int countTryUrl = 0;
+    static String location = "";
+    static int responseCode = 0;
+    static long length = 0;
 
     public ValidationHelper() {
 	// Default Consrtuctor
     }
 
     /**
-     * This method takes input URL If it is valid URL, HEAD request is created
-     * to get the response code and content length of the file. If URL server
-     * redirects, methods attempts 4 times to connect and get value otherwise
-     * set the contentLength to zero. If there is any other IO exception while
-     * connecting to URL it is caught and appropriate response code and
-     * information is sent back.
+     * This method takes input URL If it is valid URL it checks its headers and return the 
+     * validated url along with response code, content length. 
      * 
-     * @param url
-     *            URL to be validated
-     * @param domains
-     *            valida domains
+     * @param url     URL to be validated
+     * @param domains valida domains
      * @return UrlStatusLocation
+     * @throws MalformedURLException
      */
     public static URLStatusLocation getFileURLStatusSize(String url, String domains) {
-	boolean validURL = false;
-	long length = 0;
-	int responseCode = 0;
-	String location = "";
-	HttpURLConnection conn = null;
-	int allowedRedirects = 7;
-
 	try {
-	    validURL = ValidationHelper.isAllowedURL(url, domains);
-	    if (validURL) {
-		URL obj = new URL(url);
-		conn = (HttpURLConnection) obj.openConnection();
-		HttpURLConnection.setFollowRedirects(false);
-		conn.setConnectTimeout(10000);
-		conn.setReadTimeout(10000);
-		conn.setRequestMethod("HEAD");
-		length = conn.getContentLength();
-		responseCode = conn.getResponseCode();
-		if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
-		    location = conn.getHeaderField("Location");
-		    countTryUrl++;
-		    conn.disconnect();
-		    length = 0;
-		    getFileURLStatusSize(location, domains);
-		}
-		if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
-		    length = 0;
-		    countTryUrl = 0;
-
-		}
-
-		conn.disconnect();
-	    }
-	} catch (IOException exp) {
-	    logger.error(exp.getMessage());
-	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
-	    countTryUrl = 0;
-
-	} finally {
-	    if (conn != null)
-		conn.disconnect();
+	    boolean validURL = ValidationHelper.isAllowedURL(url, domains);
+	    if (validURL)
+		checkURLStatusLocationSize(url);
+	    return new URLStatusLocation(responseCode, location, url, length, validURL);
 	}
-
-	return new URLStatusLocation(responseCode, location, url, length, validURL);
+	catch (IOException e) {
+	    return new URLStatusLocation(responseCode, location, url, length, false);
+	}
 
     }
 
     /**
-     * Return true if a given URL matches one of the set of allowed URL
-     * patterns.
-     * 
+     * This method taken valid url input and then HEAD request is created to
+     * get the response code and content length of the file. If URL server
+     * redirects, methods attempts 7 times to connect and get value otherwise set
+     * the contentLength to zero. If there is any other IO exception while
+     * connecting to URL it is caught and response code and information
+     * is sent back.
      * @param url
-     *            the URL to test
-     * @param allowedUrls
-     *            a regular expression string for allowed URLs. Multiple URL
-     *            patterns can be concatonated with a pipe (|) character.
+     */
+    private static void checkURLStatusLocationSize(String url) {
+
+	HttpURLConnection conn = null;
+	int allowedRedirects = 7;
+
+	try {
+
+	    URL obj = new URL(url);
+	    conn = (HttpURLConnection) obj.openConnection();
+	    HttpURLConnection.setFollowRedirects(false);
+	    conn.setInstanceFollowRedirects(false);
+	    conn.setConnectTimeout(10000);
+	    conn.setReadTimeout(10000);
+	    conn.setRequestMethod("HEAD");
+	    responseCode = conn.getResponseCode();
+	    length = conn.getContentLength();
+	    countTryUrl++;
+
+	    if (countTryUrl >= 1 && responseCode == 200) {
+		location = url;
+		conn.disconnect();
+		return;
+	    }
+
+	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
+		location = conn.getHeaderField("Location");
+		countTryUrl++;
+		conn.disconnect();
+		length = 0;
+
+		checkURLStatusLocationSize(location);
+	    }
+	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
+		length = 0;
+		countTryUrl = 0;
+		location = url;
+		conn.disconnect();
+		return;
+	    }
+
+	} catch (IOException exp) {
+	    logger.error(exp.getMessage());
+	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
+	    countTryUrl = 0;
+	    location = url;
+	    responseCode = -1;
+	    length = 0;
+
+	}
+
+    }
+
+    /**
+     * Return true if a given URL matches one of the set of allowed URL patterns.
+     * 
+     * @param url         the URL to test
+     * @param allowedUrls a regular expression string for allowed URLs. Multiple URL
+     *                    patterns can be concatonated with a pipe (|) character.
      * @return boolean True if the URL matches one of the given patterns; false,
      *         otherwise
-     * @throws MalformedURLException  if the input is not a legal URL
+     * @throws MalformedURLException if the input is not a legal URL
      */
     public static boolean isAllowedURL(String url, String allowedUrls) throws MalformedURLException {
 	URL obj = new URL(url);
@@ -166,8 +187,7 @@ public class ValidationHelper {
      * This method helps remove duplicate object, It will check duplicate using
      * equals method
      * 
-     * @param inputfileList
-     *            input list of filepathurls provided by user.
+     * @param inputfileList input list of filepathurls provided by user.
      * @return Updated list.
      */
     public static FileRequest[] removeDuplicates(FileRequest[] inputfileList) {
@@ -214,7 +234,7 @@ public class ValidationHelper {
 	case 410:
 	    return "This file represented by given URL is no longer available on the server.";
 	default:
-	    return "There is an error accessing this file/URL.";
+	    return "There is an error accessing this file/URL from server.";
 	}
 
     }
@@ -256,16 +276,11 @@ class URLStatusLocation {
     /**
      * POJO constructor
      * 
-     * @param status
-     *            HttpStatus code return by URL in terms of response
-     * @param location
-     *            Redirect location returned by header
-     * @param requestedURL
-     *            URL to be validated and connected
-     * @param length
-     *            ContentLegth of file at the given URL location
-     * @param validURL
-     *            boolean representing URL from valid domain
+     * @param status       HttpStatus code return by URL in terms of response
+     * @param location     Redirect location returned by header
+     * @param requestedURL URL to be validated and connected
+     * @param length       ContentLegth of file at the given URL location
+     * @param validURL     boolean representing URL from valid domain
      */
     public URLStatusLocation(int status, String location, String requestedURL, long length, boolean validURL) {
 	this.status = status;
