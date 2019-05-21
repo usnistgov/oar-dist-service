@@ -65,6 +65,7 @@ public class ValidationHelper {
 	int responseCode = 0;
 	String location = "";
 	HttpURLConnection conn = null;
+	int allowedRedirects = 7;
 
 	try {
 	    validURL = ValidationHelper.isAllowedURL(url, domains);
@@ -77,14 +78,14 @@ public class ValidationHelper {
 		conn.setRequestMethod("HEAD");
 		length = conn.getContentLength();
 		responseCode = conn.getResponseCode();
-		if ((responseCode >= 300 && responseCode < 400) && countTryUrl < 4) {
+		if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
 		    location = conn.getHeaderField("Location");
 		    countTryUrl++;
 		    conn.disconnect();
 		    length = 0;
 		    getFileURLStatusSize(location, domains);
 		}
-		if ((responseCode >= 300 && responseCode < 400) && countTryUrl == 4) {
+		if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
 		    length = 0;
 		    countTryUrl = 0;
 

@@ -150,8 +150,13 @@ public class DownloadBundlePlanner {
 	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains);
 	long individualFileSize = uObj.getLength();
 	if (individualFileSize <= 0) {
+		String whyNotIncluded =  "File not added in package; ";
+		if(uObj.getStatus() >=300 && uObj.getStatus() <400)
+			whyNotIncluded += "There are multiple redirects for this URL.";
+		else
+			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
 	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
-		    "File not added in package; " + ValidationHelper.getStatusMessage(uObj.getStatus())));
+		     whyNotIncluded));
 	} else {
             if (individualFileSize >= this.mxFilesBundleSize) {
                 List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
