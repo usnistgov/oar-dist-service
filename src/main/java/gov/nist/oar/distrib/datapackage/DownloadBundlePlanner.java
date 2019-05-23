@@ -152,7 +152,7 @@ public class DownloadBundlePlanner {
 	if (individualFileSize <= 0) {
 		String whyNotIncluded =  "File not added in package; ";
 		if(uObj.getStatus() >=300 && uObj.getStatus() <400)
-			whyNotIncluded += "There are multiple redirects for this URL.";
+			whyNotIncluded += "There are too many redirects for this URL.";
 		else
 			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
 	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),

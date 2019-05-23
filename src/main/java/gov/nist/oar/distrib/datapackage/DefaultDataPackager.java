@@ -103,6 +103,7 @@ public class DefaultDataPackager implements DataPackager {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
+	    if(this.validateUrl(downloadurl)) {
 	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
 		try {
@@ -127,7 +128,7 @@ public class DefaultDataPackager implements DataPackager {
 		if (con != null)
 		    con.disconnect();
 	    }
-
+	    }
 	}
 
 	if (fileCount == 0) {
