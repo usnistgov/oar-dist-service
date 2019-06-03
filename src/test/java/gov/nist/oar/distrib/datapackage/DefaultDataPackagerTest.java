@@ -156,7 +156,7 @@ public class DefaultDataPackagerTest {
 	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoFilesAccesibleInPackageException.class);
+	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
     }
 
@@ -189,7 +189,7 @@ public class DefaultDataPackagerTest {
 	    while (entries.hasMoreElements()) {
 
 		ZipEntry entry = entries.nextElement();
-//		System.out.println("entryname:" + entry.getName());
+		System.out.println("entryname:" + entry.getName());
 		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
 		    count++;
 

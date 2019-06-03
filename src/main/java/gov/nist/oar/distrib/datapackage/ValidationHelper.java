@@ -124,7 +124,7 @@ public class ValidationHelper {
 	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
 	    countTryUrl = 0;
 	    location = url;
-	    responseCode = -1;
+	    responseCode = 0;
 	    length = 0;
 
 	}
