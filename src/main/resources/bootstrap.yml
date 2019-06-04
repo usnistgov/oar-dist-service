@@ -30,5 +30,5 @@ security:
      
 logging:
   file: distservice.log
-  path : /tmp/dist-service
+  path : /var/log/dist-service
   exception-conversion-word: '%wEx'
