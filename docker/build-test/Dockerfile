@@ -1,5 +1,9 @@
 FROM openjdk:8-jdk-slim-stretch
 
+# this is a hack due to a change in openjdk:8-jdk-slim-stretch; may
+# need to consider switching to a different base image
+RUN mkdir -p /usr/share/man/man1
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
                                             gnupg python python-pip python-virtualenv \
                                             make gcc curl maven
