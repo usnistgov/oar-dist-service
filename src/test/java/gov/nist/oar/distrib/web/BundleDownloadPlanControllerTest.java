@@ -142,8 +142,8 @@ public class BundleDownloadPlanControllerTest {
     public void testBundlePlanWithErrors()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
 	FileRequest[] ifileList = new FileRequest[2];
-	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://httpstat.us/301\"}";
-	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"http://httpstat.us/301\"}";
+	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
+	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
 	
 		    
 	ObjectMapper mapper = new ObjectMapper();
