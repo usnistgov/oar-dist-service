@@ -114,4 +114,29 @@ public class DownloadBundlePlannerTest {
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
 
     }
+    
+    @Test
+    public void getBundleDownloadPlan4Test()
+	        throws JsonParseException, JsonMappingException, IOException, DistributionException
+    {
+	FileRequest[] ifileList = new FileRequest[2];
+	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://httpstat.us/301\"}";
+	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"http://httpstat.us/301\"}";
+	
+		    
+	ObjectMapper mapper = new ObjectMapper();
+	FileRequest fileRequest1 = mapper.readValue(file1, FileRequest.class);
+	FileRequest fileRequest2 = mapper.readValue(file2, FileRequest.class);
+	
+	
+	ifileList[0] = fileRequest1;
+	ifileList[1] = fileRequest2;
+	BundleRequest bFL = new BundleRequest("testdownload", ifileList);
+	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov|httpstat.us",
+		"testdownload");
+	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
+	System.out.println("Bundle Plan:"+ bundlePlan.getStatus()+"\n"+bundlePlan.getNotIncluded()[0].getDownloadUrl());
+	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
+	assertEquals(bundlePlan.getStatus(), "Error");
+    }
 }

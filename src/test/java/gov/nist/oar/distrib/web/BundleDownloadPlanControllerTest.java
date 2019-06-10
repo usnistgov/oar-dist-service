@@ -50,9 +50,9 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=./src/test/resources",
+	"distrib.bagstore.location=${basedir}/src/test/resources",
 	"distrib.baseurl=http://localhost/od/ds",
-        "logging.path=./target/surefire-reports",
+        "logging.path=${basedir}/target/surefire-reports",
 	"distrib.packaging.maxpackagesize = 2000000",
         "distrib.packaging.maxfilecount = 2",
 	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us" })
@@ -92,7 +92,7 @@ public class BundleDownloadPlanControllerTest {
 
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
-	System.out.println("Response :"+responsetest);
+//	System.out.println("Response :"+responsetest);
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
 
 	assertEquals("warnings", testResponse.getStatus());
@@ -167,11 +167,11 @@ public class BundleDownloadPlanControllerTest {
 	ObjectMapper mapperResults = new ObjectMapper();
 	String respBody = newResponse.getBody();
 	BundleDownloadPlan bundleResponse = mapperResults.readValue(respBody, BundleDownloadPlan.class);
-	System.out.println(" Response :"+respBody);
+	System.out.println(" Response :"+respBody+ "\n Bundle Response"+bundleResponse.getStatus());
 	String message = "No Files added in the Bundle, there are problems accessing URLs.".trim();
-//	assertEquals("Error", bundleResponse.getStatus());
-//	assertEquals("_bundle", bundleResponse.getPostEachTo());
-//	assertEquals(message,bundleResponse.getMessages()[0].trim());
+	assertEquals("Error", bundleResponse.getStatus());
+	assertEquals("_bundle", bundleResponse.getPostEachTo());
+	assertEquals(message,bundleResponse.getMessages()[0].trim());
 
     }
     
@@ -204,7 +204,7 @@ public class BundleDownloadPlanControllerTest {
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
-	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
+//	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
 	String message = "Some URLs have problem accessing contents.".trim();
 	assertEquals("warnings", testResponse.getStatus());
 	assertEquals("_bundle", testResponse.getPostEachTo());

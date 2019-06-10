@@ -59,6 +59,7 @@ public class ValidationHelper {
      */
     public static URLStatusLocation getFileURLStatusSize(String url, String domains) {
 	try {
+	    countTryUrl = 0;
 	    boolean validURL = ValidationHelper.isAllowedURL(url, domains);
 	    if (validURL)
 		checkURLStatusLocationSize(url);
