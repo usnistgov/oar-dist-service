@@ -48,7 +48,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200000, 3,
-		"s3.amazonaws.com|project-open-data.cio.gov", "testdownload");
+		"s3.amazonaws.com|project-open-data.cio.gov", "testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "complete");
@@ -75,7 +75,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[2] = testval3;
 	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 2000000, 3, "s3.amazonaws.com|nist.gov",
-		"testdownload");
+		"testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "warnings");
@@ -103,7 +103,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[2] = testval3;
 	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov",
-		"testdownload");
+		"testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	System.out.println("Bundle Plan:"+ bundlePlan.getBundleNameFilePathUrl()[0].getBundleName());
 	BundleRequest[] test = bundlePlan.getBundleNameFilePathUrl();
@@ -133,7 +133,7 @@ public class DownloadBundlePlannerTest {
 	ifileList[1] = fileRequest2;
 	BundleRequest bFL = new BundleRequest("testdownload", ifileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov|httpstat.us",
-		"testdownload");
+		"testdownload",1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	System.out.println("Bundle Plan:"+ bundlePlan.getStatus()+"\n"+bundlePlan.getNotIncluded()[0].getDownloadUrl());
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");

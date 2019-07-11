@@ -60,6 +60,7 @@ public class DefaultDataPackagingServiceTest {
     long maxFileSize = 1000000;
     int numOfFiles = 100;
     String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+    int redirectURLTrials = 0;
     static BundleRequest bundleRequest;
 
     public static void createRequest() throws JsonParseException, JsonMappingException, IOException {
@@ -82,7 +83,7 @@ public class DefaultDataPackagingServiceTest {
 
     @Before
     public void setUp() {
-	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles);
+	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles, redirectURLTrials);
     }
 
     @Rule
@@ -162,7 +163,7 @@ public class DefaultDataPackagingServiceTest {
 	rUrls[0] = fileReq1;
 	rUrls[1] = fileReq2;
 	bRequest = new BundleRequest("testdatabundle", rUrls);
-	ddpkService = new DefaultDataPackagingService(domains, maxFSize, nOfFiles);
+	ddpkService = new DefaultDataPackagingService(domains, maxFSize, nOfFiles, redirectURLTrials);
 	Path path = Files.createTempFile("testdatabundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);
 	ZipOutputStream zos = new ZipOutputStream(os);

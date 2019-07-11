@@ -58,18 +58,21 @@ public class DownloadBundlePlanner {
     private long mxFilesBundleSize;
     private int mxBundledFilesCount;
     private String validdomains;
+    private int allowedRedirects;
+    private ValidationHelper validationHelper = new ValidationHelper();
 
     public DownloadBundlePlanner() {
 	// Default constructor
     }
 
     public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
-	    String bundleName) {
+	    String bundleName, int allowedRedirects) {
 	this.bundleRequest = inputjson;
 	this.mxFilesBundleSize = maxFileSize;
 	this.mxBundledFilesCount = numOfFiles;
 	this.validdomains = validdomains;
 	this.bundleName = bundleName;
+	this.allowedRedirects = allowedRedirects;
     }
 
     /**
@@ -147,7 +150,7 @@ public class DownloadBundlePlanner {
      */
     public void makeBundles(FileRequest jobject) {
 	bundledFilesCount++;
-	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains);
+	URLStatusLocation uObj = validationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains, this.allowedRedirects);
 	long individualFileSize = uObj.getLength();
 	if (individualFileSize <= 0) {
 		String whyNotIncluded =  "File not added in package; ";

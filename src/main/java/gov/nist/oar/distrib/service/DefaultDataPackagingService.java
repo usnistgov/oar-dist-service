@@ -39,7 +39,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
 
     long maxFileSize = 0;
     int numOfFiles = 0;
-
+    int allowedRedirects = 0;
     String domains;
     DownloadBundlePlanner dwnldPlanner;
 
@@ -53,10 +53,11 @@ public class DefaultDataPackagingService implements DataPackagingService {
      * @param maxFileSize
      * @param numOfFiles
      */
-    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles) {
+    public DefaultDataPackagingService(String domains, long maxFileSize, int numOfFiles, int allowedRedirects) {
 	this.maxFileSize = maxFileSize;
 	this.numOfFiles = numOfFiles;
 	this.domains = domains;
+	this.allowedRedirects = allowedRedirects;
     }
 
     /**
@@ -65,7 +66,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     @Override
     public DefaultDataPackager getDataPackager(BundleRequest br)
 	    throws DistributionException {
-	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
+	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
     }
 
     /*
@@ -74,7 +75,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {
-	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains);
+	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
 	dp.validateBundleRequest();
     }
 
@@ -85,7 +86,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
         throws DistributionException
     {
-	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName);
+	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects);
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 

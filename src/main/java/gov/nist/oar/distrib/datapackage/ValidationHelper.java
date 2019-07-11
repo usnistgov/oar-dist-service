@@ -39,51 +39,51 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 public class ValidationHelper {
     protected static Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
 
-    static int countTryUrl = 0;
+    int countTryUrl = 0;
     static String location = "";
     static int responseCode = 0;
     static long length = 0;
+    int allowedRedirects = 7;
 
     public ValidationHelper() {
 	// Default Consrtuctor
     }
 
     /**
-     * This method takes input URL If it is valid URL it checks its headers and return the 
-     * validated url along with response code, content length. 
+     * This method takes input URL If it is valid URL it checks its headers and
+     * return the validated url along with response code, content length.
      * 
      * @param url     URL to be validated
      * @param domains valida domains
      * @return UrlStatusLocation
      * @throws MalformedURLException
      */
-    public static URLStatusLocation getFileURLStatusSize(String url, String domains) {
+    public URLStatusLocation getFileURLStatusSize(String url, String domains, int allowedURLRedirects) {
 	try {
+	    allowedRedirects = allowedURLRedirects;
 	    countTryUrl = 0;
 	    boolean validURL = ValidationHelper.isAllowedURL(url, domains);
 	    if (validURL)
 		checkURLStatusLocationSize(url);
 	    return new URLStatusLocation(responseCode, location, url, length, validURL);
-	}
-	catch (IOException e) {
+	} catch (IOException e) {
 	    return new URLStatusLocation(responseCode, location, url, length, false);
 	}
 
     }
 
     /**
-     * This method taken valid url input and then HEAD request is created to
-     * get the response code and content length of the file. If URL server
-     * redirects, methods attempts 7 times to connect and get value otherwise set
-     * the contentLength to zero. If there is any other IO exception while
-     * connecting to URL it is caught and response code and information
-     * is sent back.
+     * This method taken valid url input and then HEAD request is created to get the
+     * response code and content length of the file. If URL server redirects,
+     * methods attempts 7 times to connect and get value otherwise set the
+     * contentLength to zero. If there is any other IO exception while connecting to
+     * URL it is caught and response code and information is sent back.
+     * 
      * @param url
      */
-    private static void checkURLStatusLocationSize(String url) {
+    private void checkURLStatusLocationSize(String url) {
 
 	HttpURLConnection conn = null;
-	int allowedRedirects = 7;
 
 	try {
 

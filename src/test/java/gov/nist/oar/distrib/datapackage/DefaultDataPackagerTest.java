@@ -55,6 +55,7 @@ public class DefaultDataPackagerTest {
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
     private static String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+    private static int redirectURLTrials = 1;
     private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
@@ -78,7 +79,7 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains,redirectURLTrials);
     }
 
     @After
@@ -156,7 +157,7 @@ public class DefaultDataPackagerTest {
 	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoContentInPackageException.class);
+	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
     }
 
@@ -168,7 +169,7 @@ public class DefaultDataPackagerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains,redirectURLTrials);
     }
 
     private void createBundleStream() throws IOException {
