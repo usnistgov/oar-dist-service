@@ -39,8 +39,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class BagUtils {
 
-    static Pattern bagname1re = Pattern.compile("^(\\w+)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
-    static Pattern bagname2re = Pattern.compile("^(\\w+)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname1re = Pattern.compile("^(\\w[\\w\\-]*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname2re = Pattern.compile("^(\\w[\\w\\-]*)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
     static Pattern dotdelim = Pattern.compile("\\.");
     static Pattern usdelim = Pattern.compile("_");
 

@@ -48,6 +48,7 @@ public class BagUtilsTest {
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.67.mbag10_22-13.tar.gz"));
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.67_3_199.mbag10_22-13.tar.gz"));
+        assertTrue(BagUtils.isLegalBagName("pdr19-1886.67_3_199.mbag10_22-13.tar.gz"));
         
         assertFalse(BagUtils.isLegalBagName("go.ober.mbag10_22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.mbag10.22-13.tar.gz"));
@@ -56,6 +57,7 @@ public class BagUtilsTest {
         //Test the names with bagversion
         assertFalse(BagUtils.isLegalBagName("go.ober.9.mbag10_22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.10_34.mbag10.22-13.tar.gz"));
+        assertFalse(BagUtils.isLegalBagName("-pdr19-1886.67_3_199.mbag10_22-13.tar.gz"));
         
         
     }
