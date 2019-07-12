@@ -327,8 +327,8 @@ public class BagUtils {
         while (true) {
             // loop through possible matching version strings
             vernamere = (version.length() == 0)
-                           ? Pattern.compile("^(\\w+)\\.mbag")
-                           : Pattern.compile("^(\\w+)\\."+version+"\\.");
+                           ? Pattern.compile("^(\\w[\\w\\-]*)\\.mbag")
+                           : Pattern.compile("^(\\w[\\w\\-]*)\\."+version+"\\.");
             for (String name : bagnames) {
                 if (vernamere.matcher(name).find())
                     out.add(name);
