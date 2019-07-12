@@ -53,7 +53,8 @@ public class FilesystemLongTermStorageTest {
         // setup a little repo
         String[] bases = {
             "mds013u4g.1_0_0.mbag0_4-", "mds013u4g.1_0_1.mbag0_4-", "mds013u4g.1_1.mbag0_4-",
-            "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-"
+            "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-",
+            "mds2-1865.2_1.mbag0_4-"
         };
         Path f = null;
         int j = 0;
@@ -177,7 +178,7 @@ public class FilesystemLongTermStorageTest {
     } 
 
     @Test
-    public void testFileHeadbag() throws FileNotFoundException, DistributionException {
+    public void testFindHeadbag() throws FileNotFoundException, DistributionException {
         LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
 
         assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", fStorage.findHeadBagFor("mds088kd2")); 
@@ -190,6 +191,7 @@ public class FilesystemLongTermStorageTest {
         assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", fStorage.findHeadBagFor("mds088kd2", "1.0.1")); 
         assertEquals("mds088kd2.mbag0_3-14.7z", fStorage.findHeadBagFor("mds088kd2", "0")); 
         assertEquals("mds088kd2.mbag0_3-14.7z", fStorage.findHeadBagFor("mds088kd2", "1")); 
+        assertEquals("mds2-1865.2_1.mbag0_4-20.7z", fStorage.findHeadBagFor("mds2-1865", "2.1")); 
 
         try {
             String bagname = fStorage.findHeadBagFor("mds013u4g9");
