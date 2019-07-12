@@ -79,7 +79,7 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains,redirectURLTrials);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
     }
 
     @After
@@ -152,12 +152,12 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testNoContentInPackageException() throws IOException, DistributionException {
+    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
 	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoContentInPackageException.class);
+	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
     }
 
@@ -169,7 +169,7 @@ public class DefaultDataPackagerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains,redirectURLTrials);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
     }
 
     private void createBundleStream() throws IOException {
