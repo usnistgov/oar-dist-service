@@ -54,7 +54,7 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
-    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
     private static int redirectURLTrials = 1;
     private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
@@ -119,7 +119,7 @@ public class DefaultDataPackagerTest {
     @Test
     public void testGetData() throws DistributionException, MalformedURLException, IOException, InputLimitException {
 	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/404\"}";
 	createBundleRequest();
 	int countBefore = 2;
 	this.createBundleStream();
@@ -152,12 +152,12 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
-	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile1.txt\"}";
-	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
+    public void testNoContentInPackageException() throws IOException, DistributionException {
+	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoFilesAccesibleInPackageException.class);
+	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
     }
 
