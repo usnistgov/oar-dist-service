@@ -48,6 +48,7 @@ public class BagUtilsTest {
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.zip"));
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.67.mbag10_22-13.tar.gz"));
         assertTrue(BagUtils.isLegalBagName("6376FC675D0E1D77E0531A5706812BC21886.67_3_199.mbag10_22-13.tar.gz"));
+        assertTrue(BagUtils.isLegalBagName("pdr19-1886.67_3_199.mbag10_22-13.tar.gz"));
         
         assertFalse(BagUtils.isLegalBagName("go.ober.mbag10_22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.mbag10.22-13.tar.gz"));
@@ -56,6 +57,7 @@ public class BagUtilsTest {
         //Test the names with bagversion
         assertFalse(BagUtils.isLegalBagName("go.ober.9.mbag10_22-13.tar.gz"));
         assertFalse(BagUtils.isLegalBagName("goober.10_34.mbag10.22-13.tar.gz"));
+        assertFalse(BagUtils.isLegalBagName("-pdr19-1886.67_3_199.mbag10_22-13.tar.gz"));
         
         
     }
@@ -283,6 +285,62 @@ public class BagUtilsTest {
 
         mtchd = BagUtils.selectVersion(names, "3.1");
         assertEquals(0, mtchd.size());
-    }    
+    }
+    
+    @Test
+    public void testSelectVersionDash() {
+        ArrayList<String> names = new ArrayList<String>(8);
+        names.add("go-ober.mbag0_2-0");
+        names.add("go-ober.0_1.mbag0_2-0");
+        names.add("go-ober.0_1.mbag0_2-1");
+        names.add("go-ober.2.mbag0_2-1");
+        names.add("go-ober.3_1_15.mbag0_2-1");
+        names.add("go-ober.3_1_15.mbag0_2-2");
+        names.add("go-ober.3_1_15.mbag0_4-3");
+        names.add("go-ober.4_0.mbag0_2-1");
+
+        List<String> mtchd = BagUtils.selectVersion(names, "0.1");
+        assertTrue("Failed to match a version: 0.1", mtchd.size() > 0);
+        assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
+        assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
+        assertEquals(2, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "0_1");
+        assertTrue("Failed to match a version: 0_1", mtchd.size() > 0);
+        assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
+        assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
+        assertEquals(2, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "0.1.0");
+        assertTrue("Failed to match a version: 0.1.0", mtchd.size() > 0);
+        assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
+        assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
+        assertEquals(2, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "2.0.0");
+        assertTrue("Failed to match a version: 2.0.0", mtchd.size() > 0);
+        assertEquals("go-ober.2.mbag0_2-1", mtchd.get(0));
+        assertEquals(1, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "0");
+        assertTrue("Failed to match a the unspecified version: (0)", mtchd.size() > 0);
+        assertEquals("go-ober.mbag0_2-0", mtchd.get(0));
+        assertEquals(1, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "1");
+        assertTrue("Failed to match a version: 1", mtchd.size() > 0);
+        assertEquals("go-ober.mbag0_2-0", mtchd.get(0));
+        assertEquals(1, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "3.1.15");
+        assertTrue("Failed to match a version: 3.1.15", mtchd.size() > 0);
+        assertEquals("go-ober.3_1_15.mbag0_2-1", mtchd.get(0));
+        assertEquals("go-ober.3_1_15.mbag0_2-2", mtchd.get(1));
+        assertEquals("go-ober.3_1_15.mbag0_4-3", mtchd.get(2));
+        assertEquals(3, mtchd.size());
+
+        mtchd = BagUtils.selectVersion(names, "3.1");
+        assertEquals("Matched a non-existent version", 0, mtchd.size());
+    }
 }
 

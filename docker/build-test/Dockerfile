@@ -1,5 +1,8 @@
 FROM openjdk:8-jdk-slim-stretch
 
+# a hack that gets around an installation problem with update-alternatives, openjdk-8-jdk-headless
+RUN mkdir -p /usr/share/man/man1
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
                                             gnupg python python-pip python-virtualenv \
                                             make gcc curl maven
