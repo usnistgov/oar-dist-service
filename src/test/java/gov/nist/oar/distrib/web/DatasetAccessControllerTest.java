@@ -236,6 +236,17 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
+    public void testDownloadFileViaARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/1212/mds1491/trial1.json",
+                                                      HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertEquals(69, resp.getBody().length());
+    }
+
+    @Test
     public void testDownloadFileMissingDSID() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491.json",
@@ -346,6 +357,28 @@ public class DatasetAccessControllerTest {
                                                       HttpMethod.HEAD, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
+    }
+
+    @Test
+    public void testDownloadFileInfoViaARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/8888/mds1491/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
+    }
+
+    @Test
+    public void testDownloadFileInfoViaBadARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/mds1491/goob/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertNull(resp.getBody());
     }

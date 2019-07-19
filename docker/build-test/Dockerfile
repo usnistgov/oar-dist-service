@@ -1,7 +1,7 @@
 FROM openjdk:8-jdk-slim-stretch
 
-# this is a hack due to a change in openjdk:8-jdk-slim-stretch; may
-# need to consider switching to a different base image
+# a hack that gets around an installation problem with update-alternatives, openjdk-8-jdk-headless
+
 RUN mkdir -p /usr/share/man/man1
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
