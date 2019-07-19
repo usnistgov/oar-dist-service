@@ -39,11 +39,6 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 public class ValidationHelper {
     protected static Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
 
-//    static int countTryUrl = 0;
-//    static String location = "";
-//    static int responseCode = 0;
-//    static long length = 0;
-//     static int allowedRedirects = 7;
 
     public ValidationHelper() {
 	// Default Consrtuctor
@@ -101,12 +96,8 @@ public class ValidationHelper {
 	    String location = conn.getHeaderField("Location");
 	    
 
-	    if ((countTryUrl >= 1 && responseCode == 200) ||  ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects)){
-//		location = url;
+	    if ((countTryUrl >= 1 && responseCode == 200) ||  ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects))
 		conn.disconnect();
-		//return new URLStatusLocation(responseCode, location, url, length, true);
-		
-	    }
 
 	    else if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
 		url = conn.getHeaderField("Location");
@@ -116,22 +107,12 @@ public class ValidationHelper {
 
 		return checkURLStatusLocationSize(url, countTryUrl, allowedRedirects);
 	    }
-//	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
-////		length = 0;
-////		countTryUrl = 0;
-////		location = url;
-//		conn.disconnect();
-//		return new URLStatusLocation(responseCode, location, url, length, true);
-//	    }
+
 	    return new URLStatusLocation(responseCode, location, url, length, true);
 
 	} catch (IOException exp) {
 	    logger.error(exp.getMessage());
 	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
-//	    countTryUrl = 0;
-//	    location = url;
-//	    responseCode = 0;
-//	    length = 0;
 	    return new URLStatusLocation(0, url, url, 0, true);
 	}
 

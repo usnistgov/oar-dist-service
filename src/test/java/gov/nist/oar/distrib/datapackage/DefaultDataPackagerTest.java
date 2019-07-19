@@ -152,12 +152,12 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testNoContentInPackageException() throws IOException, DistributionException {
+    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
 	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoContentInPackageException.class);
+	exception.expect(NoFilesAccesibleInPackageException.class);
 	dp.getData(zos);
     }
 
