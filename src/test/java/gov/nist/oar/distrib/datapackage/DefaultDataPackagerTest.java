@@ -142,12 +142,12 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testErrorUrls() throws IOException, DistributionException {
-	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile.json\"}";
-	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
+    public void testNoContentInPackageException() throws IOException, DistributionException {
+	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile.json\"}";
+	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile2.json\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoFilesAccesibleInPackageException.class);
+	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
     }
 
