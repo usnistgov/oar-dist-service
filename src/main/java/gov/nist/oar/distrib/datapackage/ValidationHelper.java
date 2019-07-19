@@ -39,11 +39,11 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 public class ValidationHelper {
     protected static Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
 
-    int countTryUrl = 0;
-    static String location = "";
-    static int responseCode = 0;
-    static long length = 0;
-    int allowedRedirects = 7;
+//    static int countTryUrl = 0;
+//    static String location = "";
+//    static int responseCode = 0;
+//    static long length = 0;
+//     static int allowedRedirects = 7;
 
     public ValidationHelper() {
 	// Default Consrtuctor
@@ -58,16 +58,17 @@ public class ValidationHelper {
      * @return UrlStatusLocation
      * @throws MalformedURLException
      */
-    public URLStatusLocation getFileURLStatusSize(String url, String domains, int allowedURLRedirects) {
+    public static URLStatusLocation getFileURLStatusSize(String url, String domains, int allowedURLRedirects) {
 	try {
-	    allowedRedirects = allowedURLRedirects;
-	    countTryUrl = 0;
+	    int allowedRedirects = allowedURLRedirects;
+	    int countTryUrl = 0;
 	    boolean validURL = ValidationHelper.isAllowedURL(url, domains);
 	    if (validURL)
-		checkURLStatusLocationSize(url);
-	    return new URLStatusLocation(responseCode, location, url, length, validURL);
+	      return checkURLStatusLocationSize(url, countTryUrl, allowedRedirects);
+	    
+	    return new URLStatusLocation(0, url, url, 0, false);
 	} catch (IOException e) {
-	    return new URLStatusLocation(responseCode, location, url, length, false);
+	    return new URLStatusLocation(0, url, url, 0, false);
 	}
 
     }
@@ -81,7 +82,7 @@ public class ValidationHelper {
      * 
      * @param url
      */
-    private void checkURLStatusLocationSize(String url) {
+    private static URLStatusLocation checkURLStatusLocationSize(String url, int countTryUrl,int allowedRedirects) {
 
 	HttpURLConnection conn = null;
 
@@ -94,40 +95,44 @@ public class ValidationHelper {
 	    conn.setConnectTimeout(10000);
 	    conn.setReadTimeout(10000);
 	    conn.setRequestMethod("HEAD");
-	    responseCode = conn.getResponseCode();
-	    length = conn.getContentLength();
+	    int responseCode = conn.getResponseCode();
+	    long length = conn.getContentLength();
 	    countTryUrl++;
+	    String location = conn.getHeaderField("Location");
+	    
 
-	    if (countTryUrl >= 1 && responseCode == 200) {
-		location = url;
+	    if ((countTryUrl >= 1 && responseCode == 200) ||  ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects)){
+//		location = url;
 		conn.disconnect();
-		return;
+		//return new URLStatusLocation(responseCode, location, url, length, true);
+		
 	    }
 
-	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
-		location = conn.getHeaderField("Location");
+	    else if ((responseCode >= 300 && responseCode < 400) && countTryUrl < allowedRedirects) {
+		url = conn.getHeaderField("Location");
 		countTryUrl++;
 		conn.disconnect();
 		length = 0;
 
-		checkURLStatusLocationSize(location);
+		return checkURLStatusLocationSize(url, countTryUrl, allowedRedirects);
 	    }
-	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
-		length = 0;
-		countTryUrl = 0;
-		location = url;
-		conn.disconnect();
-		return;
-	    }
+//	    if ((responseCode >= 300 && responseCode < 400) && countTryUrl == allowedRedirects) {
+////		length = 0;
+////		countTryUrl = 0;
+////		location = url;
+//		conn.disconnect();
+//		return new URLStatusLocation(responseCode, location, url, length, true);
+//	    }
+	    return new URLStatusLocation(responseCode, location, url, length, true);
 
 	} catch (IOException exp) {
 	    logger.error(exp.getMessage());
 	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
-	    countTryUrl = 0;
-	    location = url;
-	    responseCode = 0;
-	    length = 0;
-
+//	    countTryUrl = 0;
+//	    location = url;
+//	    responseCode = 0;
+//	    length = 0;
+	    return new URLStatusLocation(0, url, url, 0, true);
 	}
 
     }

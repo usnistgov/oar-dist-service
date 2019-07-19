@@ -133,7 +133,7 @@ public class DownloadBundlePlannerTest {
 	ifileList[1] = fileRequest2;
 	BundleRequest bFL = new BundleRequest("testdownload", ifileList);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov|httpstat.us",
-		"testdownload",1);
+		"testdownload",7);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	System.out.println("Bundle Plan:"+ bundlePlan.getStatus()+"\n"+bundlePlan.getNotIncluded()[0].getDownloadUrl());
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");

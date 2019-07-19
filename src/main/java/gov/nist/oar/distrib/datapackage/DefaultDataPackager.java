@@ -345,7 +345,7 @@ public class DefaultDataPackager implements DataPackager {
 	    long totalSize = 0;
 
 	    for (int i = 0; i < downloadurls.size(); i++) {
-		URLStatusLocation uLoc = validationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains, this.allowedRedirects);
+		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains, this.allowedRedirects);
 		listUrlsStatusSize.add(uLoc);
 		totalSize += uLoc.getLength();
 	    }
