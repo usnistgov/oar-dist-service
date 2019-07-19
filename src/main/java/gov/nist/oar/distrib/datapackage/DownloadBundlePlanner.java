@@ -58,18 +58,21 @@ public class DownloadBundlePlanner {
     private long mxFilesBundleSize;
     private int mxBundledFilesCount;
     private String validdomains;
+    private int allowedRedirects;
+    private ValidationHelper validationHelper = new ValidationHelper();
 
     public DownloadBundlePlanner() {
 	// Default constructor
     }
 
     public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
-	    String bundleName) {
+	    String bundleName, int allowedRedirects) {
 	this.bundleRequest = inputjson;
 	this.mxFilesBundleSize = maxFileSize;
 	this.mxBundledFilesCount = numOfFiles;
 	this.validdomains = validdomains;
 	this.bundleName = bundleName;
+	this.allowedRedirects = allowedRedirects;
     }
 
     /**
@@ -147,11 +150,22 @@ public class DownloadBundlePlanner {
      */
     public void makeBundles(FileRequest jobject) {
 	bundledFilesCount++;
-	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains);
+	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains, this.allowedRedirects);
 	long individualFileSize = uObj.getLength();
-	if (individualFileSize <= 0) {
+	String whyNotIncluded =  "File not added in package; ";
+	if(uObj.getStatus() >=300 && uObj.getStatus() <400) {
+	    whyNotIncluded += "There are too many redirects for this URL.";
 	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
-		    "File not added in package; " + ValidationHelper.getStatusMessage(uObj.getStatus())));
+		     whyNotIncluded));
+	}
+	else if (individualFileSize <= 0) {
+//		String whyNotIncluded =  "File not added in package; ";
+//		if(uObj.getStatus() >=300 && uObj.getStatus() <400)
+//			whyNotIncluded += "There are too many redirects for this URL.";
+//		else
+	    whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
+	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
+		     whyNotIncluded));
 	} else {
             if (individualFileSize >= this.mxFilesBundleSize) {
                 List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();

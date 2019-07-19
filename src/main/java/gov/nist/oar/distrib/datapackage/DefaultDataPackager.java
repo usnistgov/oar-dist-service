@@ -52,6 +52,7 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
+    private int allowedRedirects;
 
     private int fileCount;
     private StringBuilder bundlelogfile = new StringBuilder("");
@@ -60,6 +61,7 @@ public class DefaultDataPackager implements DataPackager {
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
     private long totalRequestedPackageSize = -1;
     private int requestValidity = 0;
+    private ValidationHelper validationHelper = new ValidationHelper();
 
     public DefaultDataPackager() {
 	// Default Constructor
@@ -75,11 +77,12 @@ public class DefaultDataPackager implements DataPackager {
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains) {
+    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains, int allowedRedirects) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
 	this.domains = domains;
+	this.allowedRedirects = allowedRedirects;
     }
 
     /***
@@ -103,6 +106,7 @@ public class DefaultDataPackager implements DataPackager {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
+	    if(this.validateUrl(downloadurl)) {
 	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
 		try {
@@ -127,7 +131,7 @@ public class DefaultDataPackager implements DataPackager {
 		if (con != null)
 		    con.disconnect();
 	    }
-
+	    }
 	}
 
 	if (fileCount == 0) {
@@ -341,7 +345,7 @@ public class DefaultDataPackager implements DataPackager {
 	    long totalSize = 0;
 
 	    for (int i = 0; i < downloadurls.size(); i++) {
-		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains);
+		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains, this.allowedRedirects);
 		listUrlsStatusSize.add(uLoc);
 		totalSize += uLoc.getLength();
 	    }

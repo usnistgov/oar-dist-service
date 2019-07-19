@@ -55,9 +55,9 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
         "logging.path=${basedir}/target/surefire-reports",
 	"distrib.packaging.maxpackagesize = 2000000",
         "distrib.packaging.maxfilecount = 2",
-	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas" })
+	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us" })
 public class BundleDownloadPlanControllerTest {
-    Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
+    Logger logger = LoggerFactory.getLogger(BundleDownloadPlanControllerTest.class);
 
     @LocalServerPort
     int port;
@@ -70,7 +70,7 @@ public class BundleDownloadPlanControllerTest {
     }
 
     @Test
-    public void testDownloadAllFiles()
+    public void testBundlePlanWithWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -81,7 +81,7 @@ public class BundleDownloadPlanControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -92,7 +92,7 @@ public class BundleDownloadPlanControllerTest {
 
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
-	System.out.println("Response :"+responsetest);
+//	System.out.println("Response :"+responsetest);
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
 
 	assertEquals("warnings", testResponse.getStatus());
@@ -104,7 +104,7 @@ public class BundleDownloadPlanControllerTest {
     }
 
     @Test
-    public void testDownloadAllFilesException()
+    public void testBundlePlanWithExceptions()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"<html>/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -119,7 +119,7 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -139,50 +139,44 @@ public class BundleDownloadPlanControllerTest {
     
     
     @Test
-    public void testDownloadAllFiles2()
+    public void testBundlePlanWithErrors()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
-	FileRequest[] inputfileList = new FileRequest[5];
-	String val1 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
-	String val2 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";
-	String val3 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-003.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-003.json\"}";
-	String val4 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-004.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-004.json\"}";
-	String val5 = "{\"filePath\":\"ECBCC1C1301D2ED9E04306570681B10735/srd13_Al-005.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-005.json\"}";
+	FileRequest[] ifileList = new FileRequest[2];
+	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
+	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
+	
 		    
 	ObjectMapper mapper = new ObjectMapper();
-	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
-	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
-	FileRequest testval3 = mapper.readValue(val3, FileRequest.class);
-	FileRequest testval4 = mapper.readValue(val4, FileRequest.class);
-	FileRequest testval5 = mapper.readValue(val5, FileRequest.class);
+	FileRequest fileRequest1 = mapper.readValue(file1, FileRequest.class);
+	FileRequest fileRequest2 = mapper.readValue(file2, FileRequest.class);
 	
-	inputfileList[0] = testval1;
-	inputfileList[1] = testval2;
-	inputfileList[2] = testval3;
-	inputfileList[3] = testval4;
-	inputfileList[4] = testval5;
 	
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
-		.body(bFL);
+	ifileList[0] = fileRequest1;
+	ifileList[1] = fileRequest2;
+	
+	
+	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList);
+	RequestEntity<BundleRequest> newRequest = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+		.body(bundleRequest);
 
-	ResponseEntity<String> response = websvc.exchange(request, String.class);
+	ResponseEntity<String> newResponse = websvc.exchange(newRequest, String.class);
 
-	assertEquals(HttpStatus.OK, response.getStatusCode());
-	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+	assertEquals(HttpStatus.OK, newResponse.getStatusCode());
+	assertTrue(newResponse.getHeaders().getFirst("Content-Type").startsWith("application/json"));
 
 	ObjectMapper mapperResults = new ObjectMapper();
-	String responsetest = response.getBody();
-	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
-	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
+	String respBody = newResponse.getBody();
+	BundleDownloadPlan bundleResponse = mapperResults.readValue(respBody, BundleDownloadPlan.class);
+	System.out.println(" Response :"+respBody+ "\n Bundle Response"+bundleResponse.getStatus());
 	String message = "No Files added in the Bundle, there are problems accessing URLs.".trim();
-	assertEquals("Error", testResponse.getStatus());
-	assertEquals("_bundle", testResponse.getPostEachTo());
-	assertEquals(message,testResponse.getMessages()[0].trim());
+	assertEquals("Error", bundleResponse.getStatus());
+	assertEquals("_bundle", bundleResponse.getPostEachTo());
+	assertEquals(message,bundleResponse.getMessages()[0].trim());
 
     }
     
     @Test
-    public void testDownloadAllFiles3()
+    public void testBundlePlanWithNewWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"someid/path/file1\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -198,7 +192,7 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -210,7 +204,7 @@ public class BundleDownloadPlanControllerTest {
 	ObjectMapper mapperResults = new ObjectMapper();
 	String responsetest = response.getBody();
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
-	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
+//	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
 	String message = "Some URLs have problem accessing contents.".trim();
 	assertEquals("warnings", testResponse.getStatus());
 	assertEquals("_bundle", testResponse.getPostEachTo());

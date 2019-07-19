@@ -53,8 +53,8 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = { "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources", "distrib.baseurl=http://localhost/od/ds",
-	"logging.path=${basedir}/target/surefire-reports", "distrib.packaging.maxpackagesize = 100000",
+	"distrib.bagstore.location=./src/test/resources", "distrib.baseurl=http://localhost/od/ds",
+	"logging.path=./target/surefire-reports", "distrib.packaging.maxpackagesize = 100000",
 	"distrib.packaging.maxfilecount = 2", "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
 	// "logging.level.org.springframework.web=DEBUG"
 })
@@ -84,7 +84,7 @@ public class DataBundleAccessControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
@@ -113,7 +113,7 @@ public class DataBundleAccessControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-2", inputfileList);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);

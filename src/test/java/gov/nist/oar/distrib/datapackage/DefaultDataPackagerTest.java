@@ -54,7 +54,8 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
-    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas";
+    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
+    private static int redirectURLTrials = 1;
     private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
@@ -78,7 +79,7 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
     }
 
     @After
@@ -118,7 +119,7 @@ public class DefaultDataPackagerTest {
     @Test
     public void testGetData() throws DistributionException, MalformedURLException, IOException, InputLimitException {
 	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/404\"}";
 	createBundleRequest();
 	int countBefore = 2;
 	this.createBundleStream();
@@ -141,19 +142,19 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testErrorUrls() throws IOException, DistributionException {
-	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile.json\"}";
-	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/testfile2.json\"}";
+    public void testNoContentInPackageException() throws IOException, DistributionException {
+	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile.json\"}";
+	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile2.json\"}";
 	createBundleRequest();
 	this.createBundleStream();
-	exception.expect(NoFilesAccesibleInPackageException.class);
+	exception.expect(NoContentInPackageException.class);
 	dp.getData(zos);
     }
 
     @Test
     public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
-	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile1.txt\"}";
-	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://data.nist.gov/od/ds/testfile2.txt\"}";
+	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
 	createBundleRequest();
 	this.createBundleStream();
 	exception.expect(NoFilesAccesibleInPackageException.class);
@@ -168,7 +169,7 @@ public class DefaultDataPackagerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
     }
 
     private void createBundleStream() throws IOException {
@@ -189,7 +190,7 @@ public class DefaultDataPackagerTest {
 	    while (entries.hasMoreElements()) {
 
 		ZipEntry entry = entries.nextElement();
-//		System.out.println("entryname:" + entry.getName());
+		System.out.println("entryname:" + entry.getName());
 		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
 		    count++;
 

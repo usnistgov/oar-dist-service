@@ -49,14 +49,14 @@ public class ValidationHelperTest {
 
     @Test
     public void testGetUrlStatus() throws IOException {
-	String domains = "nist.gov|s3.amazonaws.com/nist-midas";
-	String testurlError = "https://data.nist.gov/od/ds/69BEF4C29F700451E053B357068186906918/ngc0055%2B3.con.fits";
+	String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
+	String testurlError = "http://httpstat.us/404";
 	String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";
-
-	URLStatusLocation urlLoc = ValidationHelper.getFileURLStatusSize(testurlError, domains);
+//	ValidationHelper validationHelper = new ValidationHelper();
+	URLStatusLocation urlLoc = ValidationHelper.getFileURLStatusSize(testurlError, domains,1);
 	assertEquals(urlLoc.getStatus(), 404);
 
-	urlLoc = ValidationHelper.getFileURLStatusSize(testUrlRedirect, domains);
+	urlLoc = ValidationHelper.getFileURLStatusSize(testUrlRedirect, domains,1);
 	assertEquals(urlLoc.getStatus(), 301);
 
     }
