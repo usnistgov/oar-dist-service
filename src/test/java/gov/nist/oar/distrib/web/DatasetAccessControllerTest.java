@@ -236,6 +236,39 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
+    public void testDownloadFileViaARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/1212/mds1491/trial1.json",
+                                                      HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertEquals(69, resp.getBody().length());
+    }
+
+    @Test
+    public void testDownloadFileMissingDSID() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491.json",
+                                                      HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491.json\"," +
+                                 "status:404,message:\"Resource ID not found\",method:GET}",
+                                resp.getBody(), true);
+
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/", HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        JSONAssert.assertEquals("{requestURL:\"/od/ds/mds1491/\"," +
+                                "status:404,message:\"File not found in requested dataset\",method:GET}",
+                                resp.getBody(), true);
+    }
+
+    @Test
     public void testDownloadFileBadInp() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/goober/trial1.json",
@@ -329,6 +362,28 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
+    public void testDownloadFileInfoViaARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/8888/mds1491/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
+    }
+
+    @Test
+    public void testDownloadFileInfoViaBadARK() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/mds1491/goob/trial1.json",
+                                                      HttpMethod.HEAD, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNull(resp.getBody());
+    }
+
+    @Test
     public void testBadDatasetIDPattern() {
         assertTrue(DatasetAccessController.baddsid.matcher("goober gurn").find());
         assertTrue(DatasetAccessController.baddsid.matcher("goober\tgurn").find());
@@ -341,4 +396,16 @@ public class DatasetAccessControllerTest {
         assertTrue(DatasetAccessController.badpath.matcher("goober/../../../gurn").find());
         assertFalse(DatasetAccessController.badpath.matcher("goober..gurn").find());
     }
+
+    /*
+     * see comment for DatasetAccessController.testErrorHandling()
+     *
+    @Test
+    public void testIllegalStateExceptionHndling() {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_error/goob",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getStatusCode());
+    }
+     */
 }

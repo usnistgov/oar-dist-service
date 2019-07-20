@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,19 +28,20 @@ import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import gov.nist.oar.distrib.DataPackager;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * DefaultDataPackager implements DataPackager interface and gives a default
  * functionality of downloading data from provided list of data urls. This class
  * processes request and validate the requested information. It checks if there
- * are any duplicates in the requested list of files. The requested list of
- * files is in JSON[] format. Class also checks the allowed size and allowed
- * number of files.
+ * are any duplicates in the requested list of files and if the requested list
+ * of files is in JSON[] format. Class also checks the allowed size and allowed
+ * number of files per package.
  * 
  * @author Deoyani Nandrekar-Heinis
  */
@@ -50,12 +52,16 @@ public class DefaultDataPackager implements DataPackager {
     private FileRequest[] inputfileList;
     private BundleRequest bundleRequest;
     private String domains;
-    StringBuilder bundlelogfile = new StringBuilder("");
-    StringBuilder bundlelogError = new StringBuilder("");
-    int filecount = 0;
-    int tryAccessUrl;
+    private int allowedRedirects;
 
+    private int fileCount;
+    private StringBuilder bundlelogfile = new StringBuilder("");
+    private StringBuilder bundlelogError = new StringBuilder("");
+    private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
+    private long totalRequestedPackageSize = -1;
+    private int requestValidity = 0;
+    private ValidationHelper validationHelper = new ValidationHelper();
 
     public DefaultDataPackager() {
 	// Default Constructor
@@ -65,46 +71,18 @@ public class DefaultDataPackager implements DataPackager {
      * Construct input parameters to be used within the class
      * 
      * @param inputjson
+     *            requested Bundle
      * @param maxFileSize
      *            total file size allowed to download
      * @param numOfFiles
      *            total number of files allowed to download
      */
-    public DefaultDataPackager(FileRequest[] inputjson, long maxFileSize, int numOfFiles) {
-	this.inputfileList = inputjson;
-	this.mxFileSize = maxFileSize;
-	this.mxFilesCount = numOfFiles;
-    }
-
-    /**
-     * Construct input parameters to be used within the class
-     * 
-     * @param inputjson
-     * @param maxFileSize
-     *            total file size allowed to download
-     * @param numOfFiles
-     *            total number of files allowed to download
-     */
-    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles) {
-	this.bundleRequest = inputjson;
-	this.mxFileSize = maxFileSize;
-	this.mxFilesCount = numOfFiles;
-    }
-
-    /**
-     * Construct input parameters to be used within the class
-     * 
-     * @param inputjson
-     * @param maxFileSize
-     *            total file size allowed to download
-     * @param numOfFiles
-     *            total number of files allowed to download
-     */
-    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains) {
+    public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains, int allowedRedirects) {
 	this.bundleRequest = inputjson;
 	this.mxFileSize = maxFileSize;
 	this.mxFilesCount = numOfFiles;
 	this.domains = domains;
+	this.allowedRedirects = allowedRedirects;
     }
 
     /***
@@ -114,76 +92,94 @@ public class DefaultDataPackager implements DataPackager {
      * @param zout
      *            ZipOutputStream
      * @throws DistributionException
+     * @throws IOException
      */
 
     @Override
-    public void writeData(ZipOutputStream zout) throws DistributionException {
+    public void getData(ZipOutputStream zout) throws IOException, DistributionException {
+	HttpURLConnection con = null;
+	this.validateBundleRequest();
+
 	logger.info("Forming zip file from the the input fileurls");
-	int len;
-	byte[] buf = new byte[100000];
+
 	for (int i = 0; i < inputfileList.length; i++) {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
-	    tryAccessUrl = 1;
-	    HttpURLConnection con = null;
-	    try {
-		if (this.validateUrl(downloadurl)) {
-		    URL obj = new URL(downloadurl);
+	    if(this.validateUrl(downloadurl)) {
+	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
+	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
+		try {
+		    URL obj = new URL(uLoc.getRequestedURL());
 		    con = (HttpURLConnection) obj.openConnection();
-		}
-		if (con != null && this.checkResponse(con)) {
-		    this.writeDataFile(zout, filepath, con);
-		    filecount++;
-		}
 
-	    } catch (IOException ie) {
-		bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
-		logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
-			+ ie.getMessage());
-	    } finally {
-		if (null != con)
+		    int len;
+		    byte[] buf = new byte[100000];
+		    zout.putNextEntry(new ZipEntry(filepath));
+		    InputStream fstream = con.getInputStream();
+		    while ((len = fstream.read(buf)) != -1) {
+			zout.write(buf, 0, len);
+		    }
+		    zout.closeEntry();
+		    fstream.close();
+		    fileCount++;
+		} catch (IOException ie) {
+		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
+		    logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
+			    + ie.getMessage());
+		}
+		if (con != null)
 		    con.disconnect();
 	    }
+	    }
+	}
+
+	if (fileCount == 0) {
+	    logger.info("The package does not contain any data. These errors :" + this.bundlelogError);
+	    throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 	}
 	this.writeLog(zout);
 
     }
 
     /**
-     * This method/function gets an open validated url connection to check the
-     * status of the URL response. Creates appropriate log messages and returns
-     * true on successfully accessing data.
+     * This method/function accepts URLStatusLocation to check the status of the
+     * URL response. Creates appropriate log messages and returns true on
+     * successfully accessing data.
      * 
-     * @param con
+     * @param URLStatusLocation
      * @return boolean
      * @throws IOException
      */
-    private boolean checkResponse(HttpURLConnection con) throws IOException {
-	UrlStatusLocation uloc = ObjectUtils.getURLStatus(con);
+    private boolean checkResponse(URLStatusLocation uloc) {
 
 	if (uloc.getStatus() == 200) {
 	    return true;
 	} else if (uloc.getStatus() >= 300) {
 	    dealWithErrors(uloc);
 	    return false;
-	} else if (uloc.getStatus() == -1) {
-	    this.bundlelogError.append("\n " + con.getURL());
-	    this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	} else if (uloc.getStatus() == 0) {
+	    this.bundlelogError.append("\n " + uloc.getRequestedURL());
+	    if (!uloc.isValidURL()) {
+		this.bundlelogError.append(
+			" does not belong to allowed/valid domains, so this file is not downnloaded in the bundle/package.");
+	    } else {
+
+		this.bundlelogError.append(" There is an Error accessing this file. Could not connect successfully. ");
+	    }
 	    return false;
 	}
 	return false;
-
     }
 
     /**
      * If the error code is returned, handle the error and create proper
-     * response message.
+     * response message , write in log string builder.
      * 
      * @param uloc
      * @throws IOException
      */
-    private void dealWithErrors(UrlStatusLocation uloc) throws IOException {
+    private void dealWithErrors(URLStatusLocation uloc) {
 
 	String requestedUrl = uloc.getRequestedURL();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
@@ -193,46 +189,18 @@ public class DefaultDataPackager implements DataPackager {
 	    this.bundlelogError
 		    .append(" There is an Error accessing this file, Server returned status with response code  ");
 	    this.bundlelogError
-		    .append(uloc.getStatus() + " and message:" + ObjectUtils.getStatusMessage(uloc.getStatus()));
+		    .append(uloc.getStatus() + " and message:" + ValidationHelper.getStatusMessage(uloc.getStatus()));
 
 	} else if (uloc.getStatus() >= 300 && uloc.getStatus() <= 400) {
 
-	    tryAccessUrl++;
-	    if (tryAccessUrl > 4) {
-		this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
+	    this.bundlelogError.append("\n" + requestedUrl + " There are too many redirects for this URL.");
 
-	    } else {
-		URL obj = new URL(uloc.getLocation());
-		HttpURLConnection connect = (HttpURLConnection) obj.openConnection();
-		checkResponse(connect);
-	    }
 	} else if (uloc.getStatus() >= 500) {
 	    this.bundlelogError.append("\n" + requestedUrl + " There is an internal server error accessing this url.");
 	    this.bundlelogError.append(" Server returned status with response code :" + uloc.getStatus());
 
 	}
 
-    }
-
-    /**
-     * Write data files in the output bundle/package.
-     * 
-     * @param zout
-     * @param filepath
-     * @param httpConnect
-     * @throws IOException
-     */
-    private void writeDataFile(ZipOutputStream zout, String filepath, HttpURLConnection httpConnect)
-	    throws IOException {
-	int len;
-	byte[] buf = new byte[100000];
-	zout.putNextEntry(new ZipEntry(filepath));
-	InputStream fstream = httpConnect.getInputStream();
-	while ((len = fstream.read(buf)) != -1) {
-	    zout.write(buf, 0, len);
-	}
-	zout.closeEntry();
-	fstream.close();
     }
 
     /**
@@ -249,20 +217,20 @@ public class DefaultDataPackager implements DataPackager {
 	    StringBuilder bundleInfo = new StringBuilder(
 		    "Information about requested bundle/package is given below.\n");
 	    if (bundlelogfile.length() != 0) {
-		bundleInfo.append(" Following files are not included in the bundle for the reasons given: \n");
+		bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 		bundleInfo.append(this.bundlelogfile);
-		filename = "PackagingErrors.txt";
+		filename = "/PackagingErrors.txt";
 	    }
 
 	    if (bundlelogError.length() != 0) {
 		bundleInfo.append(
-			" Following files are not included in the bundle because of errors: \n" + bundlelogError);
-		filename = "PackagingErrors.txt";
+			"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
+		filename = "/PackagingErrors.txt";
 	    }
 
-	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && filecount > 0) {
-		bundleInfo.append(" All requested files are successfully added to this bundle.");
-		filename = "PackagingSuccessful.txt";
+	    if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
+		bundleInfo.append("\n All requested files are successfully added to this bundle.");
+		filename = "/PackagingSuccessful.txt";
 	    }
 
 	    InputStream nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
@@ -277,52 +245,85 @@ public class DefaultDataPackager implements DataPackager {
     }
 
     /**
-     * Validate the request sent by client. Function checks and eliminates
-     * duplicates, check total filesize to compare with allowed size, Checks
-     * total number of files allowed
-     * 
-     * @throws DistributionException
-     * @throws IOException
+     * If called for the first time within the Datapackager life cycle, this
+     * function/method validates the request. It checks and removes duplicates,
+     * checks total file size to compare with allowed size, Checks total number
+     * of files allowed. This is to validate request and validate input JSON
+     * data sent by the client. If this function is already called by a
+     * DataPackager, code uses existing non-zero status to return appropriate
+     * error message, to avoid redoing HEAD calls to get required information
+     * for validation.
      */
     @Override
-    public void validateRequest() throws DistributionException, IOException, InputLimitException {
-	if (this.inputfileList.length > 0) {
+    public void validateBundleRequest() throws IOException, DistributionException {
+	if (requestValidity == 0) {
 
-	    ObjectUtils.removeDuplicates(this.inputfileList);
+	    try {
+		basicValidation();
 
-	    if (this.getTotalSize() > this.mxFileSize & this.getFilesCount() > 1) {
-		throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+		if (this.inputfileList.length <= 0) {
+		    requestValidity = 3;
+
+		} else {
+		    ValidationHelper.removeDuplicates(this.inputfileList);
+		    long totalFilesSize = this.getTotalSize();
+
+		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() > 1) {
+			requestValidity = 4;
+
+		    } else if (this.getFilesCount() > this.mxFilesCount) {
+			requestValidity = 5;
+		    } else {
+			int countNotAccessible = ValidationHelper.noOfNotAcceccibleURLs(this.listUrlsStatusSize);
+			if (countNotAccessible == this.getFilesCount()) {
+			    requestValidity = 6;
+
+			} 
+			else if (requestValidity == 0)
+			    requestValidity = 1;
+		    }
+		}
+
+	    } catch (IOException ie) {
+		requestValidity = 2;
 	    }
-	    if (this.getFilesCount() > this.mxFilesCount)
-		throw new InputLimitException(
-			"Total number of files requested is beyond allowed limit " + this.mxFilesCount);
 
-	} else {
-	    throw new DistributionException("Requested files jsonobject is empty.");
 	}
+
+	getServiceErrorStatus(requestValidity);
 
     }
 
     /**
-     * This is to validate request and validate input json data sent.
+     * This method, helps check validation status internally to avoid doing it
+     * multiple times. As validation status is cached for the DataPackager life
+     * cycle this helps return appropriate exception if any without redoing
+     * HEAD/Get calls.
+     * 
+     * @param status
+     *            takes requestValidity variable input
+     * @throws IOException
+     * @throws DistributionException
      */
-    @Override
-    public void validateBundleRequest() throws DistributionException, IOException, InputLimitException {
-
-	JSONUtils.isJSONValid(this.bundleRequest);
-
-	this.inputfileList = this.bundleRequest.getIncludeFiles();
-
-	this.validateRequest();
-    }
-
-    /*
-     * Check whether input request is a valid json data.
-     */
-    @Override
-    public void validateInput() throws IOException {
-
-	JSONUtils.isJSONValid(this.bundleRequest);
+    private void getServiceErrorStatus(int status) throws IOException, DistributionException {
+	switch (status) {
+	case 1:
+	    requestValidity = 1;
+	    return;
+	case 2:
+	    throw new IOException("IOException while validating request and parsing input.");
+	case 3:
+	    throw new EmptyBundleRequestException();
+	case 4:
+	    throw new InputLimitException("Total filesize is beyond allowed limit of " + this.mxFileSize);
+	case 5:
+	    throw new InputLimitException(
+		    "Total number of files requested is beyond allowed limit " + this.mxFilesCount);
+	case 6:
+	    throw new NoFilesAccesibleInPackageException("None of the URLs returned data requested.");
+	default:
+	    return;
+	}
     }
 
     /**
@@ -333,25 +334,24 @@ public class DefaultDataPackager implements DataPackager {
      * @throws MalformedURLException
      * @throws IOException
      */
-    @Override
+
     public long getTotalSize() throws IOException {
-	if (this.inputfileList == null) {
-	    this.validateInput();
-	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	}
-	List<FileRequest> list = Arrays.asList(this.inputfileList);
+	
+	if (this.totalRequestedPackageSize == -1) {
+	    basicValidation();
+	    List<FileRequest> list = Arrays.asList(this.inputfileList);
 
-	List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
-	long totalSize = 0;
-	for (int i = 0; i < downloadurls.size(); i++) {
-	    try {
-		totalSize += ObjectUtils.getFileSize(downloadurls.get(i));
-	    } catch (IOException ie) {
-		logger.info("There is error reading this url:" + downloadurls.get(i));
+	    List<String> downloadurls = list.stream().map(FileRequest::getDownloadUrl).collect(Collectors.toList());
+	    long totalSize = 0;
+
+	    for (int i = 0; i < downloadurls.size(); i++) {
+		URLStatusLocation uLoc = ValidationHelper.getFileURLStatusSize(downloadurls.get(i), this.domains, this.allowedRedirects);
+		listUrlsStatusSize.add(uLoc);
+		totalSize += uLoc.getLength();
 	    }
+	    this.totalRequestedPackageSize = totalSize;
 	}
-	return totalSize;
-
+	return totalRequestedPackageSize;
     }
 
     /**
@@ -360,12 +360,9 @@ public class DefaultDataPackager implements DataPackager {
      * @return boolean based on comparison
      * @throws IOException
      */
-    @Override
-    public int getFilesCount() throws IOException {
-	if (this.inputfileList == null) {
-	    this.validateInput();
-	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	}
+
+    private int getFilesCount() throws IOException {
+	basicValidation();
 	return this.inputfileList.length;
     }
 
@@ -373,19 +370,46 @@ public class DefaultDataPackager implements DataPackager {
      * Validate requested URL by checking whether it is from allowed domains.
      */
     @Override
-    public boolean validateUrl(String url) throws IOException, DistributionException {
-	try {
-	    if (!ObjectUtils.isAllowedURL(url, this.domains)) {
-		this.bundlelogfile.append("\n Url here:" + url);
-		this.bundlelogfile.append(
-			" does not belong to allowed domains, so this file is not downnloaded in the bundle/package.");
-		return false;
-	    }
-	    return true;
-	} catch (IOException ie) {
-	    logger.info("There is an issue accessing this url:" + url + " Excption here" + ie.getMessage());
-	    this.bundlelogfile.append("\n There is an issue accessing this url:" + url);
-	    return false;
+    public boolean validateUrl(String url) {
+        try {
+            if (!ValidationHelper.isAllowedURL(url, this.domains)) {
+                this.bundlelogfile.append("\n Url here:" + url);
+                this.bundlelogfile.append(" does not belong to allowed domains, so this file is "+
+                                          "not downnloaded in the bundle/package.");
+                return false;
+            }
+            return true;
+        }
+        catch (MalformedURLException ex) {
+            this.bundlelogfile.append("\n Url here:" + url);
+            this.bundlelogfile.append(", is not a legal URL, so this file is "+
+                                      "not downnloaded in the bundle/package.");
+            return false;
+        }
+    }
+
+    /**
+     * Read the name from Bundle Request, if no name is provided, default name
+     * prefix 'download' is returned
+     */
+    @Override
+    public String getBundleName() throws IOException {
+	String bundleName;
+	basicValidation();
+	return ((bundleName = bundleRequest.getBundleName()) != null) ? bundleName : "download";
+
+    }
+
+    /**
+     * This checks whether file list is populated if not parse input JSON,
+     * validate and get files.
+     * 
+     * @throws IOException
+     */
+    private void basicValidation() throws IOException {
+	if (this.inputfileList == null) {
+	    JSONUtils.isJSONValid(this.bundleRequest);
+	    this.inputfileList = this.bundleRequest.getIncludeFiles();
 	}
     }
 

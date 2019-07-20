@@ -10,24 +10,27 @@
  * that they have been modified.
  * @author: Deoyani Nandrekar-Heinis
  */
-package gov.nist.oar.distrib;
+package gov.nist.oar.distrib.datapackage;
+
+import gov.nist.oar.distrib.DistributionException;
 
 /**
+ * This exception is thrown if there is an exception reading content from URL/file
  * @author Deoyani Nandrekar-Heinis
  *
  */
-public class InputLimitException extends DistributionException {
+public class NoFilesAccesibleInPackageException extends DistributionException{
     /**
      * Create an exception with an arbitrary message
      */
-    public InputLimitException(String msg) {
+    public NoFilesAccesibleInPackageException(String msg) {
 	super(msg);
     }
 
     /**
      * Create an exception with an arbitrary message and an underlying cause
      */
-    public InputLimitException(String msg, Throwable cause) {
+    public NoFilesAccesibleInPackageException(String msg, Throwable cause) {
 	super(msg, cause);
     }
 
@@ -35,7 +38,7 @@ public class InputLimitException extends DistributionException {
      * Create an exception with an underlying cause. A default message is
      * created.
      */
-    public InputLimitException(Throwable cause) {
+    public NoFilesAccesibleInPackageException(Throwable cause) {
 	super(messageFor(cause), cause);
     }
 
@@ -43,7 +46,7 @@ public class InputLimitException extends DistributionException {
      * return a message prefix that can introduce a more specific message
      */
     public static String getMessagePrefix() {
-	return "Input or Request restrictions: ";
+	return "Requested URLs in this package are not accessible:";
     }
 
     protected static String messageFor(Throwable cause) {
@@ -54,4 +57,5 @@ public class InputLimitException extends DistributionException {
 	sb.append(cause.getMessage());
 	return sb.toString();
     }
+
 }

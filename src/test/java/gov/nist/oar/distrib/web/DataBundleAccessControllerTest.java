@@ -42,8 +42,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -52,14 +52,10 @@ import gov.nist.oar.distrib.web.objects.FileRequest;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = {
-        "distrib.bagstore.mode=local",
-	"distrib.bagstore.location=${basedir}/src/test/resources",
-	"distrib.baseurl=http://localhost/od/ds",
-        "logging.path=${basedir}/target/surefire-reports",
-	"distrib.packaging.maxpackagesize = 100000",
-        "distrib.packaging.maxfilecount = 2",
-	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
+@TestPropertySource(properties = { "distrib.bagstore.mode=local",
+	"distrib.bagstore.location=./src/test/resources", "distrib.baseurl=http://localhost/od/ds",
+	"logging.path=./target/surefire-reports", "distrib.packaging.maxpackagesize = 100000",
+	"distrib.packaging.maxfilecount = 2", "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
 	// "logging.level.org.springframework.web=DEBUG"
 })
 public class DataBundleAccessControllerTest {
@@ -88,19 +84,16 @@ public class DataBundleAccessControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle"))
-		.body(bFL);
+	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
-	// System.out.println("response.getStatusCode()
-	// :"+response.getStatusCode()+ " \n resp.getHeaders()
-	// :"+response.getHeaders()+"\n
-	// resp.getBody().length():"+response.getBody().length());
+	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders():"
+		+ response.getHeaders() + "\n response.getBody().length():" + response.getBody().length());
 
 	assertEquals(HttpStatus.OK, response.getStatusCode());
 	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
-	assertEquals(59915, response.getBody().length());
+	assertEquals(59918, response.getBody().length());
 
     }
 
@@ -120,18 +113,16 @@ public class DataBundleAccessControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle"))
-		.body(bFL);
+	BundleRequest bFL = new BundleRequest("testdownload-2", inputfileList);
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
-	 System.out.println("response.getStatusCode():"+response.getStatusCode()+
-	 " \n resp.getHeaders() :"+response.getHeaders()+
-	 "\n resp.getBody().length():"+response.getBody().length());
+	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders() :"
+		+ response.getHeaders() + "\n resp.getBody():" + response.getBody());
 
-	assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
-	//assertEquals(1, response.getBody().length());
+	 assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+	 assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+	// assertEquals(22, response.getBody().length());
 
     }
 }

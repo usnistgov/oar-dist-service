@@ -12,12 +12,23 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -31,9 +42,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.InputLimitException;
-import gov.nist.oar.distrib.web.objects.BundleRequest;
-import gov.nist.oar.distrib.web.objects.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -43,23 +54,22 @@ public class DefaultDataPackagerTest {
 
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
-    private static FileRequest[] inputfileList;
+    private static String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
+    private static int redirectURLTrials = 1;
+    private static FileRequest[] inputfileList = new FileRequest[2];
     private static BundleRequest bundleRequest;
     protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackagerTest.class);
-    DefaultDataPackager dp;
+    private static DefaultDataPackager dp;
+    private static String val1 = "";
+    private static String val2 = "";
+    Path path;
+    ZipOutputStream zos;
 
     public static void createInput() throws JsonParseException, JsonMappingException, IOException {
 
-	inputfileList = new FileRequest[2];
-	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-
-	ObjectMapper mapper = new ObjectMapper();
-	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
-	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
-	inputfileList[0] = testval1;
-	inputfileList[1] = testval2;
-
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	createBundleRequest();
     }
 
     @BeforeClass
@@ -69,7 +79,15 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(inputfileList, mxFileSize, numberofFiles);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
+    }
+
+    @After
+    public void closeAll() throws IOException {
+	if (zos != null)
+	    zos.close();
+	if (path != null)
+	    Files.delete(path);
     }
 
     @Test
@@ -78,49 +96,38 @@ public class DefaultDataPackagerTest {
     }
 
     @Test
-    public void testNumOfFiles() throws IOException {
-	assertEquals(dp.getFilesCount(), 2);
-    }
-
-    @Test
-    public void testValidateRequest()
-	    throws DistributionException, MalformedURLException, IOException, InputLimitException {
-	this.createInput();
-	dp = new DefaultDataPackager(inputfileList, mxFileSize, numberofFiles);
-	assertTrue(dp.getFilesCount() < this.numberofFiles);
-	assertTrue(dp.getTotalSize() < this.mxFileSize);
-	int countBefore = 2;
-	dp.validateRequest();
-	int countAfter = dp.getFilesCount();
-	assertTrue("No duplicates!", countBefore == countAfter);
-    }
-
-    @Test
-    public void testValidateBundleRequest()
-	    throws DistributionException, MalformedURLException, IOException, InputLimitException {
-	createBundleTestdata();
-	int countBefore = 2;
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles);
-	dp.validateInput();
+    public void testValidateRequest() throws DistributionException, IOException {
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	createBundleRequest();
 	dp.validateBundleRequest();
-	assertTrue(dp.getFilesCount() < this.numberofFiles);
-	assertTrue(dp.getTotalSize() < this.mxFileSize);
-	int countAfter = dp.getFilesCount();
-	assertTrue("No duplicates!", countBefore == countAfter);
+	assertTrue(dp.getTotalSize() < mxFileSize);
     }
 
-    public void createBundleTestdata() throws JsonParseException, JsonMappingException, IOException {
+    @Test
+    public void testValidateBundleRequest() throws DistributionException, IOException {
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	createBundleRequest();
 
-	inputfileList = new FileRequest[2];
-	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	dp.validateBundleRequest();
 
-	ObjectMapper mapper = new ObjectMapper();
-	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
-	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
-	inputfileList[0] = testval1;
-	inputfileList[1] = testval2;
-	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
+	assertTrue(dp.getTotalSize() < mxFileSize);
+
+    }
+
+    @Test
+    public void testGetData() throws DistributionException, MalformedURLException, IOException, InputLimitException {
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/404\"}";
+	createBundleRequest();
+	int countBefore = 2;
+	this.createBundleStream();
+	dp.getData(zos);
+	zos.close();
+	int countAfter = this.checkFilesinZip(path);
+	assertNotEquals(countBefore, countAfter);
+
     }
 
     @Rule
@@ -128,23 +135,73 @@ public class DefaultDataPackagerTest {
 
     @Test
     public void testValidateBundleRequestError() throws DistributionException, MalformedURLException, IOException {
-
+	val1 = "{\"filePath\":\"/1894/license.pdf\",\"jgkdfghjkdf\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	exception.expect(JsonMappingException.class);
-	createBundleErrorTestdata();
-
+	createBundleRequest();
     }
 
-    public void createBundleErrorTestdata() throws JsonParseException, JsonMappingException, IOException {
+    @Test
+    public void testNoContentInPackageException() throws IOException, DistributionException {
+	val1 = "{\"filePath\":\"/srd/srd13_B-049.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile.json\"}";
+	val2 = "{\"filePath\":\"/srd/srd13_B-050.json\",\"downloadUrl\":\"http://randomwww.nist.gov/random/testfile2.json\"}";
+	createBundleRequest();
+	this.createBundleStream();
+	exception.expect(NoContentInPackageException.class);
+	dp.getData(zos);
+    }
 
+    @Test
+    public void testNoFilesAccesibleInPackageException() throws IOException, DistributionException {
+	val1 = "{\"filePath\":\"/testfile1.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
+	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
+	createBundleRequest();
+	this.createBundleStream();
+	exception.expect(NoFilesAccesibleInPackageException.class);
+	dp.getData(zos);
+    }
+
+    private static void createBundleRequest() throws IOException {
 	inputfileList = new FileRequest[2];
-	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"jgkdfghjkdf\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
+    }
+
+    private void createBundleStream() throws IOException {
+	path = Files.createTempFile("testBundle", ".zip");
+//	System.out.println("PATH:" + path);
+	OutputStream os = Files.newOutputStream(path);
+	zos = new ZipOutputStream(os);
+    }
+
+    public int checkFilesinZip(Path filepath) throws IOException {
+	int count = 0;
+	try (ZipFile file = new ZipFile(filepath.toString())) {
+	    FileSystem fileSystem = FileSystems.getDefault();
+	    // Get file entries
+	    Enumeration<? extends ZipEntry> entries = file.entries();
+
+	    // Iterate over entries
+	    while (entries.hasMoreElements()) {
+
+		ZipEntry entry = entries.nextElement();
+		System.out.println("entryname:" + entry.getName());
+		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
+		    count++;
+
+	    }
+
+	    return count;
+
+	} catch (IOException ixp) {
+	    logger.error(
+		    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
+	    throw ixp;
+	}
     }
 }

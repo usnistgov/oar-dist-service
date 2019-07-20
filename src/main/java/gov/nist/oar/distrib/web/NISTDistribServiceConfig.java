@@ -155,6 +155,9 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedurls:}")
     String allowedUrls;
 	
+    @Value("${distrib.packaging.allowedRedirects:1}")
+    int allowedRedirects;
+    
     @Autowired LongTermStorage          lts;    // set via getter below
     @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
 
@@ -232,7 +235,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public DataPackagingService getDataPackagingService(){
-        return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount);
+        return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount, allowedRedirects);
     }
 
     /**

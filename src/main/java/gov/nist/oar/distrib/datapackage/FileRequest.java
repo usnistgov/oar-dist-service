@@ -1,4 +1,4 @@
-/**
+/*
  * This software was developed at the National Institute of Standards and Technology by employees of
  * the Federal Government in the course of their official duties. Pursuant to title 17 Section 105
  * of the United States Code this software is not subject to copyright protection and is in the
@@ -8,21 +8,19 @@
  * used. This software can be redistributed and/or modified freely provided that any derivative
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
- * @author: Deoyani Nandrekar-Heinis
  */
 
-package gov.nist.oar.distrib.web.objects;
+package gov.nist.oar.distrib.datapackage;
 
 import javax.validation.constraints.NotNull;
 
 import org.hibernate.validator.constraints.NotBlank;
 
 /**
- * Jackson json framework to form a request data to a download controller. This
- * class is used to represent the requested post object to dowload bundled zip
- * of requested files with given URLs
+ * a container for holding a request for a file to be part of a data package (or bundle).  A
+ * request is composed of a URL, where the file can be downloaded from, and a file path, the 
+ * desired locatin for the file inside the data bundle.  
  */
-
 public class FileRequest {
 
     /*
@@ -42,11 +40,10 @@ public class FileRequest {
     }
 
     /**
-     * Set the requested filename along including hierarchy expected and Url to
-     * get file from.
+     * Create the request.
      * 
-     * @param filepath
-     * @param downloadurl
+     * @param filepath     the desired file path within a data bundle for the requested file
+     * @param downloadurl  the URL where the file can be retrieeved from
      */
     public FileRequest(String filepath, String downloadurl) {
 	this.filePath = filepath;
@@ -54,36 +51,36 @@ public class FileRequest {
     }
 
     /**
-     * Set filepath
+     * Set the desired file path within a data bundle for the requested file
      * 
-     * @param filepath
+     * @param filepath     the desired file path
      */
     public void setFilePath(String filepath) {
 	this.filePath = filepath;
     }
 
     /**
-     * Get filepath
+     * return the desired file path for the requested file
      * 
-     * @return
+     * @return String -- the forward-slash (/) delimited path desired for the requested file
      */
     public String getFilePath() {
 	return this.filePath;
     }
 
     /**
-     * Set downloadurl
+     * Set the URL where the requested file can be retrieved from 
      * 
-     * @param downloadurl
+     * @param downloadurl   the download URL for the requested file
      */
     public void setDownloadUrl(String downloadurl) {
 	this.downloadUrl = downloadurl;
     }
 
     /**
-     * Get the downloaded url
+     * Get the URL where the requested file can be retrieved from 
      * 
-     * @return
+     * @return String -- the URL
      */
     public String getDownloadUrl() {
 	return this.downloadUrl;

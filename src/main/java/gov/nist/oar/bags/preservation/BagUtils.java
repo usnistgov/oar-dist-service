@@ -39,8 +39,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class BagUtils {
 
-    static Pattern bagname1re = Pattern.compile("^(\\w+)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
-    static Pattern bagname2re = Pattern.compile("^(\\w+)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname1re = Pattern.compile("^(\\w[\\w\\-]*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
+    static Pattern bagname2re = Pattern.compile("^(\\w[\\w\\-]*)\\.(\\d+(_\\d+)*)\\.mbag(\\d+_\\d+)-(\\d+)(\\..*)?$");
     static Pattern dotdelim = Pattern.compile("\\.");
     static Pattern usdelim = Pattern.compile("_");
 
@@ -327,8 +327,8 @@ public class BagUtils {
         while (true) {
             // loop through possible matching version strings
             vernamere = (version.length() == 0)
-                           ? Pattern.compile("^(\\w+)\\.mbag")
-                           : Pattern.compile("^(\\w+)\\."+version+"\\.");
+                           ? Pattern.compile("^(\\w[\\w\\-]*)\\.mbag")
+                           : Pattern.compile("^(\\w[\\w\\-]*)\\."+version+"\\.");
             for (String name : bagnames) {
                 if (vernamere.matcher(name).find())
                     out.add(name);
