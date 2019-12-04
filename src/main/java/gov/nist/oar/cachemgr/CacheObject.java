@@ -29,7 +29,8 @@ public class CacheObject {
     /**
      * the CacheVolume that the object is located in.  
      *
-     * This may be null, e.g. when returned from {@link StorageInventorDB.findObject()} as 
+     * This may be null, e.g. when returned from 
+     * {@link StorageInventoryDB#findObject(String) StorageInventoryDB.findObject()} as 
      * that class is not capable of instantiating CacheVolume objects.
      */
     public CacheVolume volume = null;
@@ -169,7 +170,7 @@ public class CacheObject {
      * return the value of a metadatum as an integer.  
      * @param name   the name of the metadatum
      * @param defval the value to return if a value is not set for name
-     * @returns int  the value of the metadatum
+     * @return int  the value of the metadatum
      * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */
@@ -183,7 +184,7 @@ public class CacheObject {
      * return the value of a metadatum as an integer.  
      * @param name    the name of the metadatum
      * @param defval  the value to return if the name does not have a value.
-     * @returns int   the value of the metadatum
+     * @return int   the value of the metadatum
      * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */
@@ -197,7 +198,7 @@ public class CacheObject {
      * return the value of a metadatum as a String
      * @param name   the name of the metadatum
      * @param defval the value to return if a value is not set for name
-     * @returns int  the value of the metadatum
+     * @return int  the value of the metadatum
      * @throws JSONException  if the metadatum with the given name is 
      *     stored as an int.
      */

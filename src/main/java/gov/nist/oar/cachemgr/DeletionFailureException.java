@@ -14,7 +14,7 @@
 package gov.nist.oar.cachemgr;
 
 /**
- * an exception indicating a failure while trying to execute a {@list gov.nist.oar.cachemgr.DeletionPlan}.
+ * an exception indicating a failure while trying to execute a {@link gov.nist.oar.cachemgr.DeletionPlan}.
  * When thrown, the plan should not be considered as having completed nor is the plan viable anymore. 
  */
 public class DeletionFailureException extends CacheVolumeException {

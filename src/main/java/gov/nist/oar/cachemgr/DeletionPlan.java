@@ -28,8 +28,8 @@ import java.util.List;
  * need to be deleted.  Negative scores are allowed, and handlers of this instance can tweak the 
  * score as desired to affect its desirability.  
  *
- * Note that the number of bytes removed when {@link execute} is called is typically larger than the 
- * value of {@link byteCount}, as the latter represents what is needed.  The amount removed will be 
+ * Note that the number of bytes removed when {@link #execute()} is called is typically larger than the 
+ * value of {@link #spaceNeeded}, as the latter represents what is needed.  The amount removed will be 
  * less if the volume has some unused space in it already.  The amount removed can be much more than 
  * is needed if the planner found the volume's used space exceeds its registered capacity.  
  */
@@ -50,7 +50,7 @@ public class DeletionPlan {
     /**
      * the amount of space this plan will free up, in bytes.  In other words, this is equal to the 
      * sum of the sizes of the objects identified to be deleted.  This value may be significantly 
-     * different from {@link spaceNeeded}.  It may be much less if there is already unused space 
+     * different from {@link #spaceNeeded}.  It may be much less if there is already unused space 
      * available in the volume.  It may be much more if the total space used in the volume currently 
      * exceeds the registered capacity.
      */
@@ -72,7 +72,7 @@ public class DeletionPlan {
     /**
      * the score associated with this plan where a lower score is more desirable.  A "perfect"
      * score is 0 and should be assigned to plan in which no objects need to be deleted to 
-     * free the specific space (given by {@link spaceNeeded}).  Negative scores are allowed.  
+     * free the specific space (given by {@link #spaceNeeded}).  Negative scores are allowed.  
      */
     public double score = 0.0;
 
@@ -101,7 +101,7 @@ public class DeletionPlan {
      * initialize a deletion plan.  The provided list does not have to be complete: the caller 
      * can fill it later.  
      *
-     * @param volname     the name of the cache volume this plan applies to
+     * @param vol         the cache volume this plan applies to
      * @param db          the inventory database that tracks the contents of the volume
      * @param objlist     the list that can/will hold the list of objects to be deleted.
      * @param target      the number of bytes that this plan plans to free up by remving the files

@@ -31,7 +31,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * managed by this database.  The implementation should minimize the assumptions 
      * for the purpose of the query.  (VOL_FOR_GET is recommended.)
      * @param id   the identifier for the desired object
-     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.  This list will be empty if 
      *                             the object is not registered.
      * @throws InventoryException  if there is an error accessing the underlying database.
@@ -43,8 +43,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      * managed by this database.  
      * @param id       the identifier for the desired object
      * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
-     *                 values are defined in the {@list gov.nist.oar.cachemgr.VolumeStatus} interface.
-     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                 values are defined in the {@link gov.nist.oar.cachemgr.VolumeStatus} interface.
+     * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.  This list will be empty if 
      *                             the object is not registered.
      * @throws InventoryException  if there is an error accessing the underlying database.
@@ -55,7 +55,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * return all the data object with a given name in a particular cache volume.  
      * @param volname  the name of the volume to search
      * @param objname  the name of the object was given in that volume
-     * @returns CacheObject  the object in the cache or null if the object is not found in the volume
+     * @return CacheObject  the object in the cache or null if the object is not found in the volume
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException;
@@ -95,7 +95,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @param objname     the storage-specific name assigned to the object of interest 
      * @param metadata    the set of metadata to update.  Only the data associated in with 
      *                       names in this container will be updated.  
-     * @returns boolean   false if the objname is not registered as in the specified volume
+     * @return boolean   false if the objname is not registered as in the specified volume
      * @throws InventoryException   if there is a failure updating the database, including 
      *                       consistency errors.
      */
@@ -138,7 +138,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * add a cache volume that is available for storage to the database.  
      * @param name      the name to refer to the cache volume as.  This is used as 
      *                  the volume name in any CacheObject instances returned by 
-     *                  findObject()
+     *                  {@link #findObject(String) findObject()}
      * @param capacity  the number of bytes of data that this volume can hold.
      * @param metadata  arbitrary metadata describing this volume.  
      */
@@ -158,7 +158,7 @@ public interface StorageInventoryDB extends VolumeStatus {
 
     /**
      * get the current status of a registered volume.  Recognized values are defined in the 
-     * {@list gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
+     * {@link gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
      * are allowed. 
      */
     public int getVolumeStatus(String volname) throws InventoryException;

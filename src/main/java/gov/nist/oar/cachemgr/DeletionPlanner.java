@@ -29,8 +29,8 @@ import java.util.List;
  *
  * In general, a deletion planner will be dependent on the data model built into the storage 
  * inventory database used.  (For this reason, implementations included in this package can be 
- * found in {@list gov.nist.oar.cachemgr.inventory}.)  Some planner implementations may be built 
- * directly into {@list gov.nist.oar.cachemgr.StorageInventoryDB} implementation if the sorting 
+ * found in {@link gov.nist.oar.cachemgr.inventory}.)  Some planner implementations may be built 
+ * directly into {@link gov.nist.oar.cachemgr.StorageInventoryDB} implementation if the sorting 
  * and scoring of plans are implemented via database functions and queries.
  */
 public interface DeletionPlanner {

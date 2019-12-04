@@ -20,16 +20,16 @@ import java.net.URL;
  * where data products are stored on slow persistent storage and where there is a limited amount of 
  * fast storage space suited for delivering that data to users/applications.  Data caches can be set 
  * on the fast storage to house the most recently or most requested data products.  A CacheManager
- * is responsible for moving data in and out of one or more {@list gov.nist.oar.cachemgr.Cache}s.
- *
- * The key difference between a {@list gov.nist.oar.cachemgr.Cache} and a CacheManager knows how 
+ * is responsible for moving data in and out of one or more {@link gov.nist.oar.cachemgr.Cache}s.
+ * <p>
+ * The key difference between a {@link gov.nist.oar.cachemgr.Cache} and a CacheManager knows how 
  * restore data from long term storage; this is done using {@link gov.nist.oar.cachemgr.Restorer}
  * instances, where different {@link gov.nist.oar.cachemgr.Restorer} classes might understand how to 
  * deal with different types of data files.  A CacheManager, in principle, can manage several different 
- * {@list gov.nist.oar.cachemgr.Cache}s where different caches are used for different purposes and/or
+ * {@link gov.nist.oar.cachemgr.Cache}s where different caches are used for different purposes and/or
  * have different policies for cycling data (which the CacheManager understands).  The CacheManager 
  * manager may encapsulate other management activities not directly related delivering data (e.g. 
- * integrity checking, pre=caching, clean-up, etc.).  In contrast, a {@list gov.nist.oar.cachemgr.Cache} 
+ * integrity checking, pre=caching, clean-up, etc.).  In contrast, a {@link gov.nist.oar.cachemgr.Cache} 
  * has very little knowledge of the application's specific needs: it puts data in, it streams data out.  
  */
 public abstract class CacheManager {
@@ -48,7 +48,7 @@ public abstract class CacheManager {
      *                 will be replaced with a freshly restored version.  If false
      *                 and the object already exists, the method returns without
      *                 changing anything.
-     * @returns boolean   true if a fresh copy of the data object was restored to disk; 
+     * @return boolean   true if a fresh copy of the data object was restored to disk; 
      *                 false otherwise.
      * @throws CacheManagementException  if a failure occurs that prevented caching of the 
      *                 data as requested.
@@ -64,7 +64,7 @@ public abstract class CacheManager {
      * cache.
      *
      * @param id       the identifier for the data object of interest.
-     * @returns boolean   true if a fresh copy of the data object was restored to disk; 
+     * @return boolean   true if a fresh copy of the data object was restored to disk; 
      *                 false otherwise.
      * @throws CacheManagementException  if a failure occurs that prevented caching of the 
      *                 data as requested.
@@ -103,8 +103,8 @@ public abstract class CacheManager {
      * to web clients than via a Java stream copy.  Not all implementations may
      * support this.  If a URL is not available for the given identifier, null 
      * is returned
-     * @param name       the name of the object to get
-     * @returns boolean  True if the file existed in the volume; false if it was 
+     * @param id       the identifier of the object to get
+     * @return boolean  True if the file existed in the volume; false if it was 
      *                       not found in this volume
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object

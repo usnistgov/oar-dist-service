@@ -99,7 +99,7 @@ public interface CacheVolume {
     /** 
      * remove the object with the give name from this storage volume
      * @param name       the name of the object to get
-     * @returns boolean  True if the file existed in the volume; false if it was 
+     * @return boolean  True if the file existed in the volume; false if it was 
      *                       not found in this volume
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
@@ -112,7 +112,7 @@ public interface CacheVolume {
      * to web clients than via a Java stream copy.  Not all implementations may
      * support this. 
      * @param name       the name of the object to get
-     * @returns URL      a URL where the object can be streamed from
+     * @return URL      a URL where the object can be streamed from
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      * @throws UnsupportedOperationException  if this operation is not supported on this volume

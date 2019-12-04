@@ -27,8 +27,8 @@ import org.json.JSONException;
 /**
  * a basic implementation of a {@link gov.nist.oar.cachemgr.Cache}.  
  *
- * This implementation holds a set of {@link gov.nist.oar.cachegr.CacheVolume}s whose contents 
- * are tracked via a {@link gov.nist.oar.cachegr.StorageInventoryDB}, all of which are provided
+ * This implementation holds a set of {@link gov.nist.oar.cachemgr.CacheVolume}s whose contents 
+ * are tracked via a {@link gov.nist.oar.cachemgr.StorageInventoryDB}, all of which are provided
  * at construction time.  The CacheVolumes are treated equally (though they might have different 
  * capacities).  This class makes use of the database model of the JDBCStorageInventoryDB implementation;
  * however it does not require it.
@@ -53,7 +53,7 @@ public class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.cachemgr.BasicCache.BasicCache(StorageInventoryDB,List<CacheVolume>)}.
+     * {@link gov.nist.oar.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
      * 
      * @param idb         the (empty) inventory database to use
      */
@@ -65,7 +65,7 @@ public class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.cachemgr.BasicCache.BasicCache(StorageInventoryDB,List<CacheVolume>)}.
+     * {@link gov.nist.oar.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
      * 
      * @param idb   the (empty) inventory database to use
      * @param log   a particular Logger instance that should be used.  If null, a default one
@@ -79,7 +79,7 @@ public class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.cachemgr.BasicCache.BasicCache(StorageInventoryDB,List<CacheVolume>)}.
+     * {@link gov.nist.oar.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
      * @param idb         the inventory database to use
      * @param volcount    the expected number of CacheVolumes that will be attached via addVolume()
      * @param log   a particular Logger instance that should be used.  If null, a default one
@@ -211,7 +211,7 @@ public class BasicCache extends Cache {
      * return a reservation for a given amount of space.  
      * @param bytes        the amount of space to reserve
      * @param preferences  an and-ed set of bits indicating what the space will be used for.
-     * @returns Reservation   an object that provides a claim on space; its interface should be 
+     * @return Reservation   an object that provides a claim on space; its interface should be 
      *                     used to deliver the bytes into the cache when the object is available.  
      */
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {

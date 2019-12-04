@@ -22,9 +22,9 @@ import org.json.JSONException;
 import org.apache.commons.lang3.RandomStringUtils;
 
 /**
- * a claim on space in a {@list gov.nist.oar.cachemgr.Cache}.  An instance is normally received 
+ * a claim on space in a {@link gov.nist.oar.cachemgr.Cache}.  An instance is normally received 
  * from a request for a particular amount of space via one of the cache's 
- * {@list gov.nist.oar.cachemgr.Cache.reserveSpace(long)} functions.  Its interface should be used 
+ * {@link gov.nist.oar.cachemgr.Cache#reserveSpace(long)} functions.  Its interface should be used 
  * fill that space with data objects fed in via a input streams.  Once the data objects have been written,
  * any remaining reserved space can be released.  
  */
@@ -83,7 +83,6 @@ public class Reservation {
      * @param id      the cache-independent identifier to associate with this object (so that 
      *                it can be found again).
      * @param objname a cache-specific name to give to the saved object.  
-     * @param metadata  metadata to associate with the saved object
      */
     public synchronized void saveAs(InputStream from, String id, String objname)
         throws CacheManagementException

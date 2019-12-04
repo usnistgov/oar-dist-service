@@ -46,7 +46,7 @@ import java.time.format.DateTimeFormatter;
  * an abstract class representing a JDBC-based implementation of a StorageInventoryDB database.
  *
  * The implementation assumes the following table definitions exist in the database:
- * <verbatim>
+ * <pre>
  * CREATE TABLE IF NOT EXISTS algorithms (
  *    id   integer PRIMARY KEY,
  *    name text NOT NULL
@@ -73,7 +73,7 @@ import java.time.format.DateTimeFormatter;
  *    cached    boolean NOT NULL DEFAULT 0,
  *    metadata  text
  * );
- * </verbatim>
+ * </pre>
  */
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
@@ -97,9 +97,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     /**
      * create an inventory database around a database accessible via a given JDBC URL.  
      * It is assumed that a JDBC driver for the database exists in the Java CLASSPATH.  
-     * The value of {@link defaultDeletePlanSelect} will be loaded as the SQL SELECT 
+     * The value of {@link #defaultDeletionPlanSelect} will be loaded as the SQL SELECT 
      * will be used to select deletable objects from a data volume (see 
-     * {@link JDBCStorageInventoryDB(String,String)}).
+     * {@link #JDBCStorageInventoryDB(String,String)}).
      * 
      * @param dburl    the JDBC URL to use to connect to the existing database.  
      */
@@ -138,7 +138,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * managed by this database.  The implementation should minimize the assumptions 
      * for the purpose of the query.  (VOL_FOR_GET is recommended.)
      * @param id   the identifier for the desired object
-     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.  This list will be empty if 
      *                             the object is not registered.
      * @throws InventoryException  if there is an error accessing the underlying database.
@@ -152,8 +152,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * managed by this database.  
      * @param id       the identifier for the desired object
      * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
-     *                 values are defined in the {@list gov.nist.oar.cachemgr.VolumeStatus} interface.
-     * @returns List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                 values are defined in the {@link gov.nist.oar.cachemgr.VolumeStatus} interface.
+     * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
@@ -270,7 +270,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * return all the data objects with a given name in a particular cache volume
      * @param volname  the name of the volume to search
      * @param objname  the name of the object was given in that volume
-     * @returns CacheObject  the object in the cache or null if the object is not found in the volume
+     * @return CacheObject  the object in the cache or null if the object is not found in the volume
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
@@ -385,7 +385,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param objname     the storage-specific name assigned to the object of interest 
      * @param metadata    the set of metadata to update.  Only the data associated in with 
      *                       names in this container will be updated.  
-     * @returns boolean   false if the objname is not registered as in the specified volume
+     * @return boolean   false if the objname is not registered as in the specified volume
      * @throws InventoryException   if there is a failure updating the database, including 
      *                       consistency errors.
      */
@@ -584,7 +584,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     /**
      * remove all object entries.  This should be used when reinitializing the database.
-     * @returns boolean   false if the database was apparently empty already, true otherwise.
+     * @return boolean   false if the database was apparently empty already, true otherwise.
      */
     public boolean removeAllObjects() throws InventoryException {
         String sql = "DELETE FROM objects;";
@@ -773,7 +773,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     /**
      * get the current status of a registered volume.  Recognized values are defined in the 
-     * {@list gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
+     * {@link gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
      * are allowed. 
      */
     public int getVolumeStatus(String volname) throws InventoryException {

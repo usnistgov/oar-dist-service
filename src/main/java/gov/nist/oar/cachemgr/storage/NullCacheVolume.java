@@ -63,7 +63,7 @@ public class NullCacheVolume implements CacheVolume {
 
     /**
      * add an object name to this volume.  With this implementation, this is equivalent to add an 
-     * object to the volume via {@list saveAs}.  
+     * object to the volume via {@link #saveAs saveAs()}.  
      */
     public void addObjectName(String name) {
         holdings.add(name);
@@ -146,7 +146,7 @@ public class NullCacheVolume implements CacheVolume {
     /** 
      * remove the object with the give name from this storage volume
      * @param name       the name of the object to get
-     * @returns boolean  True if the file existed in the volume; false if it was 
+     * @return boolean  True if the file existed in the volume; false if it was 
      *                       not found in this volume
      * @throws CacheVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
@@ -164,7 +164,7 @@ public class NullCacheVolume implements CacheVolume {
      * This implementation always throws an UnsupportedOperationException.
      *
      * @param name       the name of the object to get
-     * @returns URL      a URL where the object can be streamed from
+     * @return URL      a URL where the object can be streamed from
      * @throws UnsupportedOperationException     always as this function is not supported
      */
     public URL getRedirectFor(String name) throws CacheVolumeException, UnsupportedOperationException {

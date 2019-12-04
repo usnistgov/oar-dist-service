@@ -28,7 +28,7 @@ package gov.nist.oar.cachemgr;
  * which volume(s) an object is stored in (along with other metadata like size and checksums).  
  * Also encapsulated is a strategy for determining the best volume to place new objects; a big 
  * part of this strategy is figuring out what objects to get rid of to make room for a new
- * object.  The {@link reserveSpace(long)} functions and the {@link gov.nist.oar.cachemgr.Reservation} 
+ * object.  The {@link #reserveSpace(long)} functions and the {@link gov.nist.oar.cachemgr.Reservation} 
  * they return are used to add new objects into the cache.  
  */
 public abstract class Cache {
@@ -59,7 +59,7 @@ public abstract class Cache {
      *                     The interpretation of the bits is implementation-specific.  The 
      *                     bits should be used to pick the optimal location for the an 
      *                     object to be put into the cache.
-     * @returns Reservation   an object that provides a claim on space; its interface should be 
+     * @return Reservation   an object that provides a claim on space; its interface should be 
      *                     used to deliver the bytes into the cache when the object is available.  
      */
     public abstract Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException;
@@ -68,7 +68,7 @@ public abstract class Cache {
      * return a reservation for a given amount of space.  This method reserves the space
      * with no user-supplied preferences.  
      * @param bytes        the amount of space to reserve
-     * @returns Reservation   an object that provides a claim on space; its interface should be 
+     * @return Reservation   an object that provides a claim on space; its interface should be 
      *                     used to deliver the bytes into the cache when the object is available.  
      */
     public Reservation reserveSpace(long bytes) throws CacheManagementException {
