@@ -211,7 +211,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (rs.getObject("priority") != null)
             md.put("priority", rs.getInt("priority"));
         if (rs.getObject("since") != null) {
-            int since = rs.getInt("since");
+            long since = rs.getLong("since");
             md.put("since", since);
             md.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(since),
                                                         ZoneOffset.UTC)
