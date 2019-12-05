@@ -310,7 +310,7 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     @Test
-    public void testListObjectsIn() throws InventoryException, IOException {
+    public void testSelectObjectsFromPurpose() throws InventoryException, IOException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());
 
@@ -337,12 +337,20 @@ public class SQLiteStorageInventoryDBTest {
         md.put("size", 50000L);
         sidb.addObject("9999/jerry.json", "foobar", "9999_jerry.json", md);
 
-        List<CacheObject> cos = sidb.listObjectsIn("foobar", 8);
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "deletion_d");
         assertEquals(3, cos.size());
         // order should be the order they were put in.  should not include priority=0 or items from fundrum
         assertEquals(cos.get(0).name, "1234_goober.json");
         assertEquals(cos.get(0).volname, "foobar");
         assertEquals(cos.get(1).name, "0000_hank.json");
+        assertEquals(cos.get(2).name, "9999_jerry.json");
+
+        cos = sidb.selectObjectsFrom("foobar", "deletion_p");
+        assertEquals(3, cos.size());
+        // order should be by priority
+        assertEquals(cos.get(0).volname, "foobar");
+        assertEquals(cos.get(0).name, "0000_hank.json");
+        assertEquals(cos.get(1).name, "1234_goober.json");
         assertEquals(cos.get(2).name, "9999_jerry.json");
     }
 

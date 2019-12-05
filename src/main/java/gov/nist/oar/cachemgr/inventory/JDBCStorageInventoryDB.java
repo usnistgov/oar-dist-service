@@ -14,6 +14,7 @@
 package gov.nist.oar.cachemgr.inventory;
 
 import gov.nist.oar.cachemgr.StorageInventoryDB;
+import gov.nist.oar.cachemgr.SelectionStrategy;
 import gov.nist.oar.cachemgr.InventoryException;
 import gov.nist.oar.cachemgr.InventorySearchException;
 import gov.nist.oar.cachemgr.InventoryMetadataException;
@@ -43,7 +44,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 /**
- * an abstract class representing a JDBC-based implementation of a StorageInventoryDB database.
+ * an abstract class representing a JDBC-based implementation of a {@link StorageInventoryDB} database.
  *
  * The implementation assumes the following table definitions exist in the database:
  * <pre>
@@ -82,9 +83,28 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id ";
 
-    static final String defaultDeletionPlanSelect =
+    static final String deletion_pSelect = 
         find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
-                 + "ORDER BY d.since ASC";
+                 + "ORDER BY d.priority DESC, d.since ASC";
+
+    static final String deletion_sSelect = 
+        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                 + "ORDER BY d.size DESC, d.since ASC, d.priority DESC";
+
+    static final String deletion_dSelect = 
+        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                 + "ORDER BY d.since ASC, d.priority DESC";
+
+    static final String defaultDeletionPlanSelect = deletion_pSelect;
+
+    static HashMap<String, String> purposes = new HashMap<String, String>(2);
+    static {
+        JDBCStorageInventoryDB.purposes.put("deletion_d", deletion_dSelect);
+        JDBCStorageInventoryDB.purposes.put("deletion_p", deletion_pSelect);
+        JDBCStorageInventoryDB.purposes.put("deletion_s", deletion_sSelect);
+        JDBCStorageInventoryDB.purposes.put("deletion",   deletion_pSelect);
+        JDBCStorageInventoryDB.purposes.put("",           deletion_pSelect);
+    }
 
     protected String _dburl = null;
     protected Connection _conn = null;
@@ -230,18 +250,24 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * the specified volume.  This implementation ignores the purpose parameter and always returns
      * objects appropriate for deletion.
      * @param volname     the name of the volume to list objects from.
-     * @param purpose     an integer that indicates the purpose for retrieving the list so as to 
-     *                    affect object selection and sorting.  The recognized values are implementation-
-     *                    specific except that if set to zero, it should be assumed that the list 
-     *                    is for determining a deletion strategy.  
+     * @param purpose     a label that indicates the purpose for retrieving the list so as to 
+     *                    affect object selection and sorting.  The recognized values include
+     *                    <code>deletion_p</code> and <code>deletion_d</code>; both select objects 
+     *                    for creating a deletion plan, but the former orders first by the object's 
+     *                    priority value and then by the date of last access while the latter orders 
+     *                    first by last access and then by priority.  <code>deletion</code> is
+     *                    handled as <code>deletion_p</code> and will be used by default if purpose 
+     *                    is empty or null.
      */
-    public List<CacheObject> listObjectsIn(String volname, int purpose) throws InventoryException {
+    public List<CacheObject> selectObjectsFrom(String volname, String purpose) throws InventoryException {
         int i=0, lim = 5000;   // TODO: make limit configurable
+
+        String selectquery = _selectQuery(purpose);
 
         PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            stmt = _conn.prepareStatement(dplanselect);
+            stmt = _conn.prepareStatement(selectquery);
             stmt.setString(1, volname);
 
             synchronized (this) {
@@ -266,6 +292,54 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
+    protected String _selectQuery(String purpose) {
+        if (purpose == null) purpose = "";
+        return purposes.getOrDefault(purpose, purposes.get(""));
+    }
+
+    /**
+     * return a list of data objects found in the specified data volume according to a given 
+     * selection strategy.  
+     * @param volname     the name of the volume to list objects from.
+     * @param strategy    an encapsulation of the strategy that should be used for selecting the 
+     *                    records.  
+     */
+    public List<CacheObject> selectObjectsFrom(String volname, SelectionStrategy strategy)
+        throws InventoryException
+    {
+        strategy.reset();
+        String selectquery = _selectQuery(strategy.getPurpose());
+
+        PreparedStatement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.prepareStatement(selectquery);
+            stmt.setString(1, volname);
+
+            synchronized (this) {
+                ResultSet rs = stmt.executeQuery();
+                ArrayList<CacheObject> out = new ArrayList<CacheObject>();
+                CacheObject co = null;
+                while (! strategy.limitReached() && rs.next()) {
+                    co = _extractObject(rs);
+                    strategy.score(co);
+                    out.add(co);
+                }
+
+                strategy.sort(out);
+                return out;
+            }
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failure while listing objects in vol=" + volname +
+                                         ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
+    }
+    
     /**
      * return all the data objects with a given name in a particular cache volume
      * @param volname  the name of the volume to search

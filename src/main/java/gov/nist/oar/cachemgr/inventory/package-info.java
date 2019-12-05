@@ -14,7 +14,8 @@
 
 /**
  * a {@link gov.nist.oar.cachemgr} sub-package that provides implementations of the 
- * {@link  gov.nist.oar.cachemgr.StorageInventoryDB} interface.
+ * {@link  gov.nist.oar.cachemgr.StorageInventoryDB} interface along with other classes that use
+ * a {@link  gov.nist.oar.cachemgr.StorageInventoryDB} to do deletion planning.  
  * <p>
  * Each implementation provides support for a particular database or metadata management system that 
  * can hold inventory information.  

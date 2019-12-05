@@ -36,7 +36,7 @@ import java.util.HashSet;
 public class NullCacheVolume implements CacheVolume {
 
     protected String name = null;
-    protected HashSet<String> holdings = new HashSet(5);
+    protected HashSet<String> holdings = new HashSet<String>(5);
 
     /**
      * create the volume

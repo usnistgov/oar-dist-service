@@ -67,12 +67,24 @@ public interface StorageInventoryDB extends VolumeStatus {
      * the specified volume.  It is recommended that implementations then sort these results to put 
      * files more likely to be deleted first.  
      * @param volname     the name of the volume to list objects from.
-     * @param purpose     an integer that indicates the purpose for retrieving the list so as to 
+     * @param purpose     a label that indicates the purpose for retrieving the list so as to 
      *                    affect object selection and sorting.  The recognized values are implementation-
-     *                    specific except that if set to zero, it should be assumed that the list 
-     *                    is for determining a deletion strategy.  
+     *                    specific except that if set to null, an empty string, or otherwise unrecognized,
+     *                    it should be assumed that the list is for creating a deletion plan.  The 
+     *                    label typically maps to a particular selection query optimized for a 
+     *                    particular purpose.  
      */
-    public List<CacheObject> listObjectsIn(String volname, int purpose) throws InventoryException;
+    public List<CacheObject> selectObjectsFrom(String volname, String purpose) throws InventoryException;
+
+    /**
+     * return a list of data objects found in the specified data volume according to a given 
+     * selection strategy.  
+     * @param volname     the name of the volume to list objects from.
+     * @param strategy    an encapsulation of the strategy that should be used for selecting the 
+     *                    records.  
+     */
+    public List<CacheObject> selectObjectsFrom(String volname, SelectionStrategy strategy)
+        throws InventoryException;
 
     /**
      * record the addition of an object to a volume.  The metadata stored with the 
