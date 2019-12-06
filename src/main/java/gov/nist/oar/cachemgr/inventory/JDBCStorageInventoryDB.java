@@ -18,6 +18,7 @@ import gov.nist.oar.cachemgr.SelectionStrategy;
 import gov.nist.oar.cachemgr.InventoryException;
 import gov.nist.oar.cachemgr.InventorySearchException;
 import gov.nist.oar.cachemgr.InventoryMetadataException;
+import gov.nist.oar.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.cachemgr.CacheObject;
 
 import org.json.JSONObject;
@@ -89,7 +90,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     static final String deletion_sSelect = 
         find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
-                 + "ORDER BY d.size DESC, d.since ASC, d.priority DESC";
+                 + "ORDER BY d.priority DESC, d.size DESC, d.since ASC";
 
     static final String deletion_dSelect = 
         find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
@@ -372,6 +373,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
+     * @throws InventoryException  if a problem occurs while interacting with the inventory database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException
@@ -383,7 +386,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
         int volid = getVolumeID(volname);
         if (volid < 0)
-            throw new InventoryException("Not a registered volume: " + volname);
+            throw new VolumeNotFoundException(volname);
 
         long size = -1;
         String csum = null;
@@ -461,7 +464,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *                       names in this container will be updated.  
      * @return boolean   false if the objname is not registered as in the specified volume
      * @throws InventoryException   if there is a failure updating the database, including 
-     *                       consistency errors.
+     *                       consistency errors.  
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public boolean updateMetadata(String volname, String objname, JSONObject metadata)
         throws InventoryException
@@ -472,7 +476,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         int volid = getVolumeID(volname);
         if (volid < 0)
             // should not happen
-            throw new InventoryException("Not a registered volume: " + volname);
+            throw new VolumeNotFoundException(volname);
 
         // update the metadata
         String nm = null;
@@ -632,11 +636,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * record the removal of the object with the given name from the given volume
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
+     * @throws InventoryException  if a problem occurs while interacting with the inventory database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void removeObject(String volname, String objname) throws InventoryException {
         int volid = getVolumeID(volname);
         if (volid < 0)
-            throw new InventoryException("Not a registered volume: " + volname);
+            throw new VolumeNotFoundException(volname);
 
         PreparedStatement stmt = null;
         try {
@@ -788,6 +794,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     /**
      * return the information associated with the registered storage volume
      * with the given name.
+     * @param name    the name of the volume to get info on
+     * @throws InventoryException  if a failure occurs while interacting with the inventory database
+     * @throws VolumeNotFoundException  if the requested name is not registered as a known volume
      */
     public JSONObject getVolumeInfo(String name) throws InventoryException {
         try {
@@ -796,7 +805,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             stmt.setString(1, name);
             ResultSet rs = stmt.executeQuery();
             if (! rs.next())
-                throw new InventoryException("No volume registered with name="+name);
+                throw new VolumeNotFoundException(name);
 
             JSONObject md = null;
             String jmd = rs.getString("metadata");
@@ -821,11 +830,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     /**
      * update the status of a registered volume
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void setVolumeStatus(String volname, int status) throws InventoryException {
         int volid = getVolumeID(volname);
         if (volid < 0)
-            throw new InventoryException("Not a registered volume: " + volname);
+            throw new VolumeNotFoundException(volname);
 
         String sql = "UPDATE volumes SET status="+Integer.toString(status)+" WHERE id="+volid+";";
 
@@ -849,6 +860,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * get the current status of a registered volume.  Recognized values are defined in the 
      * {@link gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
      * are allowed. 
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public int getVolumeStatus(String volname) throws InventoryException {
         String sql = "SELECT status FROM volumes WHERE name='"+volname+"';";
@@ -859,7 +872,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             if (! rs.next())
-                throw new InventoryException(volname + ": Volume not registered");
+                throw new VolumeNotFoundException(volname);
             return rs.getInt("status");
         }
         catch (SQLException ex) {
@@ -869,6 +882,27 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         finally {
             try { if (stmt != null) stmt.close(); }
             catch (SQLException ex) { }
+        }
+    }
+
+    /**
+     * return the amount of available (unused) space in the specified volume, in bytes
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
+     */
+    public long getAvailableSpaceIn(String volname) throws InventoryException {
+        // This will throw a VolumeNotFoundException if the volume is not registered
+        JSONObject md = getVolumeInfo(volname);
+        
+        String sum_sql =
+            "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
+            "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=1 GROUP BY v.name";
+        try {
+            return _get_sum(sum_sql).get(volname).longValue();
+        }
+        catch (NullPointerException ex) {
+            // there are no records in the database for this volume; i.e., it's empty
+            return getMetadatumLong(md, "capacity", 0L);
         }
     }
 

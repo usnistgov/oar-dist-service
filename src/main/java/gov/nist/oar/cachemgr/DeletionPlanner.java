@@ -36,9 +36,11 @@ import java.util.List;
 public interface DeletionPlanner {
 
     /**
-     * return a deletion plan for a particular volume
+     * return a deletion plan for a particular volume.  If null is returned, a viable plan--i.e.
+     * one that can provide the requested space--was not possible.
      */
-    DeletionPlan createDeletionPlanFor(String volname, long size) throws InventoryException;
+    public DeletionPlan createDeletionPlanFor(String volname, long size)
+        throws CacheManagementException, InventoryException;
 
     /**
      * return a list of deletion plans that can free up space of a requested size, ordered
@@ -48,5 +50,6 @@ public interface DeletionPlanner {
      * could try the next one in the list.  Generally, this method should not return plans
      * for volumes whose status does not permit deletions.  
      */
-    List<DeletionPlan> orderDeletionPlans(long size) throws InventoryException;
+    public List<DeletionPlan> orderDeletionPlans(long size)
+        throws CacheManagementException, InventoryException;
 }

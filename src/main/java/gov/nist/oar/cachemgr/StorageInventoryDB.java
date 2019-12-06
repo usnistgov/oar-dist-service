@@ -57,6 +57,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @param objname  the name of the object was given in that volume
      * @return CacheObject  the object in the cache or null if the object is not found in the volume
      * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException;
 
@@ -73,6 +74,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      *                    it should be assumed that the list is for creating a deletion plan.  The 
      *                    label typically maps to a particular selection query optimized for a 
      *                    particular purpose.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public List<CacheObject> selectObjectsFrom(String volname, String purpose) throws InventoryException;
 
@@ -82,6 +85,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @param volname     the name of the volume to list objects from.
      * @param strategy    an encapsulation of the strategy that should be used for selecting the 
      *                    records.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public List<CacheObject> selectObjectsFrom(String volname, SelectionStrategy strategy)
         throws InventoryException;
@@ -93,6 +98,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException;
@@ -110,6 +117,7 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @return boolean   false if the objname is not registered as in the specified volume
      * @throws InventoryException   if there is a failure updating the database, including 
      *                       consistency errors.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public boolean updateMetadata(String volname, String objname, JSONObject metadata)
         throws InventoryException;
@@ -118,6 +126,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      * record the removal of the object with the given name from the given volume
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void removeObject(String volname, String objname) throws InventoryException;
 
@@ -165,6 +175,8 @@ public interface StorageInventoryDB extends VolumeStatus {
 
     /**
      * update the status of a registered volume
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void setVolumeStatus(String volname, int status) throws InventoryException;
 
@@ -172,18 +184,33 @@ public interface StorageInventoryDB extends VolumeStatus {
      * get the current status of a registered volume.  Recognized values are defined in the 
      * {@link gov.nist.oar.cachemgr.VolumeStatus} interface; other application-specific values 
      * are allowed. 
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public int getVolumeStatus(String volname) throws InventoryException;
 
     /**
      * return the amount of available (unused) space in the specified volume, in bytes
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
+     */
+    public long getAvailableSpaceIn(String volname) throws InventoryException;
+
+    /**
+     * return the amount of available (unused) space in each volume, in bytes
+     * @return   a map giving the space for each volume where the key is the volume name and 
+     *           the value is the space as a Long.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public Map<String, Long> getAvailableSpace() throws InventoryException;
 
     /**
-     * return the amount of space currently being used in the specified volume, in bytes.  
+     * return the amount of space currently being used in each volume, in bytes.  
      * This is the sum of the sizes of all data objects and reservations currently in the 
      * the volume.  
+     * @return   a map giving the space for each volume where the key is the volume name and 
+     *           the value is the space as a Long.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public Map<String, Long> getUsedSpace() throws InventoryException;
 }

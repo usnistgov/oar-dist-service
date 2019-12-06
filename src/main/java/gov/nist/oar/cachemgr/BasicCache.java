@@ -89,8 +89,8 @@ public class BasicCache extends Cache {
         db = idb;
         volumes = new HashMap<String, CacheVolume>(volcount);
         recent = new LinkedList<String>();
+        if (log == null) log = LoggerFactory.getLogger(this.getClass());
         this.log = log;
-        if (this.log == null) log = LoggerFactory.getLogger(this.getClass());
     }
 
     /**

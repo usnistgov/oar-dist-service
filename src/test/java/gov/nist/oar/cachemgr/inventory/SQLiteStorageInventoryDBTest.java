@@ -510,6 +510,16 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(450000 - total, used.get("foobar").longValue());
         assertEquals(used.size(), 1);
 
+        assertEquals(450000 - total, sidb.getAvailableSpaceIn("foobar"));
+
+        try {
+            sidb.getAvailableSpaceIn("goober!");
+            fail("Expected an InventoryException when asking for space in unknown volume");
+        } catch (InventoryException ex) {
+            assertTrue("Unexpected InventoryException message",
+                       ex.getMessage().contains("not registered"));
+        }
+
         sidb.registerVolume("fundrum", 250000, null);
         for (int i=0; i < sizes.length; i++) {
             nm = Integer.toString(i);

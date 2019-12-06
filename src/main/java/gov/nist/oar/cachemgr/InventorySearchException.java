@@ -14,7 +14,7 @@
 package gov.nist.oar.cachemgr;
 
 /**
- * an exception indicating that something went wrong while accessing the storage inventory.
+ * an exception indicating that something went wrong while executing a search on the storage inventory.
  */
 public class InventorySearchException extends InventoryException {
 

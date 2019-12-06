@@ -95,8 +95,7 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
      */
     public void sort(List<CacheObject> objs) {
         Collections.sort(objs, (co1, co2) -> {
-            double diff = co2.score - co1.score;
-            return (int) (diff / Math.abs(diff));
+            return (int) Math.signum(co2.score - co1.score);
         });
     }
 
@@ -111,4 +110,9 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
      * method.
      */
     public long getTotalSize() { return totsz; }
+
+    /**
+     * return a new instance of this class configured with a different size limit
+     */
+    public abstract SizeLimitedSelectionStrategy newForSize(long newsizelimit);
 }

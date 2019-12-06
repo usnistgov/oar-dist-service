@@ -14,6 +14,7 @@
 package gov.nist.oar.cachemgr.inventory;
 
 import gov.nist.oar.cachemgr.InventoryException;
+import gov.nist.oar.cachemgr.InventorySearchException;
 import gov.nist.oar.cachemgr.inventory.JDBCStorageInventoryDB;
 
 import java.io.IOException;
@@ -82,12 +83,14 @@ public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
                     conn.createStatement().execute(s.trim());
                 }
                 catch (SQLException ex) {
-                    throw new InventoryException("DB init SQL statement failed: "+s+":\n"+ex.getMessage(), ex);
+                    throw new InventorySearchException("DB init SQL statement failed: "+s+":\n"
+                                                       +ex.getMessage(), ex);
                 }
             }
         }
         catch (SQLException ex) {
-            throw new InventoryException("Failed to open DB file, "+filepath+": "+ex.getMessage(), ex);
+            throw new InventorySearchException("Failed to open DB file, "+filepath+": "
+                                               +ex.getMessage(), ex);
         }
         finally {
             try { if (conn != null) conn.close(); } catch (SQLException ex) { }

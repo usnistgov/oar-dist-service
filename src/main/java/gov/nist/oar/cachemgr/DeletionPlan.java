@@ -104,9 +104,9 @@ public class DeletionPlan {
      * @param vol         the cache volume this plan applies to
      * @param db          the inventory database that tracks the contents of the volume
      * @param objlist     the list that can/will hold the list of objects to be deleted.
-     * @param target      the number of bytes that this plan plans to free up by remving the files
+     * @param target      the number of bytes that this plan plans to free up by removing the files
      *                       in objlist.
-     * @param need        the number of bytes needed to be free (for a new object to be added).
+     * @param need        the number of bytes requested to be free (for the new object to be added).
      */
     public DeletionPlan(CacheVolume vol, StorageInventoryDB db, List<CacheObject> objlist,
                         long target, long need)
@@ -137,6 +137,14 @@ public class DeletionPlan {
     public long getByteCountNeeded() {
         return spaceNeeded;
     }
+
+    /**
+     * return the list of CacheObjects that can be deleted as part of this plan.  The list may 
+     * contain more objects than will actually be deleted when the plan is executed; some extras 
+     * may be included at the end in case there is a problem removing earlier objects.  Note that 
+     * manipulating this list will effectively change the plan!
+     */
+    public List<CacheObject> getDeletableObjects() { return doomed; }
 
     /**
      * synchronously execute the plan.  This will cause updates to be made to the inventory database.

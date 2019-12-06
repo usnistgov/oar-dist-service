@@ -52,11 +52,19 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
      */
     public double calculateScore(CacheObject co) {
         double sz = 1.0 * co.getSize() / norm;
-        return (sz >= 0) ? sz : 0;
+        return (sz >= 0) ? sz : 0.0;
     }
 
     /**
      * return the normalizing factor being used when calculating scores.
      */
     public double getNormalizingSize() { return norm; }
+
+    /**
+     * return a new instance of this class configured with a different size limit
+     */
+    @Override
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
+        return new BySizeSelectionStrategy(newsizelimit, norm);
+    }    
 }

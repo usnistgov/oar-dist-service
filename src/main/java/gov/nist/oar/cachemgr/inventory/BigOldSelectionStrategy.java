@@ -109,4 +109,12 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
      */
     public double getTurnOverSize() { return szto; }
     
+
+    /**
+     * return a new instance of this class configured with a different size limit
+     */
+    @Override
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
+        return new BigOldSelectionStrategy(newsizelimit);
+    }    
 }
