@@ -221,6 +221,11 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         // create a plan for each CacheVolume
         DeletionPlan dp = null;
         for (CacheVolume cvn: caches.values()) {
+            if (invdb.getVolumeStatus(cvn.getName()) < invdb.VOL_FOR_UPDATE) {
+                log.warn("Cache volume {} is not available for updates; skipping.", cvn.getName());
+                continue;
+            }
+
             try {
                 dp = createDeletionPlanFor(cvn.getName(), size);
                 if (dp != null) out.add(dp);
