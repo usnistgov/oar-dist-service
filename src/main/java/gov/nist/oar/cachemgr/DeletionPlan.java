@@ -15,6 +15,9 @@ package gov.nist.oar.cachemgr;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * an ordered list of objects to be removed from a cache volume in order to free up a 
  * specified amount of space in that volume.
@@ -69,6 +72,8 @@ public class DeletionPlan {
      */
     protected List<CacheObject> doomed = null;
 
+    protected Logger log = null;
+
     /**
      * the score associated with this plan where a lower score is more desirable.  A "perfect"
      * score is 0 and should be assigned to plan in which no objects need to be deleted to 
@@ -90,11 +95,32 @@ public class DeletionPlan {
     public DeletionPlan(String volname, StorageInventoryDB db, List<CacheObject> objlist,
                         long target, long need)
     {
+        this(volname, db, objlist, target, need, null);
+    }
+
+    /**
+     * initialize a deletion plan.  The provided list does not have to be complete: the caller 
+     * can fill it later.  
+     *
+     * @param volname     the name of the cache volume this plan applies to
+     * @param db          the inventory database that tracks the contents of the volume
+     * @param objlist     the list that can/will hold the list of objects to be deleted.
+     * @param target      the number of bytes that this plan plans to free up by remving the files
+     *                       in objlist.
+     * @param need        the number of bytes needed to be free (for a new object to be added).
+     * @param log         a Logger that this instance should use for messages
+     */
+    public DeletionPlan(String volname, StorageInventoryDB db, List<CacheObject> objlist,
+                        long target, long need, Logger log)
+    {
         this.volname = volname;
         inventory = db;
         doomed = objlist;
         toBeRemoved = target;
         spaceNeeded = need;
+
+        if (log == null) log = LoggerFactory.getLogger(this.getClass());
+        this.log = log;
     }
 
     /**
@@ -111,7 +137,25 @@ public class DeletionPlan {
     public DeletionPlan(CacheVolume vol, StorageInventoryDB db, List<CacheObject> objlist,
                         long target, long need)
     {
-        this(vol.getName(), db, objlist, target, need);
+        this(vol, db, objlist, target, need, null);
+    }
+
+    /**
+     * initialize a deletion plan.  The provided list does not have to be complete: the caller 
+     * can fill it later.  
+     *
+     * @param vol         the cache volume this plan applies to
+     * @param db          the inventory database that tracks the contents of the volume
+     * @param objlist     the list that can/will hold the list of objects to be deleted.
+     * @param target      the number of bytes that this plan plans to free up by removing the files
+     *                       in objlist.
+     * @param need        the number of bytes requested to be free (for the new object to be added).
+     * @param log         a Logger that this instance should use for messages
+     */
+    public DeletionPlan(CacheVolume vol, StorageInventoryDB db, List<CacheObject> objlist,
+                        long target, long need, Logger log)
+    {
+        this(vol.getName(), db, objlist, target, need, log);
         volume = vol;
     }
 
@@ -164,17 +208,32 @@ public class DeletionPlan {
                 throw new IllegalStateException("CacheVolume "+volume.getName()+
                                                 " not available for updates");
 
+            log.info("Removing {} bytes via deletion plan on {}", getByteCountToBeRemoved(),
+                     getVolumeName());
+
             // remove doomed objects:  go through list until enough space freed or until
-            // exhausted.  
+            // exhausted.
+            int fails = 0;
             for(CacheObject co : doomed) {
                 try {
                     if (removed > toBeRemoved)
                         break;
-                    volume.remove(co.name);
+                    try {
+                        volume.remove(co.name);
+                        removed += co.getSize();
+                        fails = 0;
+                    } catch (ObjectNotFoundException ex) {
+                        // we will assume that the inventory is out of sync; we'll let this slide
+                    }
                     inventory.removeObject(volume.getName(), co.name);
-                    removed += co.getSize();
                 } catch (CacheVolumeException ex) {
-                    // log failure?
+                    fails++;
+                    log.error("Problem executing deletion plan on volume, "+getVolumeName());
+                    if (fails > 10) {
+                        log.error("Aborting plan after 10 consecutive failures");
+                        throw new DeletionFailureException("Deletion plan got 10 failures in a row: "
+                                                           + ex.getMessage(), ex);
+                    }
                 }
             }
         }
@@ -202,6 +261,15 @@ public class DeletionPlan {
                                              Long.toString(removed));
             return Reservation.reservationFor(volume, inventory, spaceNeeded);
         }
+    }
+
+    /**
+     * set the logger that should be used with this class (when reporting on execution).
+     * This allows the client to choose the name associate with the log messages.
+     * The input logger is ignored if it is null.
+     */
+    public void setLogger(Logger log) {
+        if (log != null) this.log = log;
     }
 
 }
