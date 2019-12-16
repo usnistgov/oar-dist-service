@@ -45,11 +45,29 @@ public interface DeletionPlanner {
     /**
      * return a list of deletion plans that can free up space of a requested size, ordered
      * from most-favorable to least favorable.  
-     *
+     * <p>
      * Typically, the caller would execute the first plan in the set; if that failed, the caller 
      * could try the next one in the list.  Generally, this method should not return plans
      * for volumes whose status does not permit deletions.  
+     *
+     * @param size    the amount of space desired (in bytes)
      */
     public List<DeletionPlan> orderDeletionPlans(long size)
+        throws CacheManagementException, InventoryException;
+
+    /**
+     * return a list of deletion plans that can free up space of a requested size, ordered
+     * from most-favorable to least favorable.  
+     * <p>
+     * Typically, the caller would execute the first plan in the set; if that failed, the caller 
+     * could try the next one in the list.  Generally, this method should not return plans
+     * for volumes whose status does not permit deletions.  
+     *
+     * @param size    the amount of space desired (in bytes)
+     * @param vols    the set of cache volumes to create plans for.  Some volumes will be not 
+     *                  be represented in the output plans if, for example, they are not known 
+     *                  to the inventory database or are marked as not available for clean-up.
+     */
+    public List<DeletionPlan> orderDeletionPlans(long size, List<CacheVolume> vols)
         throws CacheManagementException, InventoryException;
 }
