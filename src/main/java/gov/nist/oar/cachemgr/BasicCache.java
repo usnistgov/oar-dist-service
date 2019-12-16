@@ -14,6 +14,7 @@
 package gov.nist.oar.cachemgr;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -33,7 +34,7 @@ import org.json.JSONException;
  * capacities).  This class makes use of the database model of the JDBCStorageInventoryDB implementation;
  * however it does not require it.
  */
-public class BasicCache extends Cache {
+public abstract class BasicCache extends Cache {
 
     /**
      * the list of volumes that can store data.  Note that implementations are allowed to 
@@ -55,7 +56,7 @@ public class BasicCache extends Cache {
      * database, use 
      * {@link gov.nist.oar.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
      * 
-     * @param idb         the (empty) inventory database to use
+     * @param idb       the (empty) inventory database to use
      */
     public BasicCache(StorageInventoryDB idb) {
         this(idb, 2, null);
@@ -80,10 +81,10 @@ public class BasicCache extends Cache {
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
      * {@link gov.nist.oar.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
-     * @param idb         the inventory database to use
-     * @param volcount    the expected number of CacheVolumes that will be attached via addVolume()
-     * @param log   a particular Logger instance that should be used.  If null, a default one
-     *                will be created.  
+     * @param idb       the inventory database to use
+     * @param volcount  the expected number of CacheVolumes that will be attached via addVolume()
+     * @param log       a particular Logger instance that should be used.  If null, a default one
+     *                    will be created.  
      */
     public BasicCache(StorageInventoryDB idb, int volcount, Logger log) {
         db = idb;
@@ -101,7 +102,7 @@ public class BasicCache extends Cache {
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
      */
-    public BasicCache(StorageInventoryDB idb, List<CacheVolume> vols) {
+    public BasicCache(StorageInventoryDB idb, Collection<CacheVolume> vols) {
         this(idb, vols, null);
     }
 
@@ -112,10 +113,10 @@ public class BasicCache extends Cache {
      * associated database.  
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
-     * @param log   a particular Logger instance that should be used.  If null, a default one
-     *                will be created.  
+     * @param log      a particular Logger instance that should be used.  If null, a default one
+     *                   will be created.  
      */
-    public BasicCache(StorageInventoryDB idb, List<CacheVolume> vols, Logger log) {
+    public BasicCache(StorageInventoryDB idb, Collection<CacheVolume> vols, Logger log) {
         this(idb, vols.size(), log);
         for (CacheVolume v : vols) {
             volumes.put(v.getName(), v);
@@ -236,4 +237,9 @@ public class BasicCache extends Cache {
         throw new DeletionFailureException("All deletion plans failed to produce enough space "+
                                            "(see log for details).");
     }
+
+    /**
+     * return a deletion planner for a particular use.
+     */
+    protected abstract DeletionPlanner getDeletionPlanner(int preferences);
 }
