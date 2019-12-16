@@ -376,7 +376,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if a problem occurs while interacting with the inventory database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public void addObject(String id, String volname, String objname, JSONObject metadata)
+    public synchronized void addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException
     {
         // the time the file was added.  It is assumed that the file will actually be copied into the
@@ -467,7 +467,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *                       consistency errors.  
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public boolean updateMetadata(String volname, String objname, JSONObject metadata)
+    public synchronized boolean updateMetadata(String volname, String objname, JSONObject metadata)
         throws InventoryException
     {
         CacheObject obj = findObject(volname, objname);
@@ -639,7 +639,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if a problem occurs while interacting with the inventory database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public void removeObject(String volname, String objname) throws InventoryException {
+    public synchronized void removeObject(String volname, String objname) throws InventoryException {
         int volid = getVolumeID(volname);
         if (volid < 0)
             throw new VolumeNotFoundException(volname);
@@ -666,7 +666,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * remove all object entries.  This should be used when reinitializing the database.
      * @return boolean   false if the database was apparently empty already, true otherwise.
      */
-    public boolean removeAllObjects() throws InventoryException {
+    public synchronized boolean removeAllObjects() throws InventoryException {
         String sql = "DELETE FROM objects;";
         Statement stmt = null;
         try {
@@ -720,7 +720,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param capacity  the number of bytes of data that this volume can hold.
      * @param metadata  arbitrary metadata describing this volume.  This can be null.
      */
-    public void registerVolume(String name, long capacity, JSONObject metadata)
+    public synchronized void registerVolume(String name, long capacity, JSONObject metadata)
         throws InventoryException
     {
         int id = getVolumeID(name);
@@ -833,7 +833,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public void setVolumeStatus(String volname, int status) throws InventoryException {
+    public synchronized void setVolumeStatus(String volname, int status) throws InventoryException {
         int volid = getVolumeID(volname);
         if (volid < 0)
             throw new VolumeNotFoundException(volname);

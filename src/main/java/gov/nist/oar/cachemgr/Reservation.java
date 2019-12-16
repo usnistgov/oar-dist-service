@@ -158,7 +158,7 @@ public class Reservation {
     }
 
     /**
-     * indicate that this reservation is no longer.  This will remove its entry in the 
+     * indicate that this reservation is no longer needed.  This will remove its entry in the 
      * storage inventory.  This method will get called automatically when the remaining size 
      * goes to or dips below zero.
      */

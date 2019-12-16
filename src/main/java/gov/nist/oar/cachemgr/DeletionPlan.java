@@ -105,9 +105,9 @@ public class DeletionPlan {
      * @param volname     the name of the cache volume this plan applies to
      * @param db          the inventory database that tracks the contents of the volume
      * @param objlist     the list that can/will hold the list of objects to be deleted.
-     * @param target      the number of bytes that this plan plans to free up by remving the files
+     * @param target      the number of bytes that this plan plans to free up by removing the files
      *                       in objlist.
-     * @param need        the number of bytes needed to be free (for a new object to be added).
+     * @param need        the number of bytes needed to be free (for the new object to be added).
      * @param log         a Logger that this instance should use for messages
      */
     public DeletionPlan(String volname, StorageInventoryDB db, List<CacheObject> objlist,
@@ -202,41 +202,60 @@ public class DeletionPlan {
         if (volume == null)
             throw new IllegalStateException("No CacheVolume instance attached to this plan");
 
-        long removed = 0L;
         synchronized (inventory) {
             if (inventory.getVolumeStatus(volume.getName()) < inventory.VOL_FOR_UPDATE)
                 throw new IllegalStateException("CacheVolume "+volume.getName()+
                                                 " not available for updates");
 
-            log.info("Removing {} bytes via deletion plan on {}", getByteCountToBeRemoved(),
-                     getVolumeName());
+            // lock this volume out from having another plan applied to or created for it 
+            inventory.setVolumeStatus(volume.getName(), inventory.VOL_FOR_GET);
+        }
 
-            // remove doomed objects:  go through list until enough space freed or until
-            // exhausted.
-            int fails = 0;
-            for(CacheObject co : doomed) {
+        synchronized (volume) {
+            try {
+                return _execute();
+            }
+            finally {
+                // unlock this volume
+                inventory.setVolumeStatus(volume.getName(), inventory.VOL_FOR_UPDATE);
+            }
+        }
+    }
+
+    /*
+     * this implementation does not include locking
+     */
+    private long _execute() throws DeletionFailureException, InventoryException {
+        long removed = 0L;
+        log.info("Removing {} bytes via deletion plan on {}", getByteCountToBeRemoved(),
+                 getVolumeName());
+
+        // remove doomed objects:  go through list until enough space freed or until
+        // exhausted.
+        int fails = 0;
+        for(CacheObject co : doomed) {
+            try {
+                if (removed > toBeRemoved)
+                    break;
                 try {
-                    if (removed > toBeRemoved)
-                        break;
-                    try {
-                        volume.remove(co.name);
-                        removed += co.getSize();
-                        fails = 0;
-                    } catch (ObjectNotFoundException ex) {
-                        // we will assume that the inventory is out of sync; we'll let this slide
-                    }
-                    inventory.removeObject(volume.getName(), co.name);
-                } catch (CacheVolumeException ex) {
-                    fails++;
-                    log.error("Problem executing deletion plan on volume, "+getVolumeName());
-                    if (fails > 10) {
-                        log.error("Aborting plan after 10 consecutive failures");
-                        throw new DeletionFailureException("Deletion plan got 10 failures in a row: "
-                                                           + ex.getMessage(), ex);
-                    }
+                    volume.remove(co.name);
+                    removed += co.getSize();
+                    fails = 0;
+                } catch (ObjectNotFoundException ex) {
+                    // we will assume that the inventory is out of sync; we'll let this slide
+                }
+                inventory.removeObject(volume.getName(), co.name);
+            } catch (CacheVolumeException ex) {
+                fails++;
+                log.error("Problem executing deletion plan on volume, "+getVolumeName());
+                if (fails > 10) {
+                    log.error("Aborting plan after 10 consecutive failures");
+                    throw new DeletionFailureException("Deletion plan got 10 failures in a row: "
+                                                       + ex.getMessage(), ex);
                 }
             }
         }
+        
         return removed;
     }
 
@@ -247,19 +266,39 @@ public class DeletionPlan {
      * @throws InventoryException     if a failure occurs while trying to create the reservation
      */
     public Reservation executeAndReserve() throws DeletionFailureException, InventoryException {
+        if (volume == null)
+            throw new IllegalStateException("No CacheVolume instance attached to this plan");
+
         synchronized (inventory) {
-            long removed = execute();
-            if (removed < toBeRemoved)
-                throw new DeletionFailureException("Deletion plan for "+volname+" proved insufficient: " +
-                                             Long.toString(toBeRemoved) + " bytes needed; removed only " +
-                                             Long.toString(removed));
-            removed = inventory.getAvailableSpace().get(volume.getName());
-            if (removed < spaceNeeded)
-                throw new DeletionFailureException("After deleting, volume "+volname+
-                                                   " still does not have enough space: "+
-                                             Long.toString(spaceNeeded) + " bytes needed; have only " +
-                                             Long.toString(removed));
-            return Reservation.reservationFor(volume, inventory, spaceNeeded);
+            if (inventory.getVolumeStatus(volume.getName()) < inventory.VOL_FOR_UPDATE)
+                throw new IllegalStateException("CacheVolume "+volume.getName()+
+                                                " not available for updates");
+
+            // lock this volume out from having another plan applied to or created for it 
+            inventory.setVolumeStatus(volume.getName(), inventory.VOL_FOR_GET);
+        }
+
+        synchronized (volume) {
+            try {
+                long removed = _execute();
+                if (removed < toBeRemoved)
+                    throw new DeletionFailureException("Deletion plan for "+volname+" proved insufficient: " +
+                                                 Long.toString(toBeRemoved) + " bytes needed; removed only " +
+                                                 Long.toString(removed));
+
+                removed = inventory.getAvailableSpaceIn(volume.getName());
+                if (removed < spaceNeeded)
+                    throw new DeletionFailureException("After deleting, volume "+volname+
+                                                       " still does not have enough space: "+
+                                                 Long.toString(spaceNeeded) + " bytes needed; have only " +
+                                                 Long.toString(removed));
+                
+                return Reservation.reservationFor(volume, inventory, spaceNeeded);
+            }
+            finally {
+                // unlock this volume
+                inventory.setVolumeStatus(volume.getName(), inventory.VOL_FOR_UPDATE);
+            }
         }
     }
 
