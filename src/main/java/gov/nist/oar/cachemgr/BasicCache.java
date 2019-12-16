@@ -209,12 +209,31 @@ public class BasicCache extends Cache {
 
     /**
      * return a reservation for a given amount of space.  
+     * <p>
+     * This method will cycle through the available caches looking for space for adding a new
+     * data object.  When it finds (or creates some) it returns a Reservation for the space.  
      * @param bytes        the amount of space to reserve
      * @param preferences  an and-ed set of bits indicating what the space will be used for.
      * @return Reservation   an object that provides a claim on space; its interface should be 
      *                     used to deliver the bytes into the cache when the object is available.  
      */
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {
-        return null;
+        DeletionPlanner planner = getDeletionPlanner(preferences);
+        List<DeletionPlan> plans = planner.orderDeletionPlans(bytes);
+
+        // execute each plan until one produces the requisite space.  Typically, the first one should
+        // do it.
+        for (DeletionPlan dp : plans) {
+            try {
+                return dp.executeAndReserve();
+            } catch (DeletionFailureException ex) {
+                log.warn(ex.getMessage());
+                log.info("Trying next plan...");
+            }
+        }
+
+        // no plans succeeded
+        throw new DeletionFailureException("All deletion plans failed to produce enough space "+
+                                           "(see log for details).");
     }
 }
