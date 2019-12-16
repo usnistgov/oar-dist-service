@@ -14,6 +14,7 @@
 package gov.nist.oar.cachemgr;
 
 import java.util.List;
+import java.util.Collection;
 
 /**
  * an interface for determining deletion plans that clear up space in volumes tracked by a storage
@@ -68,6 +69,6 @@ public interface DeletionPlanner {
      *                  be represented in the output plans if, for example, they are not known 
      *                  to the inventory database or are marked as not available for clean-up.
      */
-    public List<DeletionPlan> orderDeletionPlans(long size, List<CacheVolume> vols)
+    public List<DeletionPlan> orderDeletionPlans(long size, Collection<CacheVolume> vols)
         throws CacheManagementException, InventoryException;
 }

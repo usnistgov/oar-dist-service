@@ -21,7 +21,9 @@ import gov.nist.oar.cachemgr.SelectionStrategy;
 import gov.nist.oar.cachemgr.StorageInventoryDB;
 import gov.nist.oar.cachemgr.CacheManagementException;
 import gov.nist.oar.cachemgr.InventoryException;
+import gov.nist.oar.cachemgr.VolumeNotFoundException;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -44,13 +46,13 @@ import org.slf4j.LoggerFactory;
  * basis, if desired) that is used to score individual files.  
  * <p>
  * This implementation can be subclassed to adjust its behavior.  In particular, the 
- * {@link #calculatePlanScore(List,double,double) calculatePlanScore()} method can be 
+ * {@link #calculatePlanScore(Collection,double,double) calculatePlanScore()} method can be 
  * overridden to customize the overall scoring of plans.  
  */
 public class DefaultDeletionPlanner implements DeletionPlanner {
 
     protected StorageInventoryDB invdb = null;
-    protected Map<String, CacheVolume> caches = null;
+    protected Map<String, CacheVolume> volumes = null;
     protected Map<String, SizeLimitedSelectionStrategy> strategies = null;
 
     /**
@@ -82,17 +84,17 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * create the planner
      * @param db         the inventory database that contains information on the contents of the cache 
      *                     volumes
-     * @param caches     a list of the volumes that should be examined for available space.
+     * @param vols       a list of the volumes that should be examined for available space.
      * @param strategy   the selection strategy to use to select deletable files
      */
-    public DefaultDeletionPlanner(StorageInventoryDB db, List<CacheVolume> caches,
+    public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
                                   SizeLimitedSelectionStrategy strategy, Logger log)
     {
         invdb = db;
-        this.caches = new HashMap<String, CacheVolume>(caches.size());
-        strategies = new HashMap<String, SizeLimitedSelectionStrategy>(caches.size());
-        for (CacheVolume cv : caches) {
-            this.caches.put(cv.getName(), cv);
+        volumes = new HashMap<String, CacheVolume>(vols.size());
+        strategies = new HashMap<String, SizeLimitedSelectionStrategy>(vols.size());
+        for (CacheVolume cv : vols) {
+            volumes.put(cv.getName(), cv);
             strategies.put(cv.getName(), strategy);
         }
 
@@ -100,24 +102,24 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         this.log = log;
     }
 
-    public DefaultDeletionPlanner(StorageInventoryDB db, List<CacheVolume> caches,
+    public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
                                   SizeLimitedSelectionStrategy strategy)
     {
-        this(db, caches, strategy, null);
+        this(db, vols, strategy, null);
     }
     
-    public DefaultDeletionPlanner(StorageInventoryDB db, List<CacheVolume> caches,
+    public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
                                   Map<String, SizeLimitedSelectionStrategy> strats,
                                   SizeLimitedSelectionStrategy defStrategy)
     {
-        this(db, caches, strats, defStrategy, null);
+        this(db, vols, strats, defStrategy, null);
     }
 
-    public DefaultDeletionPlanner(StorageInventoryDB db, List<CacheVolume> caches,
+    public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
                                   Map<String, SizeLimitedSelectionStrategy> strats,
                                   SizeLimitedSelectionStrategy defStrategy, Logger log)
     {
-        this(db, caches, defStrategy, log);
+        this(db, vols, defStrategy, log);
         for (String name : strats.keySet())
             strategies.put(name, strats.get(name));
     }
@@ -130,7 +132,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         throws InventoryException
     {
         DeletionPlan out = null;
-        CacheVolume cv = caches.get(volname);
+        CacheVolume cv = volumes.get(volname);
         if (cv == null)
             throw new InventoryException(volname + ": Not a known volume name");
         
@@ -172,7 +174,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * calculate an overall score for the selected cache objects as a plan for creating 
      * the given space.  Better plans have lower values, where 0 is perfect.  
      */
-    protected double calculatePlanScore(List<CacheObject> selected, long size, long avail) {
+    protected double calculatePlanScore(Collection<CacheObject> selected, long size, long avail) {
         long sumsz = 0L;
         double sumscr = 0.0;
         long n = 0;
@@ -217,7 +219,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
     public List<DeletionPlan> orderDeletionPlans(long size)
         throws CacheManagementException, InventoryException
     {
-        return this._orderDeletionPlans(size, cache.values(), false);
+        return this._orderDeletionPlans(size, volumes.values(), false);
     }
 
     /**
@@ -233,21 +235,21 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      *                  be represented in the output plans if, for example, they are not known 
      *                  to the inventory database or are marked as not available for clean-up.
      */
-    public List<DeletionPlan> orderDeletionPlans(long size, List<CacheVolume> vols)
+    public List<DeletionPlan> orderDeletionPlans(long size, Collection<CacheVolume> vols)
         throws CacheManagementException, InventoryException
     {
         return this._orderDeletionPlans(size, vols, true);
     }
     
-    protected List<DeletionPlan> _orderDeletionPlans(long size, List<CacheVolume> vols, boolean unavailwarn)
+    protected List<DeletionPlan> _orderDeletionPlans(long size, Collection<CacheVolume> vols, boolean unavailwarn)
         throws CacheManagementException, InventoryException
     {
-        List<DeletionPlan> out = new ArrayList<DeletionPlan>(caches.size());
+        List<DeletionPlan> out = new ArrayList<DeletionPlan>(vols.size());
         List<Exception> errs = new ArrayList<Exception>(2);
 
         // create a plan for each CacheVolume
         DeletionPlan dp = null;
-        for (CacheVolume cvn: caches.values()) {
+        for (CacheVolume cvn: vols) {
             try {
                 if (invdb.getVolumeStatus(cvn.getName()) < invdb.VOL_FOR_UPDATE) {
                     if (unavailwarn)
@@ -256,7 +258,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
                 }
             } catch (VolumeNotFoundException ex) {
                 log.warn("Cache volume {} is not tracked by inventory; skipping.", cvn.getName());
-                continue
+                continue;
             }
 
             try {
