@@ -26,7 +26,7 @@ import java.io.IOException;
 
 import gov.nist.oar.cachemgr.CacheObject;
 import gov.nist.oar.cachemgr.CacheVolume;
-import gov.nist.oar.cachemgr.CacheVolumeException;
+import gov.nist.oar.cachemgr.StorageVolumeException;
 import gov.nist.oar.cachemgr.ObjectNotFoundException;
 
 public class NullCacheVolumeTest {
@@ -38,7 +38,7 @@ public class NullCacheVolumeTest {
     }
 
     @Test
-    public void testExists() throws CacheVolumeException, IOException {
+    public void testExists() throws StorageVolumeException, IOException {
         NullCacheVolume v = new NullCacheVolume("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         v.addObjectName("goob");
@@ -46,7 +46,7 @@ public class NullCacheVolumeTest {
     }
 
     @Test
-    public void testInputStreamSaveAs() throws CacheVolumeException, IOException {
+    public void testInputStreamSaveAs() throws StorageVolumeException, IOException {
         String stuff = "All work and no play makes Jack a dull boy.  ";
         StringBuilder sb = new StringBuilder(stuff);
         for(int i=0; i < 200; i++) 
@@ -61,7 +61,7 @@ public class NullCacheVolumeTest {
     }
         
     @Test
-    public void testCacheObjectSaveAs() throws CacheVolumeException, IOException {
+    public void testCacheObjectSaveAs() throws StorageVolumeException, IOException {
         // create the file to stream
         NullCacheVolume v = new NullCacheVolume("root");
         v.addObjectName("goob");
@@ -74,7 +74,7 @@ public class NullCacheVolumeTest {
     }
 
     @Test
-    public void testGetStream() throws CacheVolumeException, IOException {
+    public void testGetStream() throws StorageVolumeException, IOException {
         NullCacheVolume v = new NullCacheVolume("root");
         v.addObjectName("goob");
 
@@ -90,7 +90,7 @@ public class NullCacheVolumeTest {
     }
         
     @Test
-    public void testGet() throws CacheVolumeException, IOException {
+    public void testGet() throws StorageVolumeException, IOException {
         NullCacheVolume v = new NullCacheVolume("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         v.addObjectName("goob");
@@ -103,7 +103,7 @@ public class NullCacheVolumeTest {
 
 
     @Test
-    public void testRemove() throws CacheVolumeException, IOException {
+    public void testRemove() throws StorageVolumeException, IOException {
         NullCacheVolume v = new NullCacheVolume("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         assertFalse(v.remove("goob"));

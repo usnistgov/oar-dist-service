@@ -42,10 +42,10 @@ public interface CacheVolume {
     /**
      * return True if an object with a given name exists in this storage volume
      * @param name  the name of the object
-     * @throws CacheVolumeException   if there is an error accessing the 
+     * @throws StorageVolumeException   if there is an error accessing the 
      *              underlying storage system.
      */
-    public boolean exists(String name) throws CacheVolumeException;
+    public boolean exists(String name) throws StorageVolumeException;
 
     /**
      * save a copy of the named object to this storage volume.  If an object 
@@ -57,9 +57,9 @@ public interface CacheVolume {
      *                 to save.  (The caller is responsible for closing the stream
      *                 after this method returns.)
      * @param name   the name to assign to the object within the storage.  
-     * @throws CacheVolumeException  if the method fails to save the object correctly.
+     * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
-    public void saveAs(InputStream from, String name) throws CacheVolumeException;
+    public void saveAs(InputStream from, String name) throws StorageVolumeException;
 
     /**
      * save a copy of an object currently stored in another volume.  If an object 
@@ -70,10 +70,10 @@ public interface CacheVolume {
      * @param name   the name to assign to the object within the storage.  
      * @throws ObjectNotFoundException  if the object does not exist in specified
      *                                     volume
-     * @throws CacheVolumeException   if method fails to save the object correctly 
+     * @throws StorageVolumeException   if method fails to save the object correctly 
      *               or if the request calls for copying an object to itself.  
      */
-    public void saveAs(CacheObject obj, String name) throws CacheVolumeException;
+    public void saveAs(CacheObject obj, String name) throws StorageVolumeException;
 
     /**
      * return an open InputStream to the object with the given name.  The caller is 
@@ -81,30 +81,30 @@ public interface CacheVolume {
      * @param name   the name of the object to get
      * @throws ObjectNotFoundException  if the named object does not exist in this 
      *                                     volume
-     * @throws CacheVolumeException     if there is any other problem opening the 
+     * @throws StorageVolumeException     if there is any other problem opening the 
      *                                     named object
      */
-    public InputStream getStream(String name) throws CacheVolumeException;
+    public InputStream getStream(String name) throws StorageVolumeException;
 
     /**
      * return a reference to an object in the volume given its name
      * @param name   the name of the object to get
      * @throws ObjectNotFoundException  if the named object does not exist in this 
      *                                     volume
-     * @throws CacheVolumeException     if there is any other problem opening the 
+     * @throws StorageVolumeException     if there is any other problem opening the 
      *                                     named object
      */
-    public CacheObject get(String name) throws CacheVolumeException;
+    public CacheObject get(String name) throws StorageVolumeException;
 
     /** 
      * remove the object with the give name from this storage volume
      * @param name       the name of the object to get
      * @return boolean  True if the file existed in the volume; false if it was 
      *                       not found in this volume
-     * @throws CacheVolumeException     if there is an internal error while trying to 
+     * @throws StorageVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      */
-    public boolean remove(String name) throws CacheVolumeException;
+    public boolean remove(String name) throws StorageVolumeException;
 
     /**
      * return a URL that the object with the given name can be alternatively 
@@ -113,9 +113,9 @@ public interface CacheVolume {
      * support this. 
      * @param name       the name of the object to get
      * @return URL      a URL where the object can be streamed from
-     * @throws CacheVolumeException     if there is an internal error while trying to 
+     * @throws StorageVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      * @throws UnsupportedOperationException  if this operation is not supported on this volume
      */
-    public URL getRedirectFor(String name) throws CacheVolumeException, UnsupportedOperationException;
+    public URL getRedirectFor(String name) throws StorageVolumeException, UnsupportedOperationException;
 }

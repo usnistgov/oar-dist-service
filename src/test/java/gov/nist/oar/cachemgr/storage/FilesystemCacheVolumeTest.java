@@ -30,7 +30,7 @@ import java.io.IOException;
 
 import gov.nist.oar.cachemgr.CacheObject;
 import gov.nist.oar.cachemgr.CacheVolume;
-import gov.nist.oar.cachemgr.CacheVolumeException;
+import gov.nist.oar.cachemgr.StorageVolumeException;
 import gov.nist.oar.cachemgr.ObjectNotFoundException;
 import gov.nist.oar.cachemgr.storage.FilesystemCacheVolume;
 
@@ -87,7 +87,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testExists() throws CacheVolumeException, IOException {
+    public void testExists() throws StorageVolumeException, IOException {
         CacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         tempf.newFile("root/goob");
@@ -95,7 +95,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testInputStreamSaveAs() throws CacheVolumeException, IOException {
+    public void testInputStreamSaveAs() throws StorageVolumeException, IOException {
         // create the file to stream
         File obj = makefile("hello world");
 
@@ -113,7 +113,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testCacheObjectSaveAs() throws CacheVolumeException, IOException {
+    public void testCacheObjectSaveAs() throws StorageVolumeException, IOException {
         // create the file to stream
         FilesystemCacheVolume v = makevol("root");
         CacheObject co = makeobj(v, "goob", "hello world");
@@ -126,7 +126,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testGetStream() throws CacheVolumeException, IOException {
+    public void testGetStream() throws StorageVolumeException, IOException {
         FilesystemCacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         CacheObject co = makeobj(v, "goob", "hello world");
@@ -148,7 +148,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testGet() throws CacheVolumeException, IOException {
+    public void testGet() throws StorageVolumeException, IOException {
         FilesystemCacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         CacheObject co = makeobj(v, "goob", "hello world");
@@ -161,7 +161,7 @@ public class FilesystemCacheVolumeTest {
     }
 
     @Test
-    public void testRemove() throws CacheVolumeException, IOException {
+    public void testRemove() throws StorageVolumeException, IOException {
         FilesystemCacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         assertFalse(v.remove("goob"));

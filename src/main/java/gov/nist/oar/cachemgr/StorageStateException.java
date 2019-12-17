@@ -15,33 +15,75 @@ package gov.nist.oar.cachemgr;
  * an exception indicating an operation failure using a storage system because that system was 
  * found to be in an unexpected state.
  */
-public class StorageStateException extends Exception {
+public class StorageStateException extends StorageVolumeException {
 
     /**
-     * initialize the exception
-     * @param message   the description of the problem
+     * create an exception with a custom message
+     * @param msg    a custom message
+     * @param ex     a Throwable that was caught as the underlying cause 
+     *                  of the error
      */
-    public StorageStateException(String message) {
-        super(message);
+    public StorageStateException(String msg, Throwable ex) {
+        super(msg, ex);
     }
 
     /**
-     * initialize the exception
-     * @param message   the description of the problem
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * create an exception with a custom message
+     * @param msg      a custom message
+     * @param ex       a Throwable that was caught as the underlying cause 
+     *                    of the error
+     * @param volname  the name of the storage volume where the error 
+     *                    occurred 
      */
-    public StorageStateException(String message, Throwable cause) {
-        super(message, cause);
+    public StorageStateException(String msg, Throwable ex, String volname) {
+        super(msg, ex, volname);
     }
 
     /**
-     * initialize the exception
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * create an exception with a custom message
+     * @param msg    a custom message
      */
-    public StorageStateException(Throwable cause) {
-        super("Storage system failure: "+cause.getMessage(), cause);
+    public StorageStateException(String msg) {
+        this(msg, null, null);
+    }
+
+    /**
+     * create an exception with a custom message
+     * @param msg      a custom message
+     * @param volname  the name of the storage volume where the error 
+     *                  occurred 
+     */
+    public StorageStateException(String msg, String volname) {
+        this(msg, null, volname);
+    }
+
+    /**
+     * create an exception that wraps another exception.  A message is 
+     * generated from the wrapped exception's message
+     * @param ex       a Throwable that was caught as the underlying cause 
+     *                    of the error
+     */
+    public StorageStateException(Throwable ex) {
+        super(ex);
+    }
+
+    /**
+     * create an exception that wraps another exception.  A message is 
+     * generated from the wrapped exception's message and the volume name.
+     * @param ex       a Throwable that was caught as the underlying cause 
+     *                    of the error
+     * @param volname  the name of the storage volume where the error 
+     *                    occurred 
+     */
+    public StorageStateException(Throwable ex, String volname) {
+        this(messageFor(ex, volname), ex, volname);
+    }
+
+    /**
+     * return a message prefix that can introduce a more specific message
+     */
+    public static String getMessagePrefix() {
+        return "Unexpected state while accessing storage volume";
     }
 }
 

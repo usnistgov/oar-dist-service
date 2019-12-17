@@ -14,9 +14,9 @@
 package gov.nist.oar.cachemgr;
 
 /**
- * an exception indicating that something went wrong while accessing the storage inventory.
+ * an exception indicating that something went wrong while accessing a storage volume.
  */
-public class CacheVolumeException extends CacheManagementException {
+public class StorageVolumeException extends Exception {
 
     protected String volume = null;
 
@@ -26,7 +26,7 @@ public class CacheVolumeException extends CacheManagementException {
      * @param ex     a Throwable that was caught as the underlying cause 
      *                  of the error
      */
-    public CacheVolumeException(String msg, Throwable ex) {
+    public StorageVolumeException(String msg, Throwable ex) {
         super(msg, ex);
     }
 
@@ -38,7 +38,7 @@ public class CacheVolumeException extends CacheManagementException {
      * @param volname  the name of the storage volume where the error 
      *                    occurred 
      */
-    public CacheVolumeException(String msg, Throwable ex, String volname) {
+    public StorageVolumeException(String msg, Throwable ex, String volname) {
         super(msg, ex);
         volume = volname;
     }
@@ -47,7 +47,7 @@ public class CacheVolumeException extends CacheManagementException {
      * create an exception with a custom message
      * @param msg    a custom message
      */
-    public CacheVolumeException(String msg) {
+    public StorageVolumeException(String msg) {
         this(msg, null, null);
     }
 
@@ -57,7 +57,7 @@ public class CacheVolumeException extends CacheManagementException {
      * @param volname  the name of the storage volume where the error 
      *                  occurred 
      */
-    public CacheVolumeException(String msg, String volname) {
+    public StorageVolumeException(String msg, String volname) {
         this(msg, null, volname);
     }
 
@@ -67,7 +67,7 @@ public class CacheVolumeException extends CacheManagementException {
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
      */
-    public CacheVolumeException(Throwable ex) {
+    public StorageVolumeException(Throwable ex) {
         super(ex);
     }
 
@@ -79,7 +79,7 @@ public class CacheVolumeException extends CacheManagementException {
      * @param volname  the name of the storage volume where the error 
      *                    occurred 
      */
-    public CacheVolumeException(Throwable ex, String volname) {
+    public StorageVolumeException(Throwable ex, String volname) {
         this(messageFor(ex, volname), ex, volname);
     }
 

@@ -16,7 +16,7 @@ package gov.nist.oar.cachemgr;
 /**
  * an exception indicating a request for a data object that does not exist 
  * in the storage volume.  
- * 
+ * <p>
  * It's intended that this exception is typically constructed by providing 
  * the name of the requested object and the name of the volume only, with a 
  * message being generated automatically from them:
@@ -24,7 +24,7 @@ package gov.nist.oar.cachemgr;
  *    throw new ObjectNotFoundException(objectname, volume);
  * </verbatim>
  */
-public class ObjectNotFoundException extends CacheVolumeException {
+public class ObjectNotFoundException extends StorageVolumeException {
 
     protected String object = null;
 
@@ -69,8 +69,19 @@ public class ObjectNotFoundException extends CacheVolumeException {
     public ObjectNotFoundException(String msg, String objname, String volname,
                                    Throwable cause)
     {
-        super(messageFor(objname, volname), cause, volname);
+        super(msg, cause);
         object = objname;
+    }
+
+    /**
+     * create the exception indicating the object that could not be found and 
+     * the volume it was requested from.
+     * @param objname   the name of the object that could not be found
+     * @param volname   the name of the volume from which the object was requested
+     * @param cause     an underlying or related cause for not finding the object
+     */
+    public ObjectNotFoundException(String objname, String volname, Throwable cause) {
+        this(messageFor(objname, volname), objname, volname, cause);
     }
 
     /**
@@ -80,9 +91,10 @@ public class ObjectNotFoundException extends CacheVolumeException {
 
     protected static String messageFor(String objname, String volname) {
         StringBuilder sb = new StringBuilder("Data object, ");
-        sb.append(objname).append(", not found in cache volume");
+        sb.append(objname).append(", not found in");
         if (volname != null)
-            sb.append(", ").append(volname);
+            sb.append(" ").append(volname);
+        sb.append(" storage volume");
         return sb.toString();
     }
 }

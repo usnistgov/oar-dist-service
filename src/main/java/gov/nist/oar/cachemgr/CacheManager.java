@@ -116,7 +116,7 @@ public abstract class CacheManager {
         try {
             return out.volume.getRedirectFor(out.name);
         }
-        catch (CacheVolumeException ex) {
+        catch (StorageVolumeException ex) {
             throw new CacheManagementException(id+": Unexpected error determining URL: "+ex.getMessage(),
                                                ex);
         }

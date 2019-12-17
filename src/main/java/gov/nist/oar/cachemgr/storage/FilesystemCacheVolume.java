@@ -15,7 +15,7 @@ package gov.nist.oar.cachemgr.storage;
 
 import gov.nist.oar.cachemgr.CacheVolume;
 import gov.nist.oar.cachemgr.CacheObject;
-import gov.nist.oar.cachemgr.CacheVolumeException;
+import gov.nist.oar.cachemgr.StorageVolumeException;
 import gov.nist.oar.cachemgr.ObjectNotFoundException;
 
 import java.io.InputStream;
@@ -84,10 +84,10 @@ public class FilesystemCacheVolume implements CacheVolume {
     /**
      * return True if an object with a given name exists in this storage volume
      * @param name  the name of the object
-     * @throws CacheVolumeException   if there is an error accessing the 
+     * @throws StorageVolumeException   if there is an error accessing the 
      *              underlying storage system.
      */
-    public boolean exists(String name) throws CacheVolumeException {
+    public boolean exists(String name) throws StorageVolumeException {
         File f = new File(root, name);
         return f.isFile();
     }
@@ -101,13 +101,13 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param from   an InputStream that contains the bytes the make up object 
      *                 to save
      * @param name   the name to assign to the object within the storage.  
-     * @throws CacheVolumeException  if the method fails to save the object correctly.
+     * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
-    public synchronized void saveAs(InputStream from, String name) throws CacheVolumeException {
+    public synchronized void saveAs(InputStream from, String name) throws StorageVolumeException {
         try {
             FileUtils.copyToFile(from, new File(root, name));
         } catch (IOException ex) {
-            throw new CacheVolumeException(this.name+":"+name+": Failed to save object: "+
+            throw new StorageVolumeException(this.name+":"+name+": Failed to save object: "+
                                            ex.getMessage(), ex);
         }
     }
@@ -121,19 +121,19 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param name   the name to assign to the object within the storage.  
      * @throws ObjectNotFoundException  if the object does not exist in specified
      *                                     volume
-     * @throws CacheVolumeException   if method fails to save the object correctly 
+     * @throws StorageVolumeException   if method fails to save the object correctly 
      *               or if the request calls for copying an object to itself or 
      *               if the given CacheObject is not sufficiently specified. 
      */
-    public synchronized void saveAs(CacheObject obj, String name) throws CacheVolumeException {
+    public synchronized void saveAs(CacheObject obj, String name) throws StorageVolumeException {
         if (obj.name == null)
-            throw new CacheVolumeException("name for cache object (in volume, "+obj.volname+
+            throw new StorageVolumeException("name for cache object (in volume, "+obj.volname+
                                            ") not set.");
         if (obj.volume == null)
-            throw new CacheVolumeException("Unable to locate volume, "+obj.volname+
+            throw new StorageVolumeException("Unable to locate volume, "+obj.volname+
                                            ", for cache object, "+obj.name);
         if (this.name.equals(obj.volname) && name.equals(obj.name))
-            throw new CacheVolumeException("Request to copy "+obj.volname+":"+obj.name+
+            throw new StorageVolumeException("Request to copy "+obj.volname+":"+obj.name+
                                            " onto itself");
         if (! obj.volume.exists(obj.name))
             throw new ObjectNotFoundException(obj.volname, obj.name);
@@ -146,17 +146,17 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param name   the name of the object to get
      * @throws ObjectNotFoundException  if the named object does not exist in this 
      *                                     volume
-     * @throws CacheVolumeException     if there is any other problem opening the 
+     * @throws StorageVolumeException     if there is any other problem opening the 
      *                                     named object
      */
-    public synchronized InputStream getStream(String name) throws CacheVolumeException {
+    public synchronized InputStream getStream(String name) throws StorageVolumeException {
         if (! this.exists(name))
             throw new ObjectNotFoundException(this.getName(), name);
         try {
             return new FileInputStream(new File(root, name));
         }
         catch (IOException ex) {
-            throw new CacheVolumeException(this.name+":"+name+": Failed to open object: "+
+            throw new StorageVolumeException(this.name+":"+name+": Failed to open object: "+
                                            ex.getMessage(), ex);
         }
     }
@@ -167,7 +167,7 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @throws ObjectNotFoundException  if the named object does not exist in this 
      *                                     volume
      */
-    public CacheObject get(String name) throws CacheVolumeException {
+    public CacheObject get(String name) throws StorageVolumeException {
         if (! this.exists(name))
             throw new ObjectNotFoundException(this.getName(), name);
         return new CacheObject(name, this);
@@ -178,10 +178,10 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param name       the name of the object to get
      * @return boolean  True if the file existed in the volume; false if it was 
      *                       not found in this volume
-     * @throws CacheVolumeException     if there is an internal error while trying to 
+     * @throws StorageVolumeException     if there is an internal error while trying to 
      *                                     remove the Object
      */
-    public synchronized boolean remove(String name) throws CacheVolumeException {
+    public synchronized boolean remove(String name) throws StorageVolumeException {
         if (! this.exists(name))
             return false;
 
@@ -189,7 +189,7 @@ public class FilesystemCacheVolume implements CacheVolume {
         try {
             target.delete();
         } catch (SecurityException ex) {
-            throw new CacheVolumeException("Unexpected SecurityException: "+ex.getMessage(), ex);
+            throw new StorageVolumeException("Unexpected SecurityException: "+ex.getMessage(), ex);
         }
         
         return true;
@@ -207,7 +207,7 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @return URL      a URL where the object can be streamed from
      * @throws UnsupportedOperationException     always as this function is not supported
      */
-    public URL getRedirectFor(String name) throws CacheVolumeException, UnsupportedOperationException {
+    public URL getRedirectFor(String name) throws StorageVolumeException, UnsupportedOperationException {
         throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
     }
 

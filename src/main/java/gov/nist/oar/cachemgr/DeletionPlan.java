@@ -196,7 +196,7 @@ public class DeletionPlan {
      * fail if it fails to delete an Object; it will just move on.  
      * @return long    the number of bytes actually freed as a result of execution of the plan
      * @throws IllegalStateException  if the volume field is null 
-     * @throws CacheVolumeException   if there is a non-recoverable error with attempting to delete objects
+     * @throws StorageVolumeException   if there is a non-recoverable error with attempting to delete objects
      */
     public long execute() throws InventoryException, DeletionFailureException {
         if (volume == null)
@@ -245,7 +245,7 @@ public class DeletionPlan {
                     // we will assume that the inventory is out of sync; we'll let this slide
                 }
                 inventory.removeObject(volume.getName(), co.name);
-            } catch (CacheVolumeException ex) {
+            } catch (StorageVolumeException ex) {
                 fails++;
                 log.error("Problem executing deletion plan on volume, "+getVolumeName());
                 if (fails > 10) {

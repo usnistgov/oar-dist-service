@@ -138,14 +138,19 @@ public abstract class BasicCache extends Cache {
      * remove all copies of the data object with the given ID from the cache
      * @param id       the identifier for the data object of interest.
      * @throws InventoryException  if an error occurs while searching or updating the inventory.
-     * @throws CacheVolumeException  if an error occurs removing the object from a volume
+     * @throws CacheManagementException  if an error occurs removing the object from a volume
      */
     public void uncache(String id) throws CacheManagementException {
         List<CacheObject> cos = db.findObject(id);
         for (CacheObject co : cos) {
-            if (volumes.containsKey(co.volname))
-                volumes.get(co.volname).remove(co.name);
-            db.removeObject(co.volname, co.name);
+            try {
+                if (volumes.containsKey(co.volname))
+                    volumes.get(co.volname).remove(co.name);
+                db.removeObject(co.volname, co.name);
+            } catch (StorageVolumeException ex) {
+                throw new CacheManagementException("Problem removing obj, "+id+", from vol, "+
+                                                   co.volname+": "+ ex.getMessage(), ex);
+            }
         }
     }
 
@@ -154,7 +159,6 @@ public abstract class BasicCache extends Cache {
      * otherwise, return null. 
      * @param id       the identifier for the data object of interest.
      * @throws InventoryException  if an error occurs while searching or updating the inventory.
-     * @throws CacheVolumeException  if an error occurs removing the object from a volume
      */
     public CacheObject findObject(String id) throws CacheManagementException {
         List<CacheObject> cos = db.findObject(id);
@@ -168,7 +172,7 @@ public abstract class BasicCache extends Cache {
                 vol = volumes.get(co.volname);
                 if (vol != null && vol.exists(co.name))
                     return co;
-            } catch (CacheVolumeException ex) {
+            } catch (StorageVolumeException ex) {
                 log.error("Trouble interacting with volume="+co.volname, ex);
                 prob = true;
             }
@@ -176,7 +180,7 @@ public abstract class BasicCache extends Cache {
 
         log.error("Volumes appear out of sync with inventory: all found objects inaccessible.");
         if (prob)
-            throw new ObjectNotFoundException(id+": object is inaccessible");
+            throw new CacheManagementException(id+": object is inaccessible");
 
         log.info("Cleaning up the inventory: removing id="+id);
         uncache(id);
