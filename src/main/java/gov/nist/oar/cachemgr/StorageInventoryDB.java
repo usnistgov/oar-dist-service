@@ -123,13 +123,26 @@ public interface StorageInventoryDB extends VolumeStatus {
         throws InventoryException;
 
     /**
-     * record the removal of the object with the given name from the given volume
+     * record the removal of the object with the given name from the given volume.  
+     * <p>
+     * This will typically be implemented as <code>removeObject(volname, objname, false)</code>.
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
      * @throws InventoryException  if there is an error accessing the underlying database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public void removeObject(String volname, String objname) throws InventoryException;
+
+    /**
+     * record the removal of the object with the given name from the given volume
+     * @param volname  the name of the volume where the object was added
+     * @param objname  the name of the object was given in that volume
+     * @param purge    if false, a record for the object will remain in the database but marked as 
+     *                    uncached.  If true, the record will be complete removed from the database.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
+     */
+    public void removeObject(String volname, String objname, boolean purge) throws InventoryException;
 
     /*
      * remove all object entries.  This should be used when reinitializing the database.

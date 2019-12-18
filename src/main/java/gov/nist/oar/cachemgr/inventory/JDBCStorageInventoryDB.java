@@ -82,7 +82,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     static final String find_sql =
         "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
-        "FROM objects d, volumes v WHERE d.volume=v.id ";
+        "FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1 ";
 
     static final String deletion_pSelect = 
         find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
@@ -423,7 +423,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
         // check to see if we have this record in the database already
         StringBuilder sb = new StringBuilder(find_sql);
-        sb.append("AND d.objid='").append(id).append("' AND v.name='").append(volname);
+        sb.append("AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
         List<CacheObject> found = _findObject(sb.toString());
         for(CacheObject co : found)
@@ -631,6 +631,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     String rm_sql = "UPDATE objects SET cached=0 WHERE volume=? AND name=?";
+    String prg_sql = "DELETE FROM objects WHERE volume=? AND name=?";
         
     /**
      * record the removal of the object with the given name from the given volume
@@ -640,6 +641,28 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
     public synchronized void removeObject(String volname, String objname) throws InventoryException {
+        removeObject(volname, objname, false);
+    }
+
+    /**
+     * record the removal of the object with the given name from the given volume
+     * @param volname  the name of the volume where the object was added
+     * @param objname  the name of the object was given in that volume
+     * @param purge    if false, a record for the object will remain in the database but marked as 
+     *                    uncached.  If true, the record will be complete removed from the database.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
+     */
+    public void removeObject(String volname, String objname, boolean purge) throws InventoryException {
+        String sql = rm_sql;
+        if (purge)
+            sql = prg_sql;
+        _removeObject(volname, objname, sql);
+    }
+
+    private synchronized void _removeObject(String volname, String objname, String sqltmpl)
+        throws InventoryException
+    {
         int volid = getVolumeID(volname);
         if (volid < 0)
             throw new VolumeNotFoundException(volname);
@@ -647,7 +670,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            stmt = _conn.prepareStatement(rm_sql);
+            stmt = _conn.prepareStatement(sqltmpl);
             stmt.setInt(1, volid);
             stmt.setString(2, objname);
             stmt.executeUpdate();

@@ -168,7 +168,7 @@ public class Reservation {
      */
     public void drop() throws InventoryException {
         if (_size > 0) _size = -1L;
-        db.removeObject(vol.getName(), getReservationName());
+        db.removeObject(vol.getName(), getReservationName(), true);
     }
 
     protected void finalize() {
