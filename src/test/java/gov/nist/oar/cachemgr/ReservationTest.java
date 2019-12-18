@@ -21,7 +21,6 @@ import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.*;
 
 import gov.nist.oar.cachemgr.CacheVolume;
-import gov.nist.oar.cachemgr.CacheVolumeException;
 import gov.nist.oar.cachemgr.InventoryException;
 import gov.nist.oar.cachemgr.StorageInventoryDB;
 import gov.nist.oar.cachemgr.inventory.SQLiteStorageInventoryDB;

@@ -17,36 +17,46 @@ package gov.nist.oar.cachemgr;
  * an exception indicating a failure while trying to execute a {@link gov.nist.oar.cachemgr.DeletionPlan}.
  * When thrown, the plan should not be considered as having completed nor is the plan viable anymore. 
  */
-public class DeletionFailureException extends CacheVolumeException {
+public class DeletionFailureException extends CacheManagementException {
+
+    StorageVolumeException svcause = null;
+    String volume = null;
 
     /**
-     * create the exception for particular volume with a custom message
+     * convert a StorageVolumeException to a DeletionFailureException
      */
-    public DeletionFailureException(String message, String volname) {
-        super(message, volname);
+    public DeletionFailureException(String message, StorageVolumeException cause) {
+        super(message, cause);
+        svcause = cause;
+        volume = svcause.getVolumeName();
     }
 
     /**
-     * create the exception for particular volume with a custom message
+     * convert a StorageVolumeException to a DeletionFailureException
      */
-    public DeletionFailureException(String message, String volname, Throwable cause) {
-        super(message, cause, volname);
-    }
-
-    /**
-     * create the exception wrapping a throwable.  Use this when an unexpected exception 
-     * is thrown while execute a deletion plan
-     */
-    public DeletionFailureException(String volname, Throwable cause) {
-        super("Deletion plan execution failed on volume, " + volname + 
-              ": " + cause.getMessage(), cause, volname);
+    public DeletionFailureException(StorageVolumeException cause) {
+        this("Deletion plan execution failed on volume, " + cause.getVolumeName() + 
+             ": " + cause.getMessage(), cause);
     }
 
     /**
      * create the exception with a custom message where the volume is unknown or irrelevent.
      */
     public DeletionFailureException(String message) {
-        super(message, null, null);
+        super(message, null);
     }
 
+    /**
+     * return the name of the cache storage volume where the exception
+     * occurred, or null if the name is not known or applicable.
+     */
+    public String getVolumeName() {
+        return volume;
+    }
+
+    /**
+     * return the underlying StorageVolumeException that signaled this deletion error
+     * or null if no such exception was raised.  
+     */
+    public StorageVolumeException getStorageVolumeException() { return svcause; }
 }    

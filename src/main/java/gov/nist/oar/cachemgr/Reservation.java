@@ -131,12 +131,16 @@ public class Reservation {
                 metadata.put("size", is.count());
             db.addObject(id, vol.getName(), objname, metadata);
         }
-        catch (CacheVolumeException ex) {
+        catch (StorageVolumeException ex) {
             throw new CacheManagementException("Problem saving object, id="+id+": "+ex.getMessage(), ex);
         }
         catch (InventoryException ex) {
             // abort the save: remove the object
-            vol.remove(objname);
+            try {
+                vol.remove(objname);
+            } catch (StorageVolumeException e) {
+                // log issue?
+            }
             throw new CacheManagementException("Problem updating inventory for id="+id+": "+
                                                ex.getMessage()+" (aborted save)", ex);
         }
