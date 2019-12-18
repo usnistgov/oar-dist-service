@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.cachemgr.Checksum;
+import gov.nist.oar.cachemgr.StorageVolumeException;
 import gov.nist.oar.cachemgr.StorageStateException;
 import gov.nist.oar.cachemgr.storage.LongTermStorageBase;
 
@@ -44,10 +45,14 @@ import gov.nist.oar.cachemgr.storage.LongTermStorageBase;
  */
 public class FilesystemLongTermStorage extends LongTermStorageBase {
 
+    public static long defaultChecksumSizeLimit = 50000000L;  // 50 MB
+
     /**
      * the path to the filesystem directory below which its files are stored.
      */
     public final File rootdir;
+
+    private long checksumSizeLim = defaultChecksumSizeLimit;
     
     /**
      * create the storage instance (with a default Logger)
@@ -69,11 +74,29 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws FileNotFoundException   if the give path does not exist or is not a directory
      */
     public FilesystemLongTermStorage(String dirpath, Logger log) throws FileNotFoundException {
+        this(dirpath, -1L, log);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param csSizeLim  the file size limit up to which checksums will be calculated on the fly for 
+     *                 a file if it is not cached on disk.  If zero, checksums will never be calculated 
+     *                 on the fly.  If negative, a default value (50 MB) will be set.  
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, long csSizeLim, Logger log) throws FileNotFoundException {
         super(log);
         rootdir = new File(dirpath);
         if (! rootdir.isDirectory())
             throw new FileNotFoundException("Not an existing directory: "+dirpath);
         logger.info("Creating FilesystemLongTermStorage rooted at " + rootdir.toString());
+
+        if (csSizeLim < 0) csSizeLim = defaultChecksumSizeLimit;
+        checksumSizeLim = csSizeLim;
     }
     
     /**
@@ -96,7 +119,7 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      */
     @Override
     public boolean exists(String filename) {
-        return (new File(rootdir, filename)).isFile();
+        return (new File(rootdir, filename)).exists();
     }
 
     /**
@@ -108,7 +131,7 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws UnsupportedOperationException   if an error occurs while retrieving the checksum
      */
     @Override
-    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageStateException {
+    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException {
 
         File dataf = new File(rootdir, filename);
         if (! exists(filename))
@@ -119,12 +142,12 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
             // no cached checksum, calculate it the file is not too big
             if (! chksum.getName().endsWith(".sha256"))
                 logger.warn("No cached checksum available for "+filename);
-            if (getSize(filename) > 50000000)
+            if (getSize(filename) > checksumSizeLim)
                 throw new StorageStateException("No cached checksum for large file: "+dataf.toString());
             try (InputStream is = openFile(filename)) {
                 return Checksum.calcSHA256(is);
             } catch (Exception ex) {
-                throw new StorageStateException("Unable to calculate checksum for small file: " + 
+                throw new StorageVolumeException("Unable to calculate checksum for small file: " + 
                                                 dataf.toString() + ": " + ex.getMessage());
             }
         }
@@ -133,8 +156,8 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
             return Checksum.SHA256(readHash(csrdr));
         }
         catch (IOException ex) {
-            throw new StorageStateException("Failed to read cached checksum value from "+ chksum.toString() +
-                                            ": " + ex.getMessage(), ex);
+            throw new StorageVolumeException("Failed to read cached checksum value from "+ chksum.toString() +
+                                             ": " + ex.getMessage(), ex);
         }
     }
 
