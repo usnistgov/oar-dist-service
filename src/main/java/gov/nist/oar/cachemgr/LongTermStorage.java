@@ -31,6 +31,12 @@ import java.util.List;
 public interface LongTermStorage {
 
     /**
+     * return a name for the storage system.  This is used primarily for enhancing error messages
+     * by indicating which storage system produced the error.
+     */
+    public String getName();
+
+    /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file.
      * The caller is responsible for closing the stream when finished with it.
      * @param filename   The name of the desired file.  Note that this does not refer to files that 

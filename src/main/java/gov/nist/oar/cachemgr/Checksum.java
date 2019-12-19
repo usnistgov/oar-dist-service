@@ -31,6 +31,11 @@ public class Checksum {
     public static String SHA256 = "sha256";
 
     /**
+     * the CRC-32 checksum algorithm (used in zip files)
+     */
+    public static String CRC32 = "crc32";
+
+    /**
      * the checksum hash value
      */
     public String hash = null;

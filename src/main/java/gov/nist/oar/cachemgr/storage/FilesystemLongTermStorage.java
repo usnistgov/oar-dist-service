@@ -51,6 +51,8 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * the path to the filesystem directory below which its files are stored.
      */
     public final File rootdir;
+    
+    private String _name = null;
 
     private long checksumSizeLim = defaultChecksumSizeLimit;
     
@@ -74,7 +76,52 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws FileNotFoundException   if the give path does not exist or is not a directory
      */
     public FilesystemLongTermStorage(String dirpath, Logger log) throws FileNotFoundException {
-        this(dirpath, -1L, log);
+        this(dirpath, null, -1L, log);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param name     a label that identifies this storage system (for, e.g., error messages)
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, String name, Logger log) throws FileNotFoundException {
+        this(dirpath, name, -1L, log);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param name     a label that identifies this storage system (for, e.g., error messages)
+     * @param csSizeLim  the file size limit up to which checksums will be calculated on the fly for 
+     *                 a file if it is not cached on disk.  If zero, checksums will never be calculated 
+     *                 on the fly.  If negative, a default value (50 MB) will be set.  
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, String name, long csSizeLim, Logger log)
+        throws FileNotFoundException
+    {
+        super(log);
+        rootdir = new File(dirpath);
+        if (! rootdir.isDirectory())
+            throw new FileNotFoundException("Not an existing directory: "+dirpath);
+
+        if (name == null) {
+            logger.info("Creating FilesystemLongTermStorage rooted at {}", rootdir.toString());
+            name = "Store:" + dirpath;
+        }
+        else
+            logger.info("Creating FilesystemLongTermStorage, {}, rooted at {}", name, rootdir.toString());
+        _name = name;
+
+        if (csSizeLim < 0) csSizeLim = defaultChecksumSizeLimit;
+        checksumSizeLim = csSizeLim;
     }
     
     /**
@@ -89,16 +136,16 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws FileNotFoundException   if the give path does not exist or is not a directory
      */
     public FilesystemLongTermStorage(String dirpath, long csSizeLim, Logger log) throws FileNotFoundException {
-        super(log);
-        rootdir = new File(dirpath);
-        if (! rootdir.isDirectory())
-            throw new FileNotFoundException("Not an existing directory: "+dirpath);
-        logger.info("Creating FilesystemLongTermStorage rooted at " + rootdir.toString());
-
-        if (csSizeLim < 0) csSizeLim = defaultChecksumSizeLimit;
-        checksumSizeLim = csSizeLim;
+        this(dirpath, null, csSizeLim, log);
     }
-    
+
+    /**
+     * return a name for the storage system.  This is used primarily for enhancing error messages
+     * by indicating which storage system produced the error.
+     */
+    @Override
+    public String getName() {  return _name;  }
+
     /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file
      * The caller is responsible for closing the stream when finished with it.
