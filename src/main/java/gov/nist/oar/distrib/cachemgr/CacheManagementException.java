@@ -13,10 +13,12 @@
  */
 package gov.nist.oar.distrib.cachemgr;
 
+import gov.nist.oar.distrib.DistributionException;
+
 /**
  * an exception indicating that something went wrong using the data caching system
  */
-public class CacheManagementException extends Exception {
+public class CacheManagementException extends DistributionException {
 
     /**
      * create an exception with a custom message
@@ -44,15 +46,6 @@ public class CacheManagementException extends Exception {
      */
     public static String getMessagePrefix() {
         return "Cache management exception encountered: ";
-    }
-
-    protected static String messageFor(Throwable cause) {
-        StringBuilder sb = new StringBuilder(getMessagePrefix());
-        String name = cause.getClass().getSimpleName();
-        if (name != null)
-            sb.append('[').append(name).append("] ");
-        sb.append(cause.getMessage());
-        return sb.toString();
     }
 
 }
