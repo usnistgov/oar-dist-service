@@ -11,7 +11,7 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.cachemgr;
+package gov.nist.oar.distrib;
 
 /**
  * an exception indicating a request for a data object that does not exist 

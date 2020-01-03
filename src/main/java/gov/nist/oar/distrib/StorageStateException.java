@@ -9,43 +9,81 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.distrib;
-
-import gov.nist.oar.distrib.DistributionException;
+package gov.nist.oar.cachemgr;
 
 /**
  * an exception indicating an operation failure using a storage system because that system was 
  * found to be in an unexpected state.
  */
-public class StorageStateException extends DistributionException {
-
-    private static final long serialVersionUID = 1L;
+public class StorageStateException extends StorageVolumeException {
 
     /**
-     * initialize the exception
-     * @param message   the description of the problem
-     */
-    public StorageStateException(String message) {
-        super(message);
-    }
-
-    /**
-     * initialize the exception
-     * @param message   the description of the problem
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * create an exception with a custom message
+     * @param message    a custom message
+     * @param cause     a Throwable that was caught as the underlying cause 
+     *                  of the error
      */
     public StorageStateException(String message, Throwable cause) {
         super(message, cause);
     }
 
     /**
-     * initialize the exception
-     * @param cause     the underlying cause of the problem in the form of an internally-caught 
-     *                  Throwable.  
+     * create an exception with a custom message
+     * @param message      a custom message
+     * @param cause       a Throwable that was caught as the underlying cause 
+     *                    of the error
+     * @param volname  the name of the storage volume where the error 
+     *                    occurred 
+     */
+    public StorageStateException(String message, Throwable cause, String volname) {
+        super(message, cause, volname);
+    }
+
+    /**
+     * create an exception with a custom message
+     * @param message    a custom message
+     */
+    public StorageStateException(String message) {
+        this(message, null, null);
+    }
+
+    /**
+     * create an exception with a custom message
+     * @param message      a custom message
+     * @param volname  the name of the storage volume where the error 
+     *                  occurred 
+     */
+    public StorageStateException(String message, String volname) {
+        this(message, null, volname);
+    }
+
+    /**
+     * create an exception that wraps another exception.  A message is 
+     * generated from the wrapped exception's message
+     * @param cause       a Throwable that was caught as the underlying cause 
+     *                    of the error
      */
     public StorageStateException(Throwable cause) {
-        super("Storage system failure: "+cause.getMessage(), cause);
+        super(cause);
+    }
+
+    /**
+     * create an exception that wraps another exception.  A message is 
+     * generated from the wrapped exception's message and the volume name.
+     * @param cause       a Throwable that was caught as the underlying cause 
+     *                    of the error
+     * @param volname  the name of the storage volume where the error 
+     *                    occurred 
+     */
+    public StorageStateException(Throwable cause, String volname) {
+        this(messageFor(cause, volname), cause, volname);
+    }
+
+    /**
+     * return a message prefix that can introduce a more specific message
+     */
+    public static String getMessagePrefix() {
+        return "Unexpected state while accessing storage volume";
     }
 }
 

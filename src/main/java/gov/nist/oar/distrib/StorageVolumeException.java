@@ -11,54 +11,54 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.cachemgr;
+package gov.nist.oar.distrib;
 
 /**
  * an exception indicating that something went wrong while accessing a storage volume.
  */
-public class StorageVolumeException extends Exception {
+public class StorageVolumeException extends DistributionException {
 
     protected String volume = null;
 
     /**
      * create an exception with a custom message
-     * @param msg    a custom message
-     * @param ex     a Throwable that was caught as the underlying cause 
+     * @param message   a custom message
+     * @param cause     a Throwable that was caught as the underlying cause 
      *                  of the error
      */
-    public StorageVolumeException(String msg, Throwable ex) {
-        super(msg, ex);
+    public StorageVolumeException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     /**
      * create an exception with a custom message
-     * @param msg      a custom message
-     * @param ex       a Throwable that was caught as the underlying cause 
+     * @param message      a custom message
+     * @param cause       a Throwable that was caught as the underlying cause 
      *                    of the error
      * @param volname  the name of the storage volume where the error 
      *                    occurred 
      */
-    public StorageVolumeException(String msg, Throwable ex, String volname) {
-        super(msg, ex);
+    public StorageVolumeException(String message, Throwable cause, String volname) {
+        super(message, cause);
         volume = volname;
     }
 
     /**
      * create an exception with a custom message
-     * @param msg    a custom message
+     * @param message    a custom message
      */
-    public StorageVolumeException(String msg) {
-        this(msg, null, null);
+    public StorageVolumeException(String message) {
+        this(message, null, null);
     }
 
     /**
      * create an exception with a custom message
-     * @param msg      a custom message
+     * @param message      a custom message
      * @param volname  the name of the storage volume where the error 
      *                  occurred 
      */
-    public StorageVolumeException(String msg, String volname) {
-        this(msg, null, volname);
+    public StorageVolumeException(String message, String volname) {
+        this(message, null, volname);
     }
 
     /**
@@ -67,20 +67,20 @@ public class StorageVolumeException extends Exception {
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
      */
-    public StorageVolumeException(Throwable ex) {
-        super(ex);
+    public StorageVolumeException(Throwable cause) {
+        this(cause, null);
     }
 
     /**
      * create an exception that wraps another exception.  A message is 
      * generated from the wrapped exception's message and the volume name.
-     * @param ex       a Throwable that was caught as the underlying cause 
+     * @param cause       a Throwable that was caught as the underlying cause 
      *                    of the error
      * @param volname  the name of the storage volume where the error 
      *                    occurred 
      */
-    public StorageVolumeException(Throwable ex, String volname) {
-        this(messageFor(ex, volname), ex, volname);
+    public StorageVolumeException(Throwable cause, String volname) {
+        this(messageFor(cause, volname), cause, volname);
     }
 
     /**
