@@ -13,7 +13,7 @@
  */
 
 /**
- * a package with classes for finding, preparing, and serving data
+ * a package with classes for managing data objects for access and distribution via services.
  * <p>
  * This package provides the general-purpose infrastructure classes supporting the PDR data 
  * distribution service.  The {@link gov.nist.oar.distrib.service service} sub-package provides the 

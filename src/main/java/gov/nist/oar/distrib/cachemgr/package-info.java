@@ -19,13 +19,14 @@
  * and where there is a limited amount of fast storage space suited for delivering that data to 
  * users/applications.  Data caches can be set on the fast storage to house the most recently or 
  * most requested data products.  In the framework defined in this package, a 
- * {@link gov.nist.oar.distrib.cachemgr.CacheManager} is responsible for moving data in and out of one or 
- * more {@link gov.nist.oar.distrib.cachemgr.Cache}s.  The long-term source of the data can be in slow storage
- * or be packaged in form that is less performant for fast access on the individual file level.  
- * The {@link gov.nist.oar.distrib.cachemgr.Restorer} interface, used to pull data from a source location, 
- * adapts to different types of data storage and packaging.  A 
+ * {@link gov.nist.oar.distrib.cachemgr.CacheManager} is responsible for moving data in and out of one 
+ * or more {@link gov.nist.oar.distrib.cachemgr.Cache}s.  The long-term source of the data can be in 
+ * slow storage or be packaged in form that is less performant for fast access on the individual file 
+ * level.  The {@link gov.nist.oar.distrib.cachemgr.Restorer} interface, used to pull data from a 
+ * source location, adapts to different types of data storage and packaging.  A 
  * {@link gov.nist.oar.distrib.cachemgr.CacheManager} can also encapsulate other duties associated with 
  * managing data in cache volumes, including removing old or less-frequently accessed data to make 
  * room for more recently requested data.  
+ *
  */
 package gov.nist.oar.distrib.cachemgr;
