@@ -16,7 +16,7 @@ import gov.nist.oar.bags.preservation.HeadBagUtils;
 import gov.nist.oar.bags.preservation.ZipBagUtils;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
@@ -74,22 +74,22 @@ public class FromBagFileDownloadService implements FileDownloadService {
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
+     * @param bagstore   a BagStorage instance repesenting the storage holding the 
      *                   preservation bags
      * @param typemap  the map to use for determining content types from filename extensions; 
      *                 if null, a default will be used.  
      */
-    public FromBagFileDownloadService(LongTermStorage bagstore, MimetypesFileTypeMap mimemap) {
+    public FromBagFileDownloadService(BagStorage bagstore, MimetypesFileTypeMap mimemap) {
         this(new DefaultPreservationBagService(bagstore), mimemap);
     }
 
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
+     * @param bagstore   a BagStorage instance repesenting the storage holding the 
      *                   preservation bags
      */
-    public FromBagFileDownloadService(LongTermStorage bagstore) {
+    public FromBagFileDownloadService(BagStorage bagstore) {
         this(new DefaultPreservationBagService(bagstore), null);
     }
 

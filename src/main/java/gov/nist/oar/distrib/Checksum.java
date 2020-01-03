@@ -90,7 +90,7 @@ public class Checksum {
             throw new RuntimeException("Unexpected Java configuration: SHA-256 algorithm not supported!");
         }
 
-        return SHA256(bytesToHex(md.digest()));
+        return sha256(bytesToHex(md.digest()));
     }
 
     private static String bytesToHex(byte[] hash) {

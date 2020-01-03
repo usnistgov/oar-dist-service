@@ -11,7 +11,7 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.service.FileDownloadService;
@@ -158,14 +158,14 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired LongTermStorage          lts;    // set via getter below
+    @Autowired BagStorage               lts;    // set via getter below
     @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
 
     /**
      * the storage service to use to access the bags
      */
     @Bean
-    public LongTermStorage getLongTermStorage() throws ConfigurationException {
+    public BagStorage getLongTermStorage() throws ConfigurationException {
         try {
             if (mode.equals("aws") || mode.equals("remote")) 
                 return new AWSS3LongTermStorage(bagstore, getAmazonS3());

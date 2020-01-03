@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
@@ -45,7 +46,7 @@ public abstract class PDRBagStorageBase implements BagStorage {
      * initialize the base class with a class-specific logger
      */
     public PDRBagStorageBase(String name) {
-        _name = name;
+        this(name, null);
     }
 
     /**
@@ -53,7 +54,7 @@ public abstract class PDRBagStorageBase implements BagStorage {
      * @param log      a Logger to use; if null, a default is created.
      */
     public PDRBagStorageBase(String name, Logger log) {
-        this(name);
+        _name = name;
         if (log == null)
             log = LoggerFactory.getLogger(getClass());
         logger = log;
@@ -101,7 +102,7 @@ public abstract class PDRBagStorageBase implements BagStorage {
      */
     @Override
     public String findHeadBagFor(String identifier)
-        throws ResourceNotFoundException, StorageStateException
+        throws ResourceNotFoundException, StorageVolumeException
     {
         return BagUtils.findLatestHeadBag(this.findBagsFor(identifier));
     }
@@ -115,7 +116,7 @@ public abstract class PDRBagStorageBase implements BagStorage {
      */
     @Override
     public String findHeadBagFor(String identifier, String version)
-        throws ResourceNotFoundException, StorageStateException
+        throws ResourceNotFoundException, StorageVolumeException
     {
         List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
         if (bags.size() == 0)

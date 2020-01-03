@@ -31,10 +31,10 @@ import org.junit.Test;
 
 import org.springframework.util.FileSystemUtils;
 
-import gov.nist.oar.cachemgr.storage.FilesystemLongTermStorage;
-import gov.nist.oar.cachemgr.LongTermStorage;
-import gov.nist.oar.cachemgr.StorageStateException;
-import gov.nist.oar.cachemgr.StorageVolumeException;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.StorageStateException;
+import gov.nist.oar.distrib.StorageVolumeException;
 
 // This set of sets was brought in from a parallel implementation in support of the cache manager.
 // It is replicated here to ensure behavioral compatibility of the LongTermStorage interface. 

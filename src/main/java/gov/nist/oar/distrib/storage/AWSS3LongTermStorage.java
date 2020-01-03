@@ -39,8 +39,9 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.LongTermStorageBase;
+import gov.nist.oar.distrib.storage.PDRBagStorageBase;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
@@ -158,8 +159,8 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
                 throw new StorageStateException("No cached checksum for large file: "+filename);
 
             // ok, calculate it on the fly
-            try {
-                return Checksum.sha256(Checksum.calcSHA256(filename));
+            try (InputStream is = openFile(filename)) {
+                return Checksum.calcSHA256(is);
             } catch (Exception ex) {
                 throw new StorageStateException("Unable to calculate checksum for small file: " + 
                                                 filename + ": " + ex.getMessage());

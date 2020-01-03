@@ -34,7 +34,7 @@ import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
-import gov.nist.oar.distrib.storage.LongTermStorageBase;
+import gov.nist.oar.distrib.storage.PDRBagStorageBase;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
@@ -109,18 +109,16 @@ public class FilesystemLongTermStorage extends PDRBagStorageBase {
     public FilesystemLongTermStorage(String dirpath, String name, long csSizeLim, Logger log)
         throws FileNotFoundException
     {
-        super(log);
+        super((name != null) ? name : "Store:"+dirpath, log);
         rootdir = new File(dirpath);
         if (! rootdir.isDirectory())
             throw new FileNotFoundException("Not an existing directory: "+dirpath);
 
         if (name == null) {
             logger.info("Creating FilesystemLongTermStorage rooted at {}", rootdir.toString());
-            name = "Store:" + dirpath;
         }
         else
             logger.info("Creating FilesystemLongTermStorage, {}, rooted at {}", name, rootdir.toString());
-        _name = name;
 
         if (csSizeLim < 0) csSizeLim = defaultChecksumSizeLimit;
         checksumSizeLim = csSizeLim;

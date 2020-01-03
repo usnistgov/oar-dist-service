@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.cachemgr;
+package gov.nist.oar.distrib;
 
 /**
  * an exception indicating an operation failure using a storage system because that system was 

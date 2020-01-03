@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.cachemgr;
+package gov.nist.oar.distrib;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -22,6 +22,8 @@ import org.junit.Before;
 import org.junit.After;
 import org.junit.Test;
 
+import gov.nist.oar.distrib.Checksum;
+
 public class ChecksumTest {
 
     @Test
@@ -33,10 +35,18 @@ public class ChecksumTest {
 
     @Test
     public void testSha256() {
-        Checksum cs = Checksum.SHA256("abcdef12345");
+        Checksum cs = Checksum.sha256("abcdef12345");
         assertEquals("abcdef12345", cs.hash);
         assertEquals(Checksum.SHA256, cs.algorithm);
         assertEquals("sha256", cs.algorithm);
+    }
+
+    @Test
+    public void testCrc32() {
+        Checksum cs = Checksum.crc32("abcdef12345");
+        assertEquals("abcdef12345", cs.hash);
+        assertEquals(Checksum.CRC32, cs.algorithm);
+        assertEquals("crc32", cs.algorithm);
     }
 
     @Test

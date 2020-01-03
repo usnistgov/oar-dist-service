@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
         // "logging.level.org.springframework.web=DEBUG"
+        // "logging.level.gov.nist.oar.distrib=DEBUG"
 })
 public class DatasetAccessControllerTest {
 

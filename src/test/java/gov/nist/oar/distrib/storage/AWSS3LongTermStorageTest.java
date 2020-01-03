@@ -43,7 +43,7 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
