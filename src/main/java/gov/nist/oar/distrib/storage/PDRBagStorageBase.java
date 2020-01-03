@@ -39,22 +39,32 @@ public abstract class PDRBagStorageBase implements BagStorage {
     /** the logger instance to use */
     protected Logger logger = null;
 
+    private String _name = null;
+
     /**
      * initialize the base class with a class-specific logger
      */
-    public PDRBagStorageBase() {
-        this(null);
+    public PDRBagStorageBase(String name) {
+        _name = name;
     }
 
     /**
      * initialize the base class with a given logger
      * @param log      a Logger to use; if null, a default is created.
      */
-    public PDRBagStorageBase(Logger log) {
+    public PDRBagStorageBase(String name, Logger log) {
+        this(name);
         if (log == null)
             log = LoggerFactory.getLogger(getClass());
         logger = log;
     }
+
+    /**
+     * return a name for the storage system.  This is used primarily for enhancing error messages
+     * by indicating which storage system produced the error.
+     */
+    @Override
+    public String getName() {  return _name;  }
 
     /**
      * read the hash from an open hash file.  

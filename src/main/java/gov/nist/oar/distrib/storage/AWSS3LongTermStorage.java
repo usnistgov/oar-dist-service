@@ -52,9 +52,12 @@ import gov.nist.oar.bags.preservation.BagUtils;
  */
 public class AWSS3LongTermStorage extends PDRBagStorageBase {
 
+    public static long defaultChecksumSizeLimit = 50000000L;  // 50 MB
+
     public final String bucket;
     protected AmazonS3 s3client = null;
     protected Integer pagesz = null;  // null means use default page size (1000)
+    private long checksumSizeLim = defaultChecksumSizeLimit;
 
     /**
      * set the number of objects returned in a page of listing results.  This can be used for testing.
@@ -75,7 +78,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     public AWSS3LongTermStorage(String bucketname, AmazonS3 s3)
         throws FileNotFoundException, AmazonServiceException
     {
-        super();
+        super(bucketname);
         bucket = bucketname;
         s3client = s3;
 
@@ -93,6 +96,20 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     }
     
     /**
+     * return true if a file with the given name exists in the storage 
+     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+     *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
+     */
+    @Override
+    public boolean exists(String filename) throws StorageVolumeException {
+        try {
+            return s3client.doesObjectExist(bucket, filename);
+        } catch (AmazonServiceException ex) {
+            throw new StorageStateException("Trouble accessing bucket "+bucket+": "+ex.getMessage(), ex);
+        }
+    }
+
+    /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file
      * @param filename   The name of the desired file.  Note that this does not refer to files that 
                          may reside inside a serialized bag or other archive (e.g. zip) file.  
@@ -100,7 +117,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
     @Override
-    public InputStream openFile(String filename) throws FileNotFoundException, StorageStateException {
+    public InputStream openFile(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
             S3Object s3Object = s3client.getObject(getObjectRequest);
@@ -120,7 +137,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
     @Override
-    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageStateException {
+    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException {
         S3Object s3Object = null;
         GetObjectRequest getObjectRequest = null;
         try {
@@ -137,12 +154,12 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
             if (! filename.endsWith(".sha256"))
                 logger.warn("No cached checksum available for "+filename);
 
-            if (getSize(filename) > 5000000)  // 10x smaller limit than for local files
+            if (getSize(filename) > checksumSizeLim)  // 10x smaller limit than for local files
                 throw new StorageStateException("No cached checksum for large file: "+filename);
 
             // ok, calculate it on the fly
             try {
-                return Checksum.sha256(calcSHA256(filename));
+                return Checksum.sha256(Checksum.calcSHA256(filename));
             } catch (Exception ex) {
                 throw new StorageStateException("Unable to calculate checksum for small file: " + 
                                                 filename + ": " + ex.getMessage());
@@ -166,7 +183,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
     @Override
-    public long getSize(String filename) throws FileNotFoundException, StorageStateException {
+    public long getSize(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
             return s3client.getObjectMetadata(bucket, filename).getContentLength();
         } catch (AmazonServiceException ex) {
@@ -191,7 +208,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      */
     @Override
     public List<String> findBagsFor(String identifier)
-        throws ResourceNotFoundException, StorageStateException
+        throws ResourceNotFoundException, StorageVolumeException
     {
         // Because of S3 result paging, we need a specialized implementation of this method
 

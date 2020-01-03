@@ -42,7 +42,7 @@ public interface BagStorage extends LongTermStorage {
      * @return List<String>, the file names for all bags associated with given ID
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier
      */
-    List<String> findBagsFor(String identifier) throws ResourceNotFoundException, StorageStateException;
+    List<String> findBagsFor(String identifier) throws ResourceNotFoundException, StorageVolumeException;
 
     /**
      * Return the head bag associated with the given ID
@@ -50,7 +50,7 @@ public interface BagStorage extends LongTermStorage {
      * @return String, the head bag's file name
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier
      */
-    String findHeadBagFor(String identifier) throws ResourceNotFoundException, StorageStateException; 
+    String findHeadBagFor(String identifier) throws ResourceNotFoundException, StorageVolumeException; 
 
     /**
      * Return the name of the head bag for the identifier for given version
@@ -60,7 +60,7 @@ public interface BagStorage extends LongTermStorage {
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
      */
     String findHeadBagFor(String identifier, String version)
-        throws ResourceNotFoundException, StorageStateException;
+        throws ResourceNotFoundException, StorageVolumeException;
 
 }
     
