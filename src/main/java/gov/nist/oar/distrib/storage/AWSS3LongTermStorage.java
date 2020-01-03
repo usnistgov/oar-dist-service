@@ -50,7 +50,7 @@ import gov.nist.oar.bags.preservation.BagUtils;
  * 
  * @author Deoyani Nandrekar-Heinis
  */
-public class AWSS3LongTermStorage extends LongTermStorageBase {
+public class AWSS3LongTermStorage extends PDRBagStorageBase {
 
     public final String bucket;
     protected AmazonS3 s3client = null;
@@ -64,7 +64,8 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
 
     /**
      * create the storage instance
-     * 
+     * @param bucketname    the name of the S3 bucket that provides the storage for this interface
+     * @param s3            the AmazonS3 client instance to use to access the bucket
      * @throws FileNotFoundException    if the specified bucket does not exist
      * @throws AmazonServiceException   if there is a problem accessing the S3 service.  While 
      *                                  this is a runtime exception that does not have to be caught 
@@ -74,6 +75,7 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
     public AWSS3LongTermStorage(String bucketname, AmazonS3 s3)
         throws FileNotFoundException, AmazonServiceException
     {
+        super();
         bucket = bucketname;
         s3client = s3;
 

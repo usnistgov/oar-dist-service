@@ -46,7 +46,7 @@ import gov.nist.oar.bags.preservation.BagUtils;
  * @see gov.nist.oar.distrib.LongTermStorage
  * @author Deoyani Nandrekar-Heinis
  */
-public class FilesystemLongTermStorage extends LongTermStorageBase {
+public class FilesystemLongTermStorage extends PDRBagStorageBase {
 
     private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorage.class);
 
@@ -63,6 +63,7 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws FileNotFoundException   if the give path does not exist or is not a directory
      */
     public FilesystemLongTermStorage(String dirpath) throws FileNotFoundException {
+        super();
         rootdir = new File(dirpath);
         if (! rootdir.isDirectory())
             throw new FileNotFoundException("Not an existing directory: "+dirpath);

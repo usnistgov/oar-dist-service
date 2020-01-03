@@ -19,38 +19,41 @@ import java.io.Reader;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
- * An abstract base class collecting common method implementations for the LongTermStorage interface.
- * It assumes the bag naming conventions that are encapsulted in the 
- * {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class to implement the functions for
- * finding head bags.  
- * <p>
- * This sets a Logger instance to use that is based on the implementing class (not this base class).
- *
- * @see gov.nist.oar.distrib.LongTermStorage
- * @author Raymond Plante
+ * a abstract base class that implements the {@link gov.nist.oar.distrib.BagStorage} interface, 
+ * assuming the bag naming conventions of the NIST Public Data Repository (PDR).  These 
+ * conventions are encapsulated in the {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class.  
  */
-public abstract class LongTermStorageBase implements LongTermStorage {
+public abstract class PDRBagStorageBase implements BagStorage {
 
+    /** the logger instance to use */
     protected Logger logger = null;
 
     /**
      * initialize the base class with a class-specific logger
      */
-    public LongTermStorageBase() {
-        logger = LoggerFactory.getLogger(getClass());
+    public PDRBagStorageBase() {
+        this(null);
+    }
+
+    /**
+     * initialize the base class with a given logger
+     * @param log      a Logger to use; if null, a default is created.
+     */
+    public PDRBagStorageBase(Logger log) {
+        if (log == null)
+            log = LoggerFactory.getLogger(getClass());
+        logger = log;
     }
 
     /**
@@ -78,38 +81,6 @@ public abstract class LongTermStorageBase implements LongTermStorage {
         catch (IOException ex) {
             throw new StorageStateException("Unexpected IO error: " + ex.getMessage(), ex);
         }
-    }
-
-    /**
-     * calculate the SHA-256 checksum of a file.  This is normally only called when the checksum is not cached.
-     *
-     * @param filename    the name of the file within the storage whose checksum is desired.
-     */
-    protected String calcSHA256(String filename) throws StorageStateException, IOException {
-        MessageDigest md = null;
-        
-        try (InputStream ds = openFile(filename)) {
-            md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[50000];
-            int nr = 0;
-            while ( (nr = ds.read(buf)) >= 0 ) 
-                md.update(buf, 0, nr);
-        }
-        catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException("Unexpected Java configuration: SHA-256 algorithm not supported!");
-        }
-
-        return bytesToHex(md.digest());
-    }
-
-    private static String bytesToHex(byte[] hash) {
-        StringBuffer hexString = new StringBuffer();
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if (hex.length() == 1) hexString.append('0');
-            hexString.append(hex);
-        }
-        return hexString.toString();
     }
 
     /**
@@ -142,7 +113,3 @@ public abstract class LongTermStorageBase implements LongTermStorage {
         return BagUtils.findLatestHeadBag(bags);
     }
 }
-
-    
-
-    
