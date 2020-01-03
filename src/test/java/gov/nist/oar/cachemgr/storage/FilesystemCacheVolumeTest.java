@@ -30,8 +30,8 @@ import java.io.IOException;
 
 import gov.nist.oar.cachemgr.CacheObject;
 import gov.nist.oar.cachemgr.CacheVolume;
-import gov.nist.oar.cachemgr.StorageVolumeException;
-import gov.nist.oar.cachemgr.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.cachemgr.storage.FilesystemCacheVolume;
 
 public class FilesystemCacheVolumeTest {

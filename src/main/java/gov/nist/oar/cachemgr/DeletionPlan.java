@@ -13,6 +13,9 @@
  */
 package gov.nist.oar.cachemgr;
 
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+
 import java.util.List;
 
 import org.slf4j.Logger;

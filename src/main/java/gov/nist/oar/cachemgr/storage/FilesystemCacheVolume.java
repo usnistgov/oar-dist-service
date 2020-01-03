@@ -15,8 +15,8 @@ package gov.nist.oar.cachemgr.storage;
 
 import gov.nist.oar.cachemgr.CacheVolume;
 import gov.nist.oar.cachemgr.CacheObject;
-import gov.nist.oar.cachemgr.StorageVolumeException;
-import gov.nist.oar.cachemgr.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.ObjectNotFoundException;
 
 import java.io.InputStream;
 import java.io.IOException;

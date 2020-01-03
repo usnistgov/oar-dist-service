@@ -13,6 +13,9 @@
  */
 package gov.nist.oar.cachemgr;
 
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.StorageVolumeException;
+
 import org.json.JSONObject;
 import org.json.JSONException;
 

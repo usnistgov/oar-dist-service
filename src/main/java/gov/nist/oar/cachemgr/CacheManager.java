@@ -13,6 +13,8 @@
  */
 package gov.nist.oar.cachemgr;
 
+import gov.nist.oar.distrib.StorageVolumeException;
+
 import java.net.URL;
 
 /**

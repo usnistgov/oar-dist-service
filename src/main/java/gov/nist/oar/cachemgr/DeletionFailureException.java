@@ -13,6 +13,8 @@
  */
 package gov.nist.oar.cachemgr;
 
+import gov.nist.oar.distrib.StorageVolumeException;
+
 /**
  * an exception indicating a failure while trying to execute a {@link gov.nist.oar.cachemgr.DeletionPlan}.
  * When thrown, the plan should not be considered as having completed nor is the plan viable anymore. 

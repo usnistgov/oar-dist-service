@@ -13,13 +13,13 @@
  */
 package gov.nist.oar.cachemgr.restore;
 
-import gov.nist.oar.cachemgr.LongTermStorage;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.StorageStateException;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.cachemgr.CacheManagementException;
-import gov.nist.oar.cachemgr.StorageStateException;
-import gov.nist.oar.cachemgr.StorageVolumeException;
 import gov.nist.oar.cachemgr.RestorationException;
 import gov.nist.oar.cachemgr.Restorer;
-import gov.nist.oar.cachemgr.Checksum;
 import gov.nist.oar.cachemgr.Reservation;
 
 import java.io.InputStream;
