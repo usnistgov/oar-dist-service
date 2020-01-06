@@ -128,13 +128,13 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * return a deletion plan for a particular volume.  If null is returned, a viable plan--i.e.
      * one that can provide the requested space--was not possible.
      */
-    public DeletionPlan createDeletionPlanFor(String volname, long size) 
+    public DeletionPlan createDeletionPlanFor(CacheVolume cv, long size) 
         throws InventoryException
     {
+        String volname = cv.getName();
         DeletionPlan out = null;
-        CacheVolume cv = volumes.get(volname);
-        if (cv == null)
-            throw new InventoryException(volname + ": Not a known volume name");
+        if (! invdb.volumes().contains(cv.getName()))
+            throw new InventoryException(cv.getName() + ": Not a registered volume");
         
         // first determine if the volume already has the space available within it
         long avail = invdb.getAvailableSpaceIn(volname);
@@ -206,7 +206,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         return out;
     }
 
-    /**
+    /*
      * return a list of deletion plans that can free up space of a requested size, ordered
      * from most-favorable to least favorable.  
      * <p>
@@ -215,12 +215,13 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * for volumes whose status does not permit deletions.  
      *
      * @param size    the amount of space desired (in bytes)
-     */
+     * @deprecated
     public List<DeletionPlan> orderDeletionPlans(long size)
         throws CacheManagementException, InventoryException
     {
         return this._orderDeletionPlans(size, volumes.values(), false);
     }
+     */
 
     /**
      * return a list of deletion plans that can free up space of a requested size, ordered
@@ -262,7 +263,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
             }
 
             try {
-                dp = createDeletionPlanFor(cvn.getName(), size);
+                dp = createDeletionPlanFor(cvn, size);
                 if (dp != null) out.add(dp);
             }
             catch (InventoryException ex) {

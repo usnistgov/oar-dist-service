@@ -102,16 +102,17 @@ public class DefaultDeletionPlannerTest {
 
     @Test
     public void testCreateDeletionPlanFor() throws CacheManagementException {
+        cv = new NullCacheVolume("foobar");
         SizeLimitedSelectionStrategy strat = new BySizeSelectionStrategy(1000000);
         DeletionPlanner planr = new DefaultDeletionPlanner(sidb, cvlist, strat);
 
-        DeletionPlan dp = planr.createDeletionPlanFor("foobar", 1000);
+        DeletionPlan dp = planr.createDeletionPlanFor(cv, 1000);
         // should not require any deletions
         assertNotNull(dp);
         assertEquals(0L, dp.getByteCountToBeRemoved());
         assertEquals(0.0, dp.score, 0.0);
 
-        dp = planr.createDeletionPlanFor("foobar", 50000);
+        dp = planr.createDeletionPlanFor(cv, 50000);
         assertNotNull(dp);
         Map<String,Long> used = sidb.getUsedSpace();
         assertEquals(157145, used.get("foobar").longValue());
@@ -151,7 +152,7 @@ public class DefaultDeletionPlannerTest {
         SizeLimitedSelectionStrategy strat = new BySizeSelectionStrategy(1000000, 10000);
         DeletionPlanner planr = new DefaultDeletionPlanner(sidb, cvlist, strat);
 
-        List<DeletionPlan> plans = planr.orderDeletionPlans(7000L);
+        List<DeletionPlan> plans = planr.orderDeletionPlans(7000L, cvlist);
 
         DeletionPlan dp = plans.get(0);
         assertEquals("foobar", dp.getVolumeName());

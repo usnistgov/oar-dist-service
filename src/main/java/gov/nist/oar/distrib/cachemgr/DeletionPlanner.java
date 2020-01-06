@@ -40,10 +40,10 @@ public interface DeletionPlanner {
      * return a deletion plan for a particular volume.  If null is returned, a viable plan--i.e.
      * one that can provide the requested space--was not possible.
      */
-    public DeletionPlan createDeletionPlanFor(String volname, long size)
+    public DeletionPlan createDeletionPlanFor(CacheVolume vol, long size)
         throws CacheManagementException, InventoryException;
 
-    /**
+    /*
      * return a list of deletion plans that can free up space of a requested size, ordered
      * from most-favorable to least favorable.  
      * <p>
@@ -52,9 +52,10 @@ public interface DeletionPlanner {
      * for volumes whose status does not permit deletions.  
      *
      * @param size    the amount of space desired (in bytes)
-     */
+     * @deprecated
     public List<DeletionPlan> orderDeletionPlans(long size)
         throws CacheManagementException, InventoryException;
+     */
 
     /**
      * return a list of deletion plans that can free up space of a requested size, ordered

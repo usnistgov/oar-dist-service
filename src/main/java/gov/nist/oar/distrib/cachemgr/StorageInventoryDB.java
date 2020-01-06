@@ -16,6 +16,7 @@ package gov.nist.oar.distrib.cachemgr;
 import org.json.JSONObject;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
 /**
  * an interface for storing metadata about objects in the cache, including
@@ -156,12 +157,12 @@ public interface StorageInventoryDB extends VolumeStatus {
     /**
      * return the names of checksumAlgorithms known to the database
      */
-    public String[] checksumAlgorithms() throws InventoryException;
+    public Collection<String> checksumAlgorithms() throws InventoryException;
 
     /**
      * return the names of cache volumes registered in the database
      */
-    public String[] volumes() throws InventoryException;
+    public Collection<String> volumes() throws InventoryException;
 
     /**
      * create an entry for the given checksum algorithm in the database, making it a recognised 

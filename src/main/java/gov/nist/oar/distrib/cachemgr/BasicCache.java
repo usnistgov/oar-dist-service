@@ -57,7 +57,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.distrib.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(StorageInventoryDB,List)}.
      * 
      * @param idb       the (empty) inventory database to use
      */
@@ -69,7 +69,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.distrib.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(StorageInventoryDB,List)}.
      * 
      * @param idb   the (empty) inventory database to use
      * @param log   a particular Logger instance that should be used.  If null, a default one
@@ -83,7 +83,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link gov.nist.oar.distrib.cachemgr.BasicCache#BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(StorageInventoryDB,List)}.
      * @param idb       the inventory database to use
      * @param volcount  the expected number of CacheVolumes that will be attached via addVolume()
      * @param log       a particular Logger instance that should be used.  If null, a default one
@@ -227,7 +227,7 @@ public abstract class BasicCache extends Cache {
      */
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {
         DeletionPlanner planner = getDeletionPlanner(preferences);
-        List<DeletionPlan> plans = planner.orderDeletionPlans(bytes);
+        List<DeletionPlan> plans = planner.orderDeletionPlans(bytes, volumes.values());
 
         // execute each plan until one produces the requisite space.  Typically, the first one should
         // do it.

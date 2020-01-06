@@ -28,6 +28,7 @@ import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 
 import java.io.IOException;
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
@@ -108,9 +109,8 @@ public class SQLiteStorageInventoryDBTest {
         assertTrue(dbf.exists());
 
         TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
-        String[] mt = new String[0];
-        assertArrayEquals(mt, sidb.volumes());
-        assertArrayEquals(mt, sidb.checksumAlgorithms());
+        assertEquals(0, sidb.volumes().size());
+        assertEquals(0, sidb.checksumAlgorithms().size());
     }
 
     @Test
@@ -126,7 +126,7 @@ public class SQLiteStorageInventoryDBTest {
 
         String[] aneed = new String[] { "fundrum" };
         sidb.registerVolume("fundrum", 150000, null);
-        assertArrayEquals(aneed, sidb.volumes());
+        assertArrayEquals(aneed, sidb.volumes().toArray());
         JSONObject md = sidb.getVolumeInfo("fundrum");
         assertEquals(150000, md.getInt("capacity"));
         assertEquals(null, md.opt("priority"));
@@ -134,16 +134,16 @@ public class SQLiteStorageInventoryDBTest {
         md.put("priority", 5);
         md.put("color", "red");
         sidb.registerVolume("fundrum", 200000, md);
-        assertArrayEquals(aneed, sidb.volumes());
+        assertArrayEquals(aneed, sidb.volumes().toArray());
         md = sidb.getVolumeInfo("fundrum");
         assertEquals(200000, md.getInt("capacity"));
         assertEquals(5, md.getInt("priority"));
 
         sidb.registerVolume("foobar", 450000, md);
-        String[] got = sidb.volumes();
-        assertIn("foobar", got);
-        assertIn("fundrum", got);
-        assertEquals(2, got.length);
+        Collection<String> got = sidb.volumes();
+        assertTrue("foobar not included in volumes", got.contains("foobar"));
+        assertTrue("fundrum not included in volumes", got.contains("foobar"));
+        assertEquals(2, got.size());
         md = sidb.getVolumeInfo("fundrum");
         assertEquals(200000, md.getInt("capacity"));
         assertEquals(5, md.getInt("priority"));
@@ -401,9 +401,9 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(1, sidb.do_getAlgorithmID("sha256"));
         assertEquals(2, sidb.do_getAlgorithmID("md5"));
 
-        String[] algs = sidb.checksumAlgorithms();
-        assertEquals("sha256", algs[0]);
-        assertEquals("md5", algs[1]);
+        Collection<String> algs = sidb.checksumAlgorithms();
+        assertTrue("Missing algorithm: sha256", algs.contains("sha256"));
+        assertTrue("Missing algorithm: md5", algs.contains("md5"));
     }
 
     @Test

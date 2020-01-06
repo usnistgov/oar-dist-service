@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -549,9 +550,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     /**
      * return the names of checksumAlgorithms known to the database
      */
-    public String[] checksumAlgorithms() throws InventoryException {
+    public Collection<String> checksumAlgorithms() throws InventoryException {
         if (_algids == null) loadAlgorithms();
-        return _algids.keySet().toArray(new String[_algids.size()]);
+        return _algids.keySet();
     }
 
     private void loadAlgorithms() throws InventoryException {
@@ -591,9 +592,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     /**
      * return the names of cache volumes registered in the database
      */
-    public String[] volumes() throws InventoryException {
+    public Collection<String> volumes() throws InventoryException {
         if (_volids == null) loadVolumes();
-        return _volids.keySet().toArray(new String[_volids.size()]);
+        return _volids.keySet();
     }
 
     private void loadVolumes() throws InventoryException {
