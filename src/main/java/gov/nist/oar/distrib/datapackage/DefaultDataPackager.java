@@ -268,7 +268,7 @@ public class DefaultDataPackager implements DataPackager {
 		    ValidationHelper.removeDuplicates(this.inputfileList);
 		    long totalFilesSize = this.getTotalSize();
 
-		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() > 1) {
+		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() >= 1) {
 			requestValidity = 4;
 
 		    } else if (this.getFilesCount() > this.mxFilesCount) {
