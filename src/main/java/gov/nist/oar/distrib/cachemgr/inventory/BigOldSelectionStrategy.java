@@ -24,8 +24,26 @@ import gov.nist.oar.distrib.cachemgr.CacheObject;
  * size, priority, and time since last access with the goal selecting larger, less requested data 
  * for deletion.  The formula is as follows:
  * <pre>
- *     score = priority * (10 + size) * 
+ *                                   2                
+ *     score = priority * ( ------------------- - 1 ) 
+ *                          (1 + 8^(-sz/sz_to))       
+ *
+ *                                age                        1
+ *                      * 0.1 * -------- * ( 1 - ------------------------- )
+ *                               age_to          (1 + (age/age_to)^4))^0.5
  * </pre>
+ *
+ * The intended behavior of this formula is to affect the deletability of a file in the following way
+ * <ul>
+ *   <li> a file that is younger than the "turn-over" age, <code>age_to</code>, (see 
+ *        {@link #getTurnOverAge()}) is near zero, making it nearly undeletable; when older than the 
+ *        turn-over age, the file's deletability increases linearly with age.  </li>
+ *   <li> the deletability of a file increases linearly with size up to a "turn-over" size,
+ *        <code>size_to</code> (see {@link #getTurnOverSize()}; files are than this are equally 
+ *        deletable (i.e. deletability is near constant with size).  </li>
+ *   <li> a file's deletability increases linearly with its priority value (where files with a priority
+ *        of zero are undeletable).  The default priority value is 10.  </li>
+ * </ul>
  */
 public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
 
@@ -115,6 +133,6 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
      */
     @Override
     public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
-        return new BigOldSelectionStrategy(newsizelimit);
+        return new BigOldSelectionStrategy(newsizelimit, getTurnOverAge(), getTurnOverSize());
     }    
 }

@@ -29,7 +29,7 @@ import java.util.ArrayList;
  * When passed to the {@link gov.nist.oar.distrib.cachemgr.StorageInventoryDB#selectObjectsFrom(String,gov.nist.oar.distrib.cachemgr.SelectionStrategy) StorageInventoryDB.selectObjectsFrom()}
  * method, this will select {@link gov.nist.oar.distrib.cachemgr.CacheObject}s until the total size just exceeds 
  * a limit set at construction time.  The total size of the selected set may be lower than the limit
- * cache volume being searched does not contain enough selectable data.  
+ * if cache volume being searched does not contain enough selectable data.  
  */
 public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy {
 
@@ -71,7 +71,7 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
     public double score(CacheObject co) {
         co.score = calculateScore(co);
         long sz = co.getSize();
-        if (sz > 0) 
+        if (sz > 0 && co.score > 0) 
             totsz += sz;
         return co.score;
     }

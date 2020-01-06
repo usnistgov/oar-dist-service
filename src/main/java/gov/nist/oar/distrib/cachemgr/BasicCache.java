@@ -28,13 +28,14 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 /**
- * a basic implementation of a {@link gov.nist.oar.distrib.cachemgr.Cache}.  
- *
+ * a basic abstract base implementation of a {@link gov.nist.oar.distrib.cachemgr.Cache}.  
+ * <p>
  * This implementation holds a set of {@link gov.nist.oar.distrib.cachemgr.CacheVolume}s whose contents 
  * are tracked via a {@link gov.nist.oar.distrib.cachemgr.StorageInventoryDB}, all of which are provided
  * at construction time.  The CacheVolumes are treated equally (though they might have different 
  * capacities).  This class makes use of the database model of the JDBCStorageInventoryDB implementation;
- * however it does not require it.
+ * however it does not require it.  Subclasses need only provide a {@link #getDeletionPlanner(int)} 
+ * method.  
  */
 public abstract class BasicCache extends Cache {
 
@@ -246,6 +247,7 @@ public abstract class BasicCache extends Cache {
 
     /**
      * return a deletion planner for a particular use.
+     * @param preferences  an and-ed set of bits indicating what the space will be used for.
      */
     protected abstract DeletionPlanner getDeletionPlanner(int preferences);
 }
