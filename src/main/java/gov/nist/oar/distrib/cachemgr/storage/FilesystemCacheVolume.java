@@ -104,11 +104,13 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
     public synchronized void saveAs(InputStream from, String name) throws StorageVolumeException {
+        File out = new File(root, name);
         try {
-            FileUtils.copyToFile(from, new File(root, name));
+            FileUtils.copyToFile(from, out);
         } catch (IOException ex) {
+            if (out.exists()) out.delete();
             throw new StorageVolumeException(this.name+":"+name+": Failed to save object: "+
-                                           ex.getMessage(), ex);
+                                             ex.getMessage(), ex);
         }
     }
     

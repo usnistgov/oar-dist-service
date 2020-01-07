@@ -161,7 +161,7 @@ public class SimpleCacheTest {
     }
 
     @Test
-    public void testReserveSpace() throws CacheManagementException {
+    public void testReserveSpaceWithPrefs() throws CacheManagementException {
         long now = System.currentTimeMillis();
         
         SimpleCache cache = new SimpleCache(sidb, cvlist);
@@ -183,4 +183,17 @@ public class SimpleCacheTest {
         assertEquals(20000, res.getSize());
         assertEquals("foobar", res.getVolumeName());
     }
+
+    @Test
+    public void testReserveSpace() throws CacheManagementException {
+        long now = System.currentTimeMillis();
+        
+        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        assertNotNull("No planner!", cache.getDeletionPlanner());
+
+        Reservation res = cache.reserveSpace(4000L);
+        assertEquals(4000, res.getSize());
+        assertEquals("cranky", res.getVolumeName());
+    }
+
 }

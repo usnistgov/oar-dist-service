@@ -134,6 +134,7 @@ public class Reservation {
             db.addObject(id, vol.getName(), objname, metadata);
         }
         catch (StorageVolumeException ex) {
+            // note the cache volume should be responsible for cleaning up after failure
             throw new CacheManagementException("Problem saving object, id="+id+": "+ex.getMessage(), ex);
         }
         catch (InventoryException ex) {

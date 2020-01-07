@@ -83,7 +83,7 @@ public abstract class RestorerBase implements Restorer {
      */
     @Override
     public void restoreObject(String id, Reservation resv, String name, JSONObject metadata)
-        throws StorageVolumeException, RestorationException, StorageVolumeException, JSONException
+        throws StorageVolumeException, RestorationException, JSONException
     {
         if (metadata == null) 
             metadata = new JSONObject();
