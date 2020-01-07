@@ -89,7 +89,7 @@ public class ValidationHelper {
 	    conn.setReadTimeout(10000);
 	    conn.setRequestMethod("HEAD");
 	    int responseCode = conn.getResponseCode();
-	    long length = conn.getContentLength();
+	    long length = conn.getContentLengthLong();
 	    allowedRedirects--;
 	    String location = conn.getHeaderField("Location");
 
