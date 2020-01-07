@@ -162,7 +162,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
 
         // Prep the plan for output
         strat.sort(selected);
-        out = new DeletionPlan(volname, invdb, selected, removeBytes, size);
+        out = new DeletionPlan(cv, invdb, selected, removeBytes, size);
 
         // calculate a score
         out.score = calculatePlanScore(selected, size, avail);

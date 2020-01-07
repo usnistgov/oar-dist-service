@@ -82,7 +82,6 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * size.  This implementation uses the size as the score.
      */
     public double calculateScore(CacheObject co) {
-
         long age = now - co.getMetadatumLong("since", now);
         if (age < minage) return 0.0;
 
