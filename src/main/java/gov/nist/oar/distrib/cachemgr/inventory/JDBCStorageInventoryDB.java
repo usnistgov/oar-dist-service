@@ -480,6 +480,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new VolumeNotFoundException(volname);
 
         // update the metadata
+        String sinceDate = null;
         String nm = null;
         StringBuilder sql = new StringBuilder("UPDATE objects SET");
         try {
@@ -495,6 +496,20 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 nm = "priority";
                 sql.append(" priority=").append(Integer.toString(metadata.getInt(nm))).append(",");
             }
+
+            if (metadata.has("since")) {
+                if (metadata.has("sinceDate")) {
+                    nm = "sinceDate";
+                    sinceDate = metadata.getString("sinceDate");
+                } else {
+                    nm = "since";
+                    sinceDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(metadata.getLong(nm)),
+                                                        ZoneOffset.UTC)
+                                             .format(DateTimeFormatter.ISO_INSTANT);
+                }
+                nm = "since";
+                sql.append(" since=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
         } catch (JSONException ex) {
             throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
                                                  ex.getMessage(), nm, ex);
@@ -506,6 +521,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             JSONObject md = obj.exportMetadata();
             for (String prop : metadata.keySet())
                 md.put(prop, metadata.get(prop));
+            if (sinceDate != null)
+                md.put("sinceDate", sinceDate);
 
             StringBuilder updsql = new StringBuilder(sql.toString());
             updsql.append(" metadata='").append(md.toString())
@@ -529,6 +546,20 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
 
         return true;
+    }
+
+    /**
+     * update the time of last access for an object to the current time.
+     * <pre>
+     * Note that this time should be initialized automatically when the object is first added
+     * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
+     * should not be necessary to call this to initialize the access time.
+     */
+    public boolean updateAccessTime(String volname, String objname) throws InventoryException {
+        Instant since = Instant.now();
+        JSONObject md = new JSONObject();
+        md.put("since", since.toEpochMilli());
+        return updateMetadata(volname, objname, md);
     }
 
     private long getMetadatumLong(JSONObject md, String name, long defval) {

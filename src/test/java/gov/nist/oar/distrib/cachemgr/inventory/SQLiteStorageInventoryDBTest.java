@@ -481,6 +481,84 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     @Test
+    public void testUpdateAccessTime() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("size", 90L);
+        md.put("color", "red");
+        md.put("height", 72);
+        md.put("priority", 1);
+
+        // two entries with same id, name, and metadata in different volumes
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        List<CacheObject> cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        int fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        int foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+        
+        assertEquals("1234_goober.json", cos.get(foobar).name);
+        assertEquals(90L, cos.get(foobar).getSize());
+        assertEquals(1, cos.get(foobar).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(foobar).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(foobar).getMetadatumString("color", null));
+        assertFalse(cos.get(foobar).hasMetadatum("job"));
+        assertEquals("1234_goober.json", cos.get(fundrum).name);
+        assertEquals(90L, cos.get(fundrum).getSize());
+        assertEquals(1, cos.get(fundrum).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
+        assertFalse(cos.get(fundrum).hasMetadatum("job"));
+
+        JSONObject fbmd = cos.get(foobar).exportMetadata();
+        JSONObject fdmd = cos.get(fundrum).exportMetadata();
+
+        sidb.updateAccessTime("foobar", "1234_goober.json");
+
+        cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+
+        // foobar updated
+        assertTrue("access time not updated",
+                   cos.get(foobar).getMetadatumLong("since", -1) > fbmd.getLong("since"));
+        assertNotEquals("access date not updated", fbmd.getString("sinceDate"), 
+                        cos.get(foobar).getMetadatumString("sinceDate", fbmd.getString("sinceDate")));
+
+        // fundrum not updated
+        assertEquals(fdmd.getLong("since"), cos.get(fundrum).getMetadatumLong("since", -2L));
+        assertEquals(fdmd.getString("sinceDate"), cos.get(fundrum).getMetadatumString("sinceDate", "g"));
+
+        // nothing else has changed
+        assertEquals("1234_goober.json", cos.get(foobar).name);
+        assertEquals(90L, cos.get(foobar).getSize());
+        assertEquals(1, cos.get(foobar).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(foobar).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(foobar).getMetadatumString("color", null));
+        assertFalse(cos.get(foobar).hasMetadatum("job"));
+        assertEquals("1234_goober.json", cos.get(fundrum).name);
+        assertEquals(90L, cos.get(fundrum).getSize());
+        assertEquals(1, cos.get(fundrum).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
+        assertFalse(cos.get(fundrum).hasMetadatum("job"));
+    }
+
+    @Test
     public void testGetSpace() throws InventoryException, IOException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());

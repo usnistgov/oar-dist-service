@@ -124,6 +124,15 @@ public interface StorageInventoryDB extends VolumeStatus {
         throws InventoryException;
 
     /**
+     * update the time of last access for an object to the current time.
+     * <pre>
+     * Note that this time should be initialized automatically when the object is first added
+     * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
+     * should not be necessary to call this to initialize the access time.
+     */
+    public boolean updateAccessTime(String volname, String objname) throws InventoryException;
+
+    /**
      * record the removal of the object with the given name from the given volume.  
      * <p>
      * This will typically be implemented as <code>removeObject(volname, objname, false)</code>.
