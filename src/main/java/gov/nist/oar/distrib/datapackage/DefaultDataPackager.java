@@ -109,14 +109,15 @@ public class DefaultDataPackager implements DataPackager {
 	    if(this.validateUrl(downloadurl)) {
 	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
+	    	 InputStream fstream = null;
 		try {
 		    URL obj = new URL(uLoc.getRequestedURL());
 		    con = (HttpURLConnection) obj.openConnection();
-
+		    fstream = con.getInputStream();
 		    int len;
 		    byte[] buf = new byte[100000];
 		    zout.putNextEntry(new ZipEntry(filepath));
-		    InputStream fstream = con.getInputStream();
+		    
 		    while ((len = fstream.read(buf)) != -1) {
 			zout.write(buf, 0, len);
 		    }
@@ -127,7 +128,13 @@ public class DefaultDataPackager implements DataPackager {
 		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
 		    logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
 			    + ie.getMessage());
+		}finally {
+			if(fstream != null)
+			fstream.close();
+			if(zout != null) 
+				zout.closeEntry();
 		}
+	
 		if (con != null)
 		    con.disconnect();
 	    }
@@ -268,7 +275,7 @@ public class DefaultDataPackager implements DataPackager {
 		    ValidationHelper.removeDuplicates(this.inputfileList);
 		    long totalFilesSize = this.getTotalSize();
 
-		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() >= 1) {
+		    if (totalFilesSize > this.mxFileSize && this.getFilesCount() > 1) {
 			requestValidity = 4;
 
 		    } else if (this.getFilesCount() > this.mxFilesCount) {
