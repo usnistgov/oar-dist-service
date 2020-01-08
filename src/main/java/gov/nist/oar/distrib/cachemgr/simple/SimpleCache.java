@@ -11,7 +11,7 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.distrib.cachemgr.impls.simple;
+package gov.nist.oar.distrib.cachemgr.simple;
 
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
