@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * an interterface for accessing files in long-term storage.
+ * an interterface for accessing files in long-term, read-only storage.
  * <p>
  * This interface is provides a common interface for accessing storage.  Not only may the detailed 
  * API to the underlying storage may differ (e.g. AWS S3 versus local file systems) but the conventions 
@@ -52,14 +52,14 @@ public interface LongTermStorage {
      * @return InputStream open at the start of the file
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
-    InputStream openFile(String filename) throws FileNotFoundException, StorageVolumeException;
+    public InputStream openFile(String filename) throws FileNotFoundException, StorageVolumeException;
 
     /**
      * return true if a file with the given name exists in the storage 
      * @param filename   The name of the desired file.  Note that this does not refer to files that 
      *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
      */
-    boolean exists(String filename) throws StorageVolumeException;
+    public boolean exists(String filename) throws StorageVolumeException;
 
     /**
      * return the checksum for the given file
@@ -69,7 +69,7 @@ public interface LongTermStorage {
      * @throws FileNotFoundException  if the file with the given filename does not exist
      * @throws UnsupportedOperationException   if checksums are not supported on this storage system
      */
-    Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException;
+    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException;
 
     /**
      * Return the size of the named file in bytes
@@ -78,6 +78,6 @@ public interface LongTermStorage {
      * @return long, the size of the file in bytes.
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */
-    long getSize(String filename) throws FileNotFoundException, StorageVolumeException;
+    public long getSize(String filename) throws FileNotFoundException, StorageVolumeException;
 }
 
