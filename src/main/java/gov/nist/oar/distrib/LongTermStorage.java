@@ -65,7 +65,8 @@ public interface LongTermStorage {
      * return the checksum for the given file
      * @param filename   The name of the desired file.  Note that this does not refer to files that 
      *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
-     * @return Checksum, a container for the checksum value
+     * @return Checksum, a container for the checksum value, or null if the checksum is not known
+     *                   for this particular file.
      * @throws FileNotFoundException  if the file with the given filename does not exist
      * @throws UnsupportedOperationException   if checksums are not supported on this storage system
      */

@@ -101,10 +101,19 @@ public abstract class RestorerBase implements Restorer {
         if (! metadata.has("checksum")) {
             try {
                 Checksum cs = getChecksum(id);
-                metadata.put("checksum", cs.hash);
-                metadata.put("checksumAlgorithhm", cs.algorithm);
+                if (cs != null) {
+                    metadata.put("checksum", cs.hash);
+                    metadata.put("checksumAlgorithm", cs.algorithm);
+                }
+            }
+            catch (StorageStateException ex) {
+                // no checksum available as expected; will ignore
+            }
+            catch (UnsupportedOperationException ex) {
+                // checksums not support; will ignore
             }
             catch (CacheManagementException ex) {
+                // no checksum available as expected; will ignore
                 throw new RestorationException("Failed to retrieve checksum: "+ex.getMessage(), ex, id);
             }
         }

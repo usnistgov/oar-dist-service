@@ -208,7 +208,8 @@ public class WebLongTermStorage implements LongTermStorage {
      * exist or checksums are not supported.
      */
     protected Checksum getResourceChecksum(String resource) throws IOException {
-        if (_alg == null) return null;
+        if (_alg == null)
+          throw new UnsupportedOperationException("Checksums not supported on this WebLongTermStorage");
 
         URL ep = getResourceURL(resource+"."+_alg);
         HttpURLConnection conn = openConnection(ep);
