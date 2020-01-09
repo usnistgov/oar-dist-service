@@ -36,6 +36,11 @@ public class Checksum {
     public static String CRC32 = "crc32";
 
     /**
+     * the MD5 checksum algorithm (used with older sw distributions)
+     */
+    public static String MD5 = "md5";
+
+    /**
      * the checksum hash value
      */
     public String hash = null;

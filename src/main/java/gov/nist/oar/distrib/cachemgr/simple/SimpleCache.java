@@ -38,8 +38,8 @@ import org.json.JSONException;
  * {@link gov.nist.oar.distrib.cachemgr.CacheVolume}s and a 
  * {@link gov.nist.oar.distrib.cachemgr.StorageInventoryDB}.  If a 
  * {@link gov.nist.oar.distrib.cachemgr.DeletionPlanner} is not also provided, a default 
- * that uses the OldSelectionStrategy as its strategy for deleting files which deletes old 
- * files first.
+ * that uses the {@link gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy} as 
+ * its strategy for deleting files which deletes old files first.
  */
 public class SimpleCache extends BasicCache {
 
@@ -78,6 +78,21 @@ public class SimpleCache extends BasicCache {
     {
         super(idb, vols, log);
         _setDefPlanner(delplanner);
+    }
+
+    /**
+     * create the Cache around pre-popluated volumes and inventory database.  This constructor is 
+     * for recreating an instance of a Cache around previously persisted volumes and associated 
+     * database.  Thus, the volumes and their contents should already be registered with the 
+     * associated database.  
+     * @param idb      the inventory database to use
+     * @param vols     the CacheVolumes to attach to this cache
+     * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
+     */
+    public SimpleCache(StorageInventoryDB idb, Collection<CacheVolume> vols,
+                       DeletionPlanner delplanner)
+    {
+        this(idb, vols, delplanner, null);
     }
 
     /**
