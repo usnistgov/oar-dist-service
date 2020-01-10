@@ -115,7 +115,7 @@ public class DataBundleAccessController {
                     zout.close();
                 } catch (IOException e) {
                     logger.error("Error while closing the output ZipOutputStream: "+e.getMessage());
-                    throw new DistributionException("Zip output stream close error: " + e.getMessage(), ex);
+                    throw new DistributionException("Zip output stream close error: " + e.getMessage(), e);
                 }
             }
         }
