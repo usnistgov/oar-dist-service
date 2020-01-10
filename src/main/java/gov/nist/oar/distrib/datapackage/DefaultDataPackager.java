@@ -124,17 +124,17 @@ public class DefaultDataPackager implements DataPackager {
 		    fstream.close();
 		    fileCount++;
 		} catch (IOException ie) {
-		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl);
+		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl+ "\n"+"This file might be corrupt.");
 		    logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
 			    + ie.getMessage());
+		    zout.closeEntry();
 		}finally {
 			if(fstream != null)
 				fstream.close();
-			if(zout != null) 
-				zout.closeEntry();
+			if (con != null)
+			    con.disconnect();
 		}
-		if (con != null)
-		    con.disconnect();
+		
 	    }
 	    }
 	}
@@ -248,12 +248,13 @@ public class DefaultDataPackager implements DataPackager {
 	    zout.closeEntry();
 	} catch (IOException ie) {
 	    logger.info("Exception while creating Ziplogfile" + ie.getMessage());
+	    if(zout != null)
+			zout.closeEntry();
 	}
 	finally {
 		if(nStream != null)
 			nStream.close();
-		if(zout != null)
-			zout.closeEntry();
+		
 	}
     }
 
