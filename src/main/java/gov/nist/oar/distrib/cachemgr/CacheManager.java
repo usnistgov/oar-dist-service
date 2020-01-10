@@ -106,10 +106,9 @@ public abstract class CacheManager {
      * support this.  If a URL is not available for the given identifier, null 
      * is returned
      * @param id       the identifier of the object to get
-     * @return boolean  True if the file existed in the volume; false if it was 
-     *                       not found in this volume
-     * @throws CacheVolumeException     if there is an internal error while trying to 
-     *                                     remove the Object
+     * @return URL     the URL from which the object can be streamed 
+     * @throws CacheManagementException   if there is an internal error while trying to 
+     *                                    locate the object
      */
     public URL getRedirectFor(String id) throws CacheManagementException {
         CacheObject out = this.getObject(id);
