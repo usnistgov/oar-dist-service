@@ -81,7 +81,7 @@ public class DownloadBundlePlannerTest {
 	assertEquals(bundlePlan.getStatus(), "warnings");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
-	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
 
     }
     
@@ -109,7 +109,7 @@ public class DownloadBundlePlannerTest {
 	BundleRequest[] test = bundlePlan.getBundleNameFilePathUrl();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "warnings");
-	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 2);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
 
