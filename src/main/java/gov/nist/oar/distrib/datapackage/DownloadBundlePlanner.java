@@ -88,7 +88,7 @@ public class DownloadBundlePlanner {
 	filePathUrls = new ArrayList<FileRequest>();
 	bundleFilePathUrls = new ArrayList<BundleRequest>();
 	messages = new ArrayList<String>();
-
+	logger.info("Creating bundle plan..");
         try {
 	    ObjectMapper mapper = new ObjectMapper();
 	    String requestString = mapper.writeValueAsString(this.bundleRequest);
@@ -100,7 +100,8 @@ public class DownloadBundlePlanner {
 	    }
         } catch (JsonProcessingException ex) {
             // should not happen
-            throw new DistributionException("Trouble validating request: unable to conver to JSON: " +
+        	logger.error("There is an issue validating request. unable to create valid JSON.");
+            throw new DistributionException("Trouble validating request: unable to convert to JSON: " +
                                             ex.getMessage());
         }
 
@@ -109,6 +110,7 @@ public class DownloadBundlePlanner {
 	    this.inputfileList = this.bundleRequest.getIncludeFiles();
 	    ValidationHelper.removeDuplicates(this.inputfileList);
 	} catch (IOException ie) {
+		logger.error("Error while parsing request, not a valid JSON input."+ie.getMessage());
 	    messages.add("Error while parsing the request. Check if it is valid JSON.");
 	    this.status = "Error";
 	    return makeBundlePlan();
@@ -149,6 +151,7 @@ public class DownloadBundlePlanner {
      * @throws IOException
      */
     public void makeBundles(FileRequest jobject) {
+    	logger.info("Make bundles planning.");
 	bundledFilesCount++;
 	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains, this.allowedRedirects);
 	long individualFileSize = uObj.getLength();
@@ -214,6 +217,7 @@ public class DownloadBundlePlanner {
      * Object of BundleDownloadPlan after processing input request.
      */
     public BundleDownloadPlan makeBundlePlan() {
+    	logger.info("makeBundlePlan called.");
 	return new BundleDownloadPlan("_bundle", this.status,
 		bundleFilePathUrls.toArray(new BundleRequest[0]), messages.toArray(new String[0]),
 		notIncludedFiles.toArray(new NotIncludedFile[0]));

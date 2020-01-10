@@ -109,7 +109,16 @@ public class DataBundleAccessController {
 	} catch (EmptyBundleRequestException ex) {
             logger.warn("Empty bundle request sent");
             throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
-        }
+    }finally {
+    	if(zout !=null)
+			try {
+				zout.close();
+			} catch (IOException e) {
+				
+				logger.error("Error while closing the output ZipOutputStream.");
+				throw new DistributionException(e.getMessage());
+			}
+    }
 
     }
 

@@ -109,7 +109,7 @@ public class DefaultDataPackager implements DataPackager {
 	    if(this.validateUrl(downloadurl)) {
 	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
-	    	 InputStream fstream = null;
+	    InputStream fstream = null;
 		try {
 		    URL obj = new URL(uLoc.getRequestedURL());
 		    con = (HttpURLConnection) obj.openConnection();
@@ -117,7 +117,6 @@ public class DefaultDataPackager implements DataPackager {
 		    int len;
 		    byte[] buf = new byte[100000];
 		    zout.putNextEntry(new ZipEntry(filepath));
-		    
 		    while ((len = fstream.read(buf)) != -1) {
 			zout.write(buf, 0, len);
 		    }
@@ -130,11 +129,10 @@ public class DefaultDataPackager implements DataPackager {
 			    + ie.getMessage());
 		}finally {
 			if(fstream != null)
-			fstream.close();
+				fstream.close();
 			if(zout != null) 
 				zout.closeEntry();
 		}
-	
 		if (con != null)
 		    con.disconnect();
 	    }
@@ -215,8 +213,10 @@ public class DefaultDataPackager implements DataPackager {
      * accessing requested URLs
      * 
      * @param zout
+     * @throws IOException 
      */
-    private void writeLog(ZipOutputStream zout) {
+    private void writeLog(ZipOutputStream zout) throws IOException {
+    InputStream nStream = null;
 	try {
 	    String filename = "";
 	    int l;
@@ -240,7 +240,7 @@ public class DefaultDataPackager implements DataPackager {
 		filename = "/PackagingSuccessful.txt";
 	    }
 
-	    InputStream nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
+	    nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
 	    zout.putNextEntry(new ZipEntry(filename));
 	    while ((l = nStream.read(buf)) != -1) {
 		zout.write(buf, 0, l);
@@ -248,6 +248,12 @@ public class DefaultDataPackager implements DataPackager {
 	    zout.closeEntry();
 	} catch (IOException ie) {
 	    logger.info("Exception while creating Ziplogfile" + ie.getMessage());
+	}
+	finally {
+		if(nStream != null)
+			nStream.close();
+		if(zout != null)
+			zout.closeEntry();
 	}
     }
 
