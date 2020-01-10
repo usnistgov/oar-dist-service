@@ -100,47 +100,47 @@ public class DefaultDataPackager implements DataPackager {
 	HttpURLConnection con = null;
 	this.validateBundleRequest();
 
-	logger.info("Forming zip file from the the input fileurls");
+	logger.debug("Forming zip file from the the input fileurls");
 
 	for (int i = 0; i < inputfileList.length; i++) {
 	    FileRequest jobject = inputfileList[i];
 	    String filepath = jobject.getFilePath();
 	    String downloadurl = jobject.getDownloadUrl();
 	    if(this.validateUrl(downloadurl)) {
-	    URLStatusLocation uLoc = listUrlsStatusSize.get(i);
-	    if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
-	    InputStream fstream = null;
-		try {
-		    URL obj = new URL(uLoc.getRequestedURL());
-		    con = (HttpURLConnection) obj.openConnection();
-		    fstream = con.getInputStream();
-		    int len;
-		    byte[] buf = new byte[100000];
-		    zout.putNextEntry(new ZipEntry(filepath));
-		    while ((len = fstream.read(buf)) != -1) {
-			zout.write(buf, 0, len);
-		    }
-		    zout.closeEntry();
-		    fstream.close();
-		    fileCount++;
-		} catch (IOException ie) {
-		    bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl+ "\n"+"This file might be corrupt.");
-		    logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
-			    + ie.getMessage());
-		    zout.closeEntry();
-		}finally {
-			if(fstream != null)
-				fstream.close();
-			if (con != null)
-			    con.disconnect();
-		}
-		
-	    }
+	        URLStatusLocation uLoc = listUrlsStatusSize.get(i);
+	        if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
+                    InputStream fstream = null;
+	            try {
+	                URL obj = new URL(uLoc.getRequestedURL());
+	                con = (HttpURLConnection) obj.openConnection();
+	                fstream = con.getInputStream();
+	                int len;
+	                byte[] buf = new byte[100000];
+	                zout.putNextEntry(new ZipEntry(filepath));
+	                while ((len = fstream.read(buf)) != -1) {
+                            zout.write(buf, 0, len);
+	                }
+	                zout.closeEntry();
+	                fstream.close();
+	                fileCount++;
+	            } catch (IOException ie) {
+	                bundlelogError.append("\n Exception in getting data for: " + filepath + " at " +
+                                              downloadurl+ ";\n  this file might be corrupted.");
+	                logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
+	            	    + ie.getMessage());
+	                zout.closeEntry();
+	            } finally {
+	            	if(fstream != null)
+                            fstream.close();
+	            	if (con != null)
+	            	    con.disconnect();
+	            }
+	        }
 	    }
 	}
 
 	if (fileCount == 0) {
-	    logger.info("The package does not contain any data. These errors :" + this.bundlelogError);
+	    logger.warn("The package does not contain any data. These errors :" + this.bundlelogError);
 	    throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 	}
 	this.writeLog(zout);
@@ -189,7 +189,7 @@ public class DefaultDataPackager implements DataPackager {
 	String requestedUrl = uloc.getRequestedURL();
 	if (uloc.getStatus() >= 400 && uloc.getStatus() <= 500) {
 
-	    logger.info(requestedUrl + " Error accessing this url: " + uloc.getStatus());
+	    logger.error(requestedUrl + " Error accessing this url: " + uloc.getStatus());
 	    this.bundlelogError.append("\n " + requestedUrl);
 	    this.bundlelogError
 		    .append(" There is an Error accessing this file, Server returned status with response code  ");
@@ -216,7 +216,7 @@ public class DefaultDataPackager implements DataPackager {
      * @throws IOException 
      */
     private void writeLog(ZipOutputStream zout) throws IOException {
-    InputStream nStream = null;
+        InputStream nStream = null;
 	try {
 	    String filename = "";
 	    int l;
@@ -247,14 +247,13 @@ public class DefaultDataPackager implements DataPackager {
 	    }
 	    zout.closeEntry();
 	} catch (IOException ie) {
-	    logger.info("Exception while creating Ziplogfile" + ie.getMessage());
+	    logger.warn("Exception while creating Ziplogfile" + ie.getMessage());
 	    if(zout != null)
-			zout.closeEntry();
+                zout.closeEntry();
 	}
 	finally {
-		if(nStream != null)
-			nStream.close();
-		
+            if(nStream != null)
+                nStream.close();
 	}
     }
 
