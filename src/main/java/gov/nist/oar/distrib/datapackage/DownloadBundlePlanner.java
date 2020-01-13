@@ -88,7 +88,7 @@ public class DownloadBundlePlanner {
 	filePathUrls = new ArrayList<FileRequest>();
 	bundleFilePathUrls = new ArrayList<BundleRequest>();
 	messages = new ArrayList<String>();
-	logger.info("Creating bundle plan..");
+	logger.debug("Creating bundle plan..");
         try {
 	    ObjectMapper mapper = new ObjectMapper();
 	    String requestString = mapper.writeValueAsString(this.bundleRequest);
@@ -151,7 +151,7 @@ public class DownloadBundlePlanner {
      * @throws IOException
      */
     public void makeBundles(FileRequest jobject) {
-    	logger.info("Make bundles planning.");
+    	logger.debug("Make bundles planning.");
 	bundledFilesCount++;
 	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains, this.allowedRedirects);
 	long individualFileSize = uObj.getLength();
@@ -217,7 +217,7 @@ public class DownloadBundlePlanner {
      * Object of BundleDownloadPlan after processing input request.
      */
     public BundleDownloadPlan makeBundlePlan() {
-    	logger.info("makeBundlePlan called.");
+    	logger.debug("makeBundlePlan called.");
 	return new BundleDownloadPlan("_bundle", this.status,
 		bundleFilePathUrls.toArray(new BundleRequest[0]), messages.toArray(new String[0]),
 		notIncludedFiles.toArray(new NotIncludedFile[0]));
