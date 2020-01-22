@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FilterInputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +92,7 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
             S3Object s3Object = s3client.getObject(getObjectRequest);
-            return s3Object.getObjectContent();
+            return new DrainingInputStream(s3Object.getObjectContent(), logger);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new FileNotFoundException("File not found in S3 bucket: "+filename);
@@ -194,5 +195,43 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
         });
      
         return filenames;
+    }
+
+    /*
+     * AWS urges that opened S3 objects be fully streamed.
+     */
+    static class DrainingInputStream extends FilterInputStream implements Runnable {
+        private Logger logger = null;
+
+        public DrainingInputStream(InputStream is, Logger log) {
+            super(is);
+            logger = log;
+        }
+
+        public void close() {
+            Thread t = new Thread(this, "S3Object closer");
+            t.start();
+        }
+
+        public void run() { runClose(); }
+
+        void runClose() {
+            long start = System.currentTimeMillis();
+            try {
+                byte[] buf = new byte[100000];
+                int len = 0;
+                logger.debug("Draining S3 Object stream");
+                while ((len = read(buf)) != -1) { /* fugetaboutit */ }
+                logger.debug("Drained in {} millseconds", (System.currentTimeMillis() - start));
+            }
+            catch (IOException ex) {
+                logger.warn("Trouble draining S3 object stream: " + ex.getMessage());
+            }
+            try {
+                super.close();
+            } catch (IOException ex) {
+                logger.warn("Trouble closing S3 object stream: " + ex.getMessage());
+            }
+        }
     }
 }

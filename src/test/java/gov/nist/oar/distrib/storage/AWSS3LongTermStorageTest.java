@@ -55,7 +55,7 @@ import io.findify.s3mock.S3Mock;
  */
 public class AWSS3LongTermStorageTest {
   
-    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
+    private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorageTest.class);
 
     static int port = 9001;
     static final String bucket = "oar-lts-test";
