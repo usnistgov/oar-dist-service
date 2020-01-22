@@ -204,4 +204,68 @@ public class DefaultDataPackagerTest {
 	    throw ixp;
 	}
     }
+
+    @Test
+    public void testFormatLocation() {
+        try {
+            throw new IllegalArgumentException("test exception");
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "testFormatLocation", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("testFormatLocation"));
+        }
+
+        try {
+            throwDummy();
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "testFormatLocation", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("testFormatLocation"));
+        }
+
+        try {
+            throwDummy();
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+
+        try {
+            throwDummy(1);
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+
+        try {
+            throwDummy(4);
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+    }
+
+    private void throwDummy() {
+        throw new IllegalArgumentException("test exception");
+    }
+    private void throwDummy(int depth) {
+        deepThrowDummy(depth);
+    }
+    private void deepThrowDummy(int depth) {
+        if (depth < 2) throwDummy();
+        deepThrowDummy(--depth);
+    }
 }

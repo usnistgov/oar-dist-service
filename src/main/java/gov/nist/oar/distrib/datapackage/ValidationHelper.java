@@ -13,6 +13,7 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
+import java.io.Closeable;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -85,8 +86,8 @@ public class ValidationHelper {
 	    conn = (HttpURLConnection) obj.openConnection();
 	    HttpURLConnection.setFollowRedirects(false);
 	    conn.setInstanceFollowRedirects(false);
-	    conn.setConnectTimeout(10000);
-	    conn.setReadTimeout(10000);
+	    conn.setConnectTimeout(10000); //  10 seconds
+	    conn.setReadTimeout(100000);   // 100 seconds
 	    conn.setRequestMethod("HEAD");
 	    int responseCode = conn.getResponseCode();
 	    long length = conn.getContentLengthLong();
@@ -95,6 +96,9 @@ public class ValidationHelper {
 
 	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects > 0)
 		return checkURLStatusLocationSize(location, allowedRedirects);
+            if (responseCode >= 400)
+                // avoids leaving open socket?
+                quietClose(conn.getErrorStream(), url+" (error stream)");
 
 	    return new URLStatusLocation(responseCode, location, url, length, true);
 
@@ -103,9 +107,22 @@ public class ValidationHelper {
 	    logger.info("There is error reading this url:" + url + "\n" + exp.getMessage());
 	    return new URLStatusLocation(0, url, url, 0, true);
 	} finally {
-	    conn.disconnect();
+            if (conn != null)
+                conn.disconnect();
 	}
 
+    }
+
+    private static void quietClose(Closeable c) { quietClose(c, null); }
+    private static void quietClose(Closeable c, String name) {
+        try {
+            if (c != null) c.close();
+        } catch (IOException ex) {
+            StringBuffer sb = new StringBuffer();
+            if (name != null) sb.append(name).append(": ");
+            sb.append("Trouble closing open stream: ").append(ex.getMessage());
+            logger.warn(sb.toString());
+        }
     }
 
     /**

@@ -220,7 +220,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
         }
         catch (IOException ex) {
             quietClose(bag, bagfile);
-            throw new DistributionException("Error accessing file-lookup.tsv: " + ex.getMessage(), ex);
+            throw new DistributionException("Error accessing bag, "+bagfile+": " + ex.getMessage(), ex);
         }
     }
 
