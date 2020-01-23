@@ -209,8 +209,13 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
         }
 
         public void close() {
+            /*
+             * does not work under heavy load
+             *
             Thread t = new Thread(this, "S3Object closer");
             t.start();
+             */
+            runClose();
         }
 
         public void run() { runClose(); }
