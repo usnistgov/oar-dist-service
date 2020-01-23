@@ -17,8 +17,16 @@ server:
     max-http-header-size: 8192
     tomcat:
       accesslog:
-        directory: logs
-        enabled: false
+        directory: /var/log/dist-service
+        enabled: true
+        file-date-format: yyyy-MM-dd
+        prefix: tomcat-access-log
+        suffix: .log
+        rotate: true
+      accept-count: 500
+      max-connections: 10000
+      max-threads: 500
+      min-spare-threads: 100
         
 security:
     headers:
