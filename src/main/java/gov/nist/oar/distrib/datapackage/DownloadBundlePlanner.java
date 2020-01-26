@@ -41,186 +41,189 @@ import gov.nist.oar.distrib.datapackage.NotIncludedFile;
  */
 public class DownloadBundlePlanner {
 
-    protected static Logger logger = LoggerFactory.getLogger(DownloadBundlePlanner.class);
-    List<NotIncludedFile> notIncludedFiles;
-    List<FileRequest> filePathUrls;
-    List<BundleRequest> bundleFilePathUrls;
-    List<String> messages;
-    BundleDownloadPlan finalPlan;
-    long bundleSize = 0;
-    int bundledFilesCount = 0;
-    int bundleCount = 0;
-    String bundleName = "";
-    boolean unsupportedSource;
-    String status = "complete";
-    private FileRequest[] inputfileList;
-    private BundleRequest bundleRequest;
-    private long mxFilesBundleSize;
-    private int mxBundledFilesCount;
-    private String validdomains;
-    private int allowedRedirects;
-    private ValidationHelper validationHelper = new ValidationHelper();
+	protected static Logger logger = LoggerFactory.getLogger(DownloadBundlePlanner.class);
+	List<NotIncludedFile> notIncludedFiles;
+	List<FileRequest> filePathUrls;
+	List<BundleRequest> bundleFilePathUrls;
+	List<String> messages;
+	BundleDownloadPlan finalPlan;
+	long bundleSize = 0;
+	int bundledFilesCount = 0;
+	int bundleCount = 0;
+	String bundleName = "";
+	boolean unsupportedSource;
+	String status = "complete";
+	private FileRequest[] inputfileList;
+	private BundleRequest bundleRequest;
+	private long mxFilesBundleSize;
+	private int mxBundledFilesCount;
+	private String validdomains;
+	private int allowedRedirects;
+	private ValidationHelper validationHelper = new ValidationHelper();
+	private long totalRequestedFileSize = 0,  totalfiles = 0;
 
-    public DownloadBundlePlanner() {
-	// Default constructor
-    }
-
-    public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
-	    String bundleName, int allowedRedirects) {
-	this.bundleRequest = inputjson;
-	this.mxFilesBundleSize = maxFileSize;
-	this.mxBundledFilesCount = numOfFiles;
-	this.validdomains = validdomains;
-	this.bundleName = bundleName;
-	this.allowedRedirects = allowedRedirects;
-    }
-
-    /**
-     * Get the plan to download all files after checking various limits and
-     * criteria
-     * 
-     * @return BundleDownloadPlan -- the recommended plan
-     * @throws DistributionException 
-     */
-    public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException {
-
-	notIncludedFiles = new ArrayList<NotIncludedFile>();
-	filePathUrls = new ArrayList<FileRequest>();
-	bundleFilePathUrls = new ArrayList<BundleRequest>();
-	messages = new ArrayList<String>();
-	logger.info("Creating bundle plan..");
-        try {
-	    ObjectMapper mapper = new ObjectMapper();
-	    String requestString = mapper.writeValueAsString(this.bundleRequest);
-	    if (ValidationHelper.hasHTMLTags(requestString)) {
-	        messages.add("Input contains html code, make sure to post proper request.");
-	        this.status = "Error";
-	        return makeBundlePlan();
-	     
-	    }
-        } catch (JsonProcessingException ex) {
-            // should not happen
-        	logger.error("There is an issue validating request. unable to create valid JSON.");
-            throw new DistributionException("Trouble validating request: unable to convert to JSON: " +
-                                            ex.getMessage());
-        }
-
-	try {
-	    JSONUtils.isJSONValid(this.bundleRequest);
-	    this.inputfileList = this.bundleRequest.getIncludeFiles();
-	    ValidationHelper.removeDuplicates(this.inputfileList);
-	} catch (IOException ie) {
-		logger.error("Error while parsing request, not a valid JSON input."+ie.getMessage());
-	    messages.add("Error while parsing the request. Check if it is valid JSON.");
-	    this.status = "Error";
-	    return makeBundlePlan();
-	    
+	public DownloadBundlePlanner() {
+		// Default constructor
 	}
 
-	for (int i = 0; i < inputfileList.length; i++) {
-	    FileRequest jobject = inputfileList[i];
-	    String filepath = jobject.getFilePath();
-	    String downloadurl = jobject.getDownloadUrl();
-            try {
-                if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
-                    this.makeBundles(jobject);
-                } else {
-                    notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
-                        "File not added in package; This URL is from unsupported domain/host."));
-                }
-            } catch (MalformedURLException ex) {
-                notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
-                                                         "File not added in package; malformed URL"));
-            }
+	public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
+			String bundleName, int allowedRedirects) {
+		this.bundleRequest = inputjson;
+		this.mxFilesBundleSize = maxFileSize;
+		this.mxBundledFilesCount = numOfFiles;
+		this.validdomains = validdomains;
+		this.bundleName = bundleName;
+		this.allowedRedirects = allowedRedirects;
 	}
 
-	if (!this.filePathUrls.isEmpty()) {
-	    this.makePlan(this.filePathUrls);
+	/**
+	 * Get the plan to download all files after checking various limits and criteria
+	 * 
+	 * @return BundleDownloadPlan -- the recommended plan
+	 * @throws DistributionException
+	 */
+	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException {
+
+		notIncludedFiles = new ArrayList<NotIncludedFile>();
+		filePathUrls = new ArrayList<FileRequest>();
+		bundleFilePathUrls = new ArrayList<BundleRequest>();
+		messages = new ArrayList<String>();
+		logger.info("Creating bundle plan..");
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			String requestString = mapper.writeValueAsString(this.bundleRequest);
+			if (ValidationHelper.hasHTMLTags(requestString)) {
+				messages.add("Input contains html code, make sure to post proper request.");
+				this.status = "Error";
+				return makeBundlePlan();
+
+			}
+		} catch (JsonProcessingException ex) {
+			// should not happen
+			logger.error("There is an issue validating request. unable to create valid JSON.");
+			throw new DistributionException(
+					"Trouble validating request: unable to convert to JSON: " + ex.getMessage());
+		}
+
+		try {
+			JSONUtils.isJSONValid(this.bundleRequest);
+			this.inputfileList = this.bundleRequest.getIncludeFiles();
+			ValidationHelper.removeDuplicates(this.inputfileList);
+		} catch (IOException ie) {
+			logger.error("Error while parsing request, not a valid JSON input." + ie.getMessage());
+			messages.add("Error while parsing the request. Check if it is valid JSON.");
+			this.status = "Error";
+			return makeBundlePlan();
+
+		}
+
+		for (int i = 0; i < inputfileList.length; i++) {
+			FileRequest jobject = inputfileList[i];
+			String filepath = jobject.getFilePath();
+			String downloadurl = jobject.getDownloadUrl();
+			try {
+				if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
+					this.makeBundles(jobject);
+				} else {
+					notIncludedFiles.add(new NotIncludedFile(filepath, downloadurl,
+							"File not added in package; This URL is from unsupported domain/host."));
+				}
+			} catch (MalformedURLException ex) {
+				notIncludedFiles
+						.add(new NotIncludedFile(filepath, downloadurl, "File not added in package; malformed URL"));
+			}
+		}
+
+		if (!this.filePathUrls.isEmpty()) {
+			this.makePlan(this.filePathUrls);
+		}
+
+		this.updateMessagesAndStatus();
+		return this.makeBundlePlan();
+
 	}
 
-	this.updateMessagesAndStatus();
-	return this.makeBundlePlan();
-	
-    }
-
-    /**
-     * Add to Bundle of the input requested based on the size and number of
-     * files allowed per bundle request.
-     * 
-     * @param jobject
-     * @throws IOException
-     */
-    public void makeBundles(FileRequest jobject) {
-    	logger.info("Make bundles planning.");
-	bundledFilesCount++;
-	URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains, this.allowedRedirects);
-	long individualFileSize = uObj.getLength();
-	String whyNotIncluded =  "File not added in package; ";
-	if(uObj.getStatus() >=300 && uObj.getStatus() <400) {
-	    whyNotIncluded += "There are too many redirects for this URL.";
-	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
-		     whyNotIncluded));
-	}
-	else if (individualFileSize <= 0) {
+	/**
+	 * Add to Bundle of the input requested based on the size and number of files
+	 * allowed per bundle request.
+	 * 
+	 * @param jobject
+	 * @throws IOException
+	 */
+	public void makeBundles(FileRequest jobject) {
+		logger.info("Make bundles: validate urls, check size and accordinlgy create bundle plan.");
+		bundledFilesCount++;
+		URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains,
+				this.allowedRedirects);
+		long individualFileSize = uObj.getLength();
+		String whyNotIncluded = "File not added in package; ";
+		if (uObj.getStatus() >= 300 && uObj.getStatus() < 400) {
+			whyNotIncluded += "There are too many redirects for this URL.";
+			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
+		} else if (individualFileSize <= 0) {
 //		String whyNotIncluded =  "File not added in package; ";
 //		if(uObj.getStatus() >=300 && uObj.getStatus() <400)
 //			whyNotIncluded += "There are too many redirects for this URL.";
 //		else
-	    whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
-	    notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(),
-		     whyNotIncluded));
-	} else {
-            if (individualFileSize >= this.mxFilesBundleSize) {
-                List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
-                onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-                this.makePlan(onefilePathUrls);
-	    } else {
-		bundleSize += individualFileSize;
-		if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-		    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
+			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
 		} else {
-		    makePlan(filePathUrls);
-		    filePathUrls.clear();
-		    bundledFilesCount = 1;
-		    filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-		    bundleSize = individualFileSize;
+			totalRequestedFileSize += individualFileSize;
+			if (individualFileSize >= this.mxFilesBundleSize) {
+				List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
+				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+				this.makePlan(onefilePathUrls);
+			} else {
+				bundleSize += individualFileSize;
+				if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+				} else {
+					makePlan(filePathUrls);
+					filePathUrls.clear();
+					bundledFilesCount = 1;
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+					bundleSize = individualFileSize;
+				}
+			}
 		}
-	    }
-	}
-    }
-
-    /***
-     * Create Bundle of FileList
-     * 
-     * @param fPathUrls
-     */
-    public void makePlan(List<FileRequest> fPathUrls) {
-	bundleCount++;
-	FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-	bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls));
-    }
-
-    private void updateMessagesAndStatus() {
-	if (!this.notIncludedFiles.isEmpty() && this.bundleFilePathUrls.isEmpty()) {
-	    this.messages.add("No Files added in the Bundle, there are problems accessing URLs.");
-	    this.status = "Error";
-	}
-	if (!this.notIncludedFiles.isEmpty() && !this.bundleFilePathUrls.isEmpty()) {
-	    messages.add("Some URLs have problem accessing contents.");
-	    this.status = "warnings";
 	}
 
-    }
+	/***
+	 * Create Bundle of FileList
+	 * 
+	 * @param fPathUrls
+	 */
+	public void makePlan(List<FileRequest> fPathUrls) {
+		bundleCount++;
+		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
+		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize));
+	}
 
-    /**
-     * Create final Bundle plan (JSON) to return to client. It creates Java
-     * Object of BundleDownloadPlan after processing input request.
-     */
-    public BundleDownloadPlan makeBundlePlan() {
-    	logger.info("makeBundlePlan called.");
-	return new BundleDownloadPlan("_bundle", this.status,
-		bundleFilePathUrls.toArray(new BundleRequest[0]), messages.toArray(new String[0]),
-		notIncludedFiles.toArray(new NotIncludedFile[0]));
-    }
+	/**
+	 * Update Messages and Status
+	 */
+	private void updateMessagesAndStatus() {
+		if (!this.notIncludedFiles.isEmpty() && this.bundleFilePathUrls.isEmpty()) {
+			this.messages.add("No Files added in the Bundle, there are problems accessing URLs.");
+			this.status = "Error";
+		}
+		if (!this.notIncludedFiles.isEmpty() && !this.bundleFilePathUrls.isEmpty()) {
+			messages.add("Some URLs have problem accessing contents.");
+			this.status = "warnings";
+		}
+
+	}
+
+	/**
+	 * Create final Bundle plan (JSON) to return to client. It creates Java Object
+	 * of BundleDownloadPlan after processing input request.
+	 */
+	public BundleDownloadPlan makeBundlePlan() {
+		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
+		
+		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
+				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
+				this.totalRequestedFileSize, bundleCount, inputfileList.length);
+	}
 
 }

@@ -53,6 +53,12 @@ public class BundleDownloadPlan {
      * List of files not included in the bundle
      */
     private NotIncludedFile[] notIncluded;
+    
+    private long size;
+    
+    private long bundleCount;
+    
+    private long filesCount;
 
     /**
      * Default Constructor
@@ -77,13 +83,17 @@ public class BundleDownloadPlan {
      *            If files are not included in the bundle.
      */
     public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, 
-                              String[] messages, NotIncludedFile[] notIncluded)
+                              String[] messages, NotIncludedFile[] notIncluded, long size, long bundleCount, long filesCount)
     {
 	this.postEachTo = postEachTo;
 	this.status = status;
 	this.requests = requests;
 	this.messages = messages;
 	this.notIncluded = notIncluded;
+	this.size = size;
+	this.bundleCount = bundleCount;
+	this.filesCount = filesCount;
+
     }
 
     /**
@@ -132,7 +142,31 @@ public class BundleDownloadPlan {
     public void setNotIncluded(NotIncludedFile[] notIncluded) {
 	this.notIncluded = notIncluded;
     }
+    
+    public void setSize(long size) {
+    	this.size = size;
+    }
 
+    public long getSize() {
+    	return this.size;
+    }
+    
+    
+    public void setBundleCount(long bCount) {
+    	this.bundleCount = bCount;
+    }
+
+    public long getBundleCount() {
+    	return this.bundleCount;
+    }
+    
+    public void setFilesCount(long fCount) {
+    	this.filesCount = fCount;
+    }
+
+    public long getFilesCount() {
+    	return this.filesCount;
+    }
     /**
      * return the API endpoint to POST each request in the plan to. 
      * 
@@ -183,5 +217,6 @@ public class BundleDownloadPlan {
     public NotIncludedFile[] getNotIncluded() {
 	return this.notIncluded;
     }
+    
 
 }
