@@ -191,6 +191,7 @@
                     <systemPropertyVariables>
                         <conf.path>${user.home}/spm</conf.path>
                     </systemPropertyVariables>
+                    <trimStackTrace>false</trimStackTrace>
                 </configuration>
             </plugin>
             <plugin>
