@@ -98,7 +98,7 @@ public class RMMResourceResolver implements ResourceResolver {
             if (out == null) {
                 out = new ComponentInfoCache(cacheSizeLimit, cacheExpireTimeSecs,
                                              Arrays.asList("nrdp:DataFile", "nrdp:DownloadableFile"),
-                                             Arrays.asList("nrd:Hidden"), 10);
+                                             Arrays.asList("nrd:Hidden"), false, 10);
                 compCaches.put(epkey, out);
             }
             return out;

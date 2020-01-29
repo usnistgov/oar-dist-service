@@ -47,7 +47,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     private void setComponentCache(int cacheSizeLimit, long cacheExpireTimeSecs) {
         compcache = new ComponentInfoCache(cacheSizeLimit, cacheExpireTimeSecs,
                                            Arrays.asList("nrdp:DataFile", "nrdp:DownloadableFile"),
-                                           Arrays.asList("nrd:Hidden"), 10);
+                                           Arrays.asList("nrd:Hidden"), true, 10);
     }
 
     /**
@@ -121,18 +121,18 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
         else {
             
             // look for the component metadata in our in-memory cache
-            String cmpid = dsid + "/cmps/" + urlPathEncode(filepath);
+            String cmpid = dsid + "/" + filepath;
             cmp = compcache.get(cmpid, true);
             cmpid = cmpid.substring(dsid.length()+1);
 
             // if not in cache, extract the info from the head bag and cache it.  This may raise
             // a ResourceNotFoundException
             if (cmp == null) {
-                logger.info("metadata cache miss: "+dsid+"/"+cmpid);
+                logger.info("metadata cache miss: {0}/{1}", dsid, cmpid);
                 cmp = compcache.cacheResource(getResourceMetadata(dsid, version), false, cmpid, dsid);
             }
             else {
-                logger.info("metadata cache hit!: "+dsid+"/"+cmpid);
+                logger.info("metadata cache hit!: {0}/{1}", dsid, cmpid);
             }
                 
         }

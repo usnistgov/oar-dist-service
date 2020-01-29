@@ -163,7 +163,7 @@ public class ComponentInfoCacheTest {
     public void testCacheResourceInclude() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L,
                                                           Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
-                                                          null, 3);
+                                                          null, false, 3);
 
         Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
@@ -184,7 +184,7 @@ public class ComponentInfoCacheTest {
     public void testCacheResourceExclude() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L, null,
                                                           Arrays.asList("nrd:Hidden", "nrd:AccessPage"),
-                                                          3);
+                                                          false, 3);
 
         Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
@@ -205,11 +205,43 @@ public class ComponentInfoCacheTest {
     public void testCacheResourceSelect() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L,
                                                           Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
-                                                          Arrays.asList("nrd:Hidden"), 3);
+                                                          Arrays.asList("nrd:Hidden"), false, 3);
 
         Resource res = new Resource("urn:big");
-        res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
-        res.addComp(makeComp("file.sha256", "nrdp:ChecksumFile", "dcat:Distribution"));
+        JSONObject cmp = makeComp("cmps/file", "nrdp:DataFile", "dcat:Distribution");
+        cmp.put("filepath", "file");
+        res.addComp(cmp);
+        cmp = makeComp("cmps/file.sha256", "nrdp:ChecksumFile", "dcat:Distribution");
+        cmp.put("filepath", "file.sha256");
+        res.addComp(cmp);
+        res.addComp(makeComp("#doi", "nrd:Hidden", "nrd:AccessPage", "dcat:Distribution"));
+        res.addComp(makeComp("db", "nrd:AccessPage", "dcat:Distribution"));
+        assertEquals(0, cache.size());
+        
+        assertNull(cache.cacheResource(res, false, null));
+        assertEquals(2, cache.size());
+        assertTrue(cache.containsId("urn:big/cmps/file"));
+        assertTrue(! cache.containsId("urn:big/file"));
+        assertTrue(! cache.containsId("urn:big/cmps/file.sha256"));
+        assertTrue(! cache.containsId("urn:big/file.sha256"));
+        assertTrue(! cache.containsId("urn:big#doi"));
+        assertTrue(cache.containsId("urn:big/db"));
+    }
+
+    
+    @Test
+    public void testCacheResourceSelectByFile() {
+        ComponentInfoCache cache = new ComponentInfoCache(5, -1L,
+                                                          Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
+                                                          Arrays.asList("nrd:Hidden"), true, 3);
+
+        Resource res = new Resource("urn:big");
+        JSONObject cmp = makeComp("cmps/file", "nrdp:DataFile", "dcat:Distribution");
+        cmp.put("filepath", "file");
+        res.addComp(cmp);
+        cmp = makeComp("cmps/file.sha256", "nrdp:ChecksumFile", "dcat:Distribution");
+        cmp.put("filepath", "file.sha256");
+        res.addComp(cmp);
         res.addComp(makeComp("#doi", "nrd:Hidden", "nrd:AccessPage", "dcat:Distribution"));
         res.addComp(makeComp("db", "nrd:AccessPage", "dcat:Distribution"));
         assertEquals(0, cache.size());
@@ -218,6 +250,7 @@ public class ComponentInfoCacheTest {
         assertEquals(2, cache.size());
         assertTrue(cache.containsId("urn:big/file"));
         assertTrue(! cache.containsId("urn:big/file.sha256"));
+        assertTrue(! cache.containsId("urn:big/cmps/file.sha256"));
         assertTrue(! cache.containsId("urn:big#doi"));
         assertTrue(cache.containsId("urn:big/db"));
     }

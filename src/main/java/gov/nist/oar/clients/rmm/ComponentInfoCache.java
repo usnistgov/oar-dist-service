@@ -35,6 +35,7 @@ public class ComponentInfoCache {
     HashSet<String> excludeTypes = null;
 
     CompMap info = null;
+    boolean useFilepath = false;
 
     /**
      * create an empty cache
@@ -65,16 +66,23 @@ public class ComponentInfoCache {
      *                      record that has a type matching one of these types will <i>not</i> be cached 
      *                      If this parameter is null, no types will be explicitly excluded.  This
      *                      list overrides the include list.  
+     * @param preferFilePathKey   if true and a component has a filepath property, the file path will 
+     *                      be used instead of the component identifier as the component's key in the 
+     *                      cache (when added via 
+     *                      {@link cacheResource(JSONObject,boolean,String) cacheResource()}); otherwise,
+     *                      component's identifier will be used.  
      * @param initCap     the initial capacity of the empty cache
      */
     public ComponentInfoCache(int limit, long expiresSecs,
-                              Collection<String> retain, Collection<String> exclude, int initCap)
+                              Collection<String> retain, Collection<String> exclude,
+                              boolean preferFilepathKey, int initCap)
     {
         this(limit, expiresSecs, initCap);
         if (retain != null)
             retainTypes = new HashSet<String>(retain);
         if (exclude != null)
             excludeTypes = new HashSet<String>(exclude);
+        useFilepath = preferFilepathKey;
     }
 
     /**
@@ -200,6 +208,9 @@ public class ComponentInfoCache {
      *                    is free to alter component objects.
      * @param returnId  the sub-identifier for a desired component; if a component with this identifier 
      *                    is found, it will be returned; otherwise (or if returnId is null), null is returned.
+     *                    Note that if this cache was constructed with <code>preferFilepathKey</code> set to
+     *                    true, then this value should be set to the desired component's <code>filepath</code>
+     *                    property (when the component describes a file).  
      * @param residKey  an over-ride resource identifier to use as a base key for records added to the 
      *                    cache (rather than using the resource ID recorded in the metadata object, res).
      * @returns int -- the number of components selected from the resource 
@@ -232,15 +243,23 @@ public class ComponentInfoCache {
         for(int i=0; i < comps.length(); i++) {
             try {
                 comp = comps.getJSONObject(i);
-                subid = comp.optString("@id", null);
+
+                subid = null;
+                if (useFilepath && comp.has("@id"))
+                    subid = comp.optString("filepath", null);
+                if (subid == null)
+                    subid = comp.optString("@id", null);
                 if (subid == null)
                     continue;
-                if (returnId != null && returnId.equals(comp.optString("@id")))
+                
+                if (returnId != null && returnId.equals(subid))
                     out = comp;
                 if (! shouldCache(comp))
                     continue;
+                
                 if (copy)
                     comp = new JSONObject(comp, JSONObject.getNames(comp));
+                
                 fullid = new StringBuilder(residKey);
                 if (! subid.startsWith("#")) fullid.append("/");
                 fullid.append(subid);
