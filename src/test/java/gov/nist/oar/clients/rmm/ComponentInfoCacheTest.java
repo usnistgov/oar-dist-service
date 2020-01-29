@@ -205,7 +205,7 @@ public class ComponentInfoCacheTest {
     public void testCacheResourceSelect() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L,
                                                           Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
-                                                          null, 3);
+                                                          Arrays.asList("nrd:Hidden"), 3);
 
         Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
