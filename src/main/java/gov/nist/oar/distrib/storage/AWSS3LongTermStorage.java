@@ -225,9 +225,13 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
             try {
                 byte[] buf = new byte[100000];
                 int len = 0;
-                logger.info("### Draining S3 Object stream ({})", in.toString());
+                logger.debug("Draining S3 Object stream ({})", in.toString());
                 while ((len = read(buf)) != -1) { /* fugetaboutit */ }
-                logger.info("### Drained in {} millseconds ({})", (System.currentTimeMillis() - start), in.toString());
+                if (logger.isInfoEnabled()) {
+                    String[] flds = in.toString().split("\\.");
+                    logger.info("Drained S3 object stream ({}) in {} millseconds",
+                                flds[flds.length-1], (System.currentTimeMillis() - start));
+                }
             }
             catch (IOException ex) {
                 logger.warn("Trouble draining S3 object stream ({}): {}", in.toString(), ex.getMessage());
