@@ -129,6 +129,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
             // a ResourceNotFoundException
             if (cmp == null) {
                 logger.info("metadata cache miss: {0}/{1}", dsid, cmpid);
+                logger.info("Cache status: size={0}.", Integer.toString(compcache.size()))
                 cmp = compcache.cacheResource(getResourceMetadata(dsid, version), false, cmpid, dsid);
             }
             else {
