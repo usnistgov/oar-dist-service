@@ -15,7 +15,7 @@ import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.FromBagFileDownloadService;
+import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.DataPackagingService;
@@ -219,7 +219,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public FileDownloadService getFileDownloadService() {
-        return new FromBagFileDownloadService(lts, mimemap);
+        return new NerdmDrivenFromBagFileDownloadService(lts, mimemap);
     }
         
     /**
