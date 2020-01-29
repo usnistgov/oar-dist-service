@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.distrib.clients;
+package gov.nist.oar.clients;
 
 /**
  * an OARServiceException specifically for web services that indicates that the service returned an

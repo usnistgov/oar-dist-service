@@ -9,11 +9,11 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.distrib.clients.rmm;
+package gov.nist.oar.clients.rmm;
 
-import gov.nist.oar.distrib.clients.OARServiceException;
-import gov.nist.oar.distrib.clients.OARWebServiceException;
-import gov.nist.oar.distrib.clients.AmbiguousIDException;
+import gov.nist.oar.clients.OARServiceException;
+import gov.nist.oar.clients.OARWebServiceException;
+import gov.nist.oar.clients.AmbiguousIDException;
 
 import java.io.InputStream;
 import java.io.IOException;
