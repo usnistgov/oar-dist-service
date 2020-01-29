@@ -31,8 +31,8 @@ import java.io.UnsupportedEncodingException;
  *   <li> Original form:  <i>identifier</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
  *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br>
  *        and <i>S</i> is the sequence number (e.g. 0, 1, ...).  </li>
- *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</V>_<i>V</V>_<i>V</V>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
- *        where <i>V</V>_<i>V</V>_<i>V</V> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
+ *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</i>_<i>V</i>_<i>V</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
+ *        where <i>V</i>_<i>V</i>_<i>V</i> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
  * </ul>
  * These conventions are used to determine which bags are associated with a given identifier 
  * (and version) and which are the head bags.  
