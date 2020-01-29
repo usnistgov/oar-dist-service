@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.distrib.clients.rmm;
+package gov.nist.oar.clients.rmm;
 
 import org.junit.Test;
 import org.junit.Before;
@@ -144,7 +144,7 @@ public class ComponentInfoCacheTest {
     public void testCacheResourceAll() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L, 3);
 
-        Resource res = new Resource("urn:big/");
+        Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
         res.addComp(makeComp("file.sha256", "nrdp:ChecksumFile", "dcat:Distribution"));
         res.addComp(makeComp("#doi", "nrd:Hidden", "dcat:Distribution"));
@@ -155,7 +155,7 @@ public class ComponentInfoCacheTest {
         assertEquals(4, cache.size());
         assertTrue(cache.containsId("urn:big/file"));
         assertTrue(cache.containsId("urn:big/file.sha256"));
-        assertTrue(cache.containsId("urn:big/#doi"));
+        assertTrue(cache.containsId("urn:big#doi"));
         assertTrue(cache.containsId("urn:big/db"));
     }
 
@@ -165,7 +165,7 @@ public class ComponentInfoCacheTest {
                                                           Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
                                                           null, 3);
 
-        Resource res = new Resource("urn:big/");
+        Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
         res.addComp(makeComp("file.sha256", "nrdp:ChecksumFile", "dcat:Distribution"));
         res.addComp(makeComp("#doi", "nrd:Hidden", "dcat:Distribution"));
@@ -176,7 +176,7 @@ public class ComponentInfoCacheTest {
         assertEquals(2, cache.size());
         assertTrue(cache.containsId("urn:big/file"));
         assertTrue(! cache.containsId("urn:big/file.sha256"));
-        assertTrue(! cache.containsId("urn:big/#doi"));
+        assertTrue(! cache.containsId("urn:big#doi"));
         assertTrue(cache.containsId("urn:big/db"));
     }
 
@@ -186,7 +186,7 @@ public class ComponentInfoCacheTest {
                                                           Arrays.asList("nrd:Hidden", "nrd:AccessPage"),
                                                           3);
 
-        Resource res = new Resource("urn:big/");
+        Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
         res.addComp(makeComp("file.sha256", "nrdp:ChecksumFile", "dcat:Distribution"));
         res.addComp(makeComp("#doi", "nrd:Hidden", "dcat:Distribution"));
@@ -197,7 +197,7 @@ public class ComponentInfoCacheTest {
         assertEquals(2, cache.size());
         assertTrue(cache.containsId("urn:big/file"));
         assertTrue(cache.containsId("urn:big/file.sha256"));
-        assertTrue(! cache.containsId("urn:big/#doi"));
+        assertTrue(! cache.containsId("urn:big#doi"));
         assertTrue(! cache.containsId("urn:big/db"));
     }
     
@@ -207,7 +207,7 @@ public class ComponentInfoCacheTest {
                                                           Arrays.asList("nrd:AccessPage", "nrdp:DataFile"),
                                                           null, 3);
 
-        Resource res = new Resource("urn:big/");
+        Resource res = new Resource("urn:big");
         res.addComp(makeComp("file", "nrdp:DataFile", "dcat:Distribution"));
         res.addComp(makeComp("file.sha256", "nrdp:ChecksumFile", "dcat:Distribution"));
         res.addComp(makeComp("#doi", "nrd:Hidden", "nrd:AccessPage", "dcat:Distribution"));
@@ -218,7 +218,7 @@ public class ComponentInfoCacheTest {
         assertEquals(2, cache.size());
         assertTrue(cache.containsId("urn:big/file"));
         assertTrue(! cache.containsId("urn:big/file.sha256"));
-        assertTrue(! cache.containsId("urn:big/#doi"));
+        assertTrue(! cache.containsId("urn:big#doi"));
         assertTrue(cache.containsId("urn:big/db"));
     }
 

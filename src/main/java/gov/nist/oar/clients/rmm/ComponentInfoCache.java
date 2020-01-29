@@ -9,7 +9,7 @@
  * works bear some notice that they are derived from it, and any modified versions bear some notice
  * that they have been modified.
  */
-package gov.nist.oar.distrib.clients.rmm;
+package gov.nist.oar.clients.rmm;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -184,6 +185,26 @@ public class ComponentInfoCache {
      * @returns int -- the number of components selected from the resource 
      */
     public JSONObject cacheResource(JSONObject res, boolean copy, String returnId) {
+        return cacheResource(res, copy, returnId, null);
+    }
+
+    /**
+     * cache all the components found in the given NERDm resoure record.  This looks for its components
+     * in the given record's <code>components</code> property; if this property is not found, no components
+     * are added.  The identifier each component is saved under will be the resource record's identifier 
+     * (given by its <code>@id</code> value) contatonated with the component's identifier (given by its
+     * <code>@id</code> value).  If the retain or exclude sets were provided at construction time, they
+     * will be used to select the components to cache.  
+     * @param res       the NERDm resource record to select components from.
+     * @param copy      if true, a copy of each selected component will be cached; otherwise, this method
+     *                    is free to alter component objects.
+     * @param returnId  the sub-identifier for a desired component; if a component with this identifier 
+     *                    is found, it will be returned; otherwise (or if returnId is null), null is returned.
+     * @param residKey  an over-ride resource identifier to use as a base key for records added to the 
+     *                    cache (rather than using the resource ID recorded in the metadata object, res).
+     * @returns int -- the number of components selected from the resource 
+     */
+    public JSONObject cacheResource(JSONObject res, boolean copy, String returnId, String residKey) {
         JSONArray comps = null;
         try {
             comps = res.getJSONArray("components");
@@ -193,11 +214,14 @@ public class ComponentInfoCache {
             return null;
         }
 
-        String resid = null;
-        try {
-            resid = res.getString("@id");
-        } catch (JSONException ex) {
-            resid = "";
+        if (residKey == null) {
+            // The caller did not specify a resource ID key to use; use the resource's ID
+            // as the default.
+            try {
+                residKey = res.getString("@id");
+            } catch (JSONException ex) {
+                residKey = "";
+            }
         }
 
         int selCount = 0;
@@ -217,7 +241,7 @@ public class ComponentInfoCache {
                     continue;
                 if (copy)
                     comp = new JSONObject(comp, JSONObject.getNames(comp));
-                fullid = new StringBuilder(resid);
+                fullid = new StringBuilder(residKey);
                 if (! subid.startsWith("#")) fullid.append("/");
                 fullid.append(subid);
                 give(fullid.toString(), comp);
@@ -236,6 +260,14 @@ public class ComponentInfoCache {
      */
     public boolean containsId(String id) {
         return info.containsKey(id);
+    }
+
+    /**
+     * return a view of the component IDs currently in the cache.  It is possible to remove records 
+     * from the cache (however, doing so will not be synchronized). 
+     */
+    public Set<String> idSet() {
+        return info.keySet();
     }
 
     /**
@@ -280,8 +312,8 @@ public class ComponentInfoCache {
                     keep = true;
                     break;
                 }
-                if (! keep) return false;
             }
+            if (! keep) return false;
         }
 
         if (excludeTypes != null) {
