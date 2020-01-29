@@ -42,7 +42,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     ComponentInfoCache compcache = null;
 
     static final private int defSzLim  = 1000;    // # of components cached
-    static final private long defTmLim = 300000;  // time limit of 5 minutes
+    static final private long defTmLim = 300;  // time limit of 5 minutes
 
     private void setComponentCache(int cacheSizeLimit, long cacheExpireTimeSecs) {
         compcache = new ComponentInfoCache(cacheSizeLimit, cacheExpireTimeSecs,
