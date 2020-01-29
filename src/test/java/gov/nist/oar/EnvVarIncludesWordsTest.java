@@ -44,7 +44,7 @@ public class EnvVarIncludesWordsTest {
 
     @Test
     public void testWordsInEnv() {
-        Collection<String> words = EnvVarIncludesWords.wordsInEnv("USER");
+        Collection<String> words = EnvVarIncludesWords.wordsInEnv("SHELL");
         assertEquals(1, words.size());
 
         words = EnvVarIncludesWords.wordsInEnv("OAR_GOOBER");
