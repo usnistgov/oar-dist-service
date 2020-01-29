@@ -32,6 +32,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.ClassRule;
+import org.junit.rules.TestRule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
@@ -40,6 +42,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gov.nist.oar.RequireWebSite;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
@@ -52,6 +56,10 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  */
 public class DefaultDataPackagerTest {
 
+    @ClassRule
+    public static TestRule siterule =
+        new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+    
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
     private static String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";

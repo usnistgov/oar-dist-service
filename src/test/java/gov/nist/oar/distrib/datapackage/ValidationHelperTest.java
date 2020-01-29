@@ -13,6 +13,7 @@
 package gov.nist.oar.distrib.datapackage;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -24,12 +25,16 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import gov.nist.oar.RequireWebSite;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.datapackage.ValidationHelper;
 
 public class ValidationHelperTest {
+
+    RequireWebSite required = new RequireWebSite("http://httpstat.us/200");
 
     @Test
     public void testIsAllowedURL() throws IOException {
@@ -49,6 +54,8 @@ public class ValidationHelperTest {
 
     @Test
     public void testGetUrlStatus() throws IOException {
+        assumeTrue(required.checkSite());
+
 	String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
 	String testurlError = "http://httpstat.us/404";
 	String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";

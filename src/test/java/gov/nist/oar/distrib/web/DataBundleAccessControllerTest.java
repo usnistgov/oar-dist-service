@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.web;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+import gov.nist.oar.RequireWebSite;
 
 import java.io.IOException;
 import java.net.URI;
@@ -60,6 +62,7 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 })
 public class DataBundleAccessControllerTest {
 
+    RequireWebSite required = new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
     Logger logger = LoggerFactory.getLogger(DataBundleAccessControllerTest.class);
 
     @LocalServerPort
@@ -75,6 +78,8 @@ public class DataBundleAccessControllerTest {
     @Test
     public void testDownloadAllFiles()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+        assumeTrue(required.checkSite());
+
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
