@@ -27,6 +27,8 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.net.URI;
+import java.net.URISyntaxException;
 import javax.activation.MimetypesFileTypeMap;
 
 /**
@@ -119,9 +121,9 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
         else {
             
             // look for the component metadata in our in-memory cache
-            String cmpid = dsid + "/cmps/" + filepath;
+            String cmpid = dsid + "/cmps/" + urlPathEncode(filepath);
             cmp = compcache.get(cmpid, true);
-            cmpid = "cmps/"+filepath;
+            cmpid = cmpid.substring(dsid.length()+1);
 
             // if not in cache, extract the info from the head bag and cache it.  This may raise
             // a ResourceNotFoundException
@@ -211,5 +213,15 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
         }
 
         return nerdm;
+    }
+
+    static String urlPathEncode(String urlpath) throws DistributionException {
+        try {
+            return (new URI("http", "X", "/"+urlpath, null)).toASCIIString()
+                                                            .substring("http://X/".length());
+        }
+        catch (URISyntaxException ex) {
+            throw new DistributionException("Not acceptable as URI path: "+urlpath);
+        }
     }
 }

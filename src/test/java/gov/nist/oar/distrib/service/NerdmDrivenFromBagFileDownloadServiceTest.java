@@ -151,4 +151,11 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
     {
         FileDescription fd = svc.getDataFileInfo("goober", "trial1.json", null);
     }
+
+    @Test
+    public void testUrlPathEncoding() throws DistributionException {
+        assertEquals("just/a/path", svc.urlPathEncode("just/a/path"));
+        assertEquals("justapath", svc.urlPathEncode("justapath"));
+        assertEquals("just%20a%20path", svc.urlPathEncode("just a path"));
+    }
 }
