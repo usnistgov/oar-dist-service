@@ -128,12 +128,12 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
             // if not in cache, extract the info from the head bag and cache it.  This may raise
             // a ResourceNotFoundException
             if (cmp == null) {
-                logger.info("metadata cache miss: {}/{}", dsid, cmpid);
-                logger.info("Cache status: size={}.", Integer.toString(compcache.size()));
+                logger.debug("metadata cache miss: {}/{}", dsid, cmpid);
+                logger.debug("Cache status: size={}.", Integer.toString(compcache.size()));
                 cmp = compcache.cacheResource(getResourceMetadata(dsid, version), false, cmpid, dsid);
             }
             else {
-                logger.info("metadata cache hit!: {}/{}", dsid, cmpid);
+                logger.debug("metadata cache hit!: {}/{}", dsid, cmpid);
             }
                 
         }
