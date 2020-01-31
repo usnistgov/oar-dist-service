@@ -13,7 +13,7 @@ server:
       context-path:  /od
     error:
       include-stacktrace: never
-    connection-timeout: 300000
+    connection-timeout: 10s
     max-http-header-size: 8192
     tomcat:
       accesslog:
@@ -23,10 +23,10 @@ server:
         prefix: tomcat-access-log
         suffix: .log
         rotate: true
-      accept-count: 500
+      accept-count: 100
       max-connections: 10000
-      max-threads: 500
-      min-spare-threads: 100
+      max-threads: 200
+      min-spare-threads: 10
         
 security:
     headers:
