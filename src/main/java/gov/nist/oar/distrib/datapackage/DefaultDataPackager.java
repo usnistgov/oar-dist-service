@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Closeable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -126,12 +127,15 @@ public class DefaultDataPackager implements DataPackager {
 	            } catch (IOException ie) {
 	                bundlelogError.append("\n Exception in getting data for: " + filepath + " at " +
                                               downloadurl+ ";\n  this file might be corrupted.");
-	                logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
-	            	    + ie.getMessage());
+	                logger.error("There is an error reading this file from: " + downloadurl + ": "
+                                     + ie.getMessage() + "\n"+formatLocation(ie, "getData"));
+
+                        // clean up
+                        if (con != null)
+                            quietClose(con.getErrorStream(), uLoc.getRequestedURL()+" (error stream)");
 	                zout.closeEntry();
 	            } finally {
-	            	if(fstream != null)
-                            fstream.close();
+                        quietClose(fstream, uLoc.getRequestedURL());
 	            	if (con != null)
 	            	    con.disconnect();
 	            }
@@ -145,6 +149,50 @@ public class DefaultDataPackager implements DataPackager {
 	}
 	this.writeLog(zout);
 
+    }
+
+    /*
+     * provide a compact printing of the stack trace that focuses on the frame(s) associated 
+     * with a particular class and method
+     */
+    String formatLocation(Throwable ex, String methodname) {
+        return formatLocation(ex, methodname, this);
+    }
+    String formatLocation(Throwable ex, String methodname, Object catcher) {
+        String cls = catcher.getClass().getName();
+        StringBuilder sb = new StringBuilder();
+        StringBuilder ellipses = null;
+        for (StackTraceElement frame : ex.getStackTrace()) {
+            if (frame.getClassName().equals(cls) && frame.getMethodName().equals(methodname)) {
+                if (ellipses != null) {
+                    sb.append(ellipses.toString());
+                    ellipses = null;
+                }
+                if (sb.length() > 0) sb.append("\n");
+                sb.append("  at ").append(frame.getClassName()).append(".").append(frame.getMethodName())
+                    .append(":").append(frame.getLineNumber());
+            }
+            else if (sb.length() > 0) {
+                if (ellipses == null) 
+                    ellipses = new StringBuilder("\n");
+                ellipses.append('.');
+            }
+        }
+        if (sb.length() == 0) sb.append("  at undetected code location");
+
+        return sb.toString();
+    }
+
+    private void quietClose(Closeable c) { quietClose(c, null); }
+    private void quietClose(Closeable c, String name) {
+        try {
+            if (c != null) c.close();
+        } catch (IOException ex) {
+            StringBuffer sb = new StringBuffer();
+            if (name != null) sb.append(name).append(": ");
+            sb.append("Trouble closing open stream: ").append(ex.getMessage());
+            logger.warn(sb.toString());
+        }
     }
 
     /**

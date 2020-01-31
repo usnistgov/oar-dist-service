@@ -31,6 +31,10 @@ import java.io.FileNotFoundException;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 
+import org.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+
 public class ZipBagUtilsTest {
     
     Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
@@ -166,7 +170,47 @@ public class ZipBagUtilsTest {
         line = rdr.readLine();
         assertTrue(line.contains("\tmds1491.1_1_0.mbag0_4-1"));
         rdr.close();
+    }
 
-        
+    @Test
+    public void testGetFileMetadata() throws IOException, JSONException {
+        try (InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip")) {
+            JSONObject cmp = ZipBagUtils.getFileMetadata("trial3/trial3a.json", zis, "mds1491.mbag0_2-0");
+            assertNotNull(cmp);
+            assertEquals(70, cmp.getLong("size"));
+            assertEquals("cmps/trial3/trial3a.json", cmp.getString("@id"));
+        }
+
+        try (InputStream zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip")) {
+            JSONObject cmp = ZipBagUtils.getFileMetadata("trial2.json", zis, "mds1491.1_1_0.mbag0_4-1");
+            assertNotNull(cmp);
+            assertTrue(! cmp.has("size"));
+            assertEquals("cmps/trial2.json", cmp.getString("@id"));
+        }
+
+        try (InputStream zis = getClass().getResourceAsStream("/mds1491.1_1_0.mbag0_4-1.zip")) {
+            JSONObject cmp = ZipBagUtils.getFileMetadata("sim++.json", zis, "mds1491.1_1_0.mbag0_4-1");
+            assertNotNull(cmp);
+            assertEquals(2900000, cmp.getLong("size"));
+            assertEquals("cmps/sim++.json", cmp.getString("@id"));
+        }
+    }
+
+    @Test(expected = FileNotFoundException.class)
+    public void testGetFileMetadataNotFound() throws IOException, JSONException {
+        try (InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip")) {
+            JSONObject cmp = ZipBagUtils.getFileMetadata("goober.json", zis, "mds1491.mbag0_2-0");
+        }
+    }
+
+    @Test
+    public void testgetResourceMetadata() throws IOException, JSONException {
+        try (InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip")) {
+            JSONObject res = ZipBagUtils.getResourceMetadata("0.2", zis, "mds1491.mbag0_2-0");
+            assertNotNull(res);
+            assertEquals("ark:/88434/edi00hw91c", res.optString("@id"));
+            JSONArray comps = res.getJSONArray("components");
+            assertEquals(5, comps.length());
+        }
     }
 }

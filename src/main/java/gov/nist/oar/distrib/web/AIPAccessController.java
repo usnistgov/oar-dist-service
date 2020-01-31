@@ -90,6 +90,38 @@ public class AIPAccessController {
                             @ApiIgnore HttpServletResponse resp)
         throws ResourceNotFoundException, DistributionException, IOException
     {
+        sendAIP(name, resp, false);
+    }
+
+    /**
+     * stream out the AIP file to the web client.
+     * @param name   the name of the desired AIP file
+     * @param resp   the response object.  This will be used to set the response header and 
+     *               stream the desired file.
+     */
+    @ApiOperation(value = "Return information on an AIP file (e.g. a preservation bag)", 
+                  nickname = "getAIPFile", notes = "return the AIP header with the given name")
+    @RequestMapping(value = "/{name}", method = RequestMethod.HEAD)
+    public void downloadAIPInfo(@PathVariable("name") String name,
+                                @ApiIgnore HttpServletResponse resp)
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
+        sendAIP(name, resp, true);
+    }
+
+    /**
+     * send the client the requested AIP.  This is the underlying implementation for 
+     * {@link downloadAIP(String,HttpServletResponse) downloadAIP()} and
+     * {@link downloadAIPInfo(String,HttpServletResponse) downloadAIPInfo()}, where in the
+     * latter case, only the header is sent when <code>asHead</code> is true.
+     * @param name    the name of the desired AIP file
+     * @param resp    the response object.  This will be used to set the response header and 
+     *                stream the desired file.
+     * @param asHead  if true, send only the HTTP header; otherwise send header and file.
+     */
+    protected void sendAIP(String name, HttpServletResponse resp, boolean asHead)
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
         StreamHandle sh = null;
         try {
             sh = pres.getBag(name);
@@ -110,6 +142,10 @@ public class AIPAccessController {
             resp.setHeader("Content-Disposition", "filename=\"" +
                            Pattern.compile("/+").matcher(name).replaceAll("_") + "\"");
 
+            if (asHead)
+                // HEAD request; we're done!
+                return;
+            
             int len;
             byte[] outdata = new byte[100000];
             OutputStream out = resp.getOutputStream();

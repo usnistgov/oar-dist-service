@@ -32,6 +32,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.ClassRule;
+import org.junit.rules.TestRule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
@@ -40,6 +42,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gov.nist.oar.RequireWebSite;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
@@ -52,6 +56,10 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  */
 public class DefaultDataPackagerTest {
 
+    @ClassRule
+    public static TestRule siterule =
+        new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+    
     private static long mxFileSize = 1000000;
     private static int numberofFiles = 100;
     private static String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
@@ -203,5 +211,69 @@ public class DefaultDataPackagerTest {
 		    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
 	    throw ixp;
 	}
+    }
+
+    @Test
+    public void testFormatLocation() {
+        try {
+            throw new IllegalArgumentException("test exception");
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "testFormatLocation", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("testFormatLocation"));
+        }
+
+        try {
+            throwDummy();
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "testFormatLocation", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("testFormatLocation"));
+        }
+
+        try {
+            throwDummy();
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+
+        try {
+            throwDummy(1);
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+
+        try {
+            throwDummy(4);
+        }
+        catch (IllegalArgumentException ex) {
+            String msg = dp.formatLocation(ex, "throwDummy", this);
+            System.out.println("### Detected exception thrown"+msg);
+            assertNotEquals("  at undetected code location", msg);
+            assertTrue("found wrong function: "+msg, msg.contains("throwDummy"));
+        }
+    }
+
+    private void throwDummy() {
+        throw new IllegalArgumentException("test exception");
+    }
+    private void throwDummy(int depth) {
+        deepThrowDummy(depth);
+    }
+    private void deepThrowDummy(int depth) {
+        if (depth < 2) throwDummy();
+        deepThrowDummy(--depth);
     }
 }
