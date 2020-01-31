@@ -46,7 +46,7 @@ public class DownloadBundlePlannerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList, 0);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200000, 3,
 		"s3.amazonaws.com|project-open-data.cio.gov", "testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
@@ -73,7 +73,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList,0);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 2000000, 3, "s3.amazonaws.com|nist.gov",
 		"testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
@@ -101,7 +101,7 @@ public class DownloadBundlePlannerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
-	BundleRequest bFL = new BundleRequest("testdownload", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload", inputfileList,0);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov",
 		"testdownload", 1);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
@@ -131,7 +131,7 @@ public class DownloadBundlePlannerTest {
 	
 	ifileList[0] = fileRequest1;
 	ifileList[1] = fileRequest2;
-	BundleRequest bFL = new BundleRequest("testdownload", ifileList);
+	BundleRequest bFL = new BundleRequest("testdownload", ifileList,0);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov|httpstat.us",
 		"testdownload",7);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
