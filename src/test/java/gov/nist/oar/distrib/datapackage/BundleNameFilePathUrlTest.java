@@ -49,14 +49,15 @@ public class BundleNameFilePathUrlTest {
 	String fileUrl2 = "{\"filePath\":\"/filepath/file-2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	String bundleNAme = "\"bundleName\":\"download_data_1\" ";
-	String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" + "}";
+	String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" 
+	+ ", \"bundleSize\": 66 }";
 
 	FileRequest fpathUrl_1 = new FileRequest("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	FileRequest fpathUrl_2 = new FileRequest("/filepath/file-2.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	BundleRequest bundle1 = new BundleRequest("download_data_1",
-		new FileRequest[] { fpathUrl_1, fpathUrl_2 },0);
+		new FileRequest[] { fpathUrl_1, fpathUrl_2 },66);
 
 	String json = new ObjectMapper().writeValueAsString(bundle1);
 	JSONAssert.assertEquals(bundleJson, json, true);
