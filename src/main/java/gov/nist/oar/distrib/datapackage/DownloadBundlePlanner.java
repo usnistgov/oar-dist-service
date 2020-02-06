@@ -59,8 +59,7 @@ public class DownloadBundlePlanner {
 	private int mxBundledFilesCount;
 	private String validdomains;
 	private int allowedRedirects;
-	private ValidationHelper validationHelper = new ValidationHelper();
-	private long totalRequestedFileSize = 0,  totalfiles = 0;
+	private long totalRequestedFileSize = 0;
 
 	public DownloadBundlePlanner() {
 		// Default constructor
@@ -95,6 +94,7 @@ public class DownloadBundlePlanner {
 			if (ValidationHelper.hasHTMLTags(requestString)) {
 				messages.add("Input contains html code, make sure to post proper request.");
 				this.status = "Error";
+				this.bundleCount = 0;
 				return makeBundlePlan();
 
 			}
@@ -220,10 +220,11 @@ public class DownloadBundlePlanner {
 	 */
 	public BundleDownloadPlan makeBundlePlan() {
 		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
-		
+		int fileList = 0 ;
+				if(inputfileList != null ) fileList = inputfileList.length;
 		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
 				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
-				this.totalRequestedFileSize, bundleCount, inputfileList.length);
+				this.totalRequestedFileSize, bundleCount, fileList);
 	}
 
 }
