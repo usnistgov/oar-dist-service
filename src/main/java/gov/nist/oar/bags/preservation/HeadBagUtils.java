@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
+import org.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONTokener;
+
 /**
  * static utilities for accessing content from NIST preservation head bags.
  * <p>
@@ -179,8 +183,14 @@ public class HeadBagUtils {
         return out;
     }
 
-    /*
-     * TODO:
-     *   readJSON()
+    /**
+     * read the JSON data object from the open metadata file.  This will advance the stream to the 
+     * end of the object.  
+     * @param JSONObject   the JSON object node in the file
+     * @param JSONException   if a JSON object cannot be parsed from the data on the stream (including
+     *                          when there is an IO error while reading the stream).
      */
+    public static JSONObject readJSON(InputStream jsonfile) throws JSONException {
+        return new JSONObject(new JSONTokener(jsonfile));
+    }
 }

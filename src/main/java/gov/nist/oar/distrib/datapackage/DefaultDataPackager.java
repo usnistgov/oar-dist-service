@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.datapackage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Closeable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -46,6 +47,7 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  * @author Deoyani Nandrekar-Heinis
  */
 public class DefaultDataPackager implements DataPackager {
+
 
 	private long mxFileSize;
 	private int mxFilesCount;
@@ -254,6 +256,7 @@ public class DefaultDataPackager implements DataPackager {
 
 		}
 	}
+
 
 	/**
 	 * If called for the first time within the Datapackager life cycle, this

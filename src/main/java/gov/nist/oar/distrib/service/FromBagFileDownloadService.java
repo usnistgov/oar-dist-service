@@ -210,8 +210,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
             }
             catch (FileNotFoundException ex) {
                 quietClose(bag, bagfile);
-                throw new DistributionException(bagname +
-                                                ": file-lookup.tsv not found (is this a head bag?)", ex);
+                throw new DistributionException(bagname + ": " + filepath + ": failed to find file in bag as expected", ex);
             }
         }
         catch (FileNotFoundException ex) {
@@ -220,7 +219,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
         }
         catch (IOException ex) {
             quietClose(bag, bagfile);
-            throw new DistributionException("Error accessing file-lookup.tsv: " + ex.getMessage(), ex);
+            throw new DistributionException("Error accessing bag, "+bagfile+": " + ex.getMessage(), ex);
         }
     }
 

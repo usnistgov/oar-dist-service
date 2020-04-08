@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.web;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+import gov.nist.oar.RequireWebSite;
 
 import java.io.IOException;
 import java.net.URI;
@@ -57,6 +59,7 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
         "distrib.packaging.maxfilecount = 2",
 	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us" })
 public class BundleDownloadPlanControllerTest {
+    RequireWebSite required = new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanControllerTest.class);
 
     @LocalServerPort
@@ -72,6 +75,8 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testBundlePlanWithWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+        assumeTrue(required.checkSite());
+        
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/projectopen.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema\"}";
@@ -178,6 +183,8 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testBundlePlanWithNewWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+        assumeTrue(required.checkSite());
+        
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"someid/path/file1\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"someid/path/file2\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";

@@ -17,6 +17,9 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 
 import org.junit.Test;
+import org.junit.ClassRule;
+import org.junit.rules.TestRule;
+import gov.nist.oar.RequireWebSite;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -33,6 +36,10 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  */
 public class DownloadBundlePlannerTest {
 
+    @ClassRule
+    public static TestRule siterule =
+        new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+    
     @Test
     public void getBundleDownloadPlanTest()
         throws JsonParseException, JsonMappingException, IOException, DistributionException

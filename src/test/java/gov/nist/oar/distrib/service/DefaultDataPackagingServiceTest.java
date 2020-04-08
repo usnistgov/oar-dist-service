@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+import gov.nist.oar.RequireWebSite;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,6 +55,8 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  */
 public class DefaultDataPackagingServiceTest {
 
+    RequireWebSite required = new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
+
     private static Logger logger = LoggerFactory.getLogger(DefaultDataPackagingServiceTest.class);
 
     DefaultDataPackagingService ddp;
@@ -91,6 +95,7 @@ public class DefaultDataPackagingServiceTest {
 
     @Test
     public void getBundledZip() throws DistributionException, InputLimitException, IOException {
+        assumeTrue(required.checkSite());
 
 	String bundleName = "example";
 	ddp.validateRequest(bundleRequest);
@@ -146,6 +151,7 @@ public class DefaultDataPackagingServiceTest {
     @Test
     public void testBundleWithWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, InputLimitException, DistributionException {
+        assumeTrue(required.checkSite());
 
 	DefaultDataPackagingService ddpkService;
 	FileRequest[] rUrls = new FileRequest[2];

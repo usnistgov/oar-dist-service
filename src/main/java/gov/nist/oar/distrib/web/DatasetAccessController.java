@@ -667,7 +667,7 @@ public class DatasetAccessController {
 
     @ExceptionHandler(FileNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
+    public ErrorInfo handleFileNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
 
 	// error is not specific to a version
 	logger.info("Non-existent file requested from resource: " + req.getRequestURI() + "\n  " + ex.getMessage());
