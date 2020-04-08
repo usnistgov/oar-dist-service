@@ -423,5 +423,49 @@ public class DefaultDataPackager implements DataPackager {
 			this.inputfileList = this.bundleRequest.getIncludeFiles();
 		}
 	}
+	/*
+     * provide a compact printing of the stack trace that focuses on the frame(s) associated 
+     * with a particular class and method
+     */
+    String formatLocation(Throwable ex, String methodname) {
+        return formatLocation(ex, methodname, this);
+    }
+    String formatLocation(Throwable ex, String methodname, Object catcher) {
+        String cls = catcher.getClass().getName();
+        StringBuilder sb = new StringBuilder();
+        StringBuilder ellipses = null;
+        for (StackTraceElement frame : ex.getStackTrace()) {
+            if (frame.getClassName().equals(cls) && frame.getMethodName().equals(methodname)) {
+                if (ellipses != null) {
+                    sb.append(ellipses.toString());
+                    ellipses = null;
+                }
+                if (sb.length() > 0) sb.append("\n");
+                sb.append("  at ").append(frame.getClassName()).append(".").append(frame.getMethodName())
+                    .append(":").append(frame.getLineNumber());
+            }
+            else if (sb.length() > 0) {
+                if (ellipses == null) 
+                    ellipses = new StringBuilder("\n");
+                ellipses.append('.');
+            }
+        }
+        if (sb.length() == 0) sb.append("  at undetected code location");
+
+        return sb.toString();
+    }
+
+    private void quietClose(Closeable c) { quietClose(c, null); }
+    private void quietClose(Closeable c, String name) {
+        try {
+            if (c != null) c.close();
+        } catch (IOException ex) {
+            StringBuffer sb = new StringBuffer();
+            if (name != null) sb.append(name).append(": ");
+            sb.append("Trouble closing open stream: ").append(ex.getMessage());
+            logger.warn(sb.toString());
+        }
+    }
+
 
 }

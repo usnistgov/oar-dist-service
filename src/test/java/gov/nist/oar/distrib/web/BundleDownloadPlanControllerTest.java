@@ -114,7 +114,7 @@ public class BundleDownloadPlanControllerTest {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"<html>/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1895/license2.pdf</body>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val3 = "{\"filePath\":\"/1896/license3.pdf<i>TEST Erro Here</i>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val3 = "{\"filePath\":\"/1896/license3.pdf<i>TEST Error Here</i>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
@@ -124,10 +124,12 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,0);
+	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,99);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
-
+	System.out.println("request.getStatusCode():" + request + " \n request.getHeaders() :"
+			+ request.getHeaders() + "\n request.getBody():" + request.getBody());
+	
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders() :"
 		+ response.getHeaders() + "\n resp.getBody().length():" + response.getBody());
