@@ -27,6 +27,7 @@ import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
 import gov.nist.oar.distrib.datapackage.NotIncludedFile;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * DownloadBundlePlanner class takes input bundle request with the limits of
@@ -81,7 +82,7 @@ public class DownloadBundlePlanner {
 	 * @return BundleDownloadPlan -- the recommended plan
 	 * @throws DistributionException
 	 */
-	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException {
+	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException, InvalidInputException {
 
 		notIncludedFiles = new ArrayList<NotIncludedFile>();
 		filePathUrls = new ArrayList<FileRequest>();
@@ -101,7 +102,7 @@ public class DownloadBundlePlanner {
 		} catch (JsonProcessingException ex) {
 			// should not happen
 			logger.error("There is an issue validating request. unable to create valid JSON.");
-			throw new DistributionException(
+			throw new InvalidInputException(
 					"Trouble validating request: unable to convert to JSON: " + ex.getMessage());
 		}
 

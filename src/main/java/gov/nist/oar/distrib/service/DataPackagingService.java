@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.web.InvalidInputException;
 import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
@@ -88,5 +89,5 @@ public interface DataPackagingService {
      *                     distribution infrastructure.
      */
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
-        throws DistributionException;
+        throws DistributionException, InvalidInputException;
 }

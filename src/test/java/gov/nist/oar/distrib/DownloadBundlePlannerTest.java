@@ -29,6 +29,7 @@ import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -42,7 +43,7 @@ public class DownloadBundlePlannerTest {
     
     @Test
     public void getBundleDownloadPlanTest()
-        throws JsonParseException, JsonMappingException, IOException, DistributionException
+        throws JsonParseException, JsonMappingException, IOException, DistributionException,InvalidInputException
     {
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -66,7 +67,7 @@ public class DownloadBundlePlannerTest {
 
     @Test
     public void getBundleDownloadPlan2Test()
-        throws JsonParseException, JsonMappingException, IOException, DistributionException
+        throws JsonParseException, JsonMappingException, IOException, DistributionException, InvalidInputException
     {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -94,7 +95,7 @@ public class DownloadBundlePlannerTest {
     
     @Test
     public void getBundleDownloadPlan3Test()
-        throws JsonParseException, JsonMappingException, IOException, DistributionException
+        throws JsonParseException, JsonMappingException, IOException, DistributionException, InvalidInputException
     {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
@@ -124,7 +125,7 @@ public class DownloadBundlePlannerTest {
     
     @Test
     public void getBundleDownloadPlan4Test()
-	        throws JsonParseException, JsonMappingException, IOException, DistributionException
+	        throws JsonParseException, JsonMappingException, IOException, DistributionException, InvalidInputException
     {
 	FileRequest[] ifileList = new FileRequest[2];
 	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";

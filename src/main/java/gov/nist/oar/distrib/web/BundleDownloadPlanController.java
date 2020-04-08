@@ -85,11 +85,13 @@ public class BundleDownloadPlanController {
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-        throws DistributionException
+        throws DistributionException,InvalidInputException
     {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
+	}else {
+		throw new InvalidInputException("The input is empty or invalid");
 	}
 //	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
 //		this.numofFiles, jsonObject, bundleName);
@@ -98,6 +100,12 @@ public class BundleDownloadPlanController {
 
     }
 
+    /**
+     * Exception thrown due to invalid input.
+     * @param ex
+     * @param req
+     * @return
+     */
     @ExceptionHandler(JsonProcessingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
@@ -105,11 +113,29 @@ public class BundleDownloadPlanController {
 	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
     }
 
-    @ExceptionHandler(Exception.class)
+    /**
+     * Exception in processing request successfully due to internal issues.
+     * @param ex
+     * @param req
+     * @return
+     */
+    @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
 	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
 	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
     }
+    /**
+	 * Invalid input exception
+	 * @param ex
+	 * @param req
+	 * @return
+	 */
+	@ExceptionHandler(InvalidInputException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+		logger.info("There is an error processing input data: " + req.getRequestURI() + "\n  " + ex.getMessage());
+		return new ErrorInfo(req.getRequestURI(), 400, "Invalid input error", req.getMethod());
+	}
 
 }
