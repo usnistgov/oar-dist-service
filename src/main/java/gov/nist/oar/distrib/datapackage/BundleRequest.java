@@ -28,6 +28,8 @@ public class BundleRequest {
      * FilePAths and Urls json array
      */
     private FileRequest[] includeFiles;
+    
+    private long bundleSize;
 
     /**
      * Default Constructor
@@ -42,11 +44,30 @@ public class BundleRequest {
      * @param bundleName
      * @param includeFiles
      */
-    public BundleRequest(String bundleName, FileRequest[] includeFiles) {
+    public BundleRequest(String bundleName, FileRequest[] includeFiles, long bundleSize) {
 	this.bundleName = bundleName;
 	this.includeFiles = includeFiles;
+	this.bundleSize = bundleSize;
     }
 
+    /**
+     * Set  the bundle size
+     * 
+     * @param bundleName  the name to give to the bundle
+     */
+    public void setBundleSize(long size) {
+	this.bundleSize = size;
+    }
+
+    /**
+     * Return the name requested to be assigned to the bundle
+     * 
+     * @return String -- the desired name for the bundle
+     */
+    public long getBundleSize() {
+	return this.bundleSize;
+    }
+    
     /**
      * Set the requested name to give to the bundle
      * 

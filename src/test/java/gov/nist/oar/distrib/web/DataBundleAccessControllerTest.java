@@ -89,7 +89,7 @@ public class DataBundleAccessControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList,0);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
@@ -118,7 +118,7 @@ public class DataBundleAccessControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload-2", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-2", inputfileList,0);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
