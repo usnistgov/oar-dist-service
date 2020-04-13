@@ -77,7 +77,7 @@ public class DefaultDataPackagingServiceTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	requestedUrls[0] = testval1;
 	requestedUrls[1] = testval2;
-	bundleRequest = new BundleRequest("testdatabundle", requestedUrls,0);
+	bundleRequest = new BundleRequest("testdatabundle", requestedUrls,0,2);
     }
 
     @BeforeClass
@@ -168,7 +168,7 @@ public class DefaultDataPackagingServiceTest {
 	FileRequest fileReq2 = mapper.readValue(file2, FileRequest.class);
 	rUrls[0] = fileReq1;
 	rUrls[1] = fileReq2;
-	bRequest = new BundleRequest("testdatabundle", rUrls,0);
+	bRequest = new BundleRequest("testdatabundle", rUrls,0,2);
 	ddpkService = new DefaultDataPackagingService(domains, maxFSize, nOfFiles, redirectURLTrials);
 	Path path = Files.createTempFile("testdatabundle", ".zip");
 	OutputStream os = Files.newOutputStream(path);

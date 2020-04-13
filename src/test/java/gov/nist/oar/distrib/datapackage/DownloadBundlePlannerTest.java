@@ -66,7 +66,7 @@ public class DownloadBundlePlannerTest {
 		FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 		inputfileList[0] = testval1;
 		inputfileList[1] = testval2;
-		bundleRequest = new BundleRequest("testdatabundle", inputfileList, 0);
+		bundleRequest = new BundleRequest("testdatabundle", inputfileList, 0,2);
 	}
 	
 	 @Test

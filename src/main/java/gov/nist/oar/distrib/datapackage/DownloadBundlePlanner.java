@@ -197,7 +197,9 @@ public class DownloadBundlePlanner {
 	public void makePlan(List<FileRequest> fPathUrls) {
 		bundleCount++;
 		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize));
+		
+		
+		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length));
 	}
 
 	/**
@@ -222,10 +224,23 @@ public class DownloadBundlePlanner {
 	public BundleDownloadPlan makeBundlePlan() {
 		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
 		int fileList = 0 ;
-				if(inputfileList != null ) fileList = inputfileList.length;
-		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
-				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
-				this.totalRequestedFileSize, bundleCount, fileList);
+		if(inputfileList != null ) fileList = inputfileList.length;
+			BundleDownloadPlan bPlan = new BundleDownloadPlan();
+				
+			bPlan.setStatus(status);
+			bPlan.setBundleCount(bundleCount);
+			bPlan.setBundleNameFilePathUrl(bundleFilePathUrls.toArray(new BundleRequest[0]));
+			bPlan.setFilesCount(fileList);
+			bPlan.setMessages(messages.toArray(new String[0]));
+			bPlan.setNotIncluded(notIncludedFiles.toArray(new NotIncludedFile[0]));
+			bPlan.setPostEachTo("_bundle");
+			bPlan.setSize(this.totalRequestedFileSize);
+				
+		return bPlan;
+				
+//		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
+//				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
+//				this.totalRequestedFileSize, bundleCount, fileList);
 	}
 
 }

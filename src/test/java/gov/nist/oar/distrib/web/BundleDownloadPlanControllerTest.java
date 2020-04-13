@@ -86,7 +86,7 @@ public class BundleDownloadPlanControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList,0);
+	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList,0,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -124,7 +124,7 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,99);
+	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,99,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 	System.out.println("request.getStatusCode():" + request + " \n request.getHeaders() :"
@@ -162,7 +162,7 @@ public class BundleDownloadPlanControllerTest {
 	ifileList[1] = fileRequest2;
 	
 	
-	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList,0);
+	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList,0,2);
 	RequestEntity<BundleRequest> newRequest = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bundleRequest);
 
@@ -201,7 +201,7 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	
-	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList,0);
+	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList,0,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
