@@ -246,6 +246,7 @@ class BagFileFilter implements FileFilter {
     }
     public boolean accept(File f) {
         String name = f.getName();
-        return (name.startsWith(base) && ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
+        return (f.isFile() && name.startsWith(base) &&
+                ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
     }
 }
