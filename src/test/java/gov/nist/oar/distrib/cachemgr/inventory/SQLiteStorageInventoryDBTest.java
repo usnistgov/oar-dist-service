@@ -199,7 +199,20 @@ public class SQLiteStorageInventoryDBTest {
         sidb.registerVolume("foobar", 450000, null);
         sidb.registerVolume("fundrum", 450000, null);
 
-        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
+        CacheObject cob = sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
+        assertEquals("1234_goober.json", cob.name);
+        assertEquals(-1L, cob.getSize());
+        assertEquals(4, cob.metadatumNames().size());
+        assertTrue("size not in metadata properties",
+                   cob.metadatumNames().contains("size"));
+        assertTrue("priority not in metadata properties",
+                   cob.metadatumNames().contains("priority"));
+        assertTrue("since not in metadata properties",
+                   cob.metadatumNames().contains("since"));
+        assertTrue("sinceDate not in metadata properties",
+                   cob.metadatumNames().contains("sinceDate"));
+        long since = cob.getMetadatumLong("since", -1L);
+        assertTrue("unexpected since value: "+Long.toString(since), since > 0);
         
         List<CacheObject> cos = sidb.findObject("1234/goober.json");
         assertEquals(1, cos.size());
@@ -214,7 +227,7 @@ public class SQLiteStorageInventoryDBTest {
                    cos.get(0).metadatumNames().contains("since"));
         assertTrue("sinceDate not in metadata properties",
                    cos.get(0).metadatumNames().contains("sinceDate"));
-        long since = cos.get(0).getMetadatumLong("since", -1L);
+        since = cos.get(0).getMetadatumLong("since", -1L);
         assertTrue("unexpected since value: "+Long.toString(since), since > 0);
 
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
@@ -231,7 +244,27 @@ public class SQLiteStorageInventoryDBTest {
         md.put("checksum", "abcdef123456");
         md.put("checksumAlgorithm", "md5");
         md.put("color", "red");
-        sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", md);
+        cob = sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", md);
+        assertEquals(456L, cob.getSize());
+        assertEquals(7, cob.metadatumNames().size());
+        assertTrue("size not in metadata properties",
+                   cob.metadatumNames().contains("size"));
+        assertTrue("priority not in metadata properties",
+                   cob.metadatumNames().contains("priority"));
+        assertTrue("since not in metadata properties",
+                   cob.metadatumNames().contains("since"));
+        assertTrue("sinceDate not in metadata properties",
+                   cob.metadatumNames().contains("sinceDate"));
+        assertTrue("color not in metadata properties",
+                   cob.metadatumNames().contains("color"));
+        assertTrue("checksum not in metadata properties",
+                   cob.metadatumNames().contains("checksum"));
+        assertTrue("checksumAlgorithm not in metadata properties",
+                   cob.metadatumNames().contains("checksumAlgorithm"));
+        assertEquals("md5", cob.getMetadatumString("checksumAlgorithm", null));
+        assertEquals(4, cob.getMetadatumInt("priority", 0));
+        assertEquals(456L, cob.getMetadatumLong("size", -1L));
+        
         cos = sidb.findObject("1234/goober.json");
         assertEquals(2, cos.size());
         CacheObject first=null, second=null;

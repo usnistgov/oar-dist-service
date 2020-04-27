@@ -99,10 +99,14 @@ public interface StorageInventoryDB extends VolumeStatus {
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
+     * @return CacheObject  a {@link gov.nist.oar.distrib.cachemgr.CacheObject} instance reflecting the 
+     *                 object information saved to the database.  Note that the returned instance's 
+     *                 <code>volname</code> field will be set buth its <code>volume</code> field will 
+     *                 be null.
      * @throws InventoryException  if there is an error accessing the underlying database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public void addObject(String id, String volname, String objname, JSONObject metadata)
+    public CacheObject addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException;
 
     /**

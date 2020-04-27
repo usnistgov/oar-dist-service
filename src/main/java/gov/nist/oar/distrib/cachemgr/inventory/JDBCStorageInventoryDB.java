@@ -69,10 +69,11 @@ import java.time.format.DateTimeFormatter;
  *    size      integer,
  *    checksum  text,
  *    algorithm aid FOREIGN KEY,
- *    priority  integer,
+ *    priority  integer NOT NULL,
  *    volume    integer FOREIGN KEY,
  *    name      text NOT NULL,
- *    since     integer,
+ *    since     integer NOT NULL,
+ *    checked   integer NOT NULL,
  *    cached    boolean NOT NULL DEFAULT 0,
  *    metadata  text
  * );
@@ -99,6 +100,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     static final String defaultDeletionPlanSelect = deletion_pSelect;
 
+    static final String check_Select =
+        find_sql + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
+
     static HashMap<String, String> purposes = new HashMap<String, String>(2);
     static {
         JDBCStorageInventoryDB.purposes.put("deletion_d", deletion_dSelect);
@@ -106,6 +110,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         JDBCStorageInventoryDB.purposes.put("deletion_s", deletion_sSelect);
         JDBCStorageInventoryDB.purposes.put("deletion",   deletion_pSelect);
         JDBCStorageInventoryDB.purposes.put("",           deletion_pSelect);
+        JDBCStorageInventoryDB.purposes.put("check",      check_Select);
     }
 
     protected String _dburl = null;
@@ -294,6 +299,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
+    /**
+     * return an SQL Query that select CacheObject records for the given purpose.  
+     * <p>
+     * Override this method to support new purpose labels.
+     */
     protected String _selectQuery(String purpose) {
         if (purpose == null) purpose = "";
         return purposes.getOrDefault(purpose, purposes.get(""));
@@ -364,8 +374,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     String add_sql = "INSERT INTO objects(" +
-        "objid,name,size,checksum,algorithm,priority,volume,since,cached,metadata" +
-        ") VALUES (?,?,?,?,?,?,?,?,?,?)";
+        "objid,name,size,checksum,algorithm,priority,volume,since,checked,cached,metadata" +
+        ") VALUES (?,?,?,?,?,?,?,?,0,?,?)";
     
     /**
      * record the addition of an object to a volume.  The metadata stored with the 
@@ -374,10 +384,14 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param volname  the name of the volume where the object was added
      * @param objname  the name of the object was given in that volume
      * @param metadata the metadata to be associated with that object (can be null)
+     * @return CacheObject  a {@link gov.nist.oar.distrib.cachemgr.CacheObject} instance reflecting the 
+     *                 object information saved to the database.  Note that the returned instance's 
+     *                 <code>volname</code> field will be set buth its <code>volume</code> field will 
+     *                 be null.
      * @throws InventoryException  if a problem occurs while interacting with the inventory database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public synchronized void addObject(String id, String volname, String objname, JSONObject metadata)
+    public synchronized CacheObject addObject(String id, String volname, String objname, JSONObject metadata)
         throws InventoryException
     {
         // the time the file was added.  It is assumed that the file will actually be copied into the
@@ -418,6 +432,16 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                      ex.getMessage(), nm, ex);
             }
         }
+        else {
+            // create a metadata object for output
+            metadata = new JSONObject();
+            metadata.put("size", size);
+            metadata.put("priority", priority);
+            metadata.put("since", since.toEpochMilli());
+            metadata.put("sinceDate", ZonedDateTime.ofInstant(since, ZoneOffset.UTC)
+                                                   .format(DateTimeFormatter.ISO_INSTANT));
+        }
+        
         int algid = getAlgorithmID(alg);
         if (algid < 0)
             throw new InventoryException("Not a registered algorithm: " + alg);
@@ -451,6 +475,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to register object " + id + ": " + ex.getMessage(), ex);
         }
+
+        return new CacheObject(objname, metadata, volname);
     }
 
     /**

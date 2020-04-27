@@ -105,7 +105,15 @@ public class ReservationTest {
         md.put("checksumAlgorithm", "shaRay");
         md.put("priority", 4);
         try {
-            res.saveAs(is, "gary/busey", "busey", md);
+            CacheObject co = res.saveAs(is, "gary/busey", "busey", md);
+            assertEquals(15L, co.getSize());
+            assertEquals(4, co.getMetadatumInt("priority", -1));
+            assertEquals("YYZ", co.getMetadatumString("checksum", null));
+            assertEquals("shaRay", co.getMetadatumString("checksumAlgorithm", null));
+            assertTrue("since not in metadata properties reported as saved",
+                       co.metadatumNames().contains("since"));
+            assertTrue("sinceDate not in metadata properties reported as saved",
+                       co.metadatumNames().contains("sinceDate"));
         }
         finally {
             try { is.close(); } catch (IOException ex) { } 

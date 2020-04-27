@@ -85,11 +85,12 @@ public class Reservation {
      * @param id      the cache-independent identifier to associate with this object (so that 
      *                it can be found again).
      * @param objname a cache-specific name to give to the saved object.  
+     * @return CacheObject  a CacheObject instance representing the data saved by this method call.
      */
-    public synchronized void saveAs(InputStream from, String id, String objname)
+    public synchronized CacheObject saveAs(InputStream from, String id, String objname)
         throws CacheManagementException
     {
-        this.saveAs(from, id, objname, null);
+        return this.saveAs(from, id, objname, null);
     }
 
     /**
@@ -102,13 +103,15 @@ public class Reservation {
      *                it can be found again).
      * @param objname a cache-specific name to give to the saved object.  
      * @param metadata  metadata to associate with the saved object
+     * @return CacheObject  a CacheObject instance representing the data saved by this method call.
      */
-    public synchronized void saveAs(InputStream from, String id, String objname, JSONObject metadata)
+    public synchronized CacheObject saveAs(InputStream from, String id, String objname, JSONObject metadata)
         throws CacheManagementException
     {
         if (_size <= 0)
             throw new CacheManagementException("No more space left in this reservation");
 
+        CacheObject out = null;
         long size = -1L;
         if (metadata != null && metadata.has("size")) {
             try { size = metadata.getLong("size"); }
@@ -131,7 +134,8 @@ public class Reservation {
                 metadata = new JSONObject();
             if (size != is.count())
                 metadata.put("size", is.count());
-            db.addObject(id, vol.getName(), objname, metadata);
+            out = db.addObject(id, vol.getName(), objname, metadata);
+            out.volume = vol;
         }
         catch (StorageVolumeException ex) {
             // note the cache volume should be responsible for cleaning up after failure
@@ -153,6 +157,8 @@ public class Reservation {
             try { this.drop(); }
             catch (InventoryException ex) { }
         }
+
+        return out;
     }
 
     /**
