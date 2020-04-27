@@ -139,7 +139,7 @@ public class FilesystemCacheVolume implements CacheVolume {
             throw new StorageVolumeException("Request to copy "+obj.volname+":"+obj.name+
                                            " onto itself");
         if (! obj.volume.exists(obj.name))
-            throw new ObjectNotFoundException(obj.volname, obj.name);
+            throw new ObjectNotFoundException(obj.name, obj.volname);
 
         this.saveAs(obj.volume.getStream(obj.name), name);
     }
@@ -154,7 +154,7 @@ public class FilesystemCacheVolume implements CacheVolume {
      */
     public synchronized InputStream getStream(String name) throws StorageVolumeException {
         if (! this.exists(name))
-            throw new ObjectNotFoundException(this.getName(), name);
+            throw new ObjectNotFoundException(name, this.getName());
         try {
             return new FileInputStream(new File(root, name));
         }
@@ -173,7 +173,7 @@ public class FilesystemCacheVolume implements CacheVolume {
     public CacheObject get(String name) throws StorageVolumeException {
         File f = new File(root, name);
         if (! f.exists())
-            throw new ObjectNotFoundException(this.getName(), name);
+            throw new ObjectNotFoundException(name, this.getName());
 
         JSONObject md = new JSONObject();
         md.put("size", f.length());
