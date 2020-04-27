@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.net.URL;
 
+import org.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 
 /**
@@ -170,9 +171,13 @@ public class FilesystemCacheVolume implements CacheVolume {
      *                                     volume
      */
     public CacheObject get(String name) throws StorageVolumeException {
-        if (! this.exists(name))
+        File f = new File(root, name);
+        if (! f.exists())
             throw new ObjectNotFoundException(this.getName(), name);
-        return new CacheObject(name, this);
+
+        JSONObject md = new JSONObject();
+        md.put("size", f.length());
+        return new CacheObject(name, md, this);
     }
 
     /** 

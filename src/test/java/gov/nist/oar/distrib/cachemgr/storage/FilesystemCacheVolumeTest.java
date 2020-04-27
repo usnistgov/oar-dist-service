@@ -158,6 +158,7 @@ public class FilesystemCacheVolumeTest {
         assertEquals("root", co.volname);
         assertEquals("root", co.volume.getName());
         assertEquals("goob", co.name);
+        assertEquals(12, co.getSize());
     }
 
     @Test
