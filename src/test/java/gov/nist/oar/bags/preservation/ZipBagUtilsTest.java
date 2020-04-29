@@ -213,15 +213,4 @@ public class ZipBagUtilsTest {
             assertEquals(5, comps.length());
         }
     }
-
-    @Test
-    public void testgetResourceMetadata2() throws IOException, JSONException {
-        try (InputStream zis = getClass().getResourceAsStream("/mds2-2195.1_2_0.mbag0_4-718.zip")) {
-            JSONObject res = ZipBagUtils.getResourceMetadata("0.4", zis, "mds2-2195.1_2_0.mbag0_4-718");
-            assertNotNull(res);
-            assertEquals("ark:/88434/mds2-2195", res.optString("@id"));
-            JSONArray comps = res.getJSONArray("components");
-            assertEquals(2013, comps.length());
-        }
-    }
 }
