@@ -20,6 +20,7 @@ import java.io.FilterInputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -30,6 +31,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -51,6 +54,13 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
 
     public final String bucket;
     protected AmazonS3 s3client = null;
+    protected Integer pagesz = null;  // null means use default page size (1000)
+
+    /**
+     * set the number of objects returned in a page of listing results.  This can be used for testing.
+     * A null value means use the AWS default.  
+     */
+    public void setPageSize(Integer sz) { pagesz = sz; }
 
     /**
      * create the storage instance
@@ -164,6 +174,13 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
         }
     }
 
+    protected ListObjectsV2Request createListRequest(String keyprefix, Integer pagesize) {
+        return new ListObjectsV2Request().withBucketName(bucket)
+                                         .withPrefix(keyprefix)
+                                         .withMaxKeys(pagesize);
+    }
+             
+
     /**
      * Return all the bags associated with the given ID
      * @param identifier  the AIP identifier for the desired data collection 
@@ -174,27 +191,111 @@ public class AWSS3LongTermStorage extends LongTermStorageBase {
     public List<String> findBagsFor(String identifier)
         throws ResourceNotFoundException, StorageStateException
     {
-        List<S3ObjectSummary> files = null;
-        try {
-            ObjectListing objectListing = s3client.listObjects(bucket, identifier+".");
-            files = objectListing.getObjectSummaries();
-        } catch (AmazonServiceException ex) {
-            throw new StorageStateException("Trouble accessing bucket, "+bucket+": "+ex.getMessage(),ex);
-        }
-                
-        if (files.isEmpty()) 
-            throw ResourceNotFoundException.forID(identifier);
+        // Because of S3 result paging, we need a specialized implementation of this method
 
-        List<String> filenames = new ArrayList<String>(files.size());
-        files.forEach(new Consumer<S3ObjectSummary>() {
-            public void accept(S3ObjectSummary f) {
+        ListObjectsV2Result objectListing = null;
+        List<S3ObjectSummary> files = null;
+        List<String> filenames = new ArrayList<String>();
+
+        ListObjectsV2Request req = createListRequest(identifier+".", pagesz);
+        do {
+            try {
+                objectListing = s3client.listObjectsV2(req);
+                files = objectListing.getObjectSummaries();
+            } catch (AmazonServiceException ex) {
+                throw new StorageStateException("Trouble accessing bucket, "+bucket+": "+ex.getMessage(),ex);
+            }
+                
+            for(S3ObjectSummary f : files) {
                 String name = f.getKey();
                 if (! name.endsWith(".sha256") && BagUtils.isLegalBagName(name))
                     filenames.add(name);
             }
-        });
-     
+
+            req.setContinuationToken(objectListing.getNextContinuationToken());
+        }
+        while (objectListing.isTruncated());  // are there more pages to fetch?
+
+        if (filenames.size() == 0)   
+            throw ResourceNotFoundException.forID(identifier);
+
         return filenames;
+    }
+
+    /**
+     * Return the head bag associated with the given ID
+     * @param identifier  the AIP identifier for the desired data collection 
+     * @return String, the head bag's file name
+     * @throws ResourceNotFoundException   if there exist no bags with the given identifier
+     */
+    @Override
+    public String findHeadBagFor(String identifier)
+        throws ResourceNotFoundException, StorageStateException
+    {
+        return findHeadBagFor(identifier, null);
+    }
+
+    /**
+     * Return the name of the head bag for the identifier for given version
+     * @param identifier  the AIP identifier for the desired data collection 
+     * @param version     the desired version of the AIP; if null, assume the latest version.
+     *                    If the version is an empty string, the head bag for bags without a 
+     *                    version designation will be selected.  
+     * @return String, the head bag's file name, or null if version is not found
+     * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
+     */
+    @Override
+    public String findHeadBagFor(String identifier, String version)
+        throws ResourceNotFoundException, StorageStateException
+    {
+        // Because of S3 result paging, we need a specialized implementation of this method
+
+        // Be efficient in selecting files via a key; if possible include a version designator
+        String prefix = identifier+".";
+        if (version != null) {
+            version = Pattern.compile("\\.").matcher(version).replaceAll("_");
+            if (! Pattern.compile("^[01](_0)*$").matcher(version).find())
+                prefix = prefix + Pattern.compile("(_0)+$").matcher(version).replaceAll("");
+        }
+
+        String selected = null;
+        int maxseq = -1;
+        ListObjectsV2Result objectListing = null;
+        List<S3ObjectSummary> files = null;
+
+        ListObjectsV2Request req = createListRequest(prefix, pagesz);
+        do {
+            try {
+                objectListing = s3client.listObjectsV2(req);
+                files = objectListing.getObjectSummaries();
+            } catch (AmazonServiceException ex) {
+                throw new StorageStateException("Trouble accessing bucket, "+bucket+": "+ex.getMessage(),ex);
+            }
+
+            if (! files.isEmpty()) {
+                int seq = -1;
+                for(S3ObjectSummary f : files) {
+                    String name = f.getKey();
+                    if (! name.endsWith(".sha256") && BagUtils.isLegalBagName(name)) {
+                        if (version != null && ! BagUtils.matchesVersion(name, version))
+                            continue;
+                        seq = BagUtils.sequenceNumberIn(name);
+                        if (seq > maxseq) {
+                            maxseq = seq;
+                            selected = name;
+                        }
+                    }
+                }
+            }
+
+            req.setContinuationToken(objectListing.getNextContinuationToken());
+        }
+        while (objectListing.isTruncated());  // are there more pages to fetch?
+
+        if (selected == null)   
+            throw ResourceNotFoundException.forID(identifier, version);
+
+        return selected;
     }
 
     /*
