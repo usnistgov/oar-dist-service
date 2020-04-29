@@ -124,17 +124,24 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+        <!--
+          -  This s3mock does not properly support pagination; using
+          -  com.adobe.testing.s3mock instead.  See s3mock subdir.
+          -
         <dependency>
             <groupId>io.findify</groupId>
             <artifactId>s3mock_2.12</artifactId>
             <version>0.2.5</version>
             <scope>test</scope>
         </dependency>
-        <!-- <dependency>
-    <groupId>org.json</groupId>
-    <artifactId>json</artifactId>
-    <version>20180813</version>
-</dependency> -->
+          -->
+        <!--
+        <dependency>
+          <groupId>org.json</groupId>
+          <artifactId>json</artifactId>
+          <version>20180813</version>
+        </dependency>
+        -->
     </dependencies>
     <build>
         <finalName>oar-dist-service</finalName>
