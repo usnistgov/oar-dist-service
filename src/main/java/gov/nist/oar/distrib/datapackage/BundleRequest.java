@@ -29,7 +29,15 @@ public class BundleRequest {
      */
     private FileRequest[] includeFiles;
     
+    /**
+     * Size of this bundle
+     */
     private long bundleSize;
+    
+    /**
+     * total number of files in this bundle
+     */
+    private long filesInBundle;
 
     /**
      * Default Constructor
@@ -44,28 +52,48 @@ public class BundleRequest {
      * @param bundleName
      * @param includeFiles
      */
-    public BundleRequest(String bundleName, FileRequest[] includeFiles, long bundleSize) {
+    public BundleRequest(String bundleName, FileRequest[] includeFiles, long bundleSize, long filesInBundle) {
 	this.bundleName = bundleName;
 	this.includeFiles = includeFiles;
 	this.bundleSize = bundleSize;
+	this.filesInBundle = filesInBundle;
     }
 
     /**
      * Set  the bundle size
      * 
-     * @param bundleName  the name to give to the bundle
+     * @param size  Sum of files size in this bundle.
      */
     public void setBundleSize(long size) {
 	this.bundleSize = size;
     }
 
     /**
-     * Return the name requested to be assigned to the bundle
+     * Return the total files size of this bundle
      * 
-     * @return String -- the desired name for the bundle
+     * @return long
      */
     public long getBundleSize() {
 	return this.bundleSize;
+    }
+    
+    /**
+     * Set  the bundle size
+     * 
+     * @param size  Sum of files size in this bundle.
+     */
+    public void setFilesInBundle(long filesInBundle) {
+    	this.filesInBundle = filesInBundle;
+    }
+
+   
+    /**
+     * Return the total number of files in this bundle
+     * 
+     * @return long
+     */
+    public long getFilesInBundle() {
+	return this.filesInBundle;
     }
     
     /**

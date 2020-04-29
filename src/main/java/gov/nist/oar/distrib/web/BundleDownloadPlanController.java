@@ -12,6 +12,8 @@
  */
 package gov.nist.oar.distrib.web;
 
+import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
@@ -85,11 +88,13 @@ public class BundleDownloadPlanController {
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-        throws DistributionException
+        throws DistributionException,InvalidInputException
     {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
+	}else {
+		throw new InvalidInputException("The input is empty or invalid");
 	}
 //	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
 //		this.numofFiles, jsonObject, bundleName);
@@ -98,6 +103,12 @@ public class BundleDownloadPlanController {
 
     }
 
+    /**
+     * Exception thrown due to invalid input.
+     * @param ex
+     * @param req
+     * @return
+     */
     @ExceptionHandler(JsonProcessingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
@@ -105,11 +116,59 @@ public class BundleDownloadPlanController {
 	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
     }
 
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
-	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
-	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
+    /**
+	 * Invalid input exception
+	 * @param ex
+	 * @param req
+	 * @return
+	 */
+	@ExceptionHandler(InvalidInputException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+		logger.info("There is an error processing input data: " + req.getRequestURI() + "\n  " + ex.getMessage());
+		return new ErrorInfo(req.getRequestURI(), 400, "Invalid input error", req.getMethod());
+	}
+	
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex,
+                                                     HttpServletRequest req)
+    {
+        // error is not specific to a version
+        logger.info("Non-existent bag file requested: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 404, "AIP file not found");
     }
+
+    @ExceptionHandler(DistributionException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleInternalError(DistributionException ex,
+                                         HttpServletRequest req)
+    {
+        logger.info("Failure processing request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
+
+    @ExceptionHandler(IOException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(DistributionException ex,
+                                          HttpServletRequest req)
+    {
+        logger.info("Streaming failure during request: " + req.getRequestURI() +
+                    "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex,
+                                          HttpServletRequest req)
+    {
+        logger.error("Unexpected failure during request: " + req.getRequestURI() +
+                     "\n  " + ex.getMessage(), ex);
+        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+    }
+
 
 }

@@ -176,7 +176,7 @@ public class DefaultDataPackagerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	bundleRequest = new BundleRequest("testdatabundle", inputfileList,0);
+	bundleRequest = new BundleRequest("testdatabundle", inputfileList,0,2);
 	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
     }
 

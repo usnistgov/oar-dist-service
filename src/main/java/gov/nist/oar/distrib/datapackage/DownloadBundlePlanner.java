@@ -27,6 +27,7 @@ import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
 import gov.nist.oar.distrib.datapackage.NotIncludedFile;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * DownloadBundlePlanner class takes input bundle request with the limits of
@@ -81,7 +82,7 @@ public class DownloadBundlePlanner {
 	 * @return BundleDownloadPlan -- the recommended plan
 	 * @throws DistributionException
 	 */
-	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException {
+	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException, InvalidInputException {
 
 		notIncludedFiles = new ArrayList<NotIncludedFile>();
 		filePathUrls = new ArrayList<FileRequest>();
@@ -101,7 +102,7 @@ public class DownloadBundlePlanner {
 		} catch (JsonProcessingException ex) {
 			// should not happen
 			logger.error("There is an issue validating request. unable to create valid JSON.");
-			throw new DistributionException(
+			throw new InvalidInputException(
 					"Trouble validating request: unable to convert to JSON: " + ex.getMessage());
 		}
 
@@ -196,7 +197,9 @@ public class DownloadBundlePlanner {
 	public void makePlan(List<FileRequest> fPathUrls) {
 		bundleCount++;
 		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize));
+		
+		
+		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length));
 	}
 
 	/**
@@ -221,10 +224,23 @@ public class DownloadBundlePlanner {
 	public BundleDownloadPlan makeBundlePlan() {
 		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
 		int fileList = 0 ;
-				if(inputfileList != null ) fileList = inputfileList.length;
-		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
-				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
-				this.totalRequestedFileSize, bundleCount, fileList);
+		if(inputfileList != null ) fileList = inputfileList.length;
+			BundleDownloadPlan bPlan = new BundleDownloadPlan();
+				
+			bPlan.setStatus(status);
+			bPlan.setBundleCount(bundleCount);
+			bPlan.setBundleNameFilePathUrl(bundleFilePathUrls.toArray(new BundleRequest[0]));
+			bPlan.setFilesCount(fileList);
+			bPlan.setMessages(messages.toArray(new String[0]));
+			bPlan.setNotIncluded(notIncludedFiles.toArray(new NotIncludedFile[0]));
+			bPlan.setPostEachTo("_bundle");
+			bPlan.setSize(this.totalRequestedFileSize);
+				
+		return bPlan;
+				
+//		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
+//				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
+//				this.totalRequestedFileSize, bundleCount, fileList);
 	}
 
 }

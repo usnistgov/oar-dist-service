@@ -5,7 +5,7 @@ spring:
     active: default,aws
   cloud:
     config:
-      uri: http://localhost:8084
+      uri: http://localhost:8087
        
 server:
     port: 8083
@@ -17,7 +17,7 @@ server:
     max-http-header-size: 8192
     tomcat:
       accesslog:
-        directory: /var/log/dist-service
+        directory: /tmp/logs/dist-service
         enabled: true
         file-date-format: yyyy-MM-dd
         prefix: tomcat-access-log
@@ -27,13 +27,13 @@ server:
       max-connections: 10000
       max-threads: 200
       min-spare-threads: 10
-        
-security:
-    headers:
-      frame: true
-      xss: true
-      hsts: all
-    enable-csrf: false
+#        
+#security:
+#    headers:
+#      frame: true
+#      xss: true
+#      hsts: all
+#    enable-csrf: false
     
      
 logging:
