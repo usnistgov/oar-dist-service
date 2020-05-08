@@ -93,6 +93,10 @@ public class ValidationHelper {
 	    long length = conn.getContentLengthLong();
 	    allowedRedirects--;
 	    String location = conn.getHeaderField("Location");
+	    
+	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects == 0) {
+	    	return new URLStatusLocation(responseCode, location, url, 0, true);  	
+	    }
 
 	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects > 0)
 		return checkURLStatusLocationSize(location, allowedRedirects);
