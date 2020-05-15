@@ -136,7 +136,7 @@ public class DownloadBundlePlanner {
 		}
 
 		if (!this.filePathUrls.isEmpty()) {
-			this.makePlan(this.filePathUrls);
+			this.makePlan(this.filePathUrls, bundleSize);
 		}
 
 		this.updateMessagesAndStatus();
@@ -156,30 +156,33 @@ public class DownloadBundlePlanner {
 		bundledFilesCount++;
 		URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains,
 				this.allowedRedirects);
-		long individualFileSize = uObj.getLength();
+		
 		String whyNotIncluded = "File not added in package; ";
 		if (uObj.getStatus() >= 300 && uObj.getStatus() < 400) {
 			whyNotIncluded += "There are too many redirects for this URL.";
 			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
-		} else if (individualFileSize <= 0) {
-//		String whyNotIncluded =  "File not added in package; ";
-//		if(uObj.getStatus() >=300 && uObj.getStatus() <400)
-//			whyNotIncluded += "There are too many redirects for this URL.";
-//		else
+		} else if (uObj.getLength() <= 0) {
 			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
 			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
 		} else {
+			long individualFileSize = uObj.getLength();
 			totalRequestedFileSize += individualFileSize;
 			if (individualFileSize >= this.mxFilesBundleSize) {
+				//bundleSize = individualFileSize;
 				List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
 				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
-				this.makePlan(onefilePathUrls);
+				this.makePlan(onefilePathUrls,individualFileSize);
+				
 			} else {
 				bundleSize += individualFileSize;
 				if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
 					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+
 				} else {
-					makePlan(filePathUrls);
+					if(!filePathUrls.isEmpty()) {
+						bundleSize = bundleSize - individualFileSize;	
+					    makePlan(filePathUrls, bundleSize);
+					}
 					filePathUrls.clear();
 					bundledFilesCount = 1;
 					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
@@ -194,7 +197,7 @@ public class DownloadBundlePlanner {
 	 * 
 	 * @param fPathUrls
 	 */
-	public void makePlan(List<FileRequest> fPathUrls) {
+	public void makePlan(List<FileRequest> fPathUrls, long bundleSize) {
 		bundleCount++;
 		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
 		
@@ -207,11 +210,11 @@ public class DownloadBundlePlanner {
 	 */
 	private void updateMessagesAndStatus() {
 		if (!this.notIncludedFiles.isEmpty() && this.bundleFilePathUrls.isEmpty()) {
-			this.messages.add("No Files added in the Bundle, there are problems accessing URLs.");
+			this.messages.add("None of the selected files are available due to failures accessing files from their remote server.");
 			this.status = "Error";
 		}
 		if (!this.notIncludedFiles.isEmpty() && !this.bundleFilePathUrls.isEmpty()) {
-			messages.add("Some URLs have problem accessing contents.");
+			messages.add("Some of the selected data files were not downloaded due to failures accessing files from their remote server.");
 			this.status = "warnings";
 		}
 

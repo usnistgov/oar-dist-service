@@ -175,7 +175,7 @@ public class BundleDownloadPlanControllerTest {
 	String respBody = newResponse.getBody();
 	BundleDownloadPlan bundleResponse = mapperResults.readValue(respBody, BundleDownloadPlan.class);
 	System.out.println(" Response :"+respBody+ "\n Bundle Response"+bundleResponse.getStatus());
-	String message = "No Files added in the Bundle, there are problems accessing URLs.".trim();
+	String message = "None of the selected files are available due to failures accessing files from their remote server.".trim();
 	assertEquals("Error", bundleResponse.getStatus());
 	assertEquals("_bundle", bundleResponse.getPostEachTo());
 	assertEquals(message,bundleResponse.getMessages()[0].trim());
@@ -214,7 +214,7 @@ public class BundleDownloadPlanControllerTest {
 	String responsetest = response.getBody();
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
 //	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
-	String message = "Some URLs have problem accessing contents.".trim();
+	String message = "Some of the selected data files were not downloaded due to failures accessing files from their remote server.".trim();
 	assertEquals("warnings", testResponse.getStatus());
 	assertEquals("_bundle", testResponse.getPostEachTo());
 	assertEquals(message,testResponse.getMessages()[0].trim());
