@@ -214,7 +214,7 @@ public class DownloadBundlePlanner {
 			this.status = "Error";
 		}
 		if (!this.notIncludedFiles.isEmpty() && !this.bundleFilePathUrls.isEmpty()) {
-			messages.add("Some of the selected data files unavailable, due to remote server access problem.\"");
+			messages.add("Some of the selected data files unavailable, due to remote server access problem.");
 			this.status = "warnings";
 		}
 
