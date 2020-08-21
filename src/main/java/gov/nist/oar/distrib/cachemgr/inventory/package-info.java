@@ -13,12 +13,18 @@
  */
 
 /**
- * a {@link gov.nist.oar.distrib.cachemgr} sub-package that provides implementations of the 
- * {@link  gov.nist.oar.distrib.cachemgr.StorageInventoryDB} interface along with other classes that use
- * a {@link  gov.nist.oar.distrib.cachemgr.StorageInventoryDB} to do deletion planning.  
+ * a {@link gov.nist.oar.distrib.cachemgr cachemgr} sub-package that provides implementations of the 
+ * {@link  gov.nist.oar.distrib.cachemgr.StorageInventoryDB} interface along with other classes that operate
+ * on a {@link  gov.nist.oar.distrib.cachemgr.StorageInventoryDB} to do things like deletion planning
+ * and integrity checking.  Such latter classes typically depend on the details of the particular database 
+ * model provided by a {@link  gov.nist.oar.distrib.cachemgr.StorageInventoryDB} implementation.  This 
+ * includes implementations of the {@link  gov.nist.oar.distrib.cachemgr.SelectionStrategy} interface.
  * <p>
- * Each implementation provides support for a particular database or metadata management system that 
- * can hold inventory information.  
+ * Each {@link gov.nist.oar.distrib.cachemgr.StorageInventoryDB} implementation provides support for a 
+ * particular database or metadata management system that can hold inventory information.  Most notably,
+ * the {@link gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB} class an abstract base class 
+ * for implementations built on any relational database that supports JDBC (such as 
+ * {@linkplain gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB SQLite}).
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 

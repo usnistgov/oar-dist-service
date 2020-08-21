@@ -28,7 +28,7 @@ import java.sql.SQLException;
 
 
 /**
- * An SQLite implementation of a storage inventory database.  
+ * An <a href="https://sqlite.org/">SQLite</a> implementation of a storage inventory database.  
  */
 public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
 
