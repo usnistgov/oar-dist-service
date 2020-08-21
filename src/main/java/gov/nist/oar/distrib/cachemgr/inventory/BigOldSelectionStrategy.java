@@ -61,6 +61,8 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * values can be configured with this constructor.  
      *
      * @param szlim         the total size limit for selection sets
+     * @param needed        the nominal size that is actually needed in the selection.  This should be 
+     *                        less than or equal to szlim.  
      * @param ageTurnOver   the age of a file at which the scoring weight goes from 
      *                      approximately 0 to linear with age (see description above).
      *                      If given value is non-positive, the default of 2.5 hours is used.
@@ -68,8 +70,8 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
      *                      linear with size to flat (see description above).  
      *                      If given value is non-positive, the default of 0.5 GB is used.
      */
-    public BigOldSelectionStrategy(long szlim, double ageTurnOver, double sizeTurnOver) {
-        super(szlim, "deletion_s");
+    public BigOldSelectionStrategy(long szlim, long needed, double ageTurnOver, double sizeTurnOver) {
+        super(szlim, "deletion_s", needed);
         if (ageTurnOver > 0.0)
             ageto = ageTurnOver;
         if (sizeTurnOver > 0.0)
@@ -78,9 +80,44 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
 
     /**
      * create the strategy with a specified limit
+     * <p>
+     * Note that this strategy applies a non-linear weighting to the "age"--the time 
+     * since last access--and size.  The age weighting is near zero up to an age turn-over
+     * time (in milliseconds), and then is linear.  The size weighting is roughly linear 
+     * approximately up to a size turn-over value; after that, it flattens.  These turn-over
+     * values can be configured with this constructor.  
+     *
+     * @param szlim         the total size limit for selection sets
+     * @param ageTurnOver   the age of a file at which the scoring weight goes from 
+     *                      approximately 0 to linear with age (see description above).
+     *                      If given value is non-positive, the default of 2.5 hours is used.
+     * @param sizeTurnOver  the size of a file at which the scoreing weight goes from 
+     *                      linear with size to flat (see description above).  
+     *                      If given value is non-positive, the default of 0.5 GB is used.
+     */
+    public BigOldSelectionStrategy(long szlim, double ageTurnOver, double sizeTurnOver) {
+        this(szlim, szlim, ageTurnOver, sizeTurnOver);
+    }
+
+    /**
+     * create the strategy with a specified limit.  The turn-over time will be 2.5 hours, and the 
+     * turn-over size will 0.5 Gb.
+     * @param szlim         the total size limit for selection sets
      */
     public BigOldSelectionStrategy(long szlim) {
-        super(szlim, "deletion_s");
+        this(szlim, szlim);
+    }
+
+
+    /**
+     * create the strategy with a specified limit.  The turn-over time will be 2.5 hours, and the 
+     * turn-over size will 0.5 Gb.
+     * @param szlim         the total size limit for selection sets
+     * @param needed        the nominal size that is actually needed in the selection.  This should be 
+     *                        less than or equal to szlim.  
+     */
+    public BigOldSelectionStrategy(long szlim, long needed) {
+        super(szlim, "deletion_s", needed);
     }
 
     /**
@@ -132,7 +169,7 @@ public class BigOldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     @Override
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
-        return new BigOldSelectionStrategy(newsizelimit, getTurnOverAge(), getTurnOverSize());
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed) {
+        return new BigOldSelectionStrategy(newsizelimit, needed, getTurnOverAge(), getTurnOverSize());
     }    
 }

@@ -48,8 +48,10 @@ public class BySizeSelectionStrategyTest {
 
     @Test
     public void testScore() throws JSONException {
-        BySizeSelectionStrategy ss = new BySizeSelectionStrategy(10, 1.0);
+        BySizeSelectionStrategy ss = new BySizeSelectionStrategy(10, 5, 1.0);
         assertEquals(ss.getNormalizingSize(), 1.0, 1.0e-8);
+        assertEquals(ss.getTotalSize(), 0L);
+        assertEquals(ss.getSufficientSize(), 0L);
 
         JSONObject job = new JSONObject();
         job.put("size", 3L);
@@ -64,12 +66,17 @@ public class BySizeSelectionStrategyTest {
         assertEquals(ss.getTotalSize(), 3L);
         assertFalse(ss.limitReached());
 
-        job.put("size", 9L);
+        job.put("size", 4L);
         co = new CacheObject("bob", job, "trash");
-
-        assertEquals(ss.score(co), 9.0, 0.0);
-        assertEquals(co.score, 9.0, 1.0e-8);
+        assertEquals(ss.score(co), 4.0, 0.0);
+        
+        job.put("size", 5L);
+        co = new CacheObject("bob", job, "trash");
+        assertEquals(ss.score(co), 5.0, 0.0);
+        
+        assertEquals(co.score, 5.0, 1.0e-8);
         assertEquals(ss.getTotalSize(), 12L);
+        assertEquals(ss.getSufficientSize(), 7L);
         assertTrue(ss.limitReached());
 
         ss.reset();

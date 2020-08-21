@@ -42,14 +42,16 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * create the strategy with a specified limit
      *
      * @param szlim         the total size limit for selection sets
+     * @param needed        the nominal size that is actually needed in the selection.  This should be 
+     *                        less than or equal to szlim.  
      * @param priority0     the "normal" priority value (see discussion above).  If given value
      *                        is non-positive, te default of 10 is used.
      * @param minAge        the minimum age an object must have to be assigned a non-zero selectability
      *                        score.  This prevents just cached/accessed files from being selected (for
      *                        deletion).
      */
-    public OldSelectionStrategy(long szlim, int priority0, long minAge) {
-        this(szlim, priority0);
+    public OldSelectionStrategy(long szlim, long needed, int priority0, long minAge) {
+        this(szlim, needed, priority0);
         minage = minAge;
     }
 
@@ -61,8 +63,8 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * @param priority0     the "normal" priority value (see discussion above).  If given value
      *                        is non-positive, te default of 10 is used.
      */
-    public OldSelectionStrategy(long szlim, int priority0) {
-        super(szlim, "deletion_p");
+    public OldSelectionStrategy(long szlim, long needed, int priority0) {
+        super(szlim, "deletion_p", needed);
         if (priority0 > 0.0)
             prinorm = priority0;
     }        
@@ -72,9 +74,21 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * will be one hour, and the normal priority will be 10.
      *
      * @param szlim         the total size limit for selection sets
+     * @param needed   the nominal size that is actually needed in the selection.  This should be 
+     *                   less than or equal to szlim.  
+     */
+    public OldSelectionStrategy(long szlim, long needed) {
+        this(szlim, needed, 0);
+    }
+
+    /**
+     * create the strategy with a specified limit.  The minimum age for a file to be selected 
+     * will be one hour, and the normal priority will be 10.
+     *
+     * @param szlim         the total size limit for selection sets
      */
     public OldSelectionStrategy(long szlim) {
-        this(szlim, 0);
+        this(szlim, szlim, 0);
     }
 
     /**
@@ -116,7 +130,7 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     @Override
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
-        return new OldSelectionStrategy(newsizelimit, getNormalPriority(), getMinimumAge());
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed) {
+        return new OldSelectionStrategy(newsizelimit, needed, getNormalPriority(), getMinimumAge());
     }    
 }

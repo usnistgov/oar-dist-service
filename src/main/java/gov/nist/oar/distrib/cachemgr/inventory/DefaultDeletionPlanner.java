@@ -146,14 +146,9 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         long removeBytes = Math.round((1 + delheadroom) * size) - avail;
 
         // There's not enough free space, we need to make some.
-        List<CacheObject> selected = new ArrayList<CacheObject>();
         SizeLimitedSelectionStrategy strat =
             getStrategyFor(volname, Math.round((1 + selheadroom) * (size - avail)));
-        List<CacheObject> selobjs = invdb.selectObjectsFrom(volname, strat);
-        for (CacheObject co : selobjs) {
-            if (strat.score(co) > 0.0)
-                selected.add(co);
-        }
+        List<CacheObject> selected = invdb.selectObjectsFrom(volname, strat);
 
         if (strat.getTotalSize() < removeBytes)
             // Can't create a viable plan with this volume
@@ -162,7 +157,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
 
         // Prep the plan for output
         strat.sort(selected);
-        out = new DeletionPlan(cv, invdb, selected, removeBytes, size);
+        out = new DeletionPlan(cv, invdb, selected, strat.getSufficientSize(), size);
 
         // calculate a score
         out.score = calculatePlanScore(selected, size, avail);

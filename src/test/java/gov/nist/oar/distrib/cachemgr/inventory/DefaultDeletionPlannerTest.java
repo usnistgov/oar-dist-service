@@ -117,12 +117,11 @@ public class DefaultDeletionPlannerTest {
         Map<String,Long> used = sidb.getUsedSpace();
         assertEquals(157145, used.get("foobar").longValue());
         long remove = dp.getByteCountToBeRemoved();
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" < 50000",
-                   remove < 50000);
         assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" > 7145",
                    remove > 7145);
         assertTrue("Expected plan score="+Double.toString(dp.score)+" > 1000.0",
                    dp.score > 1000.0);
+        assertEquals(remove, 100311L);
 
         List<CacheObject> deletables = dp.getDeletableObjects();
         assertEquals(1, deletables.size());
@@ -149,7 +148,7 @@ public class DefaultDeletionPlannerTest {
         cvlist.add(new NullCacheVolume("empty"));
         sidb.registerVolume("empty", 200000, null);
 
-        SizeLimitedSelectionStrategy strat = new BySizeSelectionStrategy(1000000, 10000);
+        SizeLimitedSelectionStrategy strat = new BySizeSelectionStrategy(1000000, 10000.0);
         DeletionPlanner planr = new DefaultDeletionPlanner(sidb, cvlist, strat);
 
         List<DeletionPlan> plans = planr.orderDeletionPlans(7000L, cvlist);
@@ -176,7 +175,7 @@ public class DefaultDeletionPlannerTest {
                    remove < 7000);
         assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" > 2274",
                    remove > 2274);
-        assertTrue("Expected plan score="+Double.toString(dp.score)+" > 1000.0",
+        assertTrue("Expected plan score="+Double.toString(dp.score)+" < 1000.0",
                    dp.score < 1000.0);
 
         deletables = dp.getDeletableObjects();

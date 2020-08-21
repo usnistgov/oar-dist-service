@@ -46,7 +46,7 @@ public class OldSelectionStrategyTest {
 
     @Test
     public void testScore() throws JSONException {
-        OldSelectionStrategy ss = new OldSelectionStrategy(3010, -1, 60000);
+        OldSelectionStrategy ss = new OldSelectionStrategy(3010, 3010, -1, 60000);
         assertEquals(ss.getNormalPriority(), 10);
         assertEquals(ss.getMinimumAge(), 60*1000);  // 1 minute
 

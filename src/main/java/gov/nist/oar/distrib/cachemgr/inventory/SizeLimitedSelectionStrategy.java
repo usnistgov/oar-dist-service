@@ -36,14 +36,38 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
     /**
      * the limit that the total size of all selected Objects can only just exceed 
      */
-    protected double sizelimit = 0;
+    protected long sizelimit = 0;
 
     /**
      * the label of the preferred purpose for generating the candidate CacheObjects.
      */
     protected String purpose = "deletion";
 
+    /**
+     * the accumulated size that is nominally needed from the selection.  This is normally less than or 
+     * equal to the size limit (which can include some additional slop amount in case all files can't be 
+     * used).
+     */
+    protected long need = 0;
+    
     private long totsz = 0;
+    private long suffic = 0;
+
+    /**
+     * create the strategy with a specified limit
+     * @param szlim    the size limit for the selected set (see discussion above).
+     * @param purposeLabel  the purpose label for selecting a selection query optimized for 
+     *                 this strategy.  If null or empty, "deletion" will be assumed.
+     * @param needed   the nominal size that is actually needed in the selection.  This should be 
+     *                   less than or equal to szlim.  
+     */
+    public SizeLimitedSelectionStrategy(long szlim, String purposeLabel, long needed) {
+        sizelimit = szlim;
+        if (needed < 0) needed = szlim;
+        need = needed;
+        if (purposeLabel != null && ! purposeLabel.equals(""))
+            purpose = purposeLabel;
+    }
 
     /**
      * create the strategy with a specified limit
@@ -52,9 +76,7 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
      *                 this strategy.  If null or empty, "deletion" will be assumed.
      */
     public SizeLimitedSelectionStrategy(long szlim, String purposeLabel) {
-        sizelimit = szlim;
-        if (purposeLabel != null && ! purposeLabel.equals(""))
-            purpose = purposeLabel;
+        this(szlim, purposeLabel, szlim);
     }
 
     /**
@@ -73,6 +95,8 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
         long sz = co.getSize();
         if (sz > 0 && co.score > 0) 
             totsz += sz;
+        if (suffic < need)
+            suffic = totsz;
         return co.score;
     }
 
@@ -112,7 +136,20 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
     public long getTotalSize() { return totsz; }
 
     /**
+     * return the total size the of the portion of the examined selection (provided via 
+     * {@link #score(CacheObject) score()}) that sufficiently meets the needed size
+     */
+    public long getSufficientSize() { return suffic; }
+
+    /**
      * return a new instance of this class configured with a different size limit
      */
-    public abstract SizeLimitedSelectionStrategy newForSize(long newsizelimit);
+    public abstract SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed);
+
+    /**
+     * return a new instance of this class configured with a different size limit
+     */
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
+        return newForSize(newsizelimit, newsizelimit);
+    }
 }

@@ -38,11 +38,34 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
     /**
      * create the strategy with a specified limit
      * @param szlim    the total size limit for selection sets
+     * @param needed   the nominal size that is actually needed in the selection.  This should be 
+     *                   less than or equal to szlim.  
+     */
+    public BySizeSelectionStrategy(long szlim, long needed) {
+        this(szlim, needed, 0.5 * 1e9);
+    }
+
+    /**
+     * create the strategy with a specified limit
+     * @param szlim    the total size limit for selection sets
      * @param normsz   the normalizing size.  This is a size (in bytes) which should 
      *                 receive a score of 1.0.  
      */
     public BySizeSelectionStrategy(long szlim, double normsz) {
         super(szlim, "deletion_s");
+        norm = normsz;
+    }
+
+    /**
+     * create the strategy with a specified limit
+     * @param szlim    the total size limit for selection sets
+     * @param needed   the nominal size that is actually needed in the selection.  This should be 
+     *                   less than or equal to szlim.  
+     * @param normsz   the normalizing size.  This is a size (in bytes) which should 
+     *                 receive a score of 1.0.  
+     */
+    public BySizeSelectionStrategy(long szlim, long needed, double normsz) {
+        super(szlim, "deletion_s", needed);
         norm = normsz;
     }
 
@@ -64,7 +87,7 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     @Override
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
-        return new BySizeSelectionStrategy(newsizelimit, norm);
+    public SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed) {
+        return new BySizeSelectionStrategy(newsizelimit, needed, norm);
     }    
 }
