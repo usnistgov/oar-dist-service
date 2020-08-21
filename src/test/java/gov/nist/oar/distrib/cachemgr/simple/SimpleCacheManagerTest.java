@@ -99,9 +99,9 @@ public class SimpleCacheManagerTest {
             cvlist.add(cv);
         }
 
-        OldSelectionStrategy ss = new OldSelectionStrategy(120000, 0, 0);
+        OldSelectionStrategy ss = new OldSelectionStrategy(120000, 120000, 0, 0);
         DeletionPlanner dp = new DefaultDeletionPlanner(sidb, cvlist, ss);
-        cache = new SimpleCache(sidb, cvlist, dp);
+        cache = new SimpleCache("Simple", sidb, cvlist, dp);
     }
 
     public File createRepo() throws IOException {

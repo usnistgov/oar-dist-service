@@ -122,9 +122,9 @@ public class SimpleCacheManagerZipTest {
             cvlist.add(cv);
         }
 
-        OldSelectionStrategy ss = new OldSelectionStrategy(1200000, 0, 0);
+        OldSelectionStrategy ss = new OldSelectionStrategy(1200000, 1200000, 0, 0);
         DeletionPlanner dp = new DefaultDeletionPlanner(sidb, cvlist, ss);
-        cache = new SimpleCache(sidb, cvlist, dp);
+        cache = new SimpleCache("Zippy", sidb, cvlist, dp);
     }
 
     @Test

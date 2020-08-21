@@ -51,14 +51,19 @@ public class SimpleCache extends BasicCache {
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
      * 
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb       the inventory database to use
      * @param volcount  the expected number of CacheVolumes that will be attached via addVolume()
      * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
      * @param log       a particular Logger instance that should be used.  If null, a default one
      *                    will be created.  
      */
-    public SimpleCache(StorageInventoryDB idb, int volcount, DeletionPlanner delplanner, Logger log) {
-        super(idb, volcount, log);
+    public SimpleCache(String name, StorageInventoryDB idb, int volcount, DeletionPlanner delplanner,
+                       Logger log)
+    {
+        super(name, idb, volcount, log);
         _setDefPlanner(delplanner);
     }
 
@@ -67,16 +72,19 @@ public class SimpleCache extends BasicCache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
      * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
      * @param log      a particular Logger instance that should be used.  If null, a default one
      *                   will be created.  
      */
-    public SimpleCache(StorageInventoryDB idb, Collection<CacheVolume> vols,
+    public SimpleCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols,
                        DeletionPlanner delplanner, Logger log)
     {
-        super(idb, vols, log);
+        super(name, idb, vols, log);
         _setDefPlanner(delplanner);
     }
 
@@ -85,14 +93,17 @@ public class SimpleCache extends BasicCache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
      * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
      */
-    public SimpleCache(StorageInventoryDB idb, Collection<CacheVolume> vols,
+    public SimpleCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols,
                        DeletionPlanner delplanner)
     {
-        this(idb, vols, delplanner, null);
+        this(name, idb, vols, delplanner, null);
     }
 
     /**
@@ -100,13 +111,16 @@ public class SimpleCache extends BasicCache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
      * @param log      a particular Logger instance that should be used.  If null, a default one
      *                   will be created.  
      */
-    public SimpleCache(StorageInventoryDB idb, Collection<CacheVolume> vols, Logger log) {
-        this(idb, vols, null, log);
+    public SimpleCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols, Logger log) {
+        this(name, idb, vols, null, log);
     }
 
     /**
@@ -114,11 +128,14 @@ public class SimpleCache extends BasicCache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb      the inventory database to use
      * @param vols     the CacheVolumes to attach to this cache
      */
-    public SimpleCache(StorageInventoryDB idb, Collection<CacheVolume> vols) {
-        this(idb, vols, (Logger) null);
+    public SimpleCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols) {
+        this(name, idb, vols, (Logger) null);
     }
 
     private void _setDefPlanner(DeletionPlanner delplanner) {
@@ -135,11 +152,14 @@ public class SimpleCache extends BasicCache {
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
      * 
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb       the (empty) inventory database to use
      * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
      */
-    public SimpleCache(StorageInventoryDB idb, DeletionPlanner delplanner) {
-        this(idb, 2, delplanner, null);
+    public SimpleCache(String name, StorageInventoryDB idb, DeletionPlanner delplanner) {
+        this(name, idb, 2, delplanner, null);
     }
 
     /**
@@ -148,13 +168,16 @@ public class SimpleCache extends BasicCache {
      * database, use 
      * {@link #SimpleCache(StorageInventoryDB,List)}.
      * 
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb   the (empty) inventory database to use
      * @param delplanner  the DeletionPlanner to use by default (until setDeletionPlanner() is called)
      * @param log   a particular Logger instance that should be used.  If null, a default one
      *                will be provided.  
      */
-    public SimpleCache(StorageInventoryDB idb, DeletionPlanner delplanner, Logger log) {
-        this(idb, 2, delplanner, log);
+    public SimpleCache(String name, StorageInventoryDB idb, DeletionPlanner delplanner, Logger log) {
+        this(name, idb, 2, delplanner, log);
     }
 
     /**
@@ -163,12 +186,15 @@ public class SimpleCache extends BasicCache {
      * database, use 
      * {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
      * 
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb   the (empty) inventory database to use
      * @param log   a particular Logger instance that should be used.  If null, a default one
      *                will be provided.  
      */
-    public SimpleCache(StorageInventoryDB idb, Logger log) {
-        this(idb, 2, null, log);
+    public SimpleCache(String name, StorageInventoryDB idb, Logger log) {
+        this(name, idb, 2, null, log);
     }
 
     /**
@@ -177,12 +203,15 @@ public class SimpleCache extends BasicCache {
      * database, use 
      * {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
      * 
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb   the (empty) inventory database to use
      * @param log   a particular Logger instance that should be used.  If null, a default one
      *                will be provided.  
      */
-    public SimpleCache(StorageInventoryDB idb) {
-        this(idb, 2, null, null);
+    public SimpleCache(String name, StorageInventoryDB idb) {
+        this(name, idb, 2, null, null);
     }
 
     /**

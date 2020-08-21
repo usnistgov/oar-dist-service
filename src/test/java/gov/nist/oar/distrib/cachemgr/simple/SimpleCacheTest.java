@@ -28,6 +28,7 @@ import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 
@@ -36,21 +37,28 @@ import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /*
  * tests BasicCache, too
  */
-public class SimpleCacheTest {
-
+public class SimpleCacheTest
+    implements SimpleCache.ReservationListener, SimpleCache.SaveListener, SimpleCache.DeletionListener
+{
     @Rule
     public final TemporaryFolder tempf = new TemporaryFolder();
 
     File dbf = null;
     StorageInventoryDB sidb = null;
     List<CacheVolume> cvlist = null;
+    SimpleCache cache = null;
+    String heard = "";
 
     String createDB() throws IOException, InventoryException {
         File tf = tempf.newFile("testdb.sqlite");
@@ -66,6 +74,8 @@ public class SimpleCacheTest {
 
     @Before
     public void setUp() throws IOException, InventoryException {
+        cache = null;
+        heard = "";
         dbf = new File(createDB());
         assertTrue(dbf.exists());
 
@@ -110,7 +120,7 @@ public class SimpleCacheTest {
 
     @Test
     public void testCtor() throws CacheManagementException {
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         DeletionPlanner ds = cache.getDeletionPlanner();
         assertNotNull("No planner!", ds);
         assertTrue("Can't find foobar2", cache.isCached("foobar2"));
@@ -120,7 +130,7 @@ public class SimpleCacheTest {
 
     @Test
     public void testUncache() throws CacheManagementException {
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         DeletionPlanner ds = cache.getDeletionPlanner();
         assertNotNull("No planner!", ds);
         assertTrue("Can't find foobar2", cache.isCached("foobar2"));
@@ -139,7 +149,7 @@ public class SimpleCacheTest {
     public void testFindObject() throws CacheManagementException {
         long now = System.currentTimeMillis();
         
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         DeletionPlanner ds = cache.getDeletionPlanner();
         assertNotNull("No planner!", ds);
         assertTrue("Can't find foobar2", cache.isCached("foobar2"));
@@ -164,7 +174,7 @@ public class SimpleCacheTest {
     public void testReserveSpaceWithPrefs() throws CacheManagementException {
         long now = System.currentTimeMillis();
         
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         assertNotNull("No planner!", cache.getDeletionPlanner());
 
         Reservation res = cache.reserveSpace(4000L, 0);
@@ -176,7 +186,7 @@ public class SimpleCacheTest {
     public void testReserveSpace2() throws CacheManagementException {
         long now = System.currentTimeMillis();
         
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         assertNotNull("No planner!", cache.getDeletionPlanner());
 
         Reservation res = cache.reserveSpace(20000L, 0);
@@ -188,12 +198,81 @@ public class SimpleCacheTest {
     public void testReserveSpace() throws CacheManagementException {
         long now = System.currentTimeMillis();
         
-        SimpleCache cache = new SimpleCache(sidb, cvlist);
+        cache = new SimpleCache("Simple", sidb, cvlist);
         assertNotNull("No planner!", cache.getDeletionPlanner());
 
         Reservation res = cache.reserveSpace(4000L);
         assertEquals(4000, res.getSize());
         assertEquals("cranky", res.getVolumeName());
+    }
+
+    public boolean objectsDeleted(Cache c, CacheVolume vol, List<String> deleted, long freed) {
+        Logger log = LoggerFactory.getLogger("SimpleCacheTest");
+        assertTrue("Unexpected cache given to listener", c == cache);
+        assertNotNull(vol);
+        log.info("Objects deleted from "+c.getName()+":"+vol.getName());
+        // assertNotNull(deleted);  // Not supported yet
+        // assertTrue(deleted.size() > 0);
+        assertTrue(freed > 0);
+        heard += String.format("freed on cranky: %d; ", freed);
+        return true;
+    }
+
+    public boolean objectSaved(Cache c, CacheObject obj) {
+        Logger log = LoggerFactory.getLogger("SimpleCacheTest");
+        assertTrue("Unexpected cache given to listener", c == cache);
+        assertNotNull(obj);
+        log.info("Saved object to "+c.getName()+":"+obj.volume.getName());
+        heard += String.format("saved to %s: %d; ", obj.volume.getName(), obj.getSize());
+        return true;
+    }
+            
+    public boolean reservationMade(Cache c, CacheVolume vol, long size) {
+        Logger log = LoggerFactory.getLogger("SimpleCacheTest");
+        assertTrue("Unexpected cache given to listener", c == cache);
+        assertNotNull(vol);
+        log.info("Reservation made in "+c.getName()+":"+vol.getName());
+        assertTrue(size > 0);
+        heard += String.format("reservation on %s: %d; ", vol.getName(), size);
+        return false;
+    }
+
+    @Test
+    public void testListeners() throws CacheManagementException {
+        long now = System.currentTimeMillis();
+        
+        cache = new SimpleCache("Simple", sidb, cvlist);
+        cache.addReservationListener(this);
+        cache.addDeletionListener(this);
+        cache.addSaveListener(this);
+        assertNotNull("No planner!", cache.getDeletionPlanner());
+
+        Reservation res = cache.reserveSpace(4000L);
+        assertEquals(4000, res.getSize());
+        assertEquals("cranky", res.getVolumeName());
+        assertTrue("Missing listener message in "+heard,
+                   heard.contains("reservation on cranky: 4000"));
+        assertTrue("Missing listener message in "+heard,
+                   heard.contains("freed on cranky: 10031"));
+
+        heard = "";
+        res = cache.reserveSpace(300L);
+        assertTrue("Missing listener message in "+heard,
+                   heard.contains("reservation on cranky: 300"));  // because listener was not removed
+        assertTrue("Unexpected listener message in "+heard,
+                   ! heard.contains("freed on cranky: "));  // because listener was removed
+
+        JSONObject md = new JSONObject();
+        md.put("size", 13L);
+        ByteArrayInputStream objstrm = new ByteArrayInputStream("file contents".getBytes());
+        try {
+            res.saveAs(objstrm, "Gurn", "gurn.txt", md);
+            assertTrue("Missing listener message in "+heard,
+                       heard.contains("saved to cranky: 13;"));
+        }
+        finally {
+            try { objstrm.close(); } catch (IOException ex) { }
+        }
     }
 
 }

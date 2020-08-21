@@ -269,6 +269,19 @@ public class DeletionPlan {
      * @throws InventoryException     if a failure occurs while trying to create the reservation
      */
     public Reservation executeAndReserve() throws DeletionFailureException, InventoryException {
+        return executeAndReserve(null);
+    }
+
+    /**
+     * execute the plan and return a reservation for the freed space.
+     * @param cache    the requesting cache which will get notified about deletion amounts via 
+     *                 {@link Cache#notifyObjectsDeleted(CacheVolume, List<String>, long)}.  If null,
+     *                 notifications will not be made. 
+     * @throws IllegalStateException  if the volume field is null 
+     * @throws DeletionFailureException  if the plan execution was not successful in freeing enough space
+     * @throws InventoryException     if a failure occurs while trying to create the reservation
+     */
+    public Reservation executeAndReserve(Cache cache) throws DeletionFailureException, InventoryException {
         if (volume == null)
             throw new IllegalStateException("No CacheVolume instance attached to this plan");
 
@@ -284,6 +297,8 @@ public class DeletionPlan {
         synchronized (volume) {
             try {
                 long removed = _execute();
+                if (cache != null)
+                    cache.notifyObjectsDeleted(volume, null, removed);
                 if (removed < toBeRemoved)
                     throw new DeletionFailureException("Deletion plan for "+volname+" proved insufficient: " +
                                                  Long.toString(toBeRemoved) + " bytes needed; removed only " +

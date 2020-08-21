@@ -14,6 +14,7 @@
 package gov.nist.oar.distrib.cachemgr;
 
 import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 
 import java.util.List;
 import java.util.Collection;
@@ -59,10 +60,13 @@ public abstract class BasicCache extends Cache {
      * database, use 
      * {@link #BasicCache(StorageInventoryDB,List)}.
      * 
-     * @param idb       the (empty) inventory database to use
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
+     * @param idb    the (empty) inventory database to use
      */
-    public BasicCache(StorageInventoryDB idb) {
-        this(idb, 2, null);
+    public BasicCache(String name, StorageInventoryDB idb) {
+        this(name, idb, 2, null);
     }
 
     /**
@@ -71,12 +75,15 @@ public abstract class BasicCache extends Cache {
      * database, use 
      * {@link #BasicCache(StorageInventoryDB,List)}.
      * 
+     * @param name  a name to give this cache.  In a system with multiple caches with 
+     *              different roles this provides a way to distinguish between the different 
+     *              caches in messages.
      * @param idb   the (empty) inventory database to use
      * @param log   a particular Logger instance that should be used.  If null, a default one
      *                will be provided.  
      */
-    public BasicCache(StorageInventoryDB idb, Logger log) {
-        this(idb, 2, log);
+    public BasicCache(String name, StorageInventoryDB idb, Logger log) {
+        this(name, idb, 2, log);
     }
 
     /**
@@ -84,16 +91,20 @@ public abstract class BasicCache extends Cache {
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
      * {@link #BasicCache(StorageInventoryDB,List)}.
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
      * @param idb       the inventory database to use
      * @param volcount  the expected number of CacheVolumes that will be attached via addVolume()
      * @param log       a particular Logger instance that should be used.  If null, a default one
      *                    will be created.  
      */
-    public BasicCache(StorageInventoryDB idb, int volcount, Logger log) {
+    public BasicCache(String name, StorageInventoryDB idb, int volcount, Logger log) {
+        super(name);
         db = idb;
         volumes = new HashMap<String, CacheVolume>(volcount);
         recent = new LinkedList<String>();
-        if (log == null) log = LoggerFactory.getLogger(this.getClass());
+        if (log == null) log = LoggerFactory.getLogger("BasicCache:"+name);
         this.log = log;
     }
 
@@ -102,11 +113,14 @@ public abstract class BasicCache extends Cache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
-     * @param idb      the inventory database to use
-     * @param vols     the CacheVolumes to attach to this cache
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
+     * @param idb    the inventory database to use
+     * @param vols   the CacheVolumes to attach to this cache
      */
-    public BasicCache(StorageInventoryDB idb, Collection<CacheVolume> vols) {
-        this(idb, vols, null);
+    public BasicCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols) {
+        this(name, idb, vols, null);
     }
 
     /**
@@ -114,13 +128,16 @@ public abstract class BasicCache extends Cache {
      * for recreating an instance of a Cache around previously persisted volumes and associated 
      * database.  Thus, the volumes and their contents should already be registered with the 
      * associated database.  
-     * @param idb      the inventory database to use
-     * @param vols     the CacheVolumes to attach to this cache
-     * @param log      a particular Logger instance that should be used.  If null, a default one
-     *                   will be created.  
+     * @param name   a name to give this cache.  In a system with multiple caches with 
+     *               different roles this provides a way to distinguish between the different 
+     *               caches in messages.
+     * @param idb    the inventory database to use
+     * @param vols   the CacheVolumes to attach to this cache
+     * @param log    a particular Logger instance that should be used.  If null, a default one
+     *                 will be created.  
      */
-    public BasicCache(StorageInventoryDB idb, Collection<CacheVolume> vols, Logger log) {
-        this(idb, vols.size(), log);
+    public BasicCache(String name, StorageInventoryDB idb, Collection<CacheVolume> vols, Logger log) {
+        this(name, idb, vols.size(), log);
         for (CacheVolume v : vols) {
             volumes.put(v.getName(), v);
             recent.add(v.getName());   // we start with an arbitrary order.
@@ -133,6 +150,7 @@ public abstract class BasicCache extends Cache {
      * @param id   the identifier for the data object of interest.
      * @throws InventoryException  if an error occurs while searching the inventory.
      */
+    @Override
     public boolean isCached(String id) throws CacheManagementException {
         return db.findObject(id).size() > 0;
     }
@@ -143,6 +161,7 @@ public abstract class BasicCache extends Cache {
      * @throws InventoryException  if an error occurs while searching or updating the inventory.
      * @throws CacheManagementException  if an error occurs removing the object from a volume
      */
+    @Override
     public void uncache(String id) throws CacheManagementException {
         List<CacheObject> cos = db.findObject(id);
         for (CacheObject co : cos) {
@@ -163,6 +182,7 @@ public abstract class BasicCache extends Cache {
      * @param id       the identifier for the data object of interest.
      * @throws InventoryException  if an error occurs while searching or updating the inventory.
      */
+    @Override
     public CacheObject findObject(String id) throws CacheManagementException {
         List<CacheObject> cos = db.findObject(id);
         if (cos.size() == 0)
@@ -216,6 +236,14 @@ public abstract class BasicCache extends Cache {
     }
 
     /**
+     * return the CacheVolume with the given name or null if name does not exist.  
+     */
+    @Override
+    protected CacheVolume getVolume(String name) {
+        return volumes.get(name);
+    }
+
+    /**
      * return a reservation for a given amount of space.  
      * <p>
      * This method will cycle through the available caches looking for space for adding a new
@@ -225,6 +253,7 @@ public abstract class BasicCache extends Cache {
      * @return Reservation   an object that provides a claim on space; its interface should be 
      *                     used to deliver the bytes into the cache when the object is available.  
      */
+    @Override
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {
         DeletionPlanner planner = getDeletionPlanner(preferences);
         List<DeletionPlan> plans = planner.orderDeletionPlans(bytes, volumes.values());
@@ -233,7 +262,25 @@ public abstract class BasicCache extends Cache {
         // do it.
         for (DeletionPlan dp : plans) {
             try {
-                return dp.executeAndReserve();
+                Reservation out = dp.executeAndReserve(this);
+
+                // Turning a volume name into a CacheVolume is a little tricky
+                CacheVolume vol = null;
+                try {
+                    if (out.getVolumeName() == null)
+                        throw new CacheManagementException("Null volume name in Reservation name!");
+                    vol = getVolume(out.getVolumeName());
+                }
+                catch (CacheManagementException e) {
+                    log.error("Unable to determine volume for Reservation: "+e.getMessage());
+                    log.warn("Sending NullCacheVolume to listeners");
+                    vol = new NullCacheVolume((out.getVolumeName() == null) ? "Unknown" : out.getVolumeName());
+                }
+
+                // notifiy reservation listeners
+                notifyReservationMade(vol, out.getSize());
+                out.cache = this;
+                return out;
             } catch (DeletionFailureException ex) {
                 log.warn(ex.getMessage());
                 log.info("Trying next plan...");
@@ -246,8 +293,26 @@ public abstract class BasicCache extends Cache {
     }
 
     /**
+     * warn about errors thrown by listeners
+     */
+    protected void warn(String message, Exception exc) {
+        log.warn(message, exc);
+    }
+        
+    /**
      * return a deletion planner for a particular use.
      * @param preferences  an and-ed set of bits indicating what the space will be used for.
      */
     protected abstract DeletionPlanner getDeletionPlanner(int preferences);
+
+    /**
+     * return the StorageInventoryDB instance that manages this Cache.
+     * <p>
+     * The StorageInventoryDB is made available for direct access and manipulation for purposes 
+     * other than caching and retrieving data.  In particular, external objects can conduct specific 
+     * maintenance tasks via custom queries to the inventory.  
+     */
+    public StorageInventoryDB getInventoryDB() {
+        return db;
+    }
 }

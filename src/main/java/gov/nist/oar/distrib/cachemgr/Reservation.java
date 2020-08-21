@@ -45,6 +45,11 @@ public class Reservation {
     protected StorageInventoryDB db = null;
 
     /**
+     * the Cache that issued this reservation
+     */
+    public Cache cache = null;
+
+    /**
      * instantiate the reservation
      * @param resname   a name that this reservation is represented by within the StorageInventoryDB.
      * @param volume    the CacheVolume instance for the volume where the space has been reserved.
@@ -136,6 +141,9 @@ public class Reservation {
                 metadata.put("size", is.count());
             out = db.addObject(id, vol.getName(), objname, metadata);
             out.volume = vol;
+
+            if (cache != null)
+                cache.notifyObjectSaved(out);
         }
         catch (StorageVolumeException ex) {
             // note the cache volume should be responsible for cleaning up after failure
