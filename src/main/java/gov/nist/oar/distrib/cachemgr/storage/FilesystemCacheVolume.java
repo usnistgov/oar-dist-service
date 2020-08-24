@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.net.URL;
+import java.net.MalformedURLException;
 
 import org.json.JSONObject;
 import org.apache.commons.io.FileUtils;
@@ -33,7 +34,7 @@ import org.apache.commons.io.FileUtils;
  * on a local disk.  
  *
  * The storage model has all data stored under a single directory.  Within that 
- * directory, objects are stored as files with the name as given to the addObject().
+ * directory, objects are stored as files with the name as given to addObject().
  * When that name includes a slash, the object file is stored in a subdirectory 
  * consistent with directory path implied by the name.  
  */
@@ -41,9 +42,10 @@ public class FilesystemCacheVolume implements CacheVolume {
 
     protected File root = null;
     protected String name = null;
+    protected String baseurl = null;
 
     /**
-     * create a FilesystemCacheVolume 
+     * create a FilesystemCacheVolume without support for {@link #getRedirectfor(String)}.
      * 
      * @param rootdir   the path to the root directory for the volume
      * @param name      a name to refer to this volume by (in exception messages)
@@ -57,6 +59,32 @@ public class FilesystemCacheVolume implements CacheVolume {
         if (name == null)
             name = rootdir;
         this.name = name;
+    }
+    
+    /**
+     * create a FilesystemCacheVolume 
+     * 
+     * @param rootdir          the path to the root directory for the volume
+     * @param name             a name to refer to this volume by (in exception messages)
+     * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
+     *                            when {@link #getRedirectFor(String)} is called.  This 
+     *                            implementation will form the URL by appending the object 
+     *                            name to this base URL.  Note that a delimiting slash will 
+     *                            <i>not</i> be automatically inserted; if a slash is needed, 
+     *                            it should be included as part of this base URL.  
+     * @throws FileNotFoundException  if the <code>rootdir</code> directory does not exist
+     * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
+     *                            legal URLs
+     */
+    public FilesystemCacheVolume(String rootdir, String name, String redirectBaseURL)
+        throws FileNotFoundException, MalformedURLException
+    {
+        this(rootdir, name);
+
+        baseurl = redirectBaseURL;
+        if (baseurl != null)
+            // make sure we can make proper URLs with this base
+            new URL(baseurl + "test");
     }
 
     /**
@@ -102,9 +130,13 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param from   an InputStream that contains the bytes the make up object 
      *                 to save
      * @param name   the name to assign to the object within the storage.  
+     * @param md     the metadata to be associated with that object (can be null).  This 
+     *                 parameter is ignored in this implementation.
      * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
-    public synchronized void saveAs(InputStream from, String name) throws StorageVolumeException {
+    public synchronized void saveAs(InputStream from, String name, JSONObject md)
+        throws StorageVolumeException
+    {
         File out = new File(root, name);
         try {
             FileUtils.copyToFile(from, out);
@@ -141,7 +173,7 @@ public class FilesystemCacheVolume implements CacheVolume {
         if (! obj.volume.exists(obj.name))
             throw new ObjectNotFoundException(obj.name, obj.volname);
 
-        this.saveAs(obj.volume.getStream(obj.name), name);
+        this.saveAs(obj.volume.getStream(obj.name), name, obj.exportMetadata());
     }
 
     /**
@@ -208,14 +240,23 @@ public class FilesystemCacheVolume implements CacheVolume {
      * to web clients than via a Java stream copy.  Not all implementations may
      * support this. 
      *
-     * This implementation always throws an UnsupportedOperationException.
+     * This implementation throws an UnsupportedOperationException if 
+     * {@linkplain #FilesystemCacheVolume(String,String,String) the constructor} was not 
+     * provided with a <code>redirectBaseURL</code> argument.
      *
      * @param name       the name of the object to get
      * @return URL      a URL where the object can be streamed from
      * @throws UnsupportedOperationException     always as this function is not supported
      */
     public URL getRedirectFor(String name) throws StorageVolumeException, UnsupportedOperationException {
-        throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
+        if (baseurl == null)
+            throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
+        try {
+            return new URL(baseurl + name);
+        }
+        catch (MalformedURLException ex) {
+            throw new StorageVolumeException("Failed to form legal URL: "+ex.getMessage(), ex);
+        }
     }
 
 

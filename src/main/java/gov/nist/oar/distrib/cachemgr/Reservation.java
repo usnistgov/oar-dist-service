@@ -124,7 +124,7 @@ public class Reservation {
         }
         CountingInputStream is = new CountingInputStream(from);
         try {
-            vol.saveAs(is, objname);
+            vol.saveAs(is, objname, metadata);
 
             if (size >= 0 && is.count() < size) {
                 // wrote fewer bytes than expected; assume something went wrong

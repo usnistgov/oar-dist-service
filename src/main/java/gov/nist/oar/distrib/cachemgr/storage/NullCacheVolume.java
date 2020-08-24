@@ -27,6 +27,9 @@ import java.io.FileNotFoundException;
 import java.net.URL;
 import java.util.HashSet;
 
+import org.json.JSONObject;
+import org.json.JSONException;
+
 /**
  * an implementation of the CacheVolume interface throws away all data put into it.  The 
  * data is returned as empty streams.  This implementation is provided primarily for 
@@ -76,9 +79,11 @@ public class NullCacheVolume implements CacheVolume {
      * @param from   an InputStream that contains the bytes the make up object 
      *                 to save
      * @param name   the name to assign to the object within the storage.  
+     * @param md     the metadata to be associated with that object (can be null).  This 
+     *                 parameter is ignored in this implementation.
      * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
-    public void saveAs(InputStream from, String name) throws StorageVolumeException {
+    public void saveAs(InputStream from, String name, JSONObject md) throws StorageVolumeException {
         byte[] buf = new byte[4096];
         try {
             while (from.read(buf) >= 0) { }
@@ -115,7 +120,7 @@ public class NullCacheVolume implements CacheVolume {
         if (! obj.volume.exists(obj.name))
             throw new ObjectNotFoundException(obj.volname, obj.name);
 
-        this.saveAs(obj.volume.getStream(obj.name), name);
+        this.saveAs(obj.volume.getStream(obj.name), name, obj.exportMetadata());
     }    
 
     /**

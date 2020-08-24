@@ -55,7 +55,7 @@ public class NullCacheVolumeTest {
         NullCacheVolume v = new NullCacheVolume("root");
         InputStream data = new ByteArrayInputStream(sb.toString().getBytes());
         try {
-            v.saveAs(data, "goob");
+            v.saveAs(data, "goob", null);
         } finally { data.close(); }
         assertTrue("Failed to find object in store", v.exists("goob"));
     }

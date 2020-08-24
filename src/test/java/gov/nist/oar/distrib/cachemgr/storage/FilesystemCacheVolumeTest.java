@@ -104,7 +104,7 @@ public class FilesystemCacheVolumeTest {
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         FileInputStream fs = new FileInputStream(obj);
         try {
-            v.saveAs(fs, "goob");
+            v.saveAs(fs, "goob", null);
         } finally { fs.close(); }
         File out = new File(v.getRootDir(), "goob");
         assertTrue(out.exists());

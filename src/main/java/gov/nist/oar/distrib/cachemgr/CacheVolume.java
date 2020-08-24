@@ -19,6 +19,9 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.net.URL;
 
+import org.json.JSONObject;
+import org.json.JSONException;
+
 /**
  * an interface to cache storage.  
  * 
@@ -59,9 +62,13 @@ public interface CacheVolume {
      *                 to save.  (The caller is responsible for closing the stream
      *                 after this method returns.)
      * @param name   the name to assign to the object within the storage.  
+     * @param md     the metadata to be associated with that object (can be null).  Note 
+     *                 some implementations ({@link AWSS3CacheVolume}) require that this 
+     *                 include the "size" property.  
      * @throws StorageVolumeException  if the method fails to save the object correctly.
+     * @throws JSONException   if a failure occurs while extracting values from the metadata
      */
-    public void saveAs(InputStream from, String name) throws StorageVolumeException;
+    public void saveAs(InputStream from, String name, JSONObject md) throws StorageVolumeException;
 
     /**
      * save a copy of an object currently stored in another volume.  If an object 
