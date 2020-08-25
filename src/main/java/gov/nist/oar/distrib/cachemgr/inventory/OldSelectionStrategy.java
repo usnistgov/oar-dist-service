@@ -14,9 +14,10 @@
 package gov.nist.oar.distrib.cachemgr.inventory;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 
 /**
- * a {@link gov.nist.oar.distrib.cachemgr.SelectionStrategy} implementation that selects the oldest 
+ * a {@link gov.nist.oar.distrib.cachemgr.DeletionStrategy} implementation that selects the oldest 
  * data objects for deletion (moderated by its priority).
  * <p>
  * This selection strategy is intended for selecting data objects in a cache to delete so to make 
@@ -130,7 +131,7 @@ public class OldSelectionStrategy extends SizeLimitedSelectionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     @Override
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed) {
+    public DeletionStrategy newForSize(long needed, long newsizelimit) {
         return new OldSelectionStrategy(newsizelimit, needed, getNormalPriority(), getMinimumAge());
     }    
 }

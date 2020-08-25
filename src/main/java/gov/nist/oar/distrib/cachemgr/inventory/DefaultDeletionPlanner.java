@@ -17,7 +17,7 @@ import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
 import gov.nist.oar.distrib.cachemgr.DeletionPlan;
-import gov.nist.oar.distrib.cachemgr.SelectionStrategy;
+import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
@@ -53,7 +53,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
 
     protected StorageInventoryDB invdb = null;
     protected Map<String, CacheVolume> volumes = null;
-    protected Map<String, SizeLimitedSelectionStrategy> strategies = null;
+    protected Map<String, DeletionStrategy> strategies = null;
 
     /**
      * a fractional overhead to apply to the total size requested in queries 
@@ -88,11 +88,11 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * @param strategy   the selection strategy to use to select deletable files
      */
     public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
-                                  SizeLimitedSelectionStrategy strategy, Logger log)
+                                  DeletionStrategy strategy, Logger log)
     {
         invdb = db;
         volumes = new HashMap<String, CacheVolume>(vols.size());
-        strategies = new HashMap<String, SizeLimitedSelectionStrategy>(vols.size());
+        strategies = new HashMap<String, DeletionStrategy>(vols.size());
         for (CacheVolume cv : vols) {
             volumes.put(cv.getName(), cv);
             strategies.put(cv.getName(), strategy);
@@ -103,21 +103,21 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
     }
 
     public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
-                                  SizeLimitedSelectionStrategy strategy)
+                                  DeletionStrategy strategy)
     {
         this(db, vols, strategy, null);
     }
     
     public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
-                                  Map<String, SizeLimitedSelectionStrategy> strats,
-                                  SizeLimitedSelectionStrategy defStrategy)
+                                  Map<String, DeletionStrategy> strats,
+                                  DeletionStrategy defStrategy)
     {
         this(db, vols, strats, defStrategy, null);
     }
 
     public DefaultDeletionPlanner(StorageInventoryDB db, Collection<CacheVolume> vols,
-                                  Map<String, SizeLimitedSelectionStrategy> strats,
-                                  SizeLimitedSelectionStrategy defStrategy, Logger log)
+                                  Map<String, DeletionStrategy> strats,
+                                  DeletionStrategy defStrategy, Logger log)
     {
         this(db, vols, defStrategy, log);
         for (String name : strats.keySet())
@@ -146,11 +146,11 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
         long removeBytes = Math.round((1 + delheadroom) * size) - avail;
 
         // There's not enough free space, we need to make some.
-        SizeLimitedSelectionStrategy strat =
-            getStrategyFor(volname, Math.round((1 + selheadroom) * (size - avail)));
+        DeletionStrategy strat =
+            getStrategyFor(volname, removeBytes, Math.round((1 + selheadroom) * (size - avail)));
         List<CacheObject> selected = invdb.selectObjectsFrom(volname, strat);
 
-        if (strat.getTotalSize() < removeBytes)
+        if (strat.getSufficientSize() < removeBytes)
             // Can't create a viable plan with this volume
             // (size is probably too big or there's not enough removable stuff in it)
             return null;
@@ -194,10 +194,10 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
      * there are errors in recorded size values or if a file cannot be removed when it comes time to 
      * do so.  
      */
-    protected SizeLimitedSelectionStrategy getStrategyFor(String volname, long size) {
-        SizeLimitedSelectionStrategy out = strategies.get(volname);
+    protected DeletionStrategy getStrategyFor(String volname, long need, long lim) {
+        DeletionStrategy out = strategies.get(volname);
         if (out != null)
-            out = out.newForSize(size);
+            out = out.newForSize(need, lim);
         return out;
     }
 

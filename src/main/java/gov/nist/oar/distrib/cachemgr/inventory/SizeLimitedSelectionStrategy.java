@@ -13,7 +13,7 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
-import gov.nist.oar.distrib.cachemgr.SelectionStrategy;
+import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 
 import java.util.Collections;
@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * a {@link gov.nist.oar.distrib.cachemgr.SelectionStrategy} implementation that selects 
+ * a {@link gov.nist.oar.distrib.cachemgr.SelectionStrategy} (and 
+ * {@link gov.nist.oar.distrib.cachemgr.DeletionStrategy}) implementation that selects 
  * {@link gov.nist.oar.distrib.cachemgr.CacheObject}s up to a set total size.  This is an abstract base 
  * class that requires subclasses to implement the scoring formula into a 
  * {@link #calculateScore(gov.nist.oar.distrib.cachemgr.CacheObject)} method.
@@ -29,9 +30,10 @@ import java.util.ArrayList;
  * When passed to the {@link gov.nist.oar.distrib.cachemgr.StorageInventoryDB#selectObjectsFrom(String,gov.nist.oar.distrib.cachemgr.SelectionStrategy) StorageInventoryDB.selectObjectsFrom()}
  * method, this will select {@link gov.nist.oar.distrib.cachemgr.CacheObject}s until the total size just exceeds 
  * a limit set at construction time.  The total size of the selected set may be lower than the limit
- * if cache volume being searched does not contain enough selectable data.  
+ * if cache volume being searched does not contain enough selectable data; if this is the case, 
+ * {@link #limitReached()} will return true.  
  */
-public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy {
+public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
 
     /**
      * the limit that the total size of all selected Objects can only just exceed 
@@ -144,12 +146,5 @@ public abstract class SizeLimitedSelectionStrategy implements SelectionStrategy 
     /**
      * return a new instance of this class configured with a different size limit
      */
-    public abstract SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed);
-
-    /**
-     * return a new instance of this class configured with a different size limit
-     */
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit) {
-        return newForSize(newsizelimit, newsizelimit);
-    }
+    public abstract DeletionStrategy newForSize(long needed, long sizelimit);
 }

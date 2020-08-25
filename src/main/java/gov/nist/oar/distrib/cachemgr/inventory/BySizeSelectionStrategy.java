@@ -14,9 +14,10 @@
 package gov.nist.oar.distrib.cachemgr.inventory;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 
 /**
- * a {@link gov.nist.oar.distrib.cachemgr.SelectionStrategy} implementation that selects the largest 
+ * a {@link gov.nist.oar.distrib.cachemgr.DeletionStrategy} implementation that selects the largest 
  * objects up to a specified total size limit.  
  * <p>
  * This is a simple implementation of the {@link SizeLimitedSelectionStrategy} where 
@@ -87,7 +88,7 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     @Override
-    public SizeLimitedSelectionStrategy newForSize(long newsizelimit, long needed) {
+    public DeletionStrategy newForSize(long needed, long newsizelimit) {
         return new BySizeSelectionStrategy(newsizelimit, needed, norm);
     }    
 }

@@ -179,7 +179,7 @@ public class DeletionPlan {
     }
 
     /**
-     * return the number of bytes that this plan expects to remove when the plan is executed.
+     * return the number of free bytes needed that resulted in this plan
      */
     public long getByteCountNeeded() {
         return spaceNeeded;
