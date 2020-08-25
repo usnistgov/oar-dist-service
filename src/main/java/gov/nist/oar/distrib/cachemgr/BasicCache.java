@@ -37,6 +37,11 @@ import org.json.JSONException;
  * capacities).  This class makes use of the database model of the JDBCStorageInventoryDB implementation;
  * however it does not require it.  Subclasses need only provide a {@link #getDeletionPlanner(int)} 
  * method.  
+ * <p>
+ * Because caches and their content are persistent, it is possible to provide a database that is not fully 
+ * in sync with the state of the cache volumes.  In particular, all volumes recorded in the storage inventory
+ * database may not be represented in the volumes attached to the cache at construction time; this 
+ * implementation is sensitive to this possibility and will ignore those volumes.  
  */
 public abstract class BasicCache extends Cache {
 
@@ -52,7 +57,7 @@ public abstract class BasicCache extends Cache {
     protected StorageInventoryDB db = null;
 
     private Deque<String> recent = null;
-    private Logger log = null;
+    protected Logger log = null;
 
     /**
      * create the Cache without volumes.  The provided inventory database should be empty of 
@@ -61,7 +66,7 @@ public abstract class BasicCache extends Cache {
      * {@link #BasicCache(StorageInventoryDB,List)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
-     *               different roles this provides a way to distinguish between the different 
+     *               different roles, this provides a way to distinguish between the different 
      *               caches in messages.
      * @param idb    the (empty) inventory database to use
      */
@@ -152,23 +157,40 @@ public abstract class BasicCache extends Cache {
      */
     @Override
     public boolean isCached(String id) throws CacheManagementException {
-        return db.findObject(id).size() > 0;
+        List<CacheObject> found = db.findObject(id, db.VOL_FOR_GET);
+        if (found.size() <= 0)
+            return false;
+        for(CacheObject co : found) {
+            if (volumes.containsKey(co.volname))
+                return true;
+            log.debug("Volume {} is not part of this cache", co.volname);
+            // log.warn("Volume {} is not part of this cache; updating its status", co.volname);
+            // db.setVolumeStatus(co.volname, db.VOL_FOR_INFO);
+        }
+        return false;
     }
 
     /**
-     * remove all copies of the data object with the given ID from the cache
+     * remove all copies of the data object with the given ID from the cache.  This will only remove 
+     * it from cache volumes that whose status allows for updates.  
      * @param id       the identifier for the data object of interest.
      * @throws InventoryException  if an error occurs while searching or updating the inventory.
      * @throws CacheManagementException  if an error occurs removing the object from a volume
      */
     @Override
     public void uncache(String id) throws CacheManagementException {
-        List<CacheObject> cos = db.findObject(id);
+        List<CacheObject> cos = db.findObject(id, db.VOL_FOR_UPDATE);
         for (CacheObject co : cos) {
             try {
-                if (volumes.containsKey(co.volname))
+                if (volumes.containsKey(co.volname)) {
                     volumes.get(co.volname).remove(co.name);
-                db.removeObject(co.volname, co.name);
+                    db.removeObject(co.volname, co.name);
+                }
+                else {
+                    log.debug("Volume {} is not part of this cache", co.volname);
+                    // log.warn("Volume {} is not part of this cache; updating its status", co.volname);
+                    // db.setVolumeStatus(co.volname, db.VOL_FOR_INFO);
+                }
             } catch (StorageVolumeException ex) {
                 throw new CacheManagementException("Problem removing obj, "+id+", from vol, "+
                                                    co.volname+": "+ ex.getMessage(), ex);
@@ -184,7 +206,7 @@ public abstract class BasicCache extends Cache {
      */
     @Override
     public CacheObject findObject(String id) throws CacheManagementException {
-        List<CacheObject> cos = db.findObject(id);
+        List<CacheObject> cos = db.findObject(id, db.VOL_FOR_GET);
         if (cos.size() == 0)
             return null;
 
@@ -193,7 +215,16 @@ public abstract class BasicCache extends Cache {
         for (CacheObject co : cos) {
             try {
                 vol = volumes.get(co.volname);
-                if (vol != null && vol.exists(co.name))
+                if (vol == null) {
+                    log.debug("Volume {} is not part of this cache", co.volname);
+                    // log.warn("Volume {} is not part of this cache; updating its status", co.volname);
+                    // db.setVolumeStatus(co.volname, db.VOL_FOR_INFO);
+                }                    
+                else if (! vol.exists(co.name)) {
+                    log.warn("object missing from volume, {} (updating db): {}", co.volname, co.name);
+                    db.removeObject(co.volname, co.name);
+                }
+                else 
                     return co;
             } catch (StorageVolumeException ex) {
                 log.error("Trouble interacting with volume="+co.volname, ex);
@@ -222,17 +253,11 @@ public abstract class BasicCache extends Cache {
         throws CacheManagementException
     {
         if (volumes.containsKey(vol.getName()))
-            throw new InventoryException(vol.getName() +
-                                         ": a volume with this name is already registered");
+            log.warn("Updating cache volume registration: "+vol.getName());
+
+        db.registerVolume(vol.getName(), capacity, metadata);
         volumes.put(vol.getName(), vol);
         recent.add(vol.getName());
-        try {
-            db.registerVolume(vol.getName(), capacity, metadata);
-        } catch (InventoryException ex) {
-            recent.removeLast();
-            volumes.remove(vol.getName());
-            throw ex;
-        }
     }
 
     /**
@@ -257,7 +282,10 @@ public abstract class BasicCache extends Cache {
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {
         DeletionPlanner planner = getDeletionPlanner(preferences);
         List<DeletionPlan> plans = planner.orderDeletionPlans(bytes, volumes.values());
+        return reserveSpace(plans);
+    }
 
+    protected Reservation reserveSpace(List<DeletionPlan> plans) throws CacheManagementException {
         // execute each plan until one produces the requisite space.  Typically, the first one should
         // do it.
         for (DeletionPlan dp : plans) {

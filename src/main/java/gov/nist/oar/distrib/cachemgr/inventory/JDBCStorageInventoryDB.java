@@ -186,7 +186,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      */
     public List<CacheObject> findObject(String id, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql);
-        sql.append("AND d.objid='").append(id).append("' AND v.status > ").append(purpose);
+        sql.append("AND d.objid='").append(id).append("' AND v.status >= ").append(purpose);
         if (purpose >= VOL_FOR_GET)
             sql.append(" AND d.cached=1");
         sql.append(";");
@@ -848,7 +848,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
         else {
             try {
-                // not registered yet
+                // was previously registered; update its information
                 if (_conn == null) connect();
                 PreparedStatement stmt = _conn.prepareStatement(upd_vol_sql);
                 stmt.setLong(1, capacity);
