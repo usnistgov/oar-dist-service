@@ -18,6 +18,7 @@ import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 
 import java.util.List;
 import java.util.Collection;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -150,6 +151,11 @@ public abstract class BasicCache extends Cache {
     }
 
     /**
+     * return the names of the volumes that comprise this cache
+     */
+    public Set<String> volumeNames() { return volumes.keySet(); }
+
+    /**
      * return true if the data object with the given identifier is held in the cache.  This is 
      * done by searching for an entry in the inventory database.
      * @param id   the identifier for the data object of interest.
@@ -246,16 +252,50 @@ public abstract class BasicCache extends Cache {
      * @param vol       the CacheVolume to add to this Cache
      * @param capacity  the limit on the amount of space available for data objects
      * @param metadata  additional metadata about the volume.  Can be null.
+     * @param updmd     if false, the metadata (including the capacity) is not updated
+     *                    if the volume's name is already registered in the inventory.
+     *                    If true, the metadata is update regardless, except that the 
+     *                    status will not be upgraded.  
      * @throws InventoryException  if a problem occurs while registering the volume with 
      *                  the inventory database.
      */
-    public void addCacheVolume(CacheVolume vol, int capacity, JSONObject metadata)
+    public void addCacheVolume(CacheVolume vol, int capacity, JSONObject metadata, boolean updmd)
         throws CacheManagementException
     {
-        if (volumes.containsKey(vol.getName()))
-            log.warn("Updating cache volume registration: "+vol.getName());
+        if (metadata == null)
+            metadata = new JSONObject();
 
-        db.registerVolume(vol.getName(), capacity, metadata);
+        JSONObject md = null;
+        try { md = db.getVolumeInfo(vol.getName()); } catch (VolumeNotFoundException ex) { }
+        if (md != null) {
+            // this volume is already registered in the database
+            if (updmd) {
+                log.info("Updating cache volume registration: "+vol.getName());
+                for (String name : JSONObject.getNames(metadata)) {
+                    try {
+                        // Don't allow status to be upgraded
+                        if (name.equals("status") && 
+                            md.optInt("status", db.VOL_FOR_UPDATE) < metadata.getInt("status"))
+                          log.warn("Cannot upgrade status of volume, {}; keeping it at level={}",
+                                   vol.getName(), md.optInt("status", db.VOL_FOR_UPDATE));
+                        else
+                          md.put(name, metadata.get(name));
+                    } catch (JSONException ex) {
+                        log.warn("Skipping update of volume metadata property, {}, due to trouble: {}",
+                                 name, ex.getMessage());
+                    }
+                }
+            }
+        }
+        else {
+            updmd = true;
+            md = metadata;
+        }
+        if (md.has("capacity"))
+            md.remove("capacity");
+
+        if (updmd)
+            db.registerVolume(vol.getName(), capacity, md);
         volumes.put(vol.getName(), vol);
         recent.add(vol.getName());
     }

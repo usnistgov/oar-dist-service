@@ -29,6 +29,7 @@ import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.Cache;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.io.File;
 import java.io.ByteArrayInputStream;
 import java.util.Collection;
+import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -49,7 +51,8 @@ import org.slf4j.LoggerFactory;
  * tests BasicCache, too
  */
 public class SimpleCacheTest
-    implements SimpleCache.ReservationListener, SimpleCache.SaveListener, SimpleCache.DeletionListener
+    implements SimpleCache.ReservationListener, SimpleCache.SaveListener, SimpleCache.DeletionListener,
+               VolumeStatus
 {
     @Rule
     public final TemporaryFolder tempf = new TemporaryFolder();
@@ -273,6 +276,72 @@ public class SimpleCacheTest
         finally {
             try { objstrm.close(); } catch (IOException ex) { }
         }
+    }
+
+    @Test
+    public void testVolumeNames() {
+        cache = new SimpleCache("Simple", sidb, cvlist);
+        Set<String> volnames = cache.volumeNames();
+        assertTrue("Missing volume", volnames.contains("cranky"));
+        assertTrue("Missing volume", volnames.contains("foobar"));
+    }
+
+    @Test
+    public void testAddCacheVolume() throws CacheManagementException {
+        cache = new SimpleCache("Simple", sidb, cvlist);
+        Set<String> volnames = cache.volumeNames();
+        assertTrue("Missing volume", volnames.contains("cranky"));
+        assertTrue("Missing volume", volnames.contains("foobar"));
+        assertTrue("Missing volume", ! volnames.contains("noobie"));
+
+        // add new volume for first time
+        CacheVolume vol = new NullCacheVolume("noobie");
+        cache.addCacheVolume(vol, 50000, null, false);
+        volnames = cache.volumeNames();
+        assertTrue("Missing volume", volnames.contains("cranky"));
+        assertTrue("Missing volume", volnames.contains("foobar"));
+        assertTrue("Missing volume", volnames.contains("noobie"));
+        
+        // vol = cache.getVolume("noobie");
+        // assertNotNull(vol);
+
+        JSONObject md = cache.getInventoryDB().getVolumeInfo("noobie");
+        assertEquals(md.getInt("status"), VOL_FOR_UPDATE);
+        assertEquals(md.getLong("capacity"), 50000);
+
+        // update the metadata
+        md = new JSONObject();
+        md.put("status", VOL_FOR_GET);
+        md.put("foo", "bar");
+        cache.addCacheVolume(vol, 60000, md, true);
+        
+        md = cache.getInventoryDB().getVolumeInfo("noobie");
+        assertEquals(md.getInt("status"), VOL_FOR_GET);
+        assertEquals(md.getLong("capacity"), 60000);
+        assertEquals(md.getString("foo"), "bar");
+
+        // update the metadata again, but try upgrading status
+        md = new JSONObject();
+        md.put("status", VOL_FOR_UPDATE);
+        md.put("foo", "bend");
+        cache.addCacheVolume(vol, 40000, md, true);
+        
+        md = cache.getInventoryDB().getVolumeInfo("noobie");
+        assertEquals(md.getInt("status"), VOL_FOR_GET);
+        assertEquals(md.getLong("capacity"), 40000);
+        assertEquals(md.getString("foo"), "bend");
+
+        // test update only if not registered
+        md = new JSONObject();
+        md.put("status", VOL_FOR_UPDATE);
+        md.put("foo", "bar");
+        cache.addCacheVolume(vol, 50000, md, false);
+        
+        md = cache.getInventoryDB().getVolumeInfo("noobie");
+        assertEquals(md.getInt("status"), VOL_FOR_GET);
+        assertEquals(md.getLong("capacity"), 40000);
+        assertEquals(md.getString("foo"), "bend");
+        
     }
 
 }

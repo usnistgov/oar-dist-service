@@ -811,11 +811,15 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         String nm = "priority", jmd = null;
         if (metadata != null) {
             try {
-                priority = (Integer) metadata.get(nm);
+                priority = (Integer) metadata.opt(nm);
                 nm = "status";
                 status = metadata.optInt(nm, status);
             }
             catch (JSONException ex) {
+                throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
+                                                     ex.getMessage(), nm, ex);
+            }
+            catch (ClassCastException ex) {
                 throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
                                                      ex.getMessage(), nm, ex);
             }
@@ -825,6 +829,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (id < 0) {
             try {
                 // not registered yet
+                // FYI: add_vol_sql =
+                //   "INSERT INTO volumes(name,capacity,priority,status,metadata) VALUES (?,?,?,?,?)";
                 if (_conn == null) connect();
                 PreparedStatement stmt = _conn.prepareStatement(add_vol_sql);
                 stmt.setString(1, name);
@@ -849,6 +855,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         else {
             try {
                 // was previously registered; update its information
+                // FYI: upd_vol_sql =
+                //    "UPDATE volumes SET capacity=?, priority=?, status=?, metadata=? WHERE name=?";
                 if (_conn == null) connect();
                 PreparedStatement stmt = _conn.prepareStatement(upd_vol_sql);
                 stmt.setLong(1, capacity);
