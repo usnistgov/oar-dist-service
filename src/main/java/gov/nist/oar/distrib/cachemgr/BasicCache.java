@@ -271,7 +271,9 @@ public abstract class BasicCache extends Cache {
             // this volume is already registered in the database
             if (updmd) {
                 log.info("Updating cache volume registration: "+vol.getName());
-                for (String name : JSONObject.getNames(metadata)) {
+                String[] mdnames = JSONObject.getNames(metadata);
+                if (mdnames == null) mdnames = new String[0];
+                for (String name : mdnames) {
                     try {
                         // Don't allow status to be upgraded
                         if (name.equals("status") && 

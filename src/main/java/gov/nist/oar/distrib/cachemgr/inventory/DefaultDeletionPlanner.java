@@ -20,6 +20,7 @@ import gov.nist.oar.distrib.cachemgr.DeletionPlan;
 import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.DeletionFailureException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 
@@ -274,7 +275,7 @@ public class DefaultDeletionPlanner implements DeletionPlanner {
             if (errs.size() > 0) 
                 msg += ", possibly due to unexpected errors (see log)";
             log.error(msg);
-            throw new CacheManagementException(msg);
+            throw new DeletionFailureException(msg);
         }
 
         // order that list by the plan score, lowest to highest.  Note that with plan scores, 
