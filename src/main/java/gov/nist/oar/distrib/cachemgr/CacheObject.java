@@ -212,6 +212,9 @@ public class CacheObject {
      * return a copy of the metadata as a JSONObject instance
      */
     public JSONObject exportMetadata() {
-        return new JSONObject(_md, JSONObject.getNames(_md));
+        String[] names = JSONObject.getNames(_md);
+        if (names == null)
+            return new JSONObject();
+        return new JSONObject(_md, names);
     }
 }
