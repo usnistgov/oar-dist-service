@@ -129,7 +129,7 @@ public interface StorageInventoryDB extends VolumeStatus {
 
     /**
      * update the time of last access for an object to the current time.
-     * <pre>
+     * <p>
      * Note that this time should be initialized automatically when the object is first added
      * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
      * should not be necessary to call this to initialize the access time.
