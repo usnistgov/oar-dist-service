@@ -19,6 +19,7 @@ import java.io.Reader;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,5 +123,30 @@ public abstract class PDRBagStorageBase implements BagStorage {
         if (bags.size() == 0)
             throw ResourceNotFoundException.forID(identifier, version);
         return BagUtils.findLatestHeadBag(bags);
+    }
+
+    /**
+     * Return the names of the serialized bag files for the given bag name.  The input name is the bag's 
+     * root directory, and each name in the output collection will be (typically) be the root directory 
+     * name appended with a file extension indicating the serialization method that applied to the bag.
+     * Normally, the output collection will contain only one filename; however, in principle, multiple,
+     * different serializations may be available for a bag. 
+     * <p>
+     * This implementation requires that the input name be a legal bagname or it will throw a 
+     * FileNotFoundException.  
+     */
+    @Override
+    public Collection<String> getSerializationsForBag(String bagname)
+        throws FileNotFoundException, StorageVolumeException
+    {
+        if (! BagUtils.isLegalBagName(bagname))
+            throw new FileNotFoundException(bagname+" (not a legal bag name)");
+        try {
+            // we happen to know that subclass implementations of findBagsFor() will work for this, too.
+            return findBagsFor(bagname);
+        }
+        catch (ResourceNotFoundException ex) {
+            throw new FileNotFoundException(bagname);
+        }
     }
 }

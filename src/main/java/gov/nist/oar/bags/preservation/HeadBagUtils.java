@@ -18,6 +18,8 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -44,7 +46,35 @@ import org.json.JSONTokener;
  */
 public class HeadBagUtils {
 
-    public static final String DEFAULT_MULTIBAG_VERSION = "0.4";
+    /**
+     * the default version of the Multibag standard that should be adopted when otherwise not 
+     * specified.
+     */
+    public final static String DEFAULT_MULTIBAG_VERSION = "0.4";
+
+    /**
+     * the file path for the Multibag file-lookup file relative to a bag's root directory (according 
+     * to the latest version of the Multibag standard).
+     */
+    public final static Path FILE_LOOKUP = Paths.get("multibag", "file-lookup.tsv");
+
+    /**
+     * the file path for the Multibag file-lookup file relative to a bag's root directory (according 
+     * to the version 0.2 of the Multibag standard).
+     */
+    public final static Path FILE_LOOKUP_V02 = Paths.get("multibag", "group-directory.txt");
+
+    /**
+     * the file path for the Multibag file listing the member bag names that are part of a Multibag 
+     * aggregation (according to the latest version of the Multibag standard).
+     */
+    public final static Path MEMBER_BAGS = Paths.get("multibag", "member-bags.tsv");
+
+    /**
+     * the file path for the Multibag file listing the member bag names that are part of a Multibag 
+     * aggregation (according to the version 0.2 of the Multibag standard).
+     */
+    public final static Path MEMBER_BAGS_V02 = Paths.get("multibag", "group-members.txt");
 
     /**
      * return the name of the bag that contains a desired file.  The bag name will <em>not</em> include 

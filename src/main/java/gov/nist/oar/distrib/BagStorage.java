@@ -12,6 +12,8 @@
 package gov.nist.oar.distrib;
 
 import java.util.List;
+import java.util.Collection;
+import java.io.FileNotFoundException;
 
 /**
  * an extended interface for a {@link LongTermStorage} used to store bags that serve as parts of 
@@ -42,7 +44,7 @@ public interface BagStorage extends LongTermStorage {
      * @return List<String>, the file names for all bags associated with given ID
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier
      */
-    List<String> findBagsFor(String identifier) throws ResourceNotFoundException, StorageVolumeException;
+    public List<String> findBagsFor(String identifier) throws ResourceNotFoundException, StorageVolumeException;
 
     /**
      * Return the head bag associated with the given ID
@@ -50,7 +52,7 @@ public interface BagStorage extends LongTermStorage {
      * @return String, the head bag's file name
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier
      */
-    String findHeadBagFor(String identifier) throws ResourceNotFoundException, StorageVolumeException; 
+    public String findHeadBagFor(String identifier) throws ResourceNotFoundException, StorageVolumeException; 
 
     /**
      * Return the name of the head bag for the identifier for given version
@@ -59,8 +61,17 @@ public interface BagStorage extends LongTermStorage {
      * @return String, the head bag's file name
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
      */
-    String findHeadBagFor(String identifier, String version)
+    public String findHeadBagFor(String identifier, String version)
         throws ResourceNotFoundException, StorageVolumeException;
 
+    /**
+     * Return the names of the serialized bag files for the given bag name.  The input name is the bag's 
+     * root directory, and each name in the output collection will be (typically) be the root directory 
+     * name appended with a file extension indicating the serialization method that applied to the bag.
+     * Normally, the output collection will contain only one filename; however, in principle, multiple,
+     * different serializations may be available for a bag. 
+     */
+    public Collection<String> getSerializationsForBag(String bagname)
+        throws FileNotFoundException, StorageVolumeException;
 }
     
