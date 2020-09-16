@@ -51,13 +51,23 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param name      a name to refer to this volume by (in exception messages)
      */
     public FilesystemCacheVolume(String rootdir, String name) throws FileNotFoundException {
-        root = new File(rootdir);
-        if (! root.exists())
-            throw new FileNotFoundException(rootdir + ": directory not found");
-        if (! root.isDirectory())
-            throw new FileNotFoundException(rootdir + ": not found as a directory");
+        this(new File(rootdir), name);
+    }
+
+    /**
+     * create a FilesystemCacheVolume without support for {@link #getRedirectfor(String)}.
+     * 
+     * @param rootdir   the root directory for the volume
+     * @param name      a name to refer to this volume by (in exception messages)
+     */
+    public FilesystemCacheVolume(File rootdir, String name) throws FileNotFoundException {
+        if (! rootdir.exists())
+            throw new FileNotFoundException(rootdir.toString() + ": directory not found");
+        if (! rootdir.isDirectory())
+            throw new FileNotFoundException(rootdir.toString() + ": not found as a directory");
         if (name == null)
-            name = rootdir;
+            name = rootdir.toString();
+        this.root = rootdir;
         this.name = name;
     }
     
@@ -79,6 +89,27 @@ public class FilesystemCacheVolume implements CacheVolume {
     public FilesystemCacheVolume(String rootdir, String name, String redirectBaseURL)
         throws FileNotFoundException, MalformedURLException
     {
+        this(new File(rootdir), name, redirectBaseURL);
+    }
+    
+    /**
+     * create a FilesystemCacheVolume 
+     * 
+     * @param rootdir          the path to the root directory for the volume
+     * @param name             a name to refer to this volume by (in exception messages)
+     * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
+     *                            when {@link #getRedirectFor(String)} is called.  This 
+     *                            implementation will form the URL by appending the object 
+     *                            name to this base URL.  Note that a delimiting slash will 
+     *                            <i>not</i> be automatically inserted; if a slash is needed, 
+     *                            it should be included as part of this base URL.  
+     * @throws FileNotFoundException  if the <code>rootdir</code> directory does not exist
+     * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
+     *                            legal URLs
+     */
+    public FilesystemCacheVolume(File rootdir, String name, String redirectBaseURL)
+        throws FileNotFoundException, MalformedURLException
+    {
         this(rootdir, name);
 
         baseurl = redirectBaseURL;
@@ -95,7 +126,18 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @param rootdir   the path to the root directory for the volume
      */
     public FilesystemCacheVolume(String rootdir) throws FileNotFoundException {
-        this(rootdir, rootdir);
+        this(new File(rootdir));
+    }
+
+    /**
+     * create a FilesystemCacheVolume.
+     *
+     * The volume's name (used in exception messages) will be set to the root directory path.
+     * 
+     * @param rootdir   the path to the root directory for the volume
+     */
+    public FilesystemCacheVolume(File rootdir) throws FileNotFoundException {
+        this(rootdir, rootdir.toString());
     }
     
     /**
