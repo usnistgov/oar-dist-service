@@ -143,7 +143,7 @@ public class FromBagFileDownloadServiceTest {
         sh = svc.getDataFile("mds1491", "trial3/trial3a.json", null);
         assertNotNull(sh.dataStream);
         assertEquals("trial3/trial3a.json", sh.getInfo().name);
-        assertEquals(70, sh.getInfo().contentLength);
+        assertEquals(553, sh.getInfo().contentLength);
 
         rdr = new BufferedReader(new InputStreamReader(sh.dataStream));
         line = rdr.readLine();
@@ -157,7 +157,7 @@ public class FromBagFileDownloadServiceTest {
 
         rdr = new BufferedReader(new InputStreamReader(sh.dataStream));
         line = rdr.readLine();
-        assertTrue(line.startsWith("d155d99281"));
+        assertTrue(line.startsWith("ccf6d9df96"));
         rdr.close();
     }
 
