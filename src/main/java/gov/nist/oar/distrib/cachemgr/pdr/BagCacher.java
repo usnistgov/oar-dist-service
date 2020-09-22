@@ -126,7 +126,7 @@ public class BagCacher implements PDRCacheRoles {
         String headbag = bagstore.findHeadBagFor(aipid);  // may throw ResoruceNotFoundException
         try {
             List<String> parts = BagUtils.parseBagName(headbag);
-            String version = parts.get(1);
+            String version = parts.get(1).replaceAll("_", ".");
             String sertype = parts.get(4);
             mdcache.setLatestVersion(aipid, version);
 
@@ -145,14 +145,12 @@ public class BagCacher implements PDRCacheRoles {
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         int prefs = defprefs;
-        if ((defprefs & ROLE_OLD_VERSIONS) == 0)
-            prefs = ROLE_SMALL_OBJECTS;
 
-        // start by emptying the contents of the head bag
-        Set<String> cached = new HashSet<String>();
+        // start by getting the metadata from the head bag
         InputStream fs = bagstore.openFile(headbag);
         try {
-            cacheFromBag(aipid, version, fs, ser, prefs, null, cached);
+            // we extract only metadata on this visit
+            cacheFromBag(aipid, version, fs, ser, 0, null, null);
         }
         finally {
             try { fs.close(); }
@@ -161,55 +159,52 @@ public class BagCacher implements PDRCacheRoles {
             }
         }
 
+        Set<String> cached = new HashSet<String>();
         Set<String> missing = new HashSet<String>(2);
         try {
-            // mdcache will now have dataset's metadata; use it to update the file metadata (namely, checksums)
-            updateMetadataFor(aipid, version, cached);
-            
             // Now cache data files from other member bags
-            Collection<String> need = null, got = null;
+            Collection<String> got = null, need = null;
             Collection<String> bags = mdcache.getMemberBags(aipid, version);
-            if (bags.size() < 2 && (defprefs & ROLE_OLD_VERSIONS) == 0)
-                prefs = ROLE_SMALL_OBJECTS;
+            
+            // if (bags.size() < 2 && (defprefs & ROLE_OLD_VERSIONS) == 0)
+            //    prefs = ROLE_SMALL_OBJECTS;
                 
             for (String member : bags) {
-                if (! member.equals(headbag)) {
-                    need = mdcache.getDataFilesInBag(aipid, version, member);
-                    if (need.size() == 0)
-                        continue;
+                need = mdcache.getDataFilesInBag(aipid, version, member);
+                if (need.size() == 0)
+                    continue;
+                try {
+                    /*
+                     * use this to select any supported format
+                    member = bagstore.getSerializationsForBag(member).stream()
+                        .filter(b -> b.endsWith(".zip"))
+                        .findFirst().orElse(null);
+                    if (member == null)
+                        throw new FileNotFoundException()
+                     *
+                     * going with simple implementation for now
+                     */
+                    if (! member.endsWith(".zip"))
+                        member = member+".zip";
+                    fs = bagstore.openFile(member);
+                    got = new HashSet<String>();
                     try {
-                        /*
-                         * use this to select any supported format
-                        member = bagstore.getSerializationsForBag(member).stream()
-                            .filter(b -> b.endsWith(".zip"))
-                            .findFirst().orElse(null);
-                        if (member == null)
-                            throw new FileNotFoundException()
-                         *
-                         * going with simple implementation for now
-                         */
-                        if (! member.endsWith(".zip"))
-                            member = member+".zip";
-                        fs = bagstore.openFile(member);
-                        got = new HashSet<String>();
-                        try {
-                            cacheFromBag(aipid, version, fs, ser, prefs, need, got);
-                        }
-                        finally {
-                            try { fs.close(); }
-                            catch (IOException ex) {
-                                log.warn("Trouble closing bag file, {}: {}", member, ex.getMessage());
-                            }
-                        }
-                    }
-                    catch (FileNotFoundException ex) {
-                        log.error("Member bag not found in store (skipping): "+member);
+                        cacheFromBag(aipid, version, fs, ser, prefs, need, got);
                     }
                     finally {
-                        if (need.size() > 0) missing.addAll(need);
-                        updateMetadataFor(aipid, version, got);
-                        cached.addAll(got);
+                        try { fs.close(); }
+                        catch (IOException ex) {
+                            log.warn("Trouble closing bag file, {}: {}", member, ex.getMessage());
+                        }
                     }
+                }
+                catch (FileNotFoundException ex) {
+                    log.error("Member bag not found in store (skipping): "+member);
+                }
+                finally {
+                    if (need.size() > 0) missing.addAll(need);
+                    updateMetadataFor(aipid, version, got);
+                    cached.addAll(got);
                 }
             }
         } catch (InventoryException ex) {
@@ -343,19 +338,21 @@ public class BagCacher implements PDRCacheRoles {
     {
         int errcnt = 0, errlim = 5;
         Path fname = null;
+        int prefs = defprefs;
         try {
             ZipInputStream zipstrm = new ZipInputStream(in);
             ZipEntry ze = zipstrm.getNextEntry();
             while (ze != null) {
                 if (! ze.isDirectory()) {
                     fname = Paths.get(ze.getName()).normalize();
-                    if ((defprefs & ROLE_OLD_VERSIONS) == 0 && ze.getSize() > smszlim)
-                        defprefs = ROLE_LARGE_OBJECTS;
+                    prefs = defprefs;
+                    if ((prefs & ROLE_OLD_VERSIONS) == 0 && ze.getSize() <= smszlim)
+                        prefs = ROLE_SMALL_OBJECTS;
                     if (fname.getRoot() != null) 
                         throw new CacheManagementException("Zipped bag file contains unexpected root: "+
                                                            fname.getRoot());
                     try {
-                        handleBagFile(aipid, version, fname, ze.getSize(), zipstrm, defprefs, need, cached);
+                        handleBagFile(aipid, version, fname, ze.getSize(), zipstrm, prefs, need, cached);
                     }
                     catch (JSONException ex) {
                         log.error("Problem parsing JSON file="+fname+" from zipped bag: "+ex.getMessage(), ex);
@@ -376,25 +373,50 @@ public class BagCacher implements PDRCacheRoles {
         }
     }
 
+    /**
+     * process a file contained in a bag.  The type of processing done depends on the value of 
+     * {@code cached}: if null, the caller is requesting just metadata; otherwise, the caller is 
+     * requesting data.  
+     * @param aipid    the identifier for the AIP.  
+     * @param version  the version of the AIP that should 
+     * @param in       the open bag file stream
+     * @param sertype  the bag's serialization file extension
+     * @param files    an editable set of names of data files to be extract from the associated bag.  The
+     *                    files are specified as filepaths relative to the data directory.  When 
+     *                    {@code cached} is not null, this method will remove members from the set as the 
+     *                    files are cached such that when this method returns, the set will only contain 
+     *                    names of files that were not found in the bag.  If null, all data files found 
+     *                    in the bag will be extracted.  This parameter is ignored and left unchanged if 
+     *                    {@code cached} is null.
+     * @param cached   an editable set of strings.  If not null, the filepaths to data files will be 
+     *                    added to this set as they are cached.  When {@code cached} is null, this method
+     *                    will assume that only metadata is desired from the bag.  
+     */
     protected void handleBagFile(String aipid, String version, Path fname, long size, InputStream in, 
                                  int defprefs, Collection<String> need, Collection<String> cached)
         throws IOException, CacheManagementException
     {
         if (fname.getNameCount() < 2) 
             return;
-        
-        if (fname.subpath(1, 2).startsWith("data")) {
-            fname = fname.subpath(2, fname.getNameCount());
-            cacheDataFile(aipid, version, fname, size, in, defprefs, need, cached);
+
+        if (cached != null) {
+            // data files are desired
+            if (fname.subpath(1, 2).startsWith("data") && ! fname.toString().endsWith(".sha256")) {
+                fname = fname.subpath(2, fname.getNameCount());
+                cacheDataFile(aipid, version, fname, size, in, defprefs, need, cached);
+            }
         }
-        else if (fname.subpath(1, 2).startsWith("metadata") && fname.endsWith("nerdm.json")) {
-            ingestNERDmFile(aipid, version, fname, in);
-        }
-        else if (fname.endsWith(HeadBagUtils.FILE_LOOKUP)) {
-            ingestFileLookup(aipid, version, in);
-        }
-        else if (fname.endsWith(HeadBagUtils.FILE_LOOKUP_V02)) {
-            ingestFileLookupV02(aipid, version, in);
+        else {
+            // only metadata files are desired
+            if (fname.subpath(1, 2).startsWith("metadata") && fname.endsWith("nerdm.json")) {
+                ingestNERDmFile(aipid, version, fname, in);
+            }
+            else if (fname.endsWith(HeadBagUtils.FILE_LOOKUP)) {
+                ingestFileLookup(aipid, version, in);
+            }
+            else if (fname.endsWith(HeadBagUtils.FILE_LOOKUP_V02)) {
+                ingestFileLookupV02(aipid, version, in);
+            }
         }
     }
 
@@ -410,8 +432,8 @@ public class BagCacher implements PDRCacheRoles {
             while ((line = bs.readLine()) != null) {
                 flds = line.split("\t");
                 bagpath = Paths.get(flds[0]);
-                if (bagpath.startsWith("data")) {
-                    bagpath = bagpath.subpath(1, 2);
+                if (bagpath.startsWith("data") && ! bagpath.toString().endsWith(".sha256")) {
+                    bagpath = bagpath.subpath(1, bagpath.getNameCount());
                     lu.map(bagpath.toString(), flds[1]);
                 }
             }
@@ -433,8 +455,8 @@ public class BagCacher implements PDRCacheRoles {
             while ((line = bs.readLine()) != null) {
                 flds = line.split(" +");
                 bagpath = Paths.get(flds[0]);
-                if (bagpath.startsWith("data")) {
-                    bagpath = bagpath.subpath(1, 2);
+                if (bagpath.startsWith("data") && ! bagpath.toString().endsWith(".sha256")) {
+                    bagpath = bagpath.subpath(1, bagpath.getNameCount());
                     lu.map(bagpath.toString(), flds[1]);
                 }
             }
@@ -466,14 +488,16 @@ public class BagCacher implements PDRCacheRoles {
                 save.put("filepath", nerd.get("filepath"));
             if (nerd.has("mediaType"))
                 save.put("contentType", nerd.get("mediaType"));
-            if (nerd.has("size"))
-                save.put("size", nerd.get("size"));
+            // if (nerd.has("size"))
+            //     save.put("size", nerd.get("size"));
             if (nerd.has("checksum") && nerd.opt("checksum") != null &&
-                nerd.getJSONObject("checksum").has("hash") &&
-                Checksum.SHA256.equals(nerd.getJSONObject("checksum").optString("algorithm")))
+                nerd.getJSONObject("checksum").has("hash") && nerd.getJSONObject("checksum").has("algorithm") &&
+                Checksum.SHA256.equals(nerd.getJSONObject("checksum")
+                                           .getJSONObject("algorithm").optString("tag")))
             {
                 save.put("checksum", nerd.getJSONObject("checksum").getString("hash"));
-                save.put("checksumAlgorithml", nerd.getJSONObject("checksum").optString("algorithm"));
+                save.put("checksumAlgorithm", nerd.getJSONObject("checksum")
+                                                  .getJSONObject("algorithm").optString("tag"));
             }
             save.put("aipid", aipid);
             save.put("version", version);
@@ -499,7 +523,7 @@ public class BagCacher implements PDRCacheRoles {
                                  int prefs, Collection<String> need, Collection<String> cached)
         throws IOException, CacheManagementException
     {
-        if (need != null && ! need.contains(filepath)) 
+        if (need != null && ! need.contains(filepath.toString())) 
             return;
 
         String nm = getNameForCache(aipid, filepath.toString(), version, prefs);
@@ -519,7 +543,7 @@ public class BagCacher implements PDRCacheRoles {
         }
         resv.saveAs(in, id, nm, md);
         if (need != null)
-            need.remove(filepath);
+            need.remove(filepath.toString());
         cached.add(filepath.toString());
     }
 
