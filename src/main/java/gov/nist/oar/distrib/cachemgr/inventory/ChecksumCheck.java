@@ -16,6 +16,7 @@ package gov.nist.oar.distrib.cachemgr.inventory;
 import java.io.IOException;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.IntegrityException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.Checksum;
@@ -26,19 +27,15 @@ import gov.nist.oar.distrib.ObjectNotFoundException;
  * a CacheObjectCheck that will calculate the checksum of an object to ensure it matches the value
  * stored in the object's metadata. 
  */
-public class ChecksumCheck extends CacheObjectCheckBase {
+public class ChecksumCheck implements CacheObjectCheck {
 
     /**
-     * create a <code>CacheObjectCheck</code> that runs a checksum check on a cache object
+     * create a <code>CacheObjectCheck</code> that can run checksum checks
      */
-    public ChecksumCheck(CacheObject obj) {
-        super(obj);
-        if (obj.volume == null)
-            throw new IllegalArgumentException("CacheObject's volume field is null");
-    }
+    public ChecksumCheck() { }
 
     /**
-     * run the checksum check
+     * run the checksum check on an object
      * @throws IntegrityException       if the check was executed successfully but found problem with the 
      *                                  object.
      * @throws ObjectNotFoundException  if the object is not found (perhaps because it was removed) in 
@@ -49,8 +46,9 @@ public class ChecksumCheck extends CacheObjectCheckBase {
      *                                  than a problem access the object from storage.
      */
     @Override
-    public void check() throws IntegrityException, StorageVolumeException, CacheManagementException {
-
+    public void check(CacheObject co)
+        throws IntegrityException, StorageVolumeException, CacheManagementException
+    {
         // First, check the sizes for expediency
         long vsz = co.volume.get(co.name).getSize();
         long sz = co.getSize();

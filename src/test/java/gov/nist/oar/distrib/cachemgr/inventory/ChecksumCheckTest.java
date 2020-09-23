@@ -41,6 +41,7 @@ public class ChecksumCheckTest {
     public final TemporaryFolder tempf = new TemporaryFolder();
 
     FilesystemCacheVolume vol = null;
+    CacheObjectCheck chk = null;
 
     FilesystemCacheVolume makevol(String root) throws IOException {
         File rootdir = tempf.newFolder(root);
@@ -66,21 +67,14 @@ public class ChecksumCheckTest {
     @Before
     public void setUp() throws IOException {
         vol = makevol("goob");
+        chk = new ChecksumCheck();
     }        
-
-    @Test
-    public void testGetObject() throws IOException {
-        CacheObject co = makeobj(vol, "goob", "hello world");
-        CacheObjectCheck chk = new ChecksumCheck(co);
-        assertEquals(co, chk.getObject());
-    }
 
     @Test
     public void testCheck() throws IOException, CacheManagementException, StorageVolumeException {
         CacheObject co = makeobj(vol, "hello.txt", "hello world");
-        CacheObjectCheck chk = new ChecksumCheck(co);
         try {
-            chk.check();
+            chk.check(co);
             fail("Failed to report missing metadata in CacheObject");
         } catch (CacheManagementException ex) {  }
         
@@ -90,15 +84,13 @@ public class ChecksumCheckTest {
         md.put("checksum", hash);
         md.put("checksumAlgorithm", "sha256");
         co = new CacheObject(co.name, md, vol);
-        chk = new ChecksumCheck(co);
 
-        chk.check();
+        chk.check(co);
 
         md.put("checksum", "XXXXXXX");
         co = new CacheObject(co.name, md, vol);
-        chk = new ChecksumCheck(co);
         try {
-            chk.check();
+            chk.check(co);
             fail("Failed to detect different checksum");
         } catch (ChecksumMismatchException ex) {
             assertEquals(hash, ex.calculatedHash);
@@ -107,9 +99,8 @@ public class ChecksumCheckTest {
 
         md.put("size", 14L);
         co = new CacheObject(co.name, md, vol);
-        chk = new ChecksumCheck(co);
         try {
-            chk.check();
+            chk.check(co);
             fail("Failed to detect different checksum");
         } catch (ChecksumMismatchException ex) {
             assertNull(ex.calculatedHash);
@@ -118,15 +109,14 @@ public class ChecksumCheckTest {
 
         md.put("checksumAlgorithm", "md5");
         co = new CacheObject(co.name, md, vol);
-        chk = new ChecksumCheck(co);
         try {
-            chk.check();
+            chk.check(co);
             fail("Failed to complain about unsupported checksum algorithm");
         } catch (CacheManagementException ex) {  }
 
         co.name = "gurn.txt";
         try {
-            chk.check();
+            chk.check(co);
             fail("Failed to report missing cache object");
         } catch (ObjectNotFoundException ex) {  }
     }
