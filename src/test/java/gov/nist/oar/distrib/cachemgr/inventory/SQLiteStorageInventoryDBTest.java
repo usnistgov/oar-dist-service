@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -218,11 +219,13 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(4, cos.get(0).metadatumNames().size());
+        assertEquals(5, cos.get(0).metadatumNames().size());
         assertTrue("size not in metadata properties",
                    cos.get(0).metadatumNames().contains("size"));
         assertTrue("priority not in metadata properties",
                    cos.get(0).metadatumNames().contains("priority"));
+        assertTrue("checked not in metadata properties",
+                   cos.get(0).metadatumNames().contains("checked"));
         assertTrue("since not in metadata properties",
                    cos.get(0).metadatumNames().contains("since"));
         assertTrue("sinceDate not in metadata properties",
@@ -234,9 +237,9 @@ public class SQLiteStorageInventoryDBTest {
         cos = sidb.findObject("1234/goober.json");
         assertEquals(2, cos.size());
         assertEquals(-1L, cos.get(0).getSize());
-        assertEquals(4, cos.get(0).metadatumNames().size());
+        assertEquals(5, cos.get(0).metadatumNames().size());
         assertEquals(-1L, cos.get(1).getSize());
-        assertEquals(4, cos.get(1).metadatumNames().size());
+        assertEquals(5, cos.get(1).metadatumNames().size());
 
         JSONObject md = new JSONObject();
         md.put("priority", 4);
@@ -277,11 +280,13 @@ public class SQLiteStorageInventoryDBTest {
         assertNotNull("Failed to find first registered object", first);
         assertNotNull("Failed to find 2nd (updated) registered object", second);
         assertEquals(456L, second.getSize());
-        assertEquals(7, second.metadatumNames().size());
+        assertEquals(8, second.metadatumNames().size());
         assertTrue("size not in metadata properties",
                    second.metadatumNames().contains("size"));
         assertTrue("priority not in metadata properties",
                    second.metadatumNames().contains("priority"));
+        assertTrue("checked not in metadata properties",
+                   second.metadatumNames().contains("checked"));
         assertTrue("since not in metadata properties",
                    second.metadatumNames().contains("since"));
         assertTrue("sinceDate not in metadata properties",
@@ -294,7 +299,7 @@ public class SQLiteStorageInventoryDBTest {
                    second.metadatumNames().contains("checksumAlgorithm"));
         assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
         assertEquals(-1L, first.getSize());
-        assertEquals(4, first.metadatumNames().size());
+        assertEquals(5, first.metadatumNames().size());
 
         md.put("size", 3196429990L);
         sidb.addObject("gurn.fits", "foobar", "a9ej_gurn.fits", md);
@@ -370,7 +375,7 @@ public class SQLiteStorageInventoryDBTest {
         md.put("size", 50000L);
         sidb.addObject("9999/jerry.json", "foobar", "9999_jerry.json", md);
 
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "deletion_d");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "deletion_d", Integer.MAX_VALUE);
         assertEquals(3, cos.size());
         // order should be the order they were put in.  should not include priority=0 or items from fundrum
         assertEquals(cos.get(0).name, "1234_goober.json");
@@ -378,7 +383,7 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(cos.get(1).name, "0000_hank.json");
         assertEquals(cos.get(2).name, "9999_jerry.json");
 
-        cos = sidb.selectObjectsFrom("foobar", "deletion_p");
+        cos = sidb.selectObjectsFrom("foobar", "deletion_p", 5000);
         assertEquals(3, cos.size());
         // order should be by priority
         assertEquals(cos.get(0).volname, "foobar");
@@ -387,6 +392,48 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(cos.get(2).name, "9999_jerry.json");
     }
 
+    @Test
+    public void testSelectObjectsForPurpose() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        md.put("priority", 0);
+        md.put("size", 910000L);
+        sidb.addObject("9999/barry.json", "foobar", "9999_barry.json", md);
+        md.put("priority", 9);
+        md.put("size", 910000L);
+        sidb.addObject("0000/hank.json", "foobar", "0000_hank.json", md);
+        md.put("priority", 1);
+        md.put("size", 50000L);
+        sidb.addObject("9999/jerry.json", "foobar", "9999_jerry.json", md);
+
+        long now = System.currentTimeMillis();
+        sidb.updateCheckedTime("foobar", "0000_hank.json", now);
+        sidb.updateCheckedTime("fundrum", "1234_goober.json", now);
+
+        List<CacheObject> cos = sidb.selectObjects("check", Integer.MAX_VALUE);
+        assertEquals(3, cos.size());
+        HashSet<String> needschecking = new HashSet<String>(3);
+        needschecking.add("foobar:1234_goober.json");
+        needschecking.add("foobar:9999_barry.json");
+        needschecking.add("foobar:9999_jerry.json");
+        for (CacheObject co : cos)
+            assertTrue(needschecking.contains(co.volname+":"+co.name));
+    }
+    
     @Test
     public void testFailAddObject() throws InventoryException, IOException {
         File dbf = new File(createDB());
@@ -589,6 +636,67 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
         assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
         assertFalse(cos.get(fundrum).hasMetadatum("job"));
+    }
+
+    @Test
+    public void testUpdateCheckedTime() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("size", 90L);
+        md.put("color", "red");
+        md.put("height", 72);
+        md.put("priority", 1);
+
+        // two entries with same id, name, and metadata in different volumes
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        List<CacheObject> cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        int fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        int foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+        
+        assertEquals("1234_goober.json", cos.get(foobar).name);
+        assertEquals(90L, cos.get(foobar).getSize());
+        assertEquals(1, cos.get(foobar).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(foobar).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(foobar).getMetadatumString("color", null));
+        assertEquals(0L, cos.get(foobar).getMetadatumLong("checked", -1L));
+        assertFalse(cos.get(foobar).hasMetadatum("job"));
+        assertEquals("1234_goober.json", cos.get(fundrum).name);
+        assertEquals(90L, cos.get(fundrum).getSize());
+        assertEquals(1, cos.get(fundrum).getMetadatumInt("priority", -1));
+        assertEquals(72, cos.get(fundrum).getMetadatumInt("height", -1));
+        assertEquals("red", cos.get(fundrum).getMetadatumString("color", null));
+        assertEquals(0L, cos.get(foobar).getMetadatumLong("checked", -1L));
+        assertFalse(cos.get(fundrum).hasMetadatum("job"));
+
+        JSONObject fbmd = cos.get(foobar).exportMetadata();
+        JSONObject fdmd = cos.get(fundrum).exportMetadata();
+
+        sidb.updateCheckedTime("foobar", "1234_goober.json", 50*31415927);
+
+        cos = sidb.findObject("1234/goober.json");
+        assertEquals(2, cos.size());
+        fundrum = ("fundrum".equals(cos.get(0).volname)) ?
+                         0 : (("fundrum".equals(cos.get(1).volname)) ? 1 : -1);
+        foobar = ("foobar".equals(cos.get(0).volname)) ?
+                         0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
+
+        // foobar updated
+        assertEquals(50*31415927, cos.get(foobar).getMetadatumLong("checked", -1));
+        // fundrum not updated
+        assertEquals(0L, cos.get(fundrum).getMetadatumLong("checked", -1));
     }
 
     @Test

@@ -75,10 +75,12 @@ public interface StorageInventoryDB extends VolumeStatus {
      *                    it should be assumed that the list is for creating a deletion plan.  The 
      *                    label typically maps to a particular selection query optimized for a 
      *                    particular purpose.  
+     * @param limit       the maximum number of items to return
      * @throws InventoryException  if there is an error accessing the underlying database.
      * @throws VolumeNotFoundException  if a volname is not recognized as a registered volume name.
      */
-    public List<CacheObject> selectObjectsFrom(String volname, String purpose) throws InventoryException;
+    public List<CacheObject> selectObjectsFrom(String volname, String purpose, int limit)
+        throws InventoryException;
 
     /**
      * return a list of data objects found in the specified data volume according to a given 
@@ -91,6 +93,31 @@ public interface StorageInventoryDB extends VolumeStatus {
      */
     public List<CacheObject> selectObjectsFrom(String volname, SelectionStrategy strategy)
         throws InventoryException;
+
+    /**
+     * return all data objects found in the cache appropriate for a particular purpose.  The 
+     * purpose specified can affect what files are selected and/or how they are sorted in the returned 
+     * list.  
+     * @param purpose     a label that indicates the purpose for retrieving the list so as to 
+     *                    affect object selection and sorting.  The recognized values are implementation-
+     *                    specific except that if set to null, an empty string, or otherwise unrecognized,
+     *                    it should be assumed that the list is for creating a deletion plan.  The 
+     *                    label typically maps to a particular selection query optimized for a 
+     *                    particular purpose.  
+     * @param limit       the maximum number of items to return
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public List<CacheObject> selectObjects(String purpose, int limit) throws InventoryException;
+
+    /**
+     * return a list of data objects in the cache selected via a given selection strategy.
+     * The provided {@link SelectionStrategy} should indicate a purpose (via 
+     * {@link SelectionStrategy#getPurpose}) that is supported by this implementation.  
+     * @param strategy    an encapsulation of the strategy that should be used for selecting the 
+     *                    records.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    public List<CacheObject> selectObjects(SelectionStrategy strategy) throws InventoryException;
 
     /**
      * record the addition of an object to a volume.  The metadata stored with the 
@@ -135,6 +162,16 @@ public interface StorageInventoryDB extends VolumeStatus {
      * should not be necessary to call this to initialize the access time.
      */
     public boolean updateAccessTime(String volname, String objname) throws InventoryException;
+
+    /**
+     * update the time of last successful integrity check for an object to the given time.
+     * <p>
+     * Note that this time should be initialized automatically (to zero) when the object is first added
+     * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
+     * should not be necessary to call this to initialize the access time.  A time equal to 0 indicates
+     * the file has never been checked or that that time is otherwise unknown.  
+     */
+    public boolean updateCheckedTime(String volname, String objname, long timemilli) throws InventoryException;
 
     /**
      * record the removal of the object with the given name from the given volume.  

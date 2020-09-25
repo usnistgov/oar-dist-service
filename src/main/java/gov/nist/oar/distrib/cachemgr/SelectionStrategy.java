@@ -20,7 +20,7 @@ import java.util.List;
  * purpose (namely, deletion).
  * <p>
  */
-public interface SelectionStrategy {
+public interface SelectionStrategy extends Cloneable {
 
     /**
      * apply a selectability score to the given CacheObject.  The implementation is expected 
@@ -51,5 +51,9 @@ public interface SelectionStrategy {
      * sufficient selection.
      */
     public boolean limitReached();
-    
+
+    /**
+     * create an indepedent copy of this strategy
+     */
+    public Object clone();
 }

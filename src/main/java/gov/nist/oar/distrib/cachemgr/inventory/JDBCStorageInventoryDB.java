@@ -38,7 +38,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.io.IOException;
 import java.io.StringReader;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -82,7 +81,7 @@ import java.time.format.DateTimeFormatter;
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     static final String find_sql =
-        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, "+
+        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, d.checked, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1 ";
 
@@ -100,8 +99,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     static final String defaultDeletionPlanSelect = deletion_pSelect;
 
-    static final String check_Select =
+    static final String check_volumeSelect =
         find_sql + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
+
+    static final String check_Select =
+        find_sql + "AND d.checked<? AND d.cached=1 ORDER BY d.checked ASC";
 
     static HashMap<String, String> purposes = new HashMap<String, String>(2);
     static {
@@ -111,6 +113,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         JDBCStorageInventoryDB.purposes.put("deletion",   deletion_pSelect);
         JDBCStorageInventoryDB.purposes.put("",           deletion_pSelect);
         JDBCStorageInventoryDB.purposes.put("check",      check_Select);
+        JDBCStorageInventoryDB.purposes.put("check_vol",  check_volumeSelect);
     }
 
     protected String _dburl = null;
@@ -118,6 +121,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
+    private long checkGracePeriod = 60 * 60 * 1000;   // 1 hour;  TODO: make configurable
 
     protected String dplanselect = defaultDeletionPlanSelect;
 
@@ -244,7 +248,15 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                         ZoneOffset.UTC)
                                              .format(DateTimeFormatter.ISO_INSTANT));
         }
-        co = new CacheObject(rs.getString("name"), md, rs.getString("volume"));
+        if (rs.getObject("checked") != null) {
+            long lastchecked = rs.getLong("checked");
+            md.put("checked", lastchecked);
+            if (lastchecked > 0) 
+                md.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(lastchecked),
+                                                              ZoneOffset.UTC)
+                                                   .format(DateTimeFormatter.ISO_INSTANT));
+        }
+        co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
         if (rs.getObject("id") != null)
             co.id = rs.getString("id");
         return co;
@@ -265,9 +277,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *                    first by last access and then by priority.  <code>deletion</code> is
      *                    handled as <code>deletion_p</code> and will be used by default if purpose 
      *                    is empty or null.
+     * @param lim         the maximum number of items to return
      */
-    public List<CacheObject> selectObjectsFrom(String volname, String purpose) throws InventoryException {
-        int i=0, lim = 5000;   // TODO: make limit configurable
+    @Override
+    public List<CacheObject> selectObjectsFrom(String volname, String purpose, int lim)
+        throws InventoryException
+    {
+        int i=0;   // TODO: make limit configurable
 
         String selectquery = _selectQuery(purpose);
 
@@ -316,6 +332,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param strategy    an encapsulation of the strategy that should be used for selecting the 
      *                    records.  
      */
+    @Override
     public List<CacheObject> selectObjectsFrom(String volname, SelectionStrategy strategy)
         throws InventoryException
     {
@@ -352,6 +369,97 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
     
+    /**
+     * return all data objects found in the cache appropriate for a particular purpose.  The 
+     * purpose specified can affect what files are selected and/or how they are sorted in the returned 
+     * list.  
+     * @param purpose     a label that indicates the purpose for retrieving the list so as to 
+     *                    affect object selection and sorting.  The recognized values are implementation-
+     *                    specific except that if set to null, an empty string, or otherwise unrecognized,
+     *                    it should be assumed that the list is for creating a deletion plan.  The 
+     *                    label typically maps to a particular selection query optimized for a 
+     *                    particular purpose.  
+     * @param lim         the maximum number of items to return
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    @Override
+    public List<CacheObject> selectObjects(String purpose, int lim) throws InventoryException {
+        int i=0;
+
+        String selectquery = _selectQuery(purpose);
+
+        PreparedStatement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.prepareStatement(selectquery);
+            if (purpose.startsWith("check"))
+                stmt.setLong(1, System.currentTimeMillis() - checkGracePeriod);
+
+            synchronized (this) {
+                ResultSet rs = stmt.executeQuery();
+                ArrayList<CacheObject> out = new ArrayList<CacheObject>();
+                while (i < lim && rs.next()) {
+                    out.add(_extractObject(rs));
+                    i++;
+                }
+
+                // log limit reached?
+                return out;
+            }
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failure while selecting objects: " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
+
+    }
+
+    /**
+     * return a list of data objects in the cache selected via a given selection strategy.
+     * The provided {@link SelectionStrategy} should indicate a purpose (via 
+     * {@link SelectionStrategy#getPurpose}) that is supported by this implementation.  
+     * @param strategy    an encapsulation of the strategy that should be used for selecting the 
+     *                    records.  
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    @Override
+    public List<CacheObject> selectObjects(SelectionStrategy strategy) throws InventoryException {
+        strategy.reset();
+        String selectquery = _selectQuery(strategy.getPurpose());
+
+        PreparedStatement stmt = null;
+        try {
+            if (_conn == null) connect();
+            stmt = _conn.prepareStatement(selectquery);
+            if (strategy.getPurpose().startsWith("check"))
+                stmt.setLong(1, System.currentTimeMillis() - checkGracePeriod);
+
+            synchronized (this) {
+                ResultSet rs = stmt.executeQuery();
+                ArrayList<CacheObject> out = new ArrayList<CacheObject>();
+                CacheObject co = null;
+                while (! strategy.limitReached() && rs.next()) {
+                    co = _extractObject(rs);
+                    strategy.score(co);
+                    out.add(co);
+                }
+
+                strategy.sort(out);
+                return out;
+            }
+        }
+        catch (SQLException ex) {
+            throw new InventoryException("Failure while selecting objects: " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
+        }
+    }
+
     /**
      * return all the data objects with a given name in a particular cache volume
      * @param volname  the name of the volume to search
@@ -536,6 +644,12 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 nm = "since";
                 sql.append(" since=").append(Long.toString(metadata.getLong(nm))).append(",");
             }
+
+            if (metadata.has("checked")) {
+                nm = "checked";
+                sql.append(" checked=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
+                    
         } catch (JSONException ex) {
             throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
                                                  ex.getMessage(), nm, ex);
@@ -585,6 +699,25 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         Instant since = Instant.now();
         JSONObject md = new JSONObject();
         md.put("since", since.toEpochMilli());
+        return updateMetadata(volname, objname, md);
+    }
+
+    /**
+     * update the time of last successful integrity check for an object to the given time.
+     * <p>
+     * Note that this time should be initialized automatically (to zero) when the object is first added
+     * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
+     * should not be necessary to call this to initialize the access time.  A time equal to 0 indicates
+     * the file has never been checked or that that time is otherwise unknown.  
+     * @param volname    the name of the volume containing the object that was checked
+     * @param objname    the name of the object in that volume that was checked
+     * @param timemilli  the time when the check was successfully completed, in milliseconds since the epoch
+     */
+    public boolean updateCheckedTime(String volname, String objname, long timemilli)
+        throws InventoryException
+    {
+        JSONObject md = new JSONObject();
+        md.put("checked", timemilli);
         return updateMetadata(volname, objname, md);
     }
 

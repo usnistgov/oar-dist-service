@@ -37,7 +37,7 @@ public class CacheObject {
 
     /**
      * the name of the CacheVolume that the object is located in.  If this name is null,
-     * this instance represents a placeholder for an object whose name is not known or 
+     * this instance represents a placeholder for an object whose location is not known or 
      * determined, yet.  If volume is not null, this should be set to the volume's name.
      */
     public String volname = null;

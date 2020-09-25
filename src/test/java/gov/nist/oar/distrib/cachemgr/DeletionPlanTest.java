@@ -79,7 +79,7 @@ public class DeletionPlanTest {
 
     @Test
     public void testCtor() throws InventoryException {
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "", 500);
         DeletionPlan dp = new DeletionPlan(cv, sidb, cos, 1000, 500);
         assertEquals(1000, dp.getByteCountToBeRemoved());
         assertEquals(500, dp.getByteCountNeeded());
@@ -91,7 +91,7 @@ public class DeletionPlanTest {
     @Test
     public void testExecute() throws InventoryException, DeletionFailureException {
         long used = sidb.getUsedSpace().get("foobar");
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(7, cos.size());
         cos.remove(4);
         cos.remove(3);
@@ -107,7 +107,7 @@ public class DeletionPlanTest {
         assertTrue("Unexpectedly deleted 6",     cv.exists("6"));
         assertEquals(used-removed, (long) sidb.getUsedSpace().get("foobar"));
 
-        cos = sidb.selectObjectsFrom("foobar", "");
+        cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(5, cos.size());
 
         // test guard against deleting from a protected volume
@@ -119,7 +119,7 @@ public class DeletionPlanTest {
         }
         catch (IllegalStateException ex) {
             sidb.setVolumeStatus("foobar", sidb.VOL_FOR_UPDATE);
-            assertEquals(5, sidb.selectObjectsFrom("foobar", "").size());
+            assertEquals(5, sidb.selectObjectsFrom("foobar", "", 500).size());
         }
 
         sidb.setVolumeStatus("foobar", sidb.VOL_DISABLED);
@@ -130,14 +130,14 @@ public class DeletionPlanTest {
         }
         catch (IllegalStateException ex) {
             sidb.setVolumeStatus("foobar", sidb.VOL_FOR_UPDATE);
-            assertEquals(5, sidb.selectObjectsFrom("foobar", "").size());
+            assertEquals(5, sidb.selectObjectsFrom("foobar", "", 500).size());
         }
     }
 
     @Test
     public void testExecuteAndReserve() throws InventoryException, DeletionFailureException {
         long used = sidb.getUsedSpace().get("foobar");
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(7, cos.size());
         cos.remove(4);
         cos.remove(3);
@@ -153,7 +153,7 @@ public class DeletionPlanTest {
         assertTrue("Unexpectedly deleted 6",     cv.exists("6"));
         // assertEquals(used-removed, (long) sidb.getUsedSpace().get("foobar"));
 
-        cos = sidb.selectObjectsFrom("foobar", "");
+        cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(6, cos.size());
 
     }
@@ -161,7 +161,7 @@ public class DeletionPlanTest {
     @Test
     public void testExecuteAndReserveTooLittle() throws InventoryException, DeletionFailureException {
         long used = sidb.getUsedSpace().get("foobar");
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(7, cos.size());
         cos.remove(4);
         cos.remove(3);
@@ -183,14 +183,14 @@ public class DeletionPlanTest {
         assertFalse("Failed to delete object 6", cv.exists("6"));
         // assertEquals(used-removed, (long) sidb.getUsedSpace().get("foobar"));
 
-        cos = sidb.selectObjectsFrom("foobar", "");
+        cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(4, cos.size());
     }
 
     @Test
     public void testExecuteAndReserveNotEnough() throws InventoryException, DeletionFailureException {
         long used = sidb.getUsedSpace().get("foobar");
-        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "");
+        List<CacheObject> cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(7, cos.size());
         cos.remove(4);
         cos.remove(3);
@@ -213,7 +213,7 @@ public class DeletionPlanTest {
         assertTrue("Unexpectedly deleted 6",     cv.exists("6"));
         // assertEquals(used-removed, (long) sidb.getUsedSpace().get("foobar"));
 
-        cos = sidb.selectObjectsFrom("foobar", "");
+        cos = sidb.selectObjectsFrom("foobar", "", 500);
         assertEquals(5, cos.size());
     }
 }

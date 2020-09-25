@@ -92,6 +92,7 @@ public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
      * to set the score field of the given CacheObject with the value that is calculated and 
      * returned.  
      */
+    @Override
     public double score(CacheObject co) {
         co.score = calculateScore(co);
         long sz = co.getSize();
@@ -106,6 +107,7 @@ public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
      * return a name identifying the purpose of the selection.  This will be used to select 
      * an appropriate query to the StorageInventoryDB.
      */
+    @Override
     public String getPurpose() { return purpose; }
 
     /**
@@ -119,6 +121,7 @@ public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
      * sort the given list of CacheObjects according to the preferences of this strategy.
      * This default implementation sorts the objects by the score, highest to lowest.
      */
+    @Override
     public void sort(List<CacheObject> objs) {
         Collections.sort(objs, (co1, co2) -> {
             return (int) Math.signum(co2.score - co1.score);
@@ -129,6 +132,7 @@ public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
      * return true if the {@link #score(CacheObject) score()} method has seen a set of objects whose 
      * total size just exceeds the limit set at construction time.  
      */
+    @Override
     public boolean limitReached() { return (totsz > sizelimit); }
 
     /**
@@ -147,4 +151,18 @@ public abstract class SizeLimitedSelectionStrategy implements DeletionStrategy {
      * return a new instance of this class configured with a different size limit
      */
     public abstract DeletionStrategy newForSize(long needed, long sizelimit);
+
+    /**
+     * clone this instance
+     */
+    @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        }
+        catch (CloneNotSupportedException ex) {
+            // should not happen
+            throw new RuntimeException("Internal implementation error: "+ex.getMessage());
+        }
+    }
 }
