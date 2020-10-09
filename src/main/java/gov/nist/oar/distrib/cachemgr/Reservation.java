@@ -45,6 +45,13 @@ public class Reservation {
     protected StorageInventoryDB db = null;
 
     /**
+     * a set of checks that will be applied to each file saved this reservation's 
+     * {@link #saveAs(InputStream,String,String)} method.  If any checks fail, that method will 
+     * throw an exception.  If null, no extra checks are carried out.
+     */
+    protected IntegrityMonitor checks = null;
+
+    /**
      * the Cache that issued this reservation
      */
     public Cache cache = null;
@@ -58,12 +65,31 @@ public class Reservation {
      * @param size      the amount of space to reserve in bytes.
      */
     public Reservation(String resname, CacheVolume volume, StorageInventoryDB storedb, long size) {
+        this(resname, volume, storedb, size, null);
+    }
+
+    /**
+     * instantiate the reservation
+     * @param resname   a name that this reservation is represented by within the StorageInventoryDB.
+     * @param volume    the CacheVolume instance for the volume where the space has been reserved.
+     * @param storedb   the StorageInventoryDB that should be used to update the volume changes after 
+     *                    data are streamed into it.
+     * @param size      the amount of space to reserve in bytes.
+     * @param checker   a set of checks that should be conducted on all files that are written into 
+     *                    this reserved space via {@link #saveAs(InputStream,String,String)}.  If any 
+     *                    of the checks fail, that method will throw an exception.  If null, no extra
+     *                    checks are done. 
+     */
+    public Reservation(String resname, CacheVolume volume, StorageInventoryDB storedb, long size,
+                       IntegrityMonitor checker)
+    {
         _name = resname;
         _size = size;
         vol = volume;
         db = storedb;
+        checks = checker;
     }
-
+    
     /**
      * return the remaining size (in bytes) of the reserved space.  As data is added the cache via this 
      * object, this number will go down.  It is possible for it to go negative.  Once it is equal or 
@@ -132,8 +158,6 @@ public class Reservation {
                 throw new CacheManagementException("Too few bytes written for "+id+"; "+
                                                    Long.toString(is.count())+" < "+Long.toString(size));
             }
-            _size -= is.count();
-            updateReservationSize(_size);
 
             if (metadata == null) 
                 metadata = new JSONObject();
@@ -141,6 +165,21 @@ public class Reservation {
                 metadata.put("size", is.count());
             out = db.addObject(id, vol.getName(), objname, metadata);
             out.volume = vol;
+
+            // run file checks if configured to do so
+            if (checks != null) {
+                try {
+                    checks.check(out);
+                }
+                catch (IntegrityException ex) {
+                    db.removeObject(out.volname, objname);
+                    vol.remove(objname);
+                    throw ex;
+                }
+            }
+
+            _size -= is.count();
+            updateReservationSize(_size);
 
             if (cache != null)
                 cache.notifyObjectSaved(out);

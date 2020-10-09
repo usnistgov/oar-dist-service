@@ -385,4 +385,23 @@ public abstract class BasicCache extends Cache {
     public StorageInventoryDB getInventoryDB() {
         return db;
     }
+
+    /**
+     * return an IntegrityMonitor instance that is attached to this cache that can be used to test the 
+     * integrity of objects in the cache against a specific list of checks.
+     */
+    public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
+        return new BasicIntegrityMonitor(getName(), db, volumes, checks,
+                                         LoggerFactory.getLogger(log.getName()+".monitor"));
+    }
+
+    /**
+     * return an IntegrityMonitor instance that is attached to this cache that can be used to test the 
+     * integrity of objects in the cache against a default set of checks.  This implementation runs no
+     * checks.  
+     */
+    public IntegrityMonitor getIntegrityMonitor() {
+        return new BasicIntegrityMonitor(getName(), db, volumes, 
+                                         LoggerFactory.getLogger(log.getName()+".monitor"));
+    }
 }

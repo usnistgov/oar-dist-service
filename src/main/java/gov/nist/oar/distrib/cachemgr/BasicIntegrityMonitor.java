@@ -70,6 +70,23 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
      * @param cachevols    the cache's {@link CacheVolume}s.  The string keys are the volumes' names, as
      *                     registered in the inventory database, {@code sidb}; all writable volumes registered
      *                     in the database must appear in this map.  
+     * @param logger       the logger to use to report errors and warnings; if null, a default is created.
+     */
+    public BasicIntegrityMonitor(String cachename, StorageInventoryDB sidb, 
+                                 Map<String, CacheVolume> cachevols, Logger logger)
+    {
+        this(cachename, sidb, cachevols, new ArrayList<CacheObjectCheck>(), logger);
+    }
+                                 
+    /**
+     * create a basic monitor attached to a simple cache.  
+     * @param cachename    the name of the cache that this IntegrityMonitor monitors
+     * @param sidb         the inventory database for the cache being monitored.  This 
+     *                     {@link StorageInventoryDB} instance must support the "check" purpose via its
+     *                     {@link StorageInventoryDB#selectObjects(String,int) selectObjects()} method.
+     * @param cachevols    the cache's {@link CacheVolume}s.  The string keys are the volumes' names, as
+     *                     registered in the inventory database, {@code sidb}; all writable volumes registered
+     *                     in the database must appear in this map.  
      * @param checklist    the integrity checks that should run on the cache objects selected from the database.
      *                     The checks will be applied in the order that they appear in this list.
      * @param logger       the logger to use to report errors and warnings; if null, a default is created.

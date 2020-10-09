@@ -24,6 +24,8 @@ import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.SizeCheck;
+import gov.nist.oar.distrib.cachemgr.inventory.AlwaysFailsCheck;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 
 import java.io.File;
@@ -31,11 +33,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 
 import org.json.JSONObject;
 import org.json.JSONException;
+import org.slf4j.Logger;
 
 public class ReservationTest {
 
@@ -138,6 +142,97 @@ public class ReservationTest {
         assertEquals(25L, cos.get(0).getSize());
     }
 
+    @Test
+    public void testSaveAsWithCheck() throws CacheManagementException {
+        ArrayList<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+        chks.add(new SizeCheck());
+        BasicIntegrityMonitor chkr = new BasicIntegrityMonitor("goob", tdb, null, chks, (Logger) null);
+
+        long size = 40L;
+        String rnm = "_reservationXXX";
+        assertEquals(15, rnm.length());
+        addRes2DB(rnm, size);
+        Reservation res = new Reservation(rnm, tvol, tdb, size, chkr);
+
+        InputStream is = new ByteArrayInputStream(rnm.getBytes());
+        JSONObject md = new JSONObject();
+        md.put("size", (long) rnm.length());
+        md.put("checksum", "YYZ");
+        md.put("checksumAlgorithm", "shaRay");
+        md.put("priority", 4);
+        try {
+            CacheObject co = res.saveAs(is, "gary/busey", "busey", md);
+            assertEquals(15L, co.getSize());
+            assertEquals(4, co.getMetadatumInt("priority", -1));
+            assertEquals("YYZ", co.getMetadatumString("checksum", null));
+            assertEquals("shaRay", co.getMetadatumString("checksumAlgorithm", null));
+            assertTrue("since not in metadata properties reported as saved",
+                       co.metadatumNames().contains("since"));
+            assertTrue("sinceDate not in metadata properties reported as saved",
+                       co.metadatumNames().contains("sinceDate"));
+        }
+        finally {
+            try { is.close(); } catch (IOException ex) { } 
+        }
+
+        assertEquals(25L, res.getSize());
+        List<CacheObject> cos = tdb.findObject("gary/busey");
+        assertEquals(1, cos.size());
+        assertEquals("busey", cos.get(0).name);
+        assertEquals(15L, cos.get(0).getSize());
+        assertEquals(4, cos.get(0).getMetadatumInt("priority", -1));
+        assertEquals("YYZ", cos.get(0).getMetadatumString("checksum", null));
+        assertEquals("shaRay", cos.get(0).getMetadatumString("checksumAlgorithm", null));
+        assertTrue("since not in metadata properties",
+                   cos.get(0).metadatumNames().contains("since"));
+        assertTrue("sinceDate not in metadata properties",
+                   cos.get(0).metadatumNames().contains("sinceDate"));
+
+        cos = tdb.findObject("gary/"+rnm);
+        assertEquals(1, cos.size());
+        assertEquals(rnm, cos.get(0).name);
+        assertEquals(25L, cos.get(0).getSize());
+    }
+
+    @Test
+    public void testSaveAsWithCheckFailure() throws CacheManagementException {
+        ArrayList<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+        chks.add(new SizeCheck());
+        chks.add(new AlwaysFailsCheck());
+        BasicIntegrityMonitor chkr = new BasicIntegrityMonitor("goob", tdb, null, chks, (Logger) null);
+
+        long size = 40L;
+        String rnm = "_reservationXXX";
+        assertEquals(15, rnm.length());
+        addRes2DB(rnm, size);
+        Reservation res = new Reservation(rnm, tvol, tdb, size, chkr);
+
+        InputStream is = new ByteArrayInputStream(rnm.getBytes());
+        JSONObject md = new JSONObject();
+        md.put("size", (long) rnm.length());
+        md.put("checksum", "YYZ");
+        md.put("checksumAlgorithm", "shaRay");
+        md.put("priority", 4);
+        try {
+            CacheObject co = res.saveAs(is, "gary/busey", "busey", md);
+            fail("Failed to detect check failure");
+        }
+        catch (IntegrityException ex) {
+            // Expected!
+        }
+        finally {
+            try { is.close(); } catch (IOException ex) { } 
+        }
+
+        assertEquals(40L, res.getSize());
+        List<CacheObject> cos = tdb.findObject("gary/busey");
+        assertEquals(0, cos.size());
+
+        cos = tdb.findObject("gary/"+rnm);
+        assertEquals(1, cos.size());
+        assertEquals(rnm, cos.get(0).name);
+        assertEquals(40L, cos.get(0).getSize());
+    }
 
     @Test
     public void testSaveAsTooShort() throws CacheManagementException {
