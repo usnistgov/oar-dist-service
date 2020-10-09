@@ -49,7 +49,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-            <dependency>
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-aws-context</artifactId>
         </dependency> 
@@ -77,7 +77,6 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-
         <dependency>
            <groupId>org.springframework</groupId>
            <artifactId>spring-test</artifactId>
@@ -87,15 +86,26 @@
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-commons</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
+            <version>2.8.0</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-lang3</artifactId>
+          <version>3.8.1</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>1</version>
+        </dependency>
+        <dependency>
+          <groupId>org.xerial</groupId>
+          <artifactId>sqlite-jdbc</artifactId>
+          <version>3.21.0.1</version>
         </dependency>
 
         <!-- swagger docs -->
@@ -116,10 +126,10 @@
         </dependency>  -->
         
         <dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
@@ -142,14 +152,6 @@
             <artifactId>activation</artifactId>
             <version>1.1.1</version>
         </dependency>
-
-        <!--
-        <dependency>
-          <groupId>org.json</groupId>
-          <artifactId>json</artifactId>
-          <version>20180813</version>
-        </dependency>
-          -->
     </dependencies>
     <build>
         <finalName>oar-dist-service</finalName>
@@ -204,7 +206,8 @@
                     </includes>
                     <forkCount>0</forkCount>
                     <systemPropertyVariables>
-                        <conf.path>${user.home}/spm</conf.path>
+                      <conf.path>${user.home}/spm</conf.path>
+                      <project.test.resourceDirectory>${project.basedir}/src/test/resources</project.test.resourceDirectory>
                     </systemPropertyVariables>
                     <trimStackTrace>false</trimStackTrace>
                 </configuration>
@@ -277,7 +280,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 
                 <configuration>
-                    <show>public</show>
+                    <show>protected</show>
                     <stylesheetfile>${basedir}/src/main/etc/stylesheet.css</stylesheetfile>
                 </configuration>
             </plugin>         
