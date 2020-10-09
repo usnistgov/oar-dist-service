@@ -176,13 +176,16 @@ public class AWSS3CacheVolume implements CacheVolume {
         if (name == null || name.length() == 0)
             throw new IllegalArgumentException("AWSS3CacheVolume.saveAs(): must provide name");
         long size = -1L;
-        String ct = null;
+        String ct = null, cmd5 = null;
         if (md != null) {
             try {
                 size = md.getLong("size");
             } catch (JSONException ex) { }
             try {
                 ct = md.getString("contentType");
+            } catch (JSONException ex) { }
+            try {
+                cmd5 = md.getString("contentMD5");
             } catch (JSONException ex) { }
         }
         if (size < 0)
@@ -194,6 +197,8 @@ public class AWSS3CacheVolume implements CacheVolume {
         omd.setContentLength(size);  // required
         if (ct != null)
             omd.setContentType(ct);  // for redirect web server
+        if (cmd5 != null)
+            omd.setContentMD5(cmd5); // for on-the-fly checksum checking
 
         // set the name to download as (for benefit of redirect web server)
         if (name.endsWith("/")) name = name.substring(0, name.length()-1);

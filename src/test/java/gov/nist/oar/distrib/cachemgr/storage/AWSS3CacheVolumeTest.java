@@ -217,6 +217,57 @@ public class AWSS3CacheVolumeTest {
     }
 
     @Test
+    public void testSaveAsWithMD5() throws StorageVolumeException {
+        String objname = folder + "/test.txt";
+        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(! s3cv.exists("test.txt"));
+
+        byte[] obj = "hello world.\n".getBytes();
+        JSONObject md = new JSONObject();
+        md.put("size", obj.length);
+        md.put("contentType", "text/plain");
+        md.put("contentMD5", "JjJWGp65Tg0F4+AyzFre7Q==");
+        InputStream is = new ByteArrayInputStream(obj);
+
+        try {
+            s3cv.saveAs(is, "test.txt", md);
+        } finally {
+            try { is.close(); } catch (IOException ex) { }
+        }
+        assertTrue(s3client.doesObjectExist(bucket, objname));
+        assertTrue(s3cv.exists("test.txt"));
+    }
+
+    /*
+     * S3Mock apparently does not check contentMD5 values
+     *
+    @Test
+    public void testSaveAsWithBadMD5() throws StorageVolumeException {
+        String objname = folder + "/test.txt";
+        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(! s3cv.exists("test.txt"));
+
+        byte[] obj = "hello world.\n".getBytes();
+        JSONObject md = new JSONObject();
+        md.put("size", obj.length);
+        md.put("contentType", "text/plain");
+        md.put("contentMD5", "goob");
+        InputStream is = new ByteArrayInputStream(obj);
+
+        try {
+            s3cv.saveAs(is, "test.txt", md);
+            fail("Failed to detect bad MD5 sum");
+        } catch (StorageVolumeException ex) {
+            // Expected!
+        } finally {
+            try { is.close(); } catch (IOException ex) { }
+        }
+        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(! s3cv.exists("test.txt"));
+    }
+     */
+
+    @Test
     public void testGetStream() throws StorageVolumeException, IOException {
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
