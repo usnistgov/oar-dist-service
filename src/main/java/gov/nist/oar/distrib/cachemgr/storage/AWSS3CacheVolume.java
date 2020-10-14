@@ -30,6 +30,8 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -164,6 +166,22 @@ public class AWSS3CacheVolume implements CacheVolume {
     /**
      * save a copy of the named object to this storage volume.  If an object 
      * already exists in the volume with this name, it will be replaced.  
+     * <p>
+     * This implementation will look for three metadata properties that will be incorporated into 
+     * the S3 transfer request for robustness:
+     * <ul>
+     *  <li> <code>size</code> -- this will be set as the content-length header property for the file stream;
+     *                            if this number of bytes is not transfered successfully, an exception will 
+     *                            occur. </li>
+     *  <li> <code>contentMD5</code> -- a base-64 encoding of the MD5 hash of the file which will be checked 
+     *                            against the server-side value calculated by the AWS server; a mismatch will
+     *                            result in an error.  Note that if this is not provided the AWS SDK will 
+     *                            calculate and verify a value automatically; thus, it should not be necessary 
+     *                            to set this.  </li>
+     *  <li> <code>contentType</code> -- the MIME-type to associate with this file.  This is stored as 
+     *                            associated AWS object metadata and will be used if the file is downloaded 
+     *                            via an AWS public GET URL (and perhaps other download frontends). </li>
+     * </ul>
      * @param from   an InputStream that contains the bytes the make up object to save
      * @param name   the name to assign to the object within the storage.  
      * @param md     the metadata to be associated with that object.  This parameter cannot be null
@@ -210,6 +228,20 @@ public class AWSS3CacheVolume implements CacheVolume {
         } catch (AmazonServiceException ex) {
             throw new StorageVolumeException("Failure to save object, " + s3name(name) +
                                              "to s3://"+bucket+": " + ex.getMessage(), ex);
+        } catch (SdkClientException ex) {
+            if (ex.getMessage().contains("verify integrity") && ex.getMessage().contains("contentMD5")) {
+                // unfortunately this is how we identify a checksum error
+                // clean-up badly transfered file.
+                try { remove(name); }
+                catch (StorageVolumeException e) { }
+                throw new StorageVolumeException("Failure to save object, " + s3name(name) +
+                                                 "to s3://"+bucket+": md5 transfer checksum failed");
+            }
+            if (ex.getMessage().contains("dataLength=") && ex.getMessage().contains("expectedLength=")) {
+                throw new StorageVolumeException("Failure to transfer correct number of bytes for " + 
+                                                 s3name(name) + " to s3://"+bucket+" ("+ex.getMessage()+").");
+            }
+            throw new StorageVolumeException("AWS client error: "+ex.getMessage()+"; object status unclear");
         }
     }
     

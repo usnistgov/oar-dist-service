@@ -258,9 +258,36 @@ public class AWSS3CacheVolumeTest {
         assertTrue(s3cv.exists("test.txt"));
     }
 
+    @Test
+    public void testSaveAsWithBadSize() throws StorageVolumeException {
+        String objname = folder + "/test.txt";
+        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(! s3cv.exists("test.txt"));
+
+        byte[] obj = "hello world.\n".getBytes();
+        JSONObject md = new JSONObject();
+        md.put("size", 5);
+        md.put("contentType", "text/plain");
+        InputStream is = new ByteArrayInputStream(obj);
+
+        try {
+            s3cv.saveAs(is, "test.txt", md);
+            fail("Failed to detect bad size");
+        } catch (StorageVolumeException ex) {
+            // Expected!
+            assertTrue("Failed for the wrong reason: "+ex.getMessage(),
+                       ex.getMessage().contains("correct number of bytes"));
+        } finally {
+            try { is.close(); } catch (IOException ex) { }
+        }
+        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(! s3cv.exists("test.txt"));
+    }
+
     /*
      * S3Mock apparently does not check contentMD5 values
      *
+     */
     @Test
     public void testSaveAsWithBadMD5() throws StorageVolumeException {
         String objname = folder + "/test.txt";
@@ -279,13 +306,16 @@ public class AWSS3CacheVolumeTest {
             fail("Failed to detect bad MD5 sum");
         } catch (StorageVolumeException ex) {
             // Expected!
+            assertTrue("Failed for the wrong reason: "+ex.getMessage(),
+                       ex.getMessage().contains("md5 transfer"));
         } finally {
             try { is.close(); } catch (IOException ex) { }
         }
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
+        assertTrue("Failed transfered object not deleted from bucket",
+                   ! s3client.doesObjectExist(bucket, objname));
+        assertTrue("Failed transfered object not deleted from volume",
+                   ! s3cv.exists("test.txt"));
     }
-     */
 
     @Test
     public void testGetStream() throws StorageVolumeException, IOException {
