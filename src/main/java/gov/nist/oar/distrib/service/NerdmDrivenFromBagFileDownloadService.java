@@ -15,7 +15,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.clients.rmm.ComponentInfoCache;
 import gov.nist.oar.bags.preservation.BagUtils;
@@ -75,12 +75,11 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
-     *                   preservation bags
+     * @param bagstore   a BagStorage instance repesenting the storage holding the preservation bags
      * @param typemap  the map to use for determining content types from filename extensions; 
      *                 if null, a default will be used.  
      */
-    public NerdmDrivenFromBagFileDownloadService(LongTermStorage bagstore, MimetypesFileTypeMap mimemap) {
+    public NerdmDrivenFromBagFileDownloadService(BagStorage bagstore, MimetypesFileTypeMap mimemap) {
         super(bagstore, mimemap);
         setComponentCache(defSzLim, defTmLim);
     }
@@ -88,10 +87,9 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
-     *                   preservation bags
+     * @param bagstore   a BagStorage instance repesenting the storage holding the preservation bags
      */
-    public NerdmDrivenFromBagFileDownloadService(LongTermStorage bagstore) {
+    public NerdmDrivenFromBagFileDownloadService(BagStorage bagstore) {
         super(bagstore);
         setComponentCache(defSzLim, defTmLim);
     }

@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
@@ -39,13 +40,15 @@ import org.slf4j.LoggerFactory;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.DistributionException;
@@ -55,9 +58,14 @@ import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 
-import io.findify.s3mock.S3Mock;
+// import io.findify.s3mock.S3Mock;
+import gov.nist.oar.distrib.storage.S3MockTestRule;
 
 public class AWSS3CacheVolumeTest {
+
+    // static S3Mock api = new S3Mock.Builder().withPort(port).withInMemoryBackend().build();
+    @ClassRule
+    public static S3MockTestRule siterule = new S3MockTestRule();
 
     private static Logger logger = LoggerFactory.getLogger(AWSS3CacheVolumeTest.class);
 
@@ -65,22 +73,12 @@ public class AWSS3CacheVolumeTest {
     static final String bucket = "oar-cv-test";
     static final String folder = "cach";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static S3Mock api = new S3Mock.Builder().withPort(port).withInMemoryBackend().build();
     static AmazonS3 s3client = null;
     AWSS3CacheVolume s3cv = null;
   
     @BeforeClass
     public static void setUpClass() throws IOException {
-        String endpoint = "http://localhost:"+Integer.toString(port);
-        api.start();
-        s3client = AmazonS3ClientBuilder.standard()
-                                        .withPathStyleAccessEnabled(true)  
-                                        .withEndpointConfiguration(
-                                                 new AwsClientBuilder.EndpointConfiguration(endpoint,
-                                                                                            "us-east-1"))
-                                        .withCredentials(new AWSStaticCredentialsProvider(
-                                                                      new AnonymousAWSCredentials()))
-                                        .build();
+        s3client = createS3Client();
         
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
@@ -97,12 +95,33 @@ public class AWSS3CacheVolumeTest {
         }
     }
 
+    public static AmazonS3 createS3Client() {
+        // import credentials from the EC2 machine we are running on
+        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
+        final String endpoint = "http://localhost:9090/";
+        final String region = "us-east-1";
+        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
+
+        AmazonS3 client = AmazonS3Client.builder()
+                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                                        .withEndpointConfiguration(epconfig)
+                                        .enablePathStyleAccess()
+                                        .build();
+        return client;
+    }
+
     @Before
     public void setUp() throws IOException {
-        String prefix = folder+"/";
+        // confirm that our bucket folder exists
+        //
+        // Note that adobe/s3mock behaves differently than the real AWS service when listing objects:
+        // in the latter, a prefix with a trailing slash will match an AWS "folder" with whose
+        // name matches the prefix.
+        // 
+        String prefix = folder;
         for (S3ObjectSummary os : s3client.listObjectsV2(bucket, prefix).getObjectSummaries())
-            if (os.getKey().equals(prefix))
-                prefix = null;
+            if (os.getKey().equals(prefix+"/"))
+                prefix = null;   // we found the folder
         assertNull(prefix);
         
         s3cv = new AWSS3CacheVolume(bucket, "cach", s3client);
@@ -118,7 +137,7 @@ public class AWSS3CacheVolumeTest {
     @AfterClass
     public static void tearDownClass() {
         destroyBucket();
-        api.shutdown();
+        // api.shutdown();
     }
 
     public static void destroyBucket() {
@@ -136,7 +155,8 @@ public class AWSS3CacheVolumeTest {
                 keys.add(new DeleteObjectsRequest.KeyVersion(os.getKey()));
         }
         DeleteObjectsRequest dor = new DeleteObjectsRequest(bucket).withKeys(keys);
-        s3client.deleteObjects(dor);
+        if (dor.getKeys().size() > 0)
+            s3client.deleteObjects(dor);
     }
 
     @Test
