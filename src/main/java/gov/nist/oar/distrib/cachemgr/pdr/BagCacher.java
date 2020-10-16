@@ -289,7 +289,7 @@ public class BagCacher implements PDRCacheRoles {
             int cap = 5;
             if (files != null)
                 cap = files.size();
-            HashSet<String> cached = new HashSet(cap);
+            HashSet<String> cached = new HashSet<String>(cap);
             
             InputStream fs = bagstore.openFile(bagfile);
             try {

@@ -98,7 +98,7 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
         db = sidb;
         volumes = cachevols;
         if (checklist == null)
-            checklist = new ArrayList();
+            checklist = new ArrayList<CacheObjectCheck>();
         checks = checklist;
         if (logger == null)
             logger = LoggerFactory.getLogger(getClass());
