@@ -80,47 +80,37 @@ import java.time.format.DateTimeFormatter;
  */
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
-    static final String find_sql =
+    protected static final String find_sql_base =
         "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, d.checked, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1 ";
 
     static final String deletion_pSelect = 
-        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
-                 + "ORDER BY d.priority DESC, d.since ASC";
+        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                      + "ORDER BY d.priority DESC, d.since ASC";
 
     static final String deletion_sSelect = 
-        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
-                 + "ORDER BY d.priority DESC, d.size DESC, d.since ASC";
+        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                      + "ORDER BY d.priority DESC, d.size DESC, d.since ASC";
 
     static final String deletion_dSelect = 
-        find_sql + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
-                 + "ORDER BY d.since ASC, d.priority DESC";
+        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+                      + "ORDER BY d.since ASC, d.priority DESC";
 
     static final String defaultDeletionPlanSelect = deletion_pSelect;
 
     static final String check_volumeSelect =
-        find_sql + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
+        find_sql_base + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
 
     static final String check_Select =
-        find_sql + "AND d.checked<? AND d.cached=1 ORDER BY d.checked ASC";
-
-    static HashMap<String, String> purposes = new HashMap<String, String>(2);
-    static {
-        JDBCStorageInventoryDB.purposes.put("deletion_d", deletion_dSelect);
-        JDBCStorageInventoryDB.purposes.put("deletion_p", deletion_pSelect);
-        JDBCStorageInventoryDB.purposes.put("deletion_s", deletion_sSelect);
-        JDBCStorageInventoryDB.purposes.put("deletion",   deletion_pSelect);
-        JDBCStorageInventoryDB.purposes.put("",           deletion_pSelect);
-        JDBCStorageInventoryDB.purposes.put("check",      check_Select);
-        JDBCStorageInventoryDB.purposes.put("check_vol",  check_volumeSelect);
-    }
+        find_sql_base + "AND d.checked<? AND d.cached=1 ORDER BY d.checked ASC";
 
     protected String _dburl = null;
     protected Connection _conn = null;
 
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
+    protected HashMap<String, String> purposes = new HashMap<String, String>(7);
     private long checkGracePeriod = 60 * 60 * 1000;   // 1 hour;  TODO: make configurable
 
     protected String dplanselect = defaultDeletionPlanSelect;
@@ -136,6 +126,14 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      */
     protected JDBCStorageInventoryDB(String dburl) {
         _dburl = dburl;
+
+        purposes.put("deletion_d", deletion_dSelect);  
+        purposes.put("deletion_p", deletion_pSelect);  
+        purposes.put("deletion_s", deletion_sSelect);  
+        purposes.put("deletion",   deletion_pSelect);  
+        purposes.put("",           deletion_pSelect);  
+        purposes.put("check",      check_Select);      
+        purposes.put("check_vol",  check_volumeSelect);
     }
 
     /**
@@ -189,7 +187,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> findObject(String id, int purpose) throws InventoryException {
-        StringBuilder sql = new StringBuilder(find_sql);
+        StringBuilder sql = new StringBuilder(find_sql_base);
         sql.append("AND d.objid='").append(id).append("' AND v.status >= ").append(purpose);
         if (purpose >= VOL_FOR_GET)
             sql.append(" AND d.cached=1");
@@ -215,7 +213,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             ResultSet rs = stmt.executeQuery(objsql);
             ArrayList<CacheObject> out = new ArrayList<CacheObject>();
             while (rs.next()) {
-                out.add(_extractObject(rs));
+                out.add(extractObject(rs));
             }
             return out;
         }
@@ -224,15 +222,16 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
     }
 
-    /*
-     * convert the current database result into a CacheObject
+    /**
+     * load metadata stored in columns in the given search result into a JSONObject.  This is called 
+     * by {@link #extractObject(ResultSet)} to export a row as a 
+     * {@link gov.nist.oar.distrib.cachemgr.CacheObject}; it can be overridden by subclasses to add
+     * additional metadata that are not part of the base data model for this class.  
      */
-    private CacheObject _extractObject(ResultSet rs) throws SQLException, InventoryException {
-        String jmd = null;
+    protected JSONObject metadataToJSON(ResultSet rs) throws SQLException, InventoryException {
         JSONObject md = null;
-        CacheObject co = null;
+        String jmd = rs.getString("metadata");
 
-        jmd = rs.getString("metadata");
         if (jmd != null)
             md = parseMetadata(jmd);
         else 
@@ -256,7 +255,16 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                               ZoneOffset.UTC)
                                                    .format(DateTimeFormatter.ISO_INSTANT));
         }
-        co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
+
+        return md;
+    }
+
+    /**
+     * convert the given database result into a CacheObject
+     */
+    protected CacheObject extractObject(ResultSet rs) throws SQLException, InventoryException {
+        JSONObject md = metadataToJSON(rs);
+        CacheObject co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
         if (rs.getObject("id") != null)
             co.id = rs.getString("id");
         return co;
@@ -297,7 +305,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 ResultSet rs = stmt.executeQuery();
                 ArrayList<CacheObject> out = new ArrayList<CacheObject>();
                 while (i < lim && rs.next()) {
-                    out.add(_extractObject(rs));
+                    out.add(extractObject(rs));
                     i++;
                 }
 
@@ -350,7 +358,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 ArrayList<CacheObject> out = new ArrayList<CacheObject>();
                 CacheObject co = null;
                 while (! strategy.limitReached() && rs.next()) {
-                    co = _extractObject(rs);
+                    co = extractObject(rs);
                     strategy.score(co);
                     out.add(co);
                 }
@@ -399,7 +407,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 ResultSet rs = stmt.executeQuery();
                 ArrayList<CacheObject> out = new ArrayList<CacheObject>();
                 while (i < lim && rs.next()) {
-                    out.add(_extractObject(rs));
+                    out.add(extractObject(rs));
                     i++;
                 }
 
@@ -442,7 +450,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 ArrayList<CacheObject> out = new ArrayList<CacheObject>();
                 CacheObject co = null;
                 while (! strategy.limitReached() && rs.next()) {
-                    co = _extractObject(rs);
+                    co = extractObject(rs);
                     strategy.score(co);
                     out.add(co);
                 }
@@ -468,7 +476,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
-        String fsql = find_sql + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        String fsql = find_sql_base + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
         List<CacheObject> objs = null;
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
@@ -481,7 +489,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         return objs.get(0);
     }
 
-    String add_sql = "INSERT INTO objects(" +
+    protected String add_sql = "INSERT INTO objects(" +
         "objid,name,size,checksum,algorithm,priority,volume,since,checked,cached,metadata" +
         ") VALUES (?,?,?,?,?,?,?,?,0,?,?)";
     
@@ -555,7 +563,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventoryException("Not a registered algorithm: " + alg);
 
         // check to see if we have this record in the database already
-        StringBuilder sb = new StringBuilder(find_sql);
+        StringBuilder sb = new StringBuilder(find_sql_base);
         sb.append("AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
         List<CacheObject> found = _findObject(sb.toString());
@@ -613,47 +621,18 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             // should not happen
             throw new VolumeNotFoundException(volname);
 
-        // update the metadata
-        String sinceDate = null;
-        String nm = null;
-        StringBuilder sql = new StringBuilder("UPDATE objects SET");
-        try {
-            if (metadata.has("size")) {
-                nm = "size";
-                sql.append(" size=").append(Long.toString(metadata.getLong(nm))).append(",");
-            }
-            if (metadata.has("checksum")) {
-                nm = "checksum";
-                sql.append(" checksum='").append(metadata.getString(nm)).append("'").append(",");
-            }
-            if (metadata.has("priority")) {
-                nm = "priority";
-                sql.append(" priority=").append(Integer.toString(metadata.getInt(nm))).append(",");
-            }
-
-            if (metadata.has("since")) {
-                if (metadata.has("sinceDate")) {
-                    nm = "sinceDate";
-                    sinceDate = metadata.getString("sinceDate");
-                } else {
-                    nm = "since";
-                    sinceDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(metadata.getLong(nm)),
-                                                        ZoneOffset.UTC)
-                                             .format(DateTimeFormatter.ISO_INSTANT);
-                }
-                nm = "since";
-                sql.append(" since=").append(Long.toString(metadata.getLong(nm))).append(",");
-            }
-
-            if (metadata.has("checked")) {
-                nm = "checked";
-                sql.append(" checked=").append(Long.toString(metadata.getLong(nm))).append(",");
-            }
-                    
-        } catch (JSONException ex) {
-            throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
-                                                 ex.getMessage(), nm, ex);
+        // add sinceDate if necessary
+        if (metadata.has("since") && ! metadata.has("sinceDate")) {
+            metadata = new JSONObject(metadata, JSONObject.getNames(metadata));
+            String sinceDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(metadata.getLong("since")),
+                                                       ZoneOffset.UTC)
+                                            .format(DateTimeFormatter.ISO_INSTANT);
+            metadata.put("sinceDate", sinceDate);
         }
+
+        // update the metadata
+        StringBuilder sql = new StringBuilder("UPDATE objects SET");
+        setUpdateMetadataStmt(sql, metadata);
 
         Statement stmt = null;
         try {
@@ -661,8 +640,6 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             JSONObject md = obj.exportMetadata();
             for (String prop : metadata.keySet())
                 md.put(prop, metadata.get(prop));
-            if (sinceDate != null)
-                md.put("sinceDate", sinceDate);
 
             StringBuilder updsql = new StringBuilder(sql.toString());
             updsql.append(" metadata='").append(md.toString())
@@ -686,6 +663,51 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
 
         return true;
+    }
+
+    /**
+     * append SET subclauses to the SQL UPDATE statement that will be used to update a 
+     * record's metadata.  
+     * <p>
+     * This method can be overriden to customize the appending of that data.  In particular,
+     * a subclass should call <code>super.setUpdateMetadataStmt()</code> to set data for the 
+     * base data model and then append an additional properties for the extended model.  
+     * @param stmt       the update statement so far to append key=value subclauses to
+     * @param metadata   the metadata to update for the target record.
+     */
+    protected void setUpdateMetadataStmt(StringBuilder stmt, JSONObject metadata)
+        throws InventoryMetadataException
+    {
+        String sinceDate = null;
+        String nm = null;
+        try {
+            if (metadata.has("size")) {
+                nm = "size";
+                stmt.append(" size=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
+            if (metadata.has("checksum")) {
+                nm = "checksum";
+                stmt.append(" checksum='").append(metadata.getString(nm)).append("'").append(",");
+            }
+            if (metadata.has("priority")) {
+                nm = "priority";
+                stmt.append(" priority=").append(Integer.toString(metadata.getInt(nm))).append(",");
+            }
+
+            if (metadata.has("since")) {
+                nm = "since";
+                stmt.append(" since=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
+
+            if (metadata.has("checked")) {
+                nm = "checked";
+                stmt.append(" checked=").append(Long.toString(metadata.getLong(nm))).append(",");
+            }
+                    
+        } catch (JSONException ex) {
+            throw new InventoryMetadataException(nm + ": Metadatum has unexpected type: " + 
+                                                 ex.getMessage(), nm, ex);
+        }
     }
 
     /**
