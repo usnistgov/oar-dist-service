@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.net.MalformedURLException;
 import org.slf4j.Logger;
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
@@ -61,7 +64,10 @@ public class DownloadBundlePlanner {
 	private String validdomains;
 	private int allowedRedirects;
 	private long totalRequestedFileSize = 0;
-
+	private List<String> logsForFiles;
+	private List recordId;
+	private List logsFilesSizes;
+	private HashMap<String, List<String>> logsRecords = new HashMap<>();
 	public DownloadBundlePlanner() {
 		// Default constructor
 	}
@@ -90,6 +96,7 @@ public class DownloadBundlePlanner {
 		messages = new ArrayList<String>();
 		logger.info("Creating bundle plan..");
 		try {
+		    
 			ObjectMapper mapper = new ObjectMapper();
 			String requestString = mapper.writeValueAsString(this.bundleRequest);
 			if (ValidationHelper.hasHTMLTags(requestString)) {
@@ -122,6 +129,7 @@ public class DownloadBundlePlanner {
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
+			
 			try {
 				if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
 					this.makeBundles(jobject);
@@ -140,8 +148,43 @@ public class DownloadBundlePlanner {
 		}
 
 		this.updateMessagesAndStatus();
+		printLogsSummary();
 		return this.makeBundlePlan();
 
+	}
+	
+	public void forLogs(String filePath, String fileURL, long fileSize) {
+	    try {
+		String[] recordPath = filePath.split("/");
+		if(!logsRecords.containsKey(recordPath[0]) || logsForFiles == null) 
+		    logsForFiles = new ArrayList<String>();
+		logsForFiles.add(" FilePath "+filePath+" FileURL : "+fileURL+" FileSize: "+fileSize);
+		this.logsRecords.put(recordPath[0],logsForFiles); 
+	    }catch(Exception exp) {
+		logger.error("Exception creating Logs for List of the files and sizes.");
+	    }
+	}
+	
+	private void printLogsSummary() {
+	    
+	    logger.info("Requested files size info ::");
+//	    logger.info(Arrays.toString( bundleFilePathUrls.toArray()));
+	    ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+	    try {
+		String json = ow.writeValueAsString(bundleFilePathUrls);
+		logger.info(json);
+	    } catch (JsonProcessingException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	    }
+//	    logger.info(logsRecords.toString());
+	    int fileList = 0 ;
+		if(inputfileList != null ) fileList = inputfileList.length;
+	    //Print logs about files
+	    logger.info("BundlePlan Summary ::");
+//	    BundleDownloadPlan bPlan =new BundleDownloadPlan( this.status, this.totalRequestedFileSize, bundleCount, fileList);
+	    logger.info("Request Status :"+this.status+", Total Files Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
+		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
 	}
 
 	/**
@@ -152,8 +195,9 @@ public class DownloadBundlePlanner {
 	 * @throws IOException
 	 */
 	public void makeBundles(FileRequest jobject) {
-		logger.info("Make bundles: validate urls, check size and accordinlgy create bundle plan.");
-		bundledFilesCount++;
+		//logger.info("Make bundles: validate urls, check size and accordinlgy create bundle plan.");
+	
+	    	bundledFilesCount++;
 		URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains,
 				this.allowedRedirects);
 		
@@ -166,17 +210,18 @@ public class DownloadBundlePlanner {
 			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
 		} else {
 			long individualFileSize = uObj.getLength();
+			this.forLogs(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize);
 			totalRequestedFileSize += individualFileSize;
 			if (individualFileSize >= this.mxFilesBundleSize) {
 				//bundleSize = individualFileSize;
 				List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
-				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
 				this.makePlan(onefilePathUrls,individualFileSize);
 				
 			} else {
 				bundleSize += individualFileSize;
 				if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
 
 				} else {
 					if(!filePathUrls.isEmpty()) {
@@ -185,11 +230,12 @@ public class DownloadBundlePlanner {
 					}
 					filePathUrls.clear();
 					bundledFilesCount = 1;
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(),individualFileSize));
 					bundleSize = individualFileSize;
 				}
 			}
 		}
+		
 	}
 
 	/***
@@ -219,6 +265,7 @@ public class DownloadBundlePlanner {
 		}
 
 	}
+	
 
 	/**
 	 * Create final Bundle plan (JSON) to return to client. It creates Java Object
@@ -240,6 +287,7 @@ public class DownloadBundlePlanner {
 			bPlan.setSize(this.totalRequestedFileSize);
 				
 		return bPlan;
+		
 				
 //		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
 //				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),
