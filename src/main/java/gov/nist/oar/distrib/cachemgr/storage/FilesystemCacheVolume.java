@@ -45,7 +45,7 @@ public class FilesystemCacheVolume implements CacheVolume {
     protected String baseurl = null;
 
     /**
-     * create a FilesystemCacheVolume without support for {@link #getRedirectfor(String)}.
+     * create a FilesystemCacheVolume without support for {@link #getRedirectFor(String)}.
      * 
      * @param rootdir   the path to the root directory for the volume
      * @param name      a name to refer to this volume by (in exception messages)
@@ -55,7 +55,7 @@ public class FilesystemCacheVolume implements CacheVolume {
     }
 
     /**
-     * create a FilesystemCacheVolume without support for {@link #getRedirectfor(String)}.
+     * create a FilesystemCacheVolume without support for {@link #getRedirectFor(String)}.
      * 
      * @param rootdir   the root directory for the volume
      * @param name      a name to refer to this volume by (in exception messages)

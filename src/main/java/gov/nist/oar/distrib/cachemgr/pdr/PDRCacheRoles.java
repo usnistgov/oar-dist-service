@@ -19,7 +19,7 @@ package gov.nist.oar.distrib.cachemgr.pdr;
  * of the cache.  As preferences can be bit-wise AND-ed together, a volume can be assigned more than one 
  * code.  
  * 
- * {@see gov.nist.oar.distrib.cachemgr.ConfigurableCache}
+ * @see gov.nist.oar.distrib.cachemgr.ConfigurableCache
  */
 public interface PDRCacheRoles {
 

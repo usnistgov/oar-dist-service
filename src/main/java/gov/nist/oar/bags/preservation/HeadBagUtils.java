@@ -216,8 +216,8 @@ public class HeadBagUtils {
     /**
      * read the JSON data object from the open metadata file.  This will advance the stream to the 
      * end of the object.  
-     * @param JSONObject   the JSON object node in the file
-     * @param JSONException   if a JSON object cannot be parsed from the data on the stream (including
+     * @return JSONObject   the JSON object node in the file
+     * @throws JSONException    if a JSON object cannot be parsed from the data on the stream (including
      *                          when there is an IO error while reading the stream).
      */
     public static JSONObject readJSON(InputStream jsonfile) throws JSONException {

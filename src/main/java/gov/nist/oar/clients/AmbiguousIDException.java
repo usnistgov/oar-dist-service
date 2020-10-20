@@ -20,9 +20,9 @@ public class AmbiguousIDException extends OARServiceException {
 
     /**
      * initialize the exception.  
-     * @param message an arbitrary message describing what went wrong
-     * @param id      the ambiguous identifier
-     * @param cause   an exception representing the underlying failure that occurred with the identifier
+     * @param message     an arbitrary message describing what went wrong
+     * @param identifier  the ambiguous identifier
+     * @param cause       an exception representing the underlying failure that occurred with the identifier
      */
     public AmbiguousIDException(String message, String identifier, Throwable cause) {
         super(message, cause);

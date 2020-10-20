@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * basis, if desired) that is used to score individual files.  
  * <p>
  * This implementation can be subclassed to adjust its behavior.  In particular, the 
- * {@link #calculatePlanScore(Collection,double,double) calculatePlanScore()} method can be 
+ * {@link #calculatePlanScore(Collection,long,long) calculatePlanScore()} method can be 
  * overridden to customize the overall scoring of plans.  
  */
 public class DefaultDeletionPlanner implements DeletionPlanner {

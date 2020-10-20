@@ -66,10 +66,10 @@ public class ComponentInfoCache {
      *                      record that has a type matching one of these types will <i>not</i> be cached 
      *                      If this parameter is null, no types will be explicitly excluded.  This
      *                      list overrides the include list.  
-     * @param preferFilePathKey   if true and a component has a filepath property, the file path will 
+     * @param preferFilepathKey   if true and a component has a filepath property, the file path will 
      *                      be used instead of the component identifier as the component's key in the 
      *                      cache (when added via 
-     *                      {@link cacheResource(JSONObject,boolean,String) cacheResource()}); otherwise,
+     *                      {@link #cacheResource(JSONObject,boolean,String) cacheResource()}); otherwise,
      *                      component's identifier will be used.  
      * @param initCap     the initial capacity of the empty cache
      */
@@ -190,7 +190,7 @@ public class ComponentInfoCache {
      *                    is free to alter component objects.
      * @param returnId  the sub-identifier for a desired component; if a component with this identifier 
      *                    is found, it will be returned; otherwise (or if returnId is null), null is returned.
-     * @returns int -- the number of components selected from the resource 
+     * @return int -- the number of components selected from the resource 
      */
     public JSONObject cacheResource(JSONObject res, boolean copy, String returnId) {
         return cacheResource(res, copy, returnId, null);
@@ -213,7 +213,7 @@ public class ComponentInfoCache {
      *                    property (when the component describes a file).  
      * @param residKey  an over-ride resource identifier to use as a base key for records added to the 
      *                    cache (rather than using the resource ID recorded in the metadata object, res).
-     * @returns int -- the number of components selected from the resource 
+     * @return int -- the number of components selected from the resource 
      */
     public JSONObject cacheResource(JSONObject res, boolean copy, String returnId, String residKey) {
         JSONArray comps = null;

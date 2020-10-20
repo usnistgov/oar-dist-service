@@ -93,16 +93,16 @@ public class VolumeConfig {
 
     /**
      * set the roles for this configuration
-     * {@see #addRoles(int)}
-     * {@see #withRoles(int)}
+     * @see #addRoles(int)
+     * @see #withRoles(int)
      * @param roles   the bit-wise AND-ed set of role codes to assign
      */
     public void setRoles(int roles) { this.roles = roles; }
 
     /**
      * add additional roles to those already set in this configuration
-     * {@see #setRoles(int)}
-     * {@see #withRoles(int)}
+     * @see #setRoles(int)
+     * @see #withRoles(int)
      * @param roles   the bit-wise AND-ed set of role codes to add.
      * @return int -- the complete set of bit-wise AND-ed role codes assigned after adding the input roles.
      */

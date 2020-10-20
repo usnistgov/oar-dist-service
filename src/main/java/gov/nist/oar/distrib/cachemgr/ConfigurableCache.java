@@ -31,7 +31,8 @@ import org.json.JSONException;
  * a Cache implementation that supports flexible configuration of its volumes.
  * <p>
  * A cache is built up after instantiation through any number of calls to 
- * {@link #addCacheVolume(VolumeConfig)}, allowing one to:
+ * {@link #addCacheVolume(CacheVolume,int,JSONObject,VolumeConfig,boolean) addCacheVolume()}, 
+ * allowing one to:
  * <ul>
  *   <li> assign roles to volumes that will cause them to be selected via the <code>preferences</code>
  *        parameter in the {@link #reserveSpace(long, int) reserveSpace()} function. </li>

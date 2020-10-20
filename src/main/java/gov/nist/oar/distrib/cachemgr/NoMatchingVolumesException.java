@@ -27,7 +27,7 @@ public class NoMatchingVolumesException extends DeletionFailureException {
 
     /**
      * create the exception
-     * @parem preferences   the requested preferences that could not be matched
+     * @param preferences   the requested preferences that could not be matched
      */
     public NoMatchingVolumesException(int preferences) {
         super("No cache volumes available matching requested preferences: "+Integer.toString(preferences));
@@ -36,7 +36,6 @@ public class NoMatchingVolumesException extends DeletionFailureException {
 
     /**
      * create the exception
-     * @parem preferences   the requested preferences that could not be matched
      */
     public NoMatchingVolumesException() {
         super("No cache volumes available matching requested preferences");

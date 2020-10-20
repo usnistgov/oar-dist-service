@@ -65,7 +65,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(String,StorageInventoryDB,Collection)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles, this provides a way to distinguish between the different 
@@ -80,7 +80,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(String,StorageInventoryDB,Collection)}.
      * 
      * @param name  a name to give this cache.  In a system with multiple caches with 
      *              different roles this provides a way to distinguish between the different 
@@ -97,7 +97,7 @@ public abstract class BasicCache extends Cache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #BasicCache(StorageInventoryDB,List)}.
+     * {@link #BasicCache(String,StorageInventoryDB,Collection)}.
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
      *               caches in messages.

@@ -36,7 +36,7 @@ public abstract class BasicCacheManager extends CacheManager {
 
     /**
      * The {@link Restorer} to use to restor data objects from long-term storage.  (The 
-     * {@link LongTermStorage} instance is expected to be embedded in this restorer.)
+     * {@link gov.nist.oar.distrib.LongTermStorage} instance is expected to be embedded in this restorer.)
      */
     protected Restorer restorer = null;
 

@@ -53,7 +53,7 @@ public class IntegrityException extends CacheManagementException {
     /**
      * create an exception with a custom message
      * @param msg      a custom message
-     * @param reqfile  the name of the file that failed to be restored
+     * @param obj      the cache object that failed a check
      */
     public IntegrityException(String msg, CacheObject obj) {
         this(msg, obj, null);
@@ -62,9 +62,9 @@ public class IntegrityException extends CacheManagementException {
     /**
      * create an exception that wraps another exception.  A message is 
      * generated from the wrapped exception's message and the volume name.
+     * @param obj      the cache object that failed its integrity check
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
-     * @param reqfile  the name of the file that failed to be restored
      */
     public IntegrityException(CacheObject obj, Throwable ex) {
         this(messageFor(obj, ex), obj, ex);

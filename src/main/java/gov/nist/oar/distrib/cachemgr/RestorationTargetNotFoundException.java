@@ -16,9 +16,7 @@ package gov.nist.oar.distrib.cachemgr;
 /**
  * an exception indicating that something went wrong while restoring a file from long-term storage
  */
-public class RestorationException extends CacheManagementException {
-
-    protected String file = null;
+public class RestorationTargetNotFoundException extends RestorationException {
 
     /**
      * create an exception with a custom message
@@ -26,7 +24,7 @@ public class RestorationException extends CacheManagementException {
      * @param ex     a Throwable that was caught as the underlying cause 
      *                  of the error
      */
-    public RestorationException(String msg, Throwable ex) {
+    public RestorationTargetNotFoundException(String msg, Throwable ex) {
         super(msg, ex);
     }
 
@@ -35,28 +33,19 @@ public class RestorationException extends CacheManagementException {
      * @param msg      a custom message
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
-     * @param reqfile  the name of the file that failed to be restored
+     * @param target   the name of the file that failed to be restored
      */
-    public RestorationException(String msg, Throwable ex, String reqfile) {
-        super(msg, ex);
-        file = reqfile;
-    }
-
-    /**
-     * create an exception with a custom message
-     * @param msg    a custom message
-     */
-    public RestorationException(String msg) {
-        this(msg, null, null);
+    public RestorationTargetNotFoundException(String msg, Throwable ex, String target) {
+        super(msg, ex, target);
     }
 
     /**
      * create an exception with a custom message
      * @param msg      a custom message
-     * @param reqfile  the name of the file that failed to be restored
+     * @param target   the name of the file that was not found
      */
-    public RestorationException(String msg, String reqfile) {
-        this(msg, null, reqfile);
+    public RestorationTargetNotFoundException(String msg, String target) {
+        this(msg, null, target);
     }
 
     /**
@@ -65,7 +54,7 @@ public class RestorationException extends CacheManagementException {
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
      */
-    public RestorationException(Throwable ex) {
+    public RestorationTargetNotFoundException(Throwable ex) {
         super(ex);
     }
 
@@ -74,43 +63,34 @@ public class RestorationException extends CacheManagementException {
      * generated from the wrapped exception's message and the volume name.
      * @param ex       a Throwable that was caught as the underlying cause 
      *                    of the error
-     * @param reqname  the name of the file that failed to be restored
+     * @param target  the name of the target that could not be found
      */
-    public RestorationException(Throwable ex, String reqname) {
-        this(messageFor(ex, reqname), ex, reqname);
+    public RestorationTargetNotFoundException(Throwable ex, String target) {
+        this(getMessagePrefix()+target, ex, target);
+    }
+
+    /**
+     * create an exception that wraps another exception.  A message is 
+     * generated from the wrapped exception's message and the volume name.
+     * @param target  the name of the target that could not be found
+     */
+    public RestorationTargetNotFoundException(String target) {
+        this(getMessagePrefix()+target, target);
     }
 
     /**
      * return the name of the file that failed to be restored, or null if the 
      * name is not known or applicable.
      */
-    public String getFilename() {
-        return file;
-    }
-
-    protected static String messageFor(Throwable cause, String reqfile) {
-        StringBuilder sb = new StringBuilder(getMessagePrefix());
-        if (reqfile != null)
-            sb.append('(').append(reqfile).append(')');
-        sb.append(": ");
-        
-        String name = cause.getClass().getSimpleName();
-        if (name != null)
-            sb.append('[').append(name).append("] ");
-        sb.append(cause.getMessage());
-        return sb.toString();
-    }
-
-    protected static String messageFor(Throwable cause) {
-        return messageFor(cause, null);
+    public String getTarget() {
+        return getFilename();
     }
 
     /**
      * return a message prefix that can introduce a more specific message
      */
     public static String getMessagePrefix() {
-        return "Problem restoring file";
+        return "Target source not found: ";
     }
-
 }
 

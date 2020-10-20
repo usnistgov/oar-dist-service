@@ -33,7 +33,7 @@ import java.io.FileNotFoundException;
  * <p>
  * The {@link gov.nist.oar.distrib.storage} sub-package provides implementations based on assumptions 
  * of how the NIST Public Data Repository (PDR) stores bag files in long-term storage (via 
- * {@lnk gov.nist.gov.oar.distrib.storage.PDRBagStorage}.  
+ * {@link gov.nist.gov.oar.distrib.storage.AWSS3LongTermStorage}).  
  * 
  */
 public interface BagStorage extends LongTermStorage {

@@ -187,8 +187,8 @@ public class ZipBagUtils {
      * This version adapts to the version of the Multibag BagIt Profile the bag is supposed 
      * to comply with, via the {@code mbagvers} parameter.  
      *
-     * @param mbagver       the version of the Multibag BagIt Profile that the file contents
-     *                      complies with.
+     * @param mbagvers   the version of the Multibag BagIt Profile that the file contents
+     *                   complies with.
      * @param zipfile    an InputStream set at the start of the zip file.  
      * @param bagname    the bag name (which must be the root directory for the bag)
      * @return OpenEntry - the input stream and associated ZipEntry information bundled together
@@ -235,7 +235,7 @@ public class ZipBagUtils {
      * property, <code>_location</code>, indicating the name of the bag file that contains the file, or 
      * null if the file is not available from a bag (i.e. its <code>downloadURL</code> points to an 
      * externally archived file).  
-     * @param mbagver    the version of the Multibag BagIt Profile that the file contents
+     * @param mbagvers   the version of the Multibag BagIt Profile that the file contents
      *                     complies with.
      * @param zipfile    an InputStream set at the start of the zip file.  
      * @param bagname    the bag name (which must be the root directory for the bag)

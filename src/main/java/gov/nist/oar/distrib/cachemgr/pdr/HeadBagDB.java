@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * methods for locating head bags in the cache.  
  * <p>
  * To create an instance of this class (which is abstract), one should use the static factory function
- * {@link #createHeadBagDB()}.
+ * {@link #createHeadBagDB(String)}.
  */
 public abstract class HeadBagDB extends PDRStorageInventoryDB {
 
@@ -55,7 +55,7 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
      * It is assumed that a JDBC driver for the database exists in the Java CLASSPATH.  
      * The value of {@link #defaultDeletionPlanSelect} will be loaded as the SQL SELECT 
      * will be used to select deletable objects from a data volume (see 
-     * {@link #JDBCStorageInventoryDB(String,String)}).
+     * {@link gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB#JDBCStorageInventoryDB(String,String)}).
      * 
      * @param dburl    the JDBC URL to use to connect to the existing database.  
      */

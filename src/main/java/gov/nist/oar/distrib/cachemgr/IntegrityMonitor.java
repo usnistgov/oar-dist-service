@@ -26,17 +26,18 @@ import java.util.List;
  * connected to a cache (usually a single {@link Cache}, but could a collection of {@link Cache}s or part 
  * of a {@link Cache}) and has access to both its storage inventory database and the {@link CacheVolume} 
  * that make up the cache.  (The strong connection to a {@link Cache} is reflected the {@link BasicCache} 
- * method, {@link BasicCache#createIntegrityMonitor(List<CacheObjectCheck>)}.)  It uses the database 
+ * method, {@link BasicCache#createIntegrityMonitor(List)}.)  It uses the database 
  * (typically through its {@link StorageInventoryDB} interface) to find objects that are in need of checking.  
  * Once it finds them, it can run configured checks on them.  When an object passes all its checks, this 
  * monitor will update its record accordingly (with a date of success) in the database; thus, the object 
  * will not need further checking for some period of time.  
  * <p>
- * This whole process can be accomplished via calls to {@link #findCorruptedObjects(int, List<CacheObject>)}; 
+ * This whole process can be accomplished via calls to 
+ * {@link #findCorruptedObjects(int,List,boolean)}; 
  * however, if cache manager would like to take tighter control over the process--i.e. to delete and restore 
  * individual {@link CacheObject}s as they are found to be corrupted--the manager can separately find the 
  * objects to be checked via {@link #selectObjectsToBeChecked(int)} and check them individually via 
- * {@link check(CacheObject)}.
+ * {@link #check(CacheObject)}.
  * 
  * @see StorageInventoryDB
  * @see CacheVolume
@@ -96,7 +97,7 @@ public interface IntegrityMonitor {
      * may cause error messages to be logged). 
      * <p>
      * This method basically applies {@link #check(CacheObject)} to a list of objects.
-     * @param objs          the list of objects to check.
+     * @param cos           the list of objects to check.
      * @param failed        an editable list to which this method can add the {@link CacheObject}s that fail 
      *                      any integrity check. 
      * @param deleteOnFail  if true, then an object that fails its checks should be immediately removed from
@@ -119,7 +120,7 @@ public interface IntegrityMonitor {
      * may cause error messages to be logged). 
      * <p>
      * This method basically combines {@link #selectObjectsToBeChecked(int)} and 
-     * {@link #selectCorruptedObjects(List<CacheObject>,List<CacheObject>)} into one call.  
+     * {@link #selectCorruptedObjects(List,List,boolean)} into one call.  
      * @param max     the maximum number of objects to check
      * @param failed  an editable list to which this method can add the {@link CacheObject}s that fail 
      *                any integrity check. 

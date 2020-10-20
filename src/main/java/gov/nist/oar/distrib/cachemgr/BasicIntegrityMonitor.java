@@ -27,14 +27,14 @@ import org.slf4j.LoggerFactory;
 /**
  * a basic implementation of the IntegrityMonitor interface.  (It is not restricted to being used with 
  * {@link BasicCache} although {@link BasicCache} returns an instance of this via its 
- * {@link BasicCache#createIntegrityMonitor(List<CacheObjectCheck>)} method.)
+ * {@link BasicCache#createIntegrityMonitor(List)} method.)
  * <p>
  * This implementation has access to the cache's {@link StorageInventoryDB} and its {@link CacheVolume}s to 
  * do its work.  It can optionally be configured with a {@link SelectionStrategy} instance which will be 
  * used to select objects from the database to check; otherwise, it will use the database "check" purpose 
  * (via {@link StorageInventoryDB#selectObjects(String,int)}).  Thus, in the latter case, the 
  * {@link StorageInventoryDB} must support the "check" purpose and return a sensible selection of objects.
- * (Subclasses of {@link JDBCStorageInventoryDB} all do.)
+ * (Subclasses of {@link gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB} all do.)
  */
 public class BasicIntegrityMonitor implements IntegrityMonitor {
 
@@ -249,7 +249,7 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
      * All other exceptions are generallly ignored except when there are 
      * an excessive number of {@link StorageVolumeException} exceptions (although these other exceptions
      * may cause error messages to be logged). 
-     * @param objs    the list of objects to check.
+     * @param cos     the list of objects to check.
      * @param failed  an editable list to which this method can add the {@link CacheObject}s that fail 
      *                any integrity check. 
      * @param deleteOnFail  if true, then an object that fails its checks should be immediately removed from
@@ -313,7 +313,7 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
      * may cause error messages to be logged). 
      * <p>
      * This method basically combines {@link #selectObjectsToBeChecked(int)} and 
-     * {@link #selectCorruptedObjects(List<CacheObject>,List<CacheObject>)} into one call.  
+     * {@link #selectCorruptedObjects(List,List,boolean)} into one call.  
      * @param max     the maximum number of objects to check
      * @param failed  an editable list to which this method can add the {@link CacheObject}s that fail 
      *                any integrity check. 

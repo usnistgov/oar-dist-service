@@ -57,8 +57,8 @@ public class WebLongTermStorage implements LongTermStorage {
     protected String urlbase = null;
 
     /**
-     * initialize the nam
-     * @param 
+     * initialize the storage 
+     * @param name     a name to refer to this storage by (in log messages)
      * @param log      a Logger to use; if null, a default is created.
      */
     protected WebLongTermStorage(String name, Logger log) {
@@ -258,7 +258,7 @@ public class WebLongTermStorage implements LongTermStorage {
     /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file.
      * The caller is responsible for closing the stream when finished with it.
-     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+     * @param resource   The name of the desired resource.  Note that this does not refer to files that 
      *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
      * @return InputStream open at the start of the file
      * @throws FileNotFoundException  if the file with the given filename does not exist
@@ -338,7 +338,7 @@ public class WebLongTermStorage implements LongTermStorage {
 
     /**
      * Return the size of the named file in bytes
-     * @param filename   The name of the desired resource.  
+     * @param resource   The name of the desired resource.  
      * @return long, the size of the file in bytes.
      * @throws FileNotFoundException  if the file with the given filename does not exist
      */

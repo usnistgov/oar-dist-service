@@ -95,19 +95,11 @@ public class AWSS3CacheVolume implements CacheVolume {
      *                      or an empty string, it will be assumed that the objects should reside at the 
      *                      root of the bucket.  
      * @param s3            the AmazonS3 client instance to use to access the bucket
-     * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
-     *                            when {@link #getRedirectFor(String)} is called.  This 
-     *                            implementation will form the URL by appending the object 
-     *                            name to this base URL.  Note that a delimiting slash will 
-     *                            <i>not</i> be automatically inserted; if a slash is needed, 
-     *                            it should be included as part of this base URL.  
      * @throws FileNotFoundException    if the specified bucket does not exist
      * @throws AmazonServiceException   if there is a problem accessing the S3 service.  While 
      *                                  this is a runtime exception that does not have to be caught 
      *                                  by the caller, catching it is recommended to address 
      *                                  connection problems early.
-     * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
-     *                            legal URLs
      */
     public AWSS3CacheVolume(String bucketname, String folder, AmazonS3 s3)
         throws FileNotFoundException, AmazonServiceException

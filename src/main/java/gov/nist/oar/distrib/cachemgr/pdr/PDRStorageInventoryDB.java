@@ -86,7 +86,7 @@ import java.time.format.DateTimeFormatter;
  * </pre>
  * <p>
  * To create an instance of this class (which is abstract), one should use the static factory function
- * {@link #createSQLiteDB()}.
+ * {@link #createSQLiteDB(String)}.
  */
 public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
 
@@ -95,7 +95,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
      * It is assumed that a JDBC driver for the database exists in the Java CLASSPATH.  
      * The value of {@link #defaultDeletionPlanSelect} will be loaded as the SQL SELECT 
      * will be used to select deletable objects from a data volume (see 
-     * {@link #JDBCStorageInventoryDB(String,String)}).
+     * {@link JDBCStorageInventoryDB#JDBCStorageInventoryDB(String,String)}).
      * 
      * @param dburl    the JDBC URL to use to connect to the existing database.  
      */

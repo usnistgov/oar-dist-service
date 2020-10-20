@@ -274,9 +274,8 @@ public class DeletionPlan {
 
     /**
      * execute the plan and return a reservation for the freed space.
-     * @param cache    the requesting cache which will get notified about deletion amounts via 
-     *                 {@link Cache#notifyObjectsDeleted(CacheVolume, List<String>, long)}.  If null,
-     *                 notifications will not be made. 
+     * @param cache    the requesting cache which will get notified about deletion amounts (via the 
+     *                 {@link Cache} listener interface).  If null, notifications will not be made. 
      * @throws IllegalStateException  if the volume field is null 
      * @throws DeletionFailureException  if the plan execution was not successful in freeing enough space
      * @throws InventoryException     if a failure occurs while trying to create the reservation

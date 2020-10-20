@@ -63,7 +63,7 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     }
 
     /**
-     * create a name for a data object within a particular {@link CacheVolume}.  
+     * create a name for a data object within a particular {@link gov.nist.oar.distrib.cachemgr.CacheVolume}.  
      */
     protected String determineCacheObjectName(String volname, String id) {
         return id;

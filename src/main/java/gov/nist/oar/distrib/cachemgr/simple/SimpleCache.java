@@ -49,7 +49,7 @@ public class SimpleCache extends BasicCache {
     /**
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
-     * database, use {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
+     * database, use {@link #SimpleCache(String,StorageInventoryDB,Collection,DeletionPlanner)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
@@ -150,7 +150,7 @@ public class SimpleCache extends BasicCache {
     /**
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
-     * database, use {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
+     * database, use {@link #SimpleCache(String,StorageInventoryDB,Collection,DeletionPlanner)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
@@ -166,7 +166,7 @@ public class SimpleCache extends BasicCache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #SimpleCache(StorageInventoryDB,List)}.
+     * {@link #SimpleCache(String,StorageInventoryDB,Collection)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
@@ -184,7 +184,7 @@ public class SimpleCache extends BasicCache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
+     * {@link #SimpleCache(String,StorageInventoryDB,Collection)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
@@ -201,14 +201,12 @@ public class SimpleCache extends BasicCache {
      * create the Cache without volumes.  The provided inventory database should be empty of 
      * object records and with no volumes registered.  To create a Cache with a prepopulated 
      * database, use 
-     * {@link #SimpleCache(StorageInventoryDB,List,DeletionPlanner)}.
+     * {@link #SimpleCache(String,StorageInventoryDB,Collection)}.
      * 
      * @param name   a name to give this cache.  In a system with multiple caches with 
      *               different roles this provides a way to distinguish between the different 
      *               caches in messages.
      * @param idb   the (empty) inventory database to use
-     * @param log   a particular Logger instance that should be used.  If null, a default one
-     *                will be provided.  
      */
     public SimpleCache(String name, StorageInventoryDB idb) {
         this(name, idb, 2, null, null);

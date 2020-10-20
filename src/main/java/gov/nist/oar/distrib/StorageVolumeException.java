@@ -64,8 +64,7 @@ public class StorageVolumeException extends DistributionException {
     /**
      * create an exception that wraps another exception.  A message is 
      * generated from the wrapped exception's message
-     * @param ex       a Throwable that was caught as the underlying cause 
-     *                    of the error
+     * @param cause    a Throwable that was caught as the underlying cause of the error
      */
     public StorageVolumeException(Throwable cause) {
         this(cause, null);
