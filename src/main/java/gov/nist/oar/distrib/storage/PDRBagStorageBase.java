@@ -111,7 +111,7 @@ public abstract class PDRBagStorageBase implements BagStorage {
     /**
      * Return the name of the head bag for the identifier for given version
      * @param identifier  the AIP identifier for the desired data collection 
-     * @param version     the desired version of the AIP
+     * @param version     the desired version of the AIP.  If null or empty, the latest version is found.
      * @return String, the head bag's file name, or null if version is not found
      * @throws ResourceNotFoundException   if there exist no bags with the given identifier or version
      */
@@ -119,6 +119,9 @@ public abstract class PDRBagStorageBase implements BagStorage {
     public String findHeadBagFor(String identifier, String version)
         throws ResourceNotFoundException, StorageVolumeException
     {
+        if (version == null || version.length() == 0)
+            return findHeadBagFor(identifier);
+        
         List<String> bags = BagUtils.selectVersion(findBagsFor(identifier), version);
         if (bags.size() == 0)
             throw ResourceNotFoundException.forID(identifier, version);

@@ -14,6 +14,7 @@
 package gov.nist.oar.distrib.cachemgr;
 
 import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.ObjectNotFoundException;
 
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -113,6 +114,9 @@ public abstract class BasicCacheManager extends CacheManager {
         catch (JSONException ex) {
             throw new RestorationException("Unexpected failure saving metadata for id="+id+": "+
                                            ex.getMessage(), ex);
+        }
+        catch (ObjectNotFoundException ex) {
+            throw new RestorationTargetNotFoundException(ex, id);
         }
         catch (StorageVolumeException ex) {
             throw new CacheVolumeException(ex);

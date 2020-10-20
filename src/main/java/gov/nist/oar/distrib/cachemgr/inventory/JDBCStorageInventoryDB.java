@@ -1142,7 +1142,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
             "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=1 GROUP BY v.name";
         try {
-            return _get_sum(sum_sql).get(volname).longValue();
+            return _get_sum(sum_sql, new HashMap<String, Long>(1)).get(volname).longValue();
         }
         catch (NullPointerException ex) {
             // there are no records in the database for this volume; i.e., it's empty
@@ -1154,10 +1154,19 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * return the amount of available (unused) space in the specified volume, in bytes
      */
     public Map<String, Long> getAvailableSpace() throws InventoryException {
+        Map<String, Long> out = getVolumeCapacities();
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
             "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
-        return _get_sum(sum_sql);
+        return _get_sum(sum_sql, out);
+    }
+
+    public Map<String, Long> getVolumeCapacities() throws InventoryException {
+        Collection<String> volnames = volumes();
+        Map<String, Long> out = new HashMap<String, Long>(volnames.size());
+        for (String name : volnames) 
+            out.put(name, getVolumeInfo(name).optLong("capacity", 0L));
+        return out;
     }
 
     /**
@@ -1166,20 +1175,23 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * volume.  
      */
     public Map<String, Long> getUsedSpace() throws InventoryException {
+        Collection<String> volnames = volumes();
+        Map<String, Long> out = new HashMap<String, Long>(volnames.size());
+        for (String name : volnames) 
+            out.put(name, new Long(0L));
         String sum_sql =
             "SELECT v.name as volume, sum(d.size) as size FROM objects d, volumes v "+
             "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
-        return _get_sum(sum_sql);
+        return _get_sum(sum_sql, out);
     }
 
-    private Map<String, Long> _get_sum(String sql) throws InventoryException {
+    private Map<String, Long> _get_sum(String sql, Map<String, Long> out) throws InventoryException {
         Statement stmt = null;
         try {
             if (_conn == null) connect();
             stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
-            HashMap<String, Long> out = new HashMap<String, Long>(20);
             String name = null;
             while (rs.next()) {
                 name = rs.getString(1);

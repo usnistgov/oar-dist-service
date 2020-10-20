@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.HashMap;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ public abstract class BasicCache extends Cache {
      */
     protected StorageInventoryDB db = null;
 
-    private Deque<String> recent = null;
+    private Deque<String> recent = null;  // used to help distribute files across volumes
     protected Logger log = null;
 
     /**
@@ -230,8 +231,10 @@ public abstract class BasicCache extends Cache {
                     log.warn("object missing from volume, {} (updating db): {}", co.volname, co.name);
                     db.removeObject(co.volname, co.name);
                 }
-                else 
+                else {
+                    co.volume = vol;
                     return co;
+                }
             } catch (StorageVolumeException ex) {
                 log.error("Trouble interacting with volume="+co.volname, ex);
                 prob = true;
@@ -303,10 +306,10 @@ public abstract class BasicCache extends Cache {
     }
 
     /**
-     * return the CacheVolume with the given name or null if name does not exist.  
+     * return the CacheVolume with the given name or null if name does not exist in this cache
      */
     @Override
-    protected CacheVolume getVolume(String name) {
+    public CacheVolume getVolume(String name) {
         return volumes.get(name);
     }
 
@@ -323,7 +326,9 @@ public abstract class BasicCache extends Cache {
     @Override
     public Reservation reserveSpace(long bytes, int preferences) throws CacheManagementException {
         DeletionPlanner planner = getDeletionPlanner(preferences);
-        List<DeletionPlan> plans = planner.orderDeletionPlans(bytes, volumes.values());
+        List<DeletionPlan> plans =
+            planner.orderDeletionPlans(bytes,
+                                       recent.stream().map(c -> volumes.get(c)).collect(Collectors.toList()));
         return reserveSpace(plans);
     }
 
@@ -350,6 +355,10 @@ public abstract class BasicCache extends Cache {
                 // notifiy reservation listeners
                 notifyReservationMade(vol, out.getSize());
                 out.cache = this;
+
+                // circulate our recent list
+                recent.remove(out.getVolumeName());
+                recent.addLast(out.getVolumeName());
                 return out;
             } catch (DeletionFailureException ex) {
                 log.warn(ex.getMessage());

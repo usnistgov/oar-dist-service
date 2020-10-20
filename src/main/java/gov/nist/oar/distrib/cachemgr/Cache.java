@@ -76,12 +76,12 @@ public abstract class Cache {
     public abstract CacheObject findObject(String id) throws CacheManagementException;
 
     /**
-     * return the CacheVolume with the given name or null if name does not exist.  Note that 
-     * this assumes that volume names are unique; however, this interface does not guarantee 
+     * return the CacheVolume with the given name or null if name does not exist in this cache.  Note 
+     * that this assumes that volume names are unique; however, this interface does not guarantee 
      * it.  Implementations must either guarantee it or have a way of selecting a single 
      * volume by name.
      */
-    protected abstract CacheVolume getVolume(String name) throws CacheManagementException;
+    public abstract CacheVolume getVolume(String name) throws CacheManagementException;
 
     /**
      * return a reservation for a given amount of space.  

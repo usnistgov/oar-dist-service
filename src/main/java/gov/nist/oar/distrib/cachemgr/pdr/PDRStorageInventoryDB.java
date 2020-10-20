@@ -84,8 +84,11 @@ import java.time.format.DateTimeFormatter;
  *    metadata  text
  * );
  * </pre>
+ * <p>
+ * To create an instance of this class (which is abstract), one should use the static factory function
+ * {@link #createSQLiteDB()}.
  */
-public class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
+public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
 
     /**
      * create an inventory database around a database accessible via a given JDBC URL.  
