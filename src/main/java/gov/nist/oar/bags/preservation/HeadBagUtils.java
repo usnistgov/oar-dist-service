@@ -93,6 +93,7 @@ public class HeadBagUtils {
     /**
      * return the name of the bag that contains a desired file.  The bag name will <em>not</em> include 
      * a serialization extension (e.g. {@code .zip}).
+     * @param mbagver       the version of the Multibag profile that open file conforms with
      * @param filelookup    an InputStream opened at the start of the file lookup file
      * @param filepath      the path to the desired file relative to the base of the bag root.  Thus,
      *                      data files must begin with "data/".
@@ -123,6 +124,36 @@ public class HeadBagUtils {
         }
         
         return null;
+    }
+
+    /**
+     * return a lookup map that maps each data file in the collection to the member bag that contains it
+     * @param mbagver       the version of the Multibag profile that open file conforms with
+     * @param filelookup    an InputStream opened at the start of the file lookup file
+     * @return Map&lt;String,String&gt; -- the lookup map
+     */
+    public static Map<String,String> getFileLookup(String mbagver, InputStream is) throws IOException {
+        Pattern delim = Pattern.compile("\\t");
+        if (mbagver.equals("0.2"))
+            delim = Pattern.compile(" +");
+        
+        BufferedReader cnts = new BufferedReader(new InputStreamReader(filelookup));
+        Map<String,String> out = new HashMap<String,String>();
+
+        String line = null;
+        String[] words = null;
+        try {
+            while ((line = cnts.readLine()) != null) {
+                words = delim.split(line.trim());
+                out.put(words[0], words[1]);
+            }
+        }
+        catch (ArrayIndexOutOfBoundsException ex) {
+            throw new IOException("Error parsing file lookup file: line with too few fields "+
+                                  "(Is the multibag version correct?):\n  "+line);
+        }
+        
+        return out;
     }
 
     /**

@@ -182,6 +182,24 @@ public class BagUtils {
         }
     }
 
+    /**
+     * return the version of the dataset that the given bag contains files from, according to its name.  
+     * If the bag file name does not include a version (as with NIST bag profile v0.2), the returned version
+     * will "0".
+     */
+    public static String versionOf(String bagname) {
+        String ver = null;
+        try {
+            ver = parseBagName(bagname).get(1);
+        }
+        catch (ParseException ex) {
+            ver = "";
+        }            
+        if (ver.equals(""))
+            ver = "0";
+        return ver;
+    }
+
     static class VersionComparator implements Comparator<String> {
         public VersionComparator() {
           //Default Constructor
