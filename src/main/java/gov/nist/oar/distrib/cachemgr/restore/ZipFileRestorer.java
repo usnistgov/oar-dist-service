@@ -46,7 +46,7 @@ public class ZipFileRestorer extends RestorerBase {
     /**
      * wrap a LongTermStorage instance.  
      * <p>
-     * This constructor is provided for subclasses that will override {@link #id2loc(String)}.
+     * This constructor is provided for subclasses that will override {@link #id2location(String)}.
      */
     protected ZipFileRestorer(LongTermStorage lts) {
         super(lts);
@@ -85,12 +85,17 @@ public class ZipFileRestorer extends RestorerBase {
         return out;
     }
         
+    @Override
+    public String nameForObject(String id) throws RestorationException, StorageVolumeException {
+        return id2location(id)[1];   // may throw
+    }
+
     /**
      * return true if an object does <i>not</i> exist in the long term storage system.  Returning 
      * true indicates that the object <i>may</i> exist, but it is not guaranteed.
      * <p>
      * This implementation just determines if the identifier fails to resolve to a location via 
-     * {@link id2location(String)}; if it does resolve, it does not check to see if there is data at 
+     * {@link #id2location(String)}; if it does resolve, it does not check to see if there is data at 
      * that location.  In other words, a return of <code>false</code> does not guarantee that the 
      * object exists in storage, as described above generally.  
      */

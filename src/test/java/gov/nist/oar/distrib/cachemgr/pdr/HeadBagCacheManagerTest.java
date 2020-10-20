@@ -20,8 +20,8 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.*;
 
-import gov.nist.oar.clients.OARServiceException;
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
@@ -102,7 +102,7 @@ public class HeadBagCacheManagerTest {
     }
 
     @Test
-    public void testResolveAIPID() throws OARServiceException, CacheManagementException {
+    public void testResolveAIPID() throws ResourceNotFoundException, CacheManagementException {
         assertTrue(! hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
         assertTrue(! hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
@@ -118,7 +118,7 @@ public class HeadBagCacheManagerTest {
         assertNotNull(resmd);
         assertEquals("ark:/88434/edi00hw91c", resmd.optString("@id"));
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", resmd.optString("ediid"));
-        assertEquals(8, resmd.optJSONArray("components").length());        
+        assertEquals(5, resmd.optJSONArray("components").length());        
         assertTrue(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
         assertTrue(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
@@ -160,7 +160,7 @@ public class HeadBagCacheManagerTest {
     */
 
     @Test
-    public void testFindComponentByFilepath() throws OARServiceException {
+    public void testFindComponentByFilepath() throws ResourceNotFoundException, CacheManagementException {
         JSONObject resmd = hbcmgr.resolveAIPID("mds1491", null);
         assertNotNull(resmd);
         JSONObject md = HeadBagCacheManager.findComponentByFilepath(resmd, "trial1.json");
@@ -175,7 +175,7 @@ public class HeadBagCacheManagerTest {
     }
 
     @Test
-    public void testResolveDistID() throws OARServiceException, CacheManagementException {
+    public void testResolveDistID() throws ResourceNotFoundException, CacheManagementException {
         assertTrue(! hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
         assertTrue(! hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 

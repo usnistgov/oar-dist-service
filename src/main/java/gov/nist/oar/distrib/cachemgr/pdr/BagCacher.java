@@ -207,6 +207,8 @@ public class BagCacher implements PDRCacheRoles {
                     cached.addAll(got);
                 }
             }
+
+            mdcache.forget(aipid, version);
         } catch (InventoryException ex) {
             throw new CacheManagementException("Problem updating inventory with metadata: "+
                                                ex.getMessage(), ex);
@@ -272,7 +274,7 @@ public class BagCacher implements PDRCacheRoles {
      *                    remove members from the set as the files are cached such that when this method 
      *                    returns, the set will only contain names of files that were not found in the bag.  
      *                    If null, all data files found in the bag will be extracted.
-     * @resturn Set<String>   a listing of data files that were cached to disk.  
+     * @return Set<String>   a listing of data files that were cached to disk.  
      */
     public Set<String> cacheFromBag(String bagfile, Collection<String> files)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
@@ -380,8 +382,8 @@ public class BagCacher implements PDRCacheRoles {
      * @param aipid    the identifier for the AIP.  
      * @param version  the version of the AIP that should 
      * @param in       the open bag file stream
-     * @param sertype  the bag's serialization file extension
-     * @param files    an editable set of names of data files to be extract from the associated bag.  The
+     * @param defprefs caching preferences, given as a bit-ANDed list (see {@link PDRCacheRoles}).
+     * @param need     an editable set of names of data files to be extract from the associated bag.  The
      *                    files are specified as filepaths relative to the data directory.  When 
      *                    {@code cached} is not null, this method will remove members from the set as the 
      *                    files are cached such that when this method returns, the set will only contain 

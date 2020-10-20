@@ -76,4 +76,11 @@ public interface Restorer {
     public void restoreObject(String id, Reservation resv, String name, JSONObject metadata)
         throws RestorationException, StorageVolumeException, JSONException;
 
+    /**
+     * return a recommended name for the object with the given id that can be used as its name in a 
+     * cache volume.  
+     * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
+     * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
+     */
+    public String nameForObject(String id) throws RestorationException, StorageVolumeException;
 }

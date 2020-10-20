@@ -59,6 +59,11 @@ public class FileCopyRestorer extends RestorerBase {
     }
 
     @Override
+    public String nameForObject(String id) throws StorageVolumeException {
+        return id2name(id);
+    }
+
+    @Override
     public InputStream openDataObject(String id) throws StorageVolumeException {
         try {
             return store.openFile(id2name(id));

@@ -76,18 +76,22 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
      *                 dataset's head bag name.  It is either an old-style EDI ID (&gt; 30-character
      *                 string) or the local part of the PDR ARK ID (e.g. mds2-2101).
      * @param version  the desired version.  If null or empty, the latest version is retrieved.  
+     * @throws ResourceNotFoundException -- if the AIP cannot be located in the long-term bag storage
+     * @throws CacheManagementException -- if an error occurs while trying to cache the source head bag
+     *                                         or reading its contents
      */
-    public JSONObject resolveAIPID(String aipid, String version) throws OARServiceException {
+    public JSONObject resolveAIPID(String aipid, String version) throws CacheManagementException {
         int p = aipid.indexOf("/");
         if (p >= 0)
             aipid = aipid.substring(0, p);
         if (aipid.length() == 0)
             return null;
         try {
-            cache(ltstore.findHeadBagFor(aipid, version));
+            String headbagname = ltstore.findHeadBagFor(aipid, version);
+            cache(headbagname);
 
             // make sure the head bag for it is in the cache and return a handle for it
-            List<CacheObject> headbags = db.findHeadBag(aipid, VolumeStatus.VOL_FOR_GET);
+            List<CacheObject> headbags = db.findObject(headbagname, VolumeStatus.VOL_FOR_GET);
             if (headbags.size() == 0)
                 return null;
             headbags.get(0).volume = theCache.getVolume(headbags.get(0).volname);
@@ -105,13 +109,11 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
             return null;
         }
         catch (IOException ex) {
-            throw new OARServiceException("Failed to read metadata for id="+aipid+": "+ex.getMessage(), ex);
+            throw new CacheManagementException("Failed to read metadata for id="+aipid+": "+ex.getMessage(),
+                                               ex);
         }
         catch (StorageVolumeException ex) {
-            throw new OARServiceException("Failed to resolve id="+aipid+": "+ex.getMessage(), ex);
-        }
-        catch (CacheManagementException ex) {
-            throw new OARServiceException("Failed to resolve id="+aipid+": "+ex.getMessage(), ex);
+            throw new CacheManagementException("Failed to resolve id="+aipid+": "+ex.getMessage(), ex);
         }
     }
 
@@ -124,15 +126,30 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
      * @param version  the desired version.  If null or empty, the latest version is retrieved.  
      * @throws OARServiceException  if something goes wrong with the interaction with resolving service.
      */
-    public JSONObject resolveDistID(String distid, String version) throws OARServiceException {
+    public JSONObject resolveDistID(String distid, String version) throws CacheManagementException {
         Matcher m = ARK_PAT.matcher(distid);
         if (m.find())
             distid = m.replaceFirst("");
         String[] aipid = distid.split("/", 2);
-        JSONObject resmd = resolveAIPID(aipid[0], version);
-        if (resmd == null || aipid.length < 2)
+        if (aipid.length < 2)
             return null;
-        return findComponentByFilepath(resmd, aipid[1]);
+        return resolveDistribution(aipid[0], aipid[1], version);
+    }
+
+    /**
+     * return a NERDm component metadata record corresponding to the given component distribut identifier
+     * (i.e., AIPID/filepath), or null if no record exists with this identifier.
+     * @param distid   the distribution ID of the desired component which is nominally of the form, 
+     *                 AIPID/filepath (where AIPID is the AIP ID, and filepath is the filepath to the 
+     *                 desired component).  This ID can optionally be prefixed with the ark: prefix.  
+     * @param version  the desired version.  If null or empty, the latest version is retrieved.  
+     * @throws OARServiceException  if something goes wrong with the interaction with resolving service.
+     */
+    public JSONObject resolveDistribution(String aipid, String filepath, String version)
+        throws CacheManagementException
+    {
+        JSONObject resmd = resolveAIPID(aipid, version);
+        return findComponentByFilepath(resmd, filepath);
     }
 
     /**
