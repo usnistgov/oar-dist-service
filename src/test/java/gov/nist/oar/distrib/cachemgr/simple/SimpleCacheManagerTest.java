@@ -167,6 +167,7 @@ public class SimpleCacheManagerTest {
         CacheObject co = scm.findObject("mds1491.mbag0_2-0.zip");
         assertTrue("Unexpected cache name: "+co.volname, co.volname.startsWith("Cache"));
         assertEquals("mds1491.mbag0_2-0.zip", co.name);
+        assertNotNull(co.volume);
 
         assertEquals(9841, co.getSize());
         assertEquals("3de9d9e32831be693e341306db79e636ebd61b6a78f9482e8e3038a6e8eba569",

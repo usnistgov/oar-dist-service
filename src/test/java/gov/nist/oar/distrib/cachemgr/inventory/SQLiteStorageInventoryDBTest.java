@@ -700,6 +700,28 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     @Test
+    public void testGetEmptySpace() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        TestSQLiteStorageInventoryDB sidb = new TestSQLiteStorageInventoryDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 250000, null);
+
+        Map<String, Long> sp = sidb.getAvailableSpace();
+        assertEquals(2, sp.size());
+        assertEquals(450000L, sp.get("foobar").longValue());
+        assertEquals(250000L, sp.get("fundrum").longValue());
+
+        sp = sidb.getUsedSpace();
+        assertEquals(2, sp.size());
+        assertEquals(0L, sp.get("foobar").longValue());
+        assertEquals(0L, sp.get("fundrum").longValue());
+    }
+
+    @Test
     public void testGetSpace() throws InventoryException, IOException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());
