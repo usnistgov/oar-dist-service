@@ -233,8 +233,10 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (cachemd == null) 
             throw new ObjectNotFoundException("Filepath, "+idparts[1]+", not found in " + idparts[0], id);
         if (metadata != null) {
-            for (String prop : JSONObject.getNames(metadata))
-                cachemd.put(prop, metadata.get(prop));
+            for (String prop : JSONObject.getNames(metadata)) {
+                if (! cachemd.has(prop))
+                    cachemd.put(prop, metadata.get(prop));
+            }
         }
 
         String srcbag = findBagFor(headbag, idparts[1], id);
