@@ -22,6 +22,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import org.json.JSONObject;
@@ -132,7 +134,9 @@ public class HeadBagUtils {
      * @param filelookup    an InputStream opened at the start of the file lookup file
      * @return Map&lt;String,String&gt; -- the lookup map
      */
-    public static Map<String,String> getFileLookup(String mbagver, InputStream is) throws IOException {
+    public static Map<String,String> getFileLookup(String mbagver, InputStream filelookup)
+        throws IOException
+    {
         Pattern delim = Pattern.compile("\\t");
         if (mbagver.equals("0.2"))
             delim = Pattern.compile(" +");

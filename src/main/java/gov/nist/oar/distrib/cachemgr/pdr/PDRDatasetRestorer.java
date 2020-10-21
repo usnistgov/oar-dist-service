@@ -14,23 +14,42 @@
 package gov.nist.oar.distrib.cachemgr.pdr;
 
 import gov.nist.oar.bags.preservation.BagUtils;
-import gov.nist.oar.clients.ResourceResolver;
+import gov.nist.oar.bags.preservation.ZipBagUtils;
+import gov.nist.oar.bags.preservation.HeadBagUtils;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.cachemgr.Restorer;
 import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipEntry;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.text.ParseException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.json.JSONObject;
 import org.json.JSONException;
 
-import java.util.List;
-import java.io.IOException;
+import org.apache.commons.io.FilenameUtils;
 
 /**
  * A {@link gov.nist.oar.distrib.cachemgr.Restorer} for restoring PDR datasets and dataset files according 
@@ -53,13 +72,47 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
     BagStorage ltstore = null;
     HeadBagCacheManager hbcm = null;
+    long smszlim = 100000000L;  // 100 MB
+    Logger log = null;
 
     /**
      * create the restorer
+     * @param bagstore      the long term storage where the head bags are stored
+     * @param headbagcache  the cache to use cache the head bags
      */
     public PDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache) {
+        this(bagstore, headbagcache, -1L);
+    }
+
+    /**
+     * create the restorer
+     * @param bagstore      the long term storage where the head bags are stored
+     * @param headbagcache  the cache to use cache the head bags
+     * @param smallsizelim  a data file size limit: files smaller than this will preferentially go 
+     *                        into volumes marked for small files.
+     */
+    public PDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache, long smallsizelim) {
+        this(bagstore, headbagcache, smallsizelim, null);
+    }
+
+    /**
+     * create the restorer
+     * @param bagstore      the long term storage where the head bags are stored
+     * @param headbagcache  the cache to use cache the head bags
+     * @param smallsizelim  a data file size limit: files smaller than this will preferentially go 
+     *                        into volumes marked for small files.
+     * @param logger        the logger to use for messages.
+     */
+    public PDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache, long smallsizelim,
+                              Logger logger)
+    {
         ltstore = bagstore;
         hbcm = headbagcache;
+        if (smallsizelim >= 0L)
+            smszlim = smallsizelim;
+        if (logger == null)
+            logger = LoggerFactory.getLogger(getClass());
+        log = logger;
     }
 
     String[] parseId(String id) {
@@ -128,17 +181,22 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      *             unable to return sizes for any objects it knows about.  
      */
     @Override
-    public long getChecksum(String id)
+    public Checksum getChecksum(String id)
         throws StorageVolumeException, CacheManagementException, UnsupportedOperationException
     {
         String[] parts = parseId(id);
         JSONObject cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
         if (cmpmd == null)
             throw new ObjectNotFoundException(id);
-        JSONObject chksum = cmpmd.optJSONObject("checksum", null);
+        JSONObject chksum = cmpmd.optJSONObject("checksum");
         if (chksum == null)
             return null;
-        return new Checksum(chksum.optString("hash", ""), chksum.optString("algorithm", "unknown"));
+        JSONObject alg = chksum.optJSONObject("algorithm");
+        if (alg == null) {
+            alg = new JSONObject();
+            alg.put("tag", "unknown");
+        }
+        return new Checksum(chksum.optString("hash", ""), alg.optString("tag", "unknown"));
     }
 
     /**
@@ -157,7 +215,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     public void restoreObject(String id, Reservation resv, String name, JSONObject metadata)
         throws RestorationException, StorageVolumeException, JSONException
     {
-        String[] idparts = parseID(id);
+        String[] idparts = parseId(id);
         String headbag = null;
         JSONObject cachemd = null;
         try {
@@ -173,24 +231,31 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new RestorationException("Failed to cache head bag, "+headbag+": "+ex.getMessage(), ex);
         }
         if (cachemd == null) 
-            throw new ObjectNotFoundException("Filepath, "+idparts[1]+", not found in " + dataset, id);
+            throw new ObjectNotFoundException("Filepath, "+idparts[1]+", not found in " + idparts[0], id);
+        if (metadata != null) {
+            for (String prop : JSONObject.getNames(metadata))
+                cachemd.put(prop, metadata.get(prop));
+        }
 
         String srcbag = findBagFor(headbag, idparts[1], id);
         if (! srcbag.endsWith(".zip"))
             throw new RestorationException("Unsupported serialization type on bag: " + srcbag);
+        String bagname = srcbag.substring(0, srcbag.length()-4);
 
         InputStream bstrm = null;
         try {
             bstrm = ltstore.openFile(srcbag);
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openDataFile(bstrm, bagname, idparts[1]);
-            resv.saveAs(ntry.stream, id, name, cachemd)
+            resv.saveAs(ntry.stream, id, name, cachemd);
         }
         catch (FileNotFoundException ex) {
             throw new RestorationException(id+": Data file missing from source bag: "+ex.getMessage(), ex);
         }
+        catch (IOException ex) {
+            throw new RestorationException(id+": Trouble reading data file: "+ex.getMessage(), ex);
+        }
         catch (CacheManagementException ex) {
-            throw new RestorationException("Trouble reading component data for id="+id+": "+ex.getMessage(),
-                                           ex);
+            throw new RestorationException(id+": Trouble restoring data file: "+ex.getMessage(), ex);
         }
         finally {
             if (bstrm != null) {
@@ -200,14 +265,31 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         }
     }
 
+    /**
+     * consult the given head bag and return the name of the bag that contains the file indicated by 
+     * the given filepath.
+     * <p>
+     * A head bag provides descriptive information about the contents of a particular data collection. 
+     * It includes a lookup table for determining bag file that contains a particular file from the 
+     * collection.
+     * @param headbag    the name of the headbag file to examine to determin file location
+     * @param filepath   the path to the file within the collection described by the head bag.
+     * @param id         the identifier for the collection or file within it; used in exception messages.
+     * @throws ObjectNotFoundException -- if the head bag cannot be found
+     * @throws RestorationException -- if there is a problem with contents of the head bag
+     * @throws StorageVolumeException -- if there is a failure reading the head bag
+     */
     public String findBagFor(String headbag, String filepath, String id)
-        throws RestorationException, StorageVolumeException
+        throws RestorationException, ObjectNotFoundException, StorageVolumeException
     {
         // find the cached head bag
-        List<CacheObject> cos = db.findObject(headbag);
-        if (cos.size() == 0)
-            throw new RestorationException("Failed to cache dataset headbag");
-        CacheObject hbco = cos.get(0);
+        CacheObject hbco = null;
+        try {
+            hbco = hbcm.getObject(headbag);
+        }
+        catch (CacheManagementException ex) {
+            throw new RestorationException(headbag+": Trouble retrieving headbag: "+ex.getMessage(), ex);
+        }
 
         if (! hbco.name.endsWith(".zip"))
             throw new RestorationException("Unsupported serialization type on bag: " + hbco.name);
@@ -219,16 +301,17 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         InputStream hbstrm = hbco.volume.getStream(hbco.name);
         try {
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openFileLookup(mbagver, hbstrm, bagname);
-            srcbag = HeadBagUtils.lookupFile(mbagver, ntry.stream, filepath);
+            srcbag = HeadBagUtils.lookupFile(mbagver, ntry.stream, "data/"+filepath);
             if (srcbag == null) 
-                throw new ObjectNotFoundException("Filepath, "+filepath+", not available from id="+id, id);
+                throw new ObjectNotFoundException("Filepath, "+filepath+", not available from id="+id,
+                                                  filepath, (String) null);
         }
         catch (IOException ex) {
             throw new RestorationException(id+": Trouble looking up file via headbag, "+headbag+": "+
                                            ex.getMessage(), ex);
         }
         finally {
-            try { hbstrm.close() }
+            try { hbstrm.close(); }
             catch (IOException ex) {
                 log.warn("Trouble closing bag file, {}: {}", hbco.name, ex.getMessage());
             }
@@ -261,7 +344,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         // pull out the mulibag file lookup
         Map<String,String> lu = null;
-        JSONObject hbo = hbcm.getObject(headbag);
+        CacheObject hbo = hbcm.getObject(headbag);
         InputStream hbs = hbo.volume.getStream(headbag);
         try {
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openFileLookup(mbagver, hbs, bagname);
@@ -278,15 +361,18 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         // turn lookup into a reverse lookup
         HashMap<String, Set<String>> revlu = new HashMap<String, Set<String>>();
         for (Map.Entry<String,String> pair : lu.entrySet()) {
+            if (! pair.getKey().startsWith("data/"))
+                // only care about data files
+                continue;
             if (! revlu.containsKey(pair.getValue()))
                 revlu.put(pair.getValue(), new HashSet<String>());
-            revlu.get(pair.getValue).add(pair.getKey());
+            revlu.get(pair.getValue()).add(pair.getKey().replace("^data/", ""));
         }
 
         // loop through the member bags and extract the data files
         Set<String> cached = new HashSet<String>(lu.size());
         Set<String> missing = new HashSet<String>();
-        for (String bagfile : revlu.keysSet()) {
+        for (String bagfile : revlu.keySet()) {
             Set<String> need = new HashSet<String>(revlu.get(bagfile));
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
@@ -335,9 +421,15 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     public Set<String> cacheFromBag(String bagfile, Collection<String> files, Cache into)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
-        String[] parts = BagUtils.parseBagName(bagfile);
-        String aipid = parts[0];
-        String version = parts[1];
+        String aipid = null, version = null;
+        try {
+            List<String> parts = BagUtils.parseBagName(bagfile);
+            aipid = parts.get(0);
+            version = parts.get(1);
+        }
+        catch (ParseException ex) {
+            throw new RestorationException("Illegal bagfile name: "+bagfile);
+        }
         if (version.length() == 0)
             version = "1";
 
@@ -357,10 +449,16 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         if (! bagfile.endsWith(".zip"))
-            throw new RestorationException("Unsupported serialization type on bag: " + hbco.name);
-        String[] parts = BagUtils.parseBagName(bagfile);
-        String aipid = parts[0];
-        String version = parts[1];
+            throw new RestorationException("Unsupported serialization type on bag: " + bagfile);
+        String aipid = null, version = null;
+        try {
+            List<String> parts = BagUtils.parseBagName(bagfile);
+            aipid = parts.get(0);
+            version = parts.get(1);
+        }
+        catch (ParseException ex) {
+            throw new RestorationException("Illegal bagfile name: "+bagfile);
+        }
         if (version.length() == 0)
             version = "1";
         String id = null;
@@ -374,11 +472,11 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         InputStream fs = null;
         if (hbcm.isCached(bagfile)) {
             // it's a head bag that we have locally
-            CacheObject co = hbcm.getObject(bagfile);
+            co = hbcm.getObject(bagfile);
             fs = co.volume.getStream(bagfile);
         }
         else
-            fs = ltstore.openfile(bagfile);
+            fs = ltstore.openFile(bagfile);
         
         try {
             // cycle throught the contents of the zip file
@@ -396,7 +494,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 if (! fname.subpath(1, 2).toString().equals("data") || fname.toString().endsWith(".sha256"))
                     continue;
 
-                String filepath = fname.subpath(2, fname.getNameCount());
+                String filepath = fname.subpath(2, fname.getNameCount()).toString();
                 if (need != null && ! need.contains(filepath))
                     continue;
                 id = aipid+"/"+filepath+"#"+version;
@@ -409,6 +507,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("size", ze.getSize());
                 }
                 md = getCacheMDFrom(md);
+                md.put("aipid", aipid);
+                md.put("version", version);
                 md.put("bagfile", bagfile);
                 if (resmd.has("@id"))
                     md.put("pdrid", resmd.get("@id"));
@@ -424,6 +524,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 cached.add(filepath);
             }
         }
+        catch (IOException ex) {
+            throw new RestorationException(bagfile+": Trouble reading bag contents: "+ex.getMessage(), ex);
+        }
         finally {
             try { fs.close(); }
             catch (IOException ex) {
@@ -435,37 +538,45 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     private JSONObject getCacheMDFrom(JSONObject nerdcmp) {
         JSONObject out = new JSONObject();
 
-        if (nerd.has("filepath"))
-            out.put("filepath", nerd.get("filepath"));
-        if (nerd.has("mediaType"))
-            out.put("contentType", nerd.get("mediaType"));
-        if (nerd.has("size"))
-            out.put("size", nerd.get("size"));
-        if (nerd.has("checksum") && nerd.opt("checksum") != null &&
-            nerd.getJSONObject("checksum").has("hash") && nerd.getJSONObject("checksum").has("algorithm") &&
-            Checksum.SHA256.equals(nerd.getJSONObject("checksum")
-                                       .getJSONObject("algorithm").optString("tag")))
+        if (nerdcmp.has("filepath"))
+            out.put("filepath", nerdcmp.get("filepath"));
+        if (nerdcmp.has("mediaType"))
+            out.put("contentType", nerdcmp.get("mediaType"));
+        if (nerdcmp.has("size"))
+            out.put("size", nerdcmp.get("size"));
+        if (nerdcmp.has("checksum") && nerdcmp.opt("checksum") != null &&
+            nerdcmp.getJSONObject("checksum").has("hash") &&
+            nerdcmp.getJSONObject("checksum").has("algorithm") &&
+            Checksum.SHA256.equals(nerdcmp.getJSONObject("checksum")
+                                          .getJSONObject("algorithm").optString("tag")))
         {
-            out.put("checksum", nerd.getJSONObject("checksum").getString("hash"));
-            out.put("checksumAlgorithm", nerd.getJSONObject("checksum")
-                                              .getJSONObject("algorithm").optString("tag"));
+            out.put("checksum", nerdcmp.getJSONObject("checksum").getString("hash"));
+            out.put("checksumAlgorithm", nerdcmp.getJSONObject("checksum")
+                                                .getJSONObject("algorithm").optString("tag"));
         }
-        out.put("aipid", aipid);
-        out.put("version", version);
         return out;
     }
 
     private JSONObject getCacheMDFromHeadBag(String headbag, String filepath)
-        throws ResourceNotFoundException, CacheManagementException
+        throws ResourceNotFoundException, StorageVolumeException, CacheManagementException
     {
         if (! headbag.endsWith(".zip"))
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);
 
-        CacheObject hbo = hbcm.getObject(headbag);
-        JSONObject cmpmd = ZipBagUtils.getFileMetadata(filepath, hbo.volume.getStream(headbag), bagname);
+        try {
+            CacheObject hbo = hbcm.getObject(headbag);
+            JSONObject cmpmd = ZipBagUtils.getFileMetadata(filepath, hbo.volume.getStream(headbag), bagname);
                                                            
-        return getCacheMDFrom(cmpmd);
+            return getCacheMDFrom(cmpmd);
+        }
+        catch (FileNotFoundException ex) {
+            throw new RestorationException("file metadata for "+filepath+" not found in headbag, "+headbag);
+        }
+        catch (IOException ex) {
+            throw new RestorationException(headbag+": Trouble reading file metadata for "+filepath+
+                                           ex.getMessage(), ex);
+        }
     }
 
     /**
@@ -474,10 +585,10 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
      * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
      */
-    @Overview
+    @Override
     public String nameForObject(String id) {
         String[] idparts = parseId(id);
-        prefs = 0;
+        int prefs = 0;
         if (idparts[2] != null)
             prefs = ROLE_OLD_VERSIONS;
         return nameForObject(id, prefs);
@@ -518,6 +629,6 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             }
         }
         filepath = base + "-v" + version + "." + ext;
-        return getNameForCache(aipid, filepath, version, 0);
+        return nameForObject(aipid, filepath, version, 0);
     }
 }

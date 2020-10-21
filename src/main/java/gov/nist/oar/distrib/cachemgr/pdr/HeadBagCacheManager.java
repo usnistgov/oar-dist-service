@@ -149,6 +149,8 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
         throws CacheManagementException
     {
         JSONObject resmd = resolveAIPID(aipid, version);
+        if (resmd == null)
+            return null;
         return findComponentByFilepath(resmd, filepath);
     }
 
