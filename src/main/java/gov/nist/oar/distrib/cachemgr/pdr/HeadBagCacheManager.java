@@ -16,11 +16,13 @@ package gov.nist.oar.distrib.cachemgr.pdr;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.cachemgr.Cache;
+import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
 import gov.nist.oar.distrib.cachemgr.Restorer;
 import gov.nist.oar.distrib.cachemgr.RestorationTargetNotFoundException;
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
@@ -55,7 +57,7 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     BagStorage ltstore = null;
     final Pattern ARK_PAT;
 
-    HeadBagCacheManager(Cache cache, HeadBagDB hbdb, BagStorage store, Restorer restorer, String naan) {
+    HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, BagStorage store, Restorer restorer, String naan) {
         super(cache, restorer);
         db = hbdb;
         ltstore = store;
@@ -192,6 +194,14 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
             catch (ClassCastException ex) { }
         }
         return null;
+    }
+
+    /**
+     * return an IntegrityMonitor instance that is attached to this manager's cache and that can be used 
+     * to test the integrity of objects in that cache against a specific list of checks.
+     */
+    public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
+        return ((BasicCache) theCache).getIntegrityMonitor(checks);
     }
 
     /*

@@ -89,17 +89,17 @@ public class PDRDatasetRestorerTest {
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar");
         vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS|PDRCacheRoles.ROLE_FAST_ACCESS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         cvdir = new File(croot, "cranky");  cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "cranky");
         vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         cvdir = new File(croot, "old");  cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "old");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         return cache;
     }
@@ -235,12 +235,16 @@ public class PDRDatasetRestorerTest {
                              "data/"+resv.getVolumeName()+"/NMRRVocab20171102.rdf.sha256")).exists());
     }
 
+    @Test
     public void testCacheDataset() 
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
         assertTrue(! cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial1.json#1"));
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
@@ -254,6 +258,9 @@ public class PDRDatasetRestorerTest {
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(cache.isCached("mds1491/trial2.json"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial1.json#1"));
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
@@ -267,53 +274,90 @@ public class PDRDatasetRestorerTest {
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(cache.isCached("mds1491/trial2.json"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(3, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
         assertTrue(cache.isCached("mds1491/trial1.json#1"));
         assertTrue(cache.isCached("mds1491/trial2.json#1"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
 
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
-        cached = rstr.cacheDataset("mds1491", "1", cache);
+        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache);
         assertEquals(2, cached.size());
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
     }
 
-    public void testCacheDatasetSelect() 
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    @Test
+    public void testCacheFromBagSelect() 
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException,
+               FileNotFoundException
     {
         assertTrue(! cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
-        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#8"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#8"));
 
         ArrayList<String> need = new ArrayList<String>();
         need.add("trial1.json");
         need.add("trial3/trial3a.json");
 
-        Set<String> cached = rstr.cacheDataset("mds1491", null, cache);
+        Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(! cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
-        assertEquals(3, cached.size());
+        assertEquals(2, cached.size());
 
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
-        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#8"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#8"));
+
+        need.add("trial1.json");
+        need.add("trial3/trial3a.json");
+        cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, "8", cache);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(! cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(2, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json#8"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#8"));
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
     }
 
+    @Test
     public void testCacheFromBag() 
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
         Set<String> cached =
-            rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, cache);
+            rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
         assertEquals(2, cached.size());
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));

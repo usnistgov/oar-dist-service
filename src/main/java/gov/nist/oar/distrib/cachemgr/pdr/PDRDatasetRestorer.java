@@ -23,8 +23,10 @@ import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.cachemgr.Restorer;
 import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
 import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
 
@@ -325,6 +327,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     /**
      * cache all data that is part of a the latest version of the archive information package (AIP).
      * @param aipid    the identifier for the AIP.  
+     * @return Set<String> -- a list of the filepaths for files that were cached
      */
     public Set<String> cacheDataset(String aipid, String version, Cache into)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
@@ -363,12 +366,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         // turn lookup into a reverse lookup
         HashMap<String, Set<String>> revlu = new HashMap<String, Set<String>>();
         for (Map.Entry<String,String> pair : lu.entrySet()) {
-            if (! pair.getKey().startsWith("data/"))
+            if (! pair.getKey().startsWith("data/") || pair.getKey().endsWith(".sha256"))
                 // only care about data files
                 continue;
             if (! revlu.containsKey(pair.getValue()))
                 revlu.put(pair.getValue(), new HashSet<String>());
-            revlu.get(pair.getValue()).add(pair.getKey().replace("^data/", ""));
+            revlu.get(pair.getValue()).add(pair.getKey().replaceFirst("^data/", ""));
         }
 
         // loop through the member bags and extract the data files
@@ -379,7 +382,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
             try {
-                cacheFromBag(bagfile, need, cached, resmd, prefs, into);
+                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
@@ -418,9 +421,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      *                    remove members from the set as the files are cached such that when this method 
      *                    returns, the set will only contain names of files that were not found in the bag.  
      *                    If null, all data files found in the bag will be extracted.
+     * @param forVersion  If non-null, append this label to the cache object's ID (as in 
+     *                    <code>"#"+forVersion</code>) to indicate that this file was request for a particular
+     *                    version of the dataset.  This will also affect where the file gets cached.
+     * @param into        The cache to cache the files into
      * @return Set<String>   a listing of data files that were cached to disk.  
      */
-    public Set<String> cacheFromBag(String bagfile, Collection<String> files, Cache into)
+    public Set<String> cacheFromBag(String bagfile, Collection<String> files, String forVersion, Cache into)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         String aipid = null, version = null;
@@ -440,14 +447,14 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (files != null)
             cap = files.size();
         HashSet<String> cached = new HashSet<String>(cap);
-        int prefs = ROLE_GENERAL_PURPOSE;
+        int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
 
-        cacheFromBag(bagfile, files, cached, resmd, prefs, into);
+        cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into);
         return cached;
     }
 
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,
-                                JSONObject resmd, int defprefs, Cache into)
+                                JSONObject resmd, int defprefs, String forVersion, Cache into)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         if (! bagfile.endsWith(".zip"))
@@ -456,7 +463,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         try {
             List<String> parts = BagUtils.parseBagName(bagfile);
             aipid = parts.get(0);
-            version = parts.get(1);
+            version = parts.get(1).replaceAll("_", ".");
         }
         catch (ParseException ex) {
             throw new RestorationException("Illegal bagfile name: "+bagfile);
@@ -483,8 +490,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         try {
             // cycle throught the contents of the zip file
             ZipInputStream zipstrm = new ZipInputStream(fs);
-            ZipEntry ze = zipstrm.getNextEntry();
-            while (ze != null) {
+            ZipEntry ze = null;
+            while ((ze = zipstrm.getNextEntry()) != null) {
                 if (ze.isDirectory())
                     continue;
                 fname = Paths.get(ze.getName()).normalize();
@@ -499,7 +506,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 String filepath = fname.subpath(2, fname.getNameCount()).toString();
                 if (need != null && ! need.contains(filepath))
                     continue;
-                id = aipid+"/"+filepath+"#"+version;
+                id = aipid+"/"+filepath;
+                if (forVersion != null)
+                    id += "#"+forVersion;
 
                 // extract the file's metadata; convert it for storage in cache
                 JSONObject md = hbcm.findComponentByFilepath(resmd, filepath);
@@ -519,10 +528,11 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
                 // find space in the cache, and copy the data file into it
                 Reservation resv = into.reserveSpace(ze.getSize(), prefs);
-                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, version, prefs), md);
+                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
                 log.info("Cached "+id);
 
-                need.remove(filepath);
+                if (need != null)
+                    need.remove(filepath);
                 cached.add(filepath);
             }
         }
@@ -632,5 +642,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         }
         filepath = base + "-v" + version + "." + ext;
         return nameForObject(aipid, filepath, version, 0);
+    }
+
+    /**
+     * return an IntegrityMonitor instance that is attached to the internal head bag cache and that can 
+     * be used to test the integrity of objects in that cache against a specific list of checks.
+     */
+    public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
+        return hbcm.getIntegrityMonitor(checks);
     }
 }
