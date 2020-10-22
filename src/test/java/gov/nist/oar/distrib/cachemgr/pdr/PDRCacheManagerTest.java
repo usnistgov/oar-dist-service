@@ -92,17 +92,17 @@ public class PDRCacheManagerTest {
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar");
         vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS|PDRCacheRoles.ROLE_FAST_ACCESS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         cvdir = new File(croot, "cranky");  cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "cranky");
         vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         cvdir = new File(croot, "old");  cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "old");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
-        cache.addCacheVolume(cv, 200000, null, vc, true);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         return cache;
     }
@@ -143,6 +143,50 @@ public class PDRCacheManagerTest {
     public void cacheAllTestData()
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        
+        mgr.cacheDataset("mds1491", null);
+        mgr.cacheDataset("mds1491", "1");
+        mgr.cacheDataset("mds1491", "1.1.0");
+        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null);
+    }
+
+    @Test
+    public void testMonitorUntilDone()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
+        List<CacheObject> prob = new ArrayList<CacheObject>();
+        int count = thrd.monitorUntilDone(prob, 100, 100);
+        assertEquals(0, count);
+
+        cacheAllTestData();
+        count = thrd.monitorUntilDone(prob, 100, 100);
+        assertEquals(14, count);
+        assertEquals(0, prob.size());
+    }
+
+    @Test
+    public void testMonitorRunOnce()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+
+        PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
+        thrd.setCycling(20000, -1L, -1L);
+        thrd.setContinuous(false);
+        thrd.run();
+    }
+
+    @Test
+    public void testMonitorRun()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+
+        PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
+        thrd.setCycling(500, -1L, -1L);
+        thrd.start();
+        try { Thread.currentThread().sleep(3000); }
+        catch (InterruptedException ex) { }
+        thrd.stopSoonAndWait();
     }
 }

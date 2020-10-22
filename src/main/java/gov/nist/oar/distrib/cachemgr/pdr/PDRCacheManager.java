@@ -167,12 +167,13 @@ public class PDRCacheManager extends BasicCacheManager {
                     dispatchMonitorResults(checked, deleted);
                 }
                 else {
-                    long untilnext = Instant.now().toEpochMilli() - start;
+                    long untilnext = start - Instant.now().toEpochMilli();
                     while (! stopsoon) {
                         if (untilnext <= 0) {
                             checked = monitorUntilDone(deleted, 100, 100);
                             resetStart();
                             dispatchMonitorResults(checked, deleted);
+                            log.debug("Next check at epochMilli={}", start);
                             deleted = new ArrayList<CacheObject>();
                             checked = 0;
                         }
@@ -181,7 +182,7 @@ public class PDRCacheManager extends BasicCacheManager {
                                 sleep(untilnext);
                             } catch (InterruptedException ex) { break; }
                         }
-                        untilnext = Instant.now().toEpochMilli() - start;
+                        untilnext = start - Instant.now().toEpochMilli();
 
                         // if the status of once changed, stop cycling
                         if (once) break;
