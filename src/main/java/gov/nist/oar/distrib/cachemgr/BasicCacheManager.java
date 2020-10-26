@@ -103,7 +103,11 @@ public abstract class BasicCacheManager extends CacheManager {
                 // restorer would add size if its not here, but we'll add it here in case it's
                 // expensive to obtain.  (We'll let it add the checksum on its own.)
                 JSONObject md = new JSONObject();
-                md.put("size", sz);   
+                md.put("size", sz);
+
+                // allow additional metadata to be added to what gets stored in the
+                // cache inventory database
+                enrichMetadata(id, md);
 
                 restorer.restoreObject(id, resv, cvname, md);
             }
@@ -130,5 +134,18 @@ public abstract class BasicCacheManager extends CacheManager {
      */
     protected abstract String determineCacheObjectName(String volname, String id)
         throws CacheManagementException;
+
+    /**
+     * add additional metadata information about the data object with the given ID from an external
+     * source to be stored within the cache inventory database.  This method will get called within 
+     * the default {@link #cache(String,boolean)} method.  This implementation adds nothing, but subclasses 
+     * should override this to add additional metadata (after calling <code>super.enrichMetadata()</code>).
+     * 
+     * @param id       the identifier for the data object
+     * @param mdata    the metadata container to add information into
+     * @throws CacheManagementException   if a failure occurs while trying to access or manipulate 
+     *                 the extended metadata
+     */
+    protected void enrichMetadata(String id, JSONObject mdata) throws CacheManagementException { }
 }
 

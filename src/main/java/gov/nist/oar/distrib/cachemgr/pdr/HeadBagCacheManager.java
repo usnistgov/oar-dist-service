@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.List;
 import java.io.IOException;
+import java.text.ParseException;
 
 /**
  * a specialized cache specifically for head bags on local disk.  
@@ -55,12 +56,14 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
 
     HeadBagDB db = null;
     BagStorage ltstore = null;
+    final String arknaan;
     final Pattern ARK_PAT;
 
     HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, BagStorage store, Restorer restorer, String naan) {
         super(cache, restorer);
         db = hbdb;
         ltstore = store;
+        arknaan = naan;
         ARK_PAT = Pattern.compile("^ark:/"+naan+"/");
     }
 
@@ -203,6 +206,35 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
         return ((BasicCache) theCache).getIntegrityMonitor(checks);
     }
+
+    /**
+     * add additional metadata information about the data object with the given ID from an external
+     * source to be stored within the cache inventory database.  This method will get called within 
+     * the default {@link #cache(String,boolean)} method.  This implementation adds nothing, but subclasses 
+     * should override this to add additional metadata (after calling <code>super.enrichMetadata()</code>).
+     * 
+     * @param id       the identifier for the data object
+     * @param mdata    the metadata container to add information into
+     * @throws JSONException   if a failure occurs while writing to the metadata object
+     */
+    protected void enrichMetadata(String id, JSONObject mdata) throws CacheManagementException {
+        super.enrichMetadata(id, mdata);
+
+        String ediid = null;
+        try {
+            ediid = BagUtils.parseBagName(id).get(0);
+        } catch (ParseException ex) { }
+
+        if (ediid != null) {
+            if (! ediid.startsWith("ark:/") && ediid.length() < 30) {
+                ediid = "ark:/"+arknaan+"/"+ediid;
+                mdata.put("pdrid", ediid);
+            }
+            mdata.put("ediid", ediid);
+        }
+    }
+
+       
 
     /*
      * NOTE:  a ResourceResolver implementation is not really possible

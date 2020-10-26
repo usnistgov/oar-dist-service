@@ -107,7 +107,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
             ") VALUES (?,?,?,?,?,?,?,?,0,?,?,?,?)";        
     }
 
-    /**
+    /*
      * load metadata stored in columns in the given search result into a JSONObject.  This is called 
      * by {@link #extractObject(ResultSet)} to export a row as a 
      * {@link gov.nist.oar.distrib.cachemgr.CacheObject}; it can be overridden by subclasses to add
@@ -225,7 +225,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         StringBuilder sb = new StringBuilder(find_sql_base);
         sb.append("AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
-        List<CacheObject> found = _findObject(sb.toString());
+        List<CacheObject> found = queryForObjects(sb.toString());
         for(CacheObject co : found)
             // remove these entries with the same name
             removeObject(co.volname, co.name);
@@ -307,7 +307,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         // wants information. 
         Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
         synchronized (lock) {
-            return _findObject(sql.toString());
+            return queryForObjects(sql.toString());
         }
     }
 
@@ -330,8 +330,39 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         // wants information. 
         Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
         synchronized (lock) {
-            return _findObject(sql.toString());
+            return queryForObjects(sql.toString());
         }
+    }
+
+    /**
+     * return a list of cache objects having a given EDI (Enterprise Data Inventory) resource identifier
+     * @param idpat    an SQL text pattern to look for.  This value should include '%' wildcard characters
+     *                 as needed
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     *                 values are defined in the {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} interface.
+     * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
+     *                             a copy in a different cache volume.
+     * @throws InventoryException  if there is an error accessing the underlying database.
+     */
+    protected List<CacheObject> selectObjectsLikeID(String idpat, int purpose) throws InventoryException {
+        StringBuilder sql = new StringBuilder(find_sql_base);
+        sql.append("AND d.objid LIKE '").append(idpat).append("' AND v.status >= ").append(purpose);
+        if (purpose >= VOL_FOR_UPDATE)
+            sql.append(" AND d.cached=1");
+        sql.append(";");
+
+        // lock access to the db in case a deletion plan is progress, unless the caller just
+        // wants information. 
+        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
+        synchronized (lock) {
+            return queryForObjects(sql.toString());
+        }
+    }
+
+    protected ResultSet query(String sqlselect) throws SQLException {
+        if (_conn == null) connect();
+        Statement stmt = _conn.createStatement();
+        return stmt.executeQuery(sqlselect);
     }
 
     /**

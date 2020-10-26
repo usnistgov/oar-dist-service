@@ -118,6 +118,10 @@ public abstract class RestorerBase implements Restorer {
             }
         }
 
+        // allow additional metadata to be added to what gets stored in the
+        // cache inventory database
+        enrichMetadata(id, metadata);
+
         try {
             resv.saveAs(openDataObject(id), id, name, metadata);
         } catch (StorageVolumeException ex) {
@@ -132,4 +136,19 @@ public abstract class RestorerBase implements Restorer {
      * open the data object having the given identifier
      */
     public abstract InputStream openDataObject(String id) throws StorageVolumeException;
+
+    /**
+     * add additional metadata information about the data object with the given ID from an external
+     * source to be stored within the cache inventory database.  This method will get called within 
+     * the default {@link #restoreObject(String,Reservation,String,JSONObject) restoreObject()} method.  
+     * This implementation adds nothing, but subclasses should override this to add additional metadata 
+     * (after calling <code>super.enrichMetadata()</code>).
+     * 
+     * @param id       the identifier for the data object
+     * @param mdata    the metadata container to add information into
+     * @throws JSONException   if a failure occurs while writing to the metadata object
+     * @throws CacheManagementException   if a failure occurs while trying to access or manipulate 
+     *                 the extended metadata
+     */
+    protected void enrichMetadata(String id, JSONObject mdata) throws RestorationException { }
 }

@@ -25,8 +25,10 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.InventorySearchException;
 import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,8 +36,17 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.Collection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * distribution service.  It adds the functionality of a separate thread that can continually the 
  * the integrity of the objects in the cache via an {@link gov.nist.oar.distrib.cachemgr.IntegrityMonitor}.
  */
-public class PDRCacheManager extends BasicCacheManager {
+public class PDRCacheManager extends BasicCacheManager implements PDRConstants {
 
     IntegrityMonitor datamon = null;
     IntegrityMonitor hbmon = null;
@@ -251,6 +262,89 @@ public class PDRCacheManager extends BasicCacheManager {
         }
         return roles;
     }
+
+    protected PDRStorageInventoryDB getInventoryDB() {
+        return (PDRStorageInventoryDB) ((BasicCache) theCache).getInventoryDB();
+    }
+
+    public JSONArray summarizeVolumes() throws InventoryException {
+        StorageInventoryDB db = getInventoryDB();
+        Collection<String> names = db.volumes();
+        JSONArray out = new JSONArray();
+        JSONObject row = null;
+        for (String name : names) {
+            row = db.getVolumeInfo(name);
+            row.put("name", name);
+            out.put(row);
+        }
+        return out;
+    }
+
+    /**
+     * run integrity checks on objects in the cache from the collection with the given AIP ID. 
+     * @param aipid     the AIP ID for the data objects that should be checked
+     * @param recache   if true, restore any objects that were removed due to failed checks
+     * @return List<CacheObject> -- a list of the objects that failed their check and were deleted.
+     */
+    public List<CacheObject> check(String aipid, boolean recache)
+        throws InventoryException, StorageVolumeException, CacheManagementException
+    {
+        PDRStorageInventoryDB sidb = getInventoryDB();
         
+        List<CacheObject> cached = sidb.selectObjectsLikeID(aipid+"/%", sidb.VOL_FOR_UPDATE);
+        for (CacheObject co : cached) 
+            co.volume = theCache.getVolume(co.volname);
+
+        List<CacheObject> deleted = new ArrayList<CacheObject>();
+        datamon.selectCorruptedObjects(cached, deleted, true);
+        if (recache) {
+            for (CacheObject co : deleted)
+                cache(co.id);
+        }
+        return deleted;
+    }
+
+    public JSONArray summarizeContents(String volname) throws InventoryException {
+        String qsel = "SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
+                      "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
+
+        if (volname != null) 
+            qsel += " AND v.name='" + volname + "'";
+        else
+            qsel += " AND v.name!='old'";
+        qsel += " GROUP BY d.ediid ORDER BY oldest";
+
+        PDRStorageInventoryDB sidb = getInventoryDB();
+        try {
+            ResultSet res = sidb.query(qsel);
+            JSONArray out = new JSONArray();
+            JSONObject row = null;
+            while (res.next()) {
+                row = new JSONObject();
+                String aipid = PDR_ARK_PAT.matcher(res.getString("ediid")).replaceFirst("");
+                row.put("aipid",     aipid);
+                row.put("filecount", res.getInt("count"));
+                row.put("totalsize", res.getLong("totsz"));
+                row.put("since",     res.getLong("newest"));
+                row.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("newest")),
+                                                             ZoneOffset.UTC)
+                                                  .format(DateTimeFormatter.ISO_INSTANT));
+
+                long timems = res.getLong("oldest");
+                row.put("checked",   timems);
+                if (timems == 0L)
+                    row.put("checkedDate", "(never)");
+                else
+                    row.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("oldest")),
+                                                                   ZoneOffset.UTC)
+                                                        .format(DateTimeFormatter.ISO_INSTANT));
+                out.put(row);
+            }
+            return out;
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException(ex);
+        }
+    }
 }
 

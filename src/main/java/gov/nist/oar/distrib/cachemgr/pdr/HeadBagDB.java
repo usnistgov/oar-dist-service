@@ -82,7 +82,7 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
         // wants information. 
         Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
         synchronized (lock) {
-            return _findObject(sql.toString());
+            return queryForObjects(sql.toString());
         }
     }
 

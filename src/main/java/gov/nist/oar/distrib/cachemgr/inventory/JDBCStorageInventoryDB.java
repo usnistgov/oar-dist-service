@@ -197,7 +197,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         // wants information. 
         Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
         synchronized (lock) {
-            return _findObject(sql.toString());
+            return queryForObjects(sql.toString());
         }
     }
 
@@ -206,7 +206,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      *
      * @param objsql   an SQL query that returns a list of data objects
      */
-    protected List<CacheObject> _findObject(String objsql) throws InventoryException {
+    public List<CacheObject> queryForObjects(String objsql) throws InventoryException {
         try {
             if (_conn == null) connect();
             Statement stmt = _conn.createStatement();
@@ -482,7 +482,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         // lock access to the db in case a deletion plan is progress, unless the caller just
         // wants information. 
         synchronized (this) {
-            objs = _findObject(fsql);
+            objs = queryForObjects(fsql);
         }
         if (objs.size() == 0) return null;
 
@@ -566,7 +566,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         StringBuilder sb = new StringBuilder(find_sql_base);
         sb.append("AND v.name='").append(volname);
         sb.append("' AND d.name='").append(objname).append("';");
-        List<CacheObject> found = _findObject(sb.toString());
+        List<CacheObject> found = queryForObjects(sb.toString());
         for(CacheObject co : found)
             // remove these entries with the same name
             removeObject(co.volname, co.name);

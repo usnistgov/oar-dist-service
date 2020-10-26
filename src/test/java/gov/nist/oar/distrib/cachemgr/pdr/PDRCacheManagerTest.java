@@ -46,6 +46,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.List;
@@ -83,8 +84,8 @@ public class PDRCacheManagerTest {
     ConfigurableCache createDataCache() throws CacheManagementException, IOException {
         File croot = tempf.newFolder("data");
         File dbf = new File(croot, "inventory.sqlite");
-        SQLiteStorageInventoryDB.initializeDB(dbf.getAbsolutePath());
-        SQLiteStorageInventoryDB sidb = new SQLiteStorageInventoryDB(dbf.getPath());
+        PDRStorageInventoryDB.initializeSQLiteDB(dbf.getAbsolutePath());
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
@@ -147,6 +148,39 @@ public class PDRCacheManagerTest {
         mgr.cacheDataset("mds1491", "1");
         mgr.cacheDataset("mds1491", "1.1.0");
         mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null);
+    }
+
+    @Test
+    public void testSummarizeContents() 
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+        mgr.check("mds1491", false);
+        
+        JSONArray data = mgr.summarizeContents(null);
+        assertEquals(2, data.length());
+        assertEquals("67C783D4BA814C8EE05324570681708A1899", ((JSONObject) data.get(0)).optString("aipid",""));
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", ((JSONObject) data.get(1)).optString("aipid",""));
+        assertTrue("Unexpected Checked dates",
+                   ((JSONObject) data.get(0)).optLong("checked",-1L) <
+                   ((JSONObject) data.get(1)).optLong("checked",-1L)   );
+        assertEquals("(never)", ((JSONObject) data.get(0)).optString("checkedDate",""));
+        assertNotEquals("",        ((JSONObject) data.get(1)).optString("checkedDate",""));
+        assertNotEquals("(never)", ((JSONObject) data.get(1)).optString("checkedDate",""));
+
+        /*
+        Map<String, JSONObject> rows = new HashMap<String, JSONObject>(2);
+        for (Object item : data) {
+            JSONObject jo = (JSONObject) item;
+            rows.put(jo.optString("aipid", ""), jo);
+        }
+        assertTrue("Missing aip: 67C783D4BA814C8EE05324570681708A1899",
+                   rows.containsKey("67C783D4BA814C8EE05324570681708A1899"));
+        assertTrue("Missing aip: 3A1EE2F169DD3B8CE0531A570681DB5D1491",
+                   rows.containsKey("3A1EE2F169DD3B8CE0531A570681DB5D1491"));
+        assertFalse("Unexpected empty key", rows.containsKey(""));
+        assertEquals(2, rows.size());
+        */
     }
 
     @Test
