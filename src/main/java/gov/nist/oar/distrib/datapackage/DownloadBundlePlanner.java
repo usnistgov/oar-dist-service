@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.net.MalformedURLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,7 @@ public class DownloadBundlePlanner {
 	private List recordId;
 	private List logsFilesSizes;
 	private HashMap<String, List<String>> logsRecords = new HashMap<>();
+	private long requestId =0;
 	public DownloadBundlePlanner() {
 		// Default constructor
 	}
@@ -90,6 +92,8 @@ public class DownloadBundlePlanner {
 	 */
 	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException, InvalidInputException {
 
+	    	Random rand = new Random(); 
+		this.requestId = rand.nextLong();
 		notIncludedFiles = new ArrayList<NotIncludedFile>();
 		filePathUrls = new ArrayList<FileRequest>();
 		bundleFilePathUrls = new ArrayList<BundleRequest>();
@@ -169,21 +173,33 @@ public class DownloadBundlePlanner {
 	    
 	    logger.info("Requested files size info ::");
 //	    logger.info(Arrays.toString( bundleFilePathUrls.toArray()));
-	    ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-	    try {
-		String json = ow.writeValueAsString(bundleFilePathUrls);
-		logger.info(json);
-	    } catch (JsonProcessingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+//	    ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+//	    try {
+//		String json = ow.writeValueAsString(bundleFilePathUrls);
+//		logger.info(json);
+//	    } catch (JsonProcessingException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	    }
+	    
+	    for(int i=0; i<bundleFilePathUrls.size(); i++) {
+		logger.info("BundleName:"+bundleFilePathUrls.get(i).getBundleName()+
+			", Bundle Size:"+bundleFilePathUrls.get(i).getBundleSize()+","+"No of Files:"+bundleFilePathUrls.get(i).getFilesInBundle());
+		FileRequest[] fRequest = bundleFilePathUrls.get(i).getIncludeFiles();
+		logger.info("List of Files in bundle:");
+		for(int j=0; j<fRequest.length ; j++) {
+		    logger.info(fRequest[j].getFilePath()+","+fRequest[j].getFileSize());
+		}
 	    }
+	    
+	    
 //	    logger.info(logsRecords.toString());
 	    int fileList = 0 ;
 		if(inputfileList != null ) fileList = inputfileList.length;
 	    //Print logs about files
 	    logger.info("BundlePlan Summary ::");
 //	    BundleDownloadPlan bPlan =new BundleDownloadPlan( this.status, this.totalRequestedFileSize, bundleCount, fileList);
-	    logger.info("Request Status :"+this.status+", Total Files Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
+	    logger.info("Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
 		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
 	}
 
@@ -273,6 +289,7 @@ public class DownloadBundlePlanner {
 	 */
 	public BundleDownloadPlan makeBundlePlan() {
 		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
+		
 		int fileList = 0 ;
 		if(inputfileList != null ) fileList = inputfileList.length;
 			BundleDownloadPlan bPlan = new BundleDownloadPlan();
@@ -285,9 +302,9 @@ public class DownloadBundlePlanner {
 			bPlan.setNotIncluded(notIncludedFiles.toArray(new NotIncludedFile[0]));
 			bPlan.setPostEachTo("_bundle");
 			bPlan.setSize(this.totalRequestedFileSize);
+			bPlan.setRequestId(requestId);
 				
 		return bPlan;
-		
 				
 //		return new BundleDownloadPlan("_bundle", this.status, bundleFilePathUrls.toArray(new BundleRequest[0]),
 //				messages.toArray(new String[0]), notIncludedFiles.toArray(new NotIncludedFile[0]),

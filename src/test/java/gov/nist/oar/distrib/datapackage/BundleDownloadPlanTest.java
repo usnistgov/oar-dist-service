@@ -56,7 +56,7 @@ public class BundleDownloadPlanTest {
     @Test
     public void testBundleDownloadPlan() {
 	BundleDownloadPlan bundlePlan = new BundleDownloadPlan("_bundle", "partial", this.makeBundles(),
-		this.makeMessages(), this.makeNotIncluded(),0,0,0);
+		this.makeMessages(), this.makeNotIncluded(),0,0,0, 88888);
 
 	assertEquals("_bundle", bundlePlan.getPostEachTo());
 	assertEquals("partial", bundlePlan.getStatus());

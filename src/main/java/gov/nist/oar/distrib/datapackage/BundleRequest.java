@@ -20,6 +20,7 @@ package gov.nist.oar.distrib.datapackage;
  */
 public class BundleRequest {
 
+    private long requestId;
     /**
      * Name of the bundle to be downloaded
      */
@@ -130,5 +131,13 @@ public class BundleRequest {
      */
     public FileRequest[] getIncludeFiles() {
 	return this.includeFiles;
+    }
+    
+    public void setRequestId(long requestId) {
+   	this.requestId = requestId;
+    }
+       
+    public long getRequestId() {
+   	return this.requestId;
     }
 }

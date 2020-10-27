@@ -34,6 +34,10 @@ package gov.nist.oar.distrib.datapackage;
 public class BundleDownloadPlan {
 
     /**
+     * Request Id
+     */
+    private long requestId;
+    /**
      * Post to the end point mentioned
      */
     private String postEachTo;
@@ -53,11 +57,17 @@ public class BundleDownloadPlan {
      * List of files not included in the bundle
      */
     private NotIncludedFile[] notIncluded;
-    
+    /**
+     * 
+     */
     private long size;
-    
+    /**
+     * 
+     */
     private long bundleCount;
-    
+    /**
+     * 
+     */
     private long filesCount;
 
     /**
@@ -83,7 +93,7 @@ public class BundleDownloadPlan {
      *            If files are not included in the bundle.
      */
     public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, 
-                              String[] messages, NotIncludedFile[] notIncluded, long size, long bundleCount, long filesCount)
+                              String[] messages, NotIncludedFile[] notIncluded, long size, long bundleCount, long filesCount, long requestId)
     {
 	this.postEachTo = postEachTo;
 	this.status = status;
@@ -93,6 +103,7 @@ public class BundleDownloadPlan {
 	this.size = size;
 	this.bundleCount = bundleCount;
 	this.filesCount = filesCount;
+	this.requestId = requestId;
 
     }
 
@@ -218,5 +229,12 @@ public class BundleDownloadPlan {
 	return this.notIncluded;
     }
     
+    public void setRequestId(long requestId) {
+	this.requestId = requestId;
+    }
+    
+    public long getRequestId() {
+	return this.requestId;
+    }
 
 }

@@ -218,6 +218,7 @@ public class DefaultDataPackager implements DataPackager {
 	private void writeLog(ZipOutputStream zout) throws IOException {
 		InputStream nStream = null;
 		try {
+		    	logger.info("Bundle Request :"+this.bundleRequest.getRequestId());
 			String filename = "";
 			int l;
 			byte[] buf = new byte[10000];
@@ -227,17 +228,20 @@ public class DefaultDataPackager implements DataPackager {
 				bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 				bundleInfo.append(this.bundlelogfile);
 				filename = "/PackagingErrors.txt";
+				logger.info("This bundle request is not completely successful. ");
 			}
 
 			if (bundlelogError.length() != 0) {
 				bundleInfo.append(
 						"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
 				filename = "/PackagingErrors.txt";
+				logger.info("There are errors getting data in this bundle request. ");
 			}
 
 			if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
 				bundleInfo.append("\n All requested files are successfully added to this bundle.");
 				filename = "/PackagingSuccessful.txt";
+				logger.info("This bundle request is successful.");
 			}
 
 			nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
