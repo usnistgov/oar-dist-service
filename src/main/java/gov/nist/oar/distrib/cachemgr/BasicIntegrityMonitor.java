@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  * a basic implementation of the IntegrityMonitor interface.  (It is not restricted to being used with 
  * {@link BasicCache} although {@link BasicCache} returns an instance of this via its 
- * {@link BasicCache#createIntegrityMonitor(List)} method.)
+ * {@link BasicCache#getIntegrityMonitor(List)} method.)
  * <p>
  * This implementation has access to the cache's {@link StorageInventoryDB} and its {@link CacheVolume}s to 
  * do its work.  It can optionally be configured with a {@link SelectionStrategy} instance which will be 

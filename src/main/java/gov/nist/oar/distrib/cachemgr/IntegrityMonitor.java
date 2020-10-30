@@ -26,7 +26,7 @@ import java.util.List;
  * connected to a cache (usually a single {@link Cache}, but could a collection of {@link Cache}s or part 
  * of a {@link Cache}) and has access to both its storage inventory database and the {@link CacheVolume} 
  * that make up the cache.  (The strong connection to a {@link Cache} is reflected the {@link BasicCache} 
- * method, {@link BasicCache#createIntegrityMonitor(List)}.)  It uses the database 
+ * method, {@link BasicCache#getIntegrityMonitor(List)}.)  It uses the database 
  * (typically through its {@link StorageInventoryDB} interface) to find objects that are in need of checking.  
  * Once it finds them, it can run configured checks on them.  When an object passes all its checks, this 
  * monitor will update its record accordingly (with a date of success) in the database; thus, the object 
