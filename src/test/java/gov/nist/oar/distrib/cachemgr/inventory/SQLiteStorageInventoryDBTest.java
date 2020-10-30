@@ -200,6 +200,7 @@ public class SQLiteStorageInventoryDBTest {
         sidb.registerVolume("foobar", 450000, null);
         sidb.registerVolume("fundrum", 450000, null);
 
+        // add an initial object
         CacheObject cob = sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", null);
         assertEquals("1234_goober.json", cob.name);
         assertEquals(-1L, cob.getSize());
@@ -214,6 +215,7 @@ public class SQLiteStorageInventoryDBTest {
                    cob.metadatumNames().contains("sinceDate"));
         long since = cob.getMetadatumLong("since", -1L);
         assertTrue("unexpected since value: "+Long.toString(since), since > 0);
+        assertTrue("cached flag not set to True", cob.cached);
         
         List<CacheObject> cos = sidb.findObject("1234/goober.json");
         assertEquals(1, cos.size());
@@ -232,7 +234,9 @@ public class SQLiteStorageInventoryDBTest {
                    cos.get(0).metadatumNames().contains("sinceDate"));
         since = cos.get(0).getMetadatumLong("since", -1L);
         assertTrue("unexpected since value: "+Long.toString(since), since > 0);
+        assertTrue("cached flag not set to True", cos.get(0).cached);
 
+        // add a 2nd object with the same ID, different volume
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
         cos = sidb.findObject("1234/goober.json");
         assertEquals(2, cos.size());
@@ -240,7 +244,10 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(5, cos.get(0).metadatumNames().size());
         assertEquals(-1L, cos.get(1).getSize());
         assertEquals(5, cos.get(1).metadatumNames().size());
+        assertTrue("cached flag not set to True", cos.get(0).cached);
+        assertTrue("cached flag not set to True", cos.get(1).cached);
 
+        // use addObject() to update the metadata
         JSONObject md = new JSONObject();
         md.put("priority", 4);
         md.put("size", 456L);
@@ -248,6 +255,7 @@ public class SQLiteStorageInventoryDBTest {
         md.put("checksumAlgorithm", "md5");
         md.put("color", "red");
         cob = sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", md);
+        assertTrue("cached flag not set to True", cob.cached);
         assertEquals(456L, cob.getSize());
         assertEquals(7, cob.metadatumNames().size());
         assertTrue("size not in metadata properties",
@@ -300,7 +308,10 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
         assertEquals(-1L, first.getSize());
         assertEquals(5, first.metadatumNames().size());
+        assertTrue("cached flag not set to True", first.cached);
+        assertTrue("cached flag not set to True", second.cached);
 
+        // add a third object, new ID
         md.put("size", 3196429990L);
         sidb.addObject("gurn.fits", "foobar", "a9ej_gurn.fits", md);
         cos = sidb.findObject("gurn.fits");
@@ -312,12 +323,25 @@ public class SQLiteStorageInventoryDBTest {
         assertTrue("unexpected since value: "+Long.toString(cos.get(0).getMetadatumLong("since", -1L))+
                    "!>"+Long.toString(since),
                    cos.get(0).getMetadatumLong("since", -1L) > since);
+        assertTrue("cached flag not set to false", cos.get(0).cached);
 
+        // remove from wrong volume
         sidb.removeObject("fundrum", "a9ej_gurn.fits");
         cos = sidb.findObject("gurn.fits");
         assertEquals(1, cos.size());
+        assertTrue("cached flag not set to true", cos.get(0).cached);
+
+        // remove from right volume
         sidb.removeObject("foobar", "a9ej_gurn.fits");
         cos = sidb.findObject("gurn.fits");
+        assertEquals(0, cos.size());
+
+        // record should still be there with cached=0
+        cos = sidb.findObject("gurn.fits", sidb.VOL_FOR_INFO);
+        assertEquals(1, cos.size());
+        assertTrue("cached flag not set to false", ! cos.get(0).cached);
+        sidb.removeObject("foobar", "a9ej_gurn.fits", true);
+        cos = sidb.findObject("gurn.fits", sidb.VOL_FOR_INFO);
         assertEquals(0, cos.size());
     }
 

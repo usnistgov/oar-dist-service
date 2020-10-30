@@ -67,6 +67,14 @@ public class CacheObject {
     public double score = 0.0;
 
     /**
+     * a flag that is true if the object is expected to exist in the cache.  If true, the {@link #volname} 
+     * field, indicating the object's location, should be non-null; if false, a non-null {@link #volname} 
+     * may indicate the object once resided in that volume in the past.  If the object's existence is 
+     * unknown, this should field should be set to false.
+     */
+    public boolean cached = false;
+
+    /**
      * the object metadata
      */
     protected JSONObject _md = null;
@@ -87,10 +95,11 @@ public class CacheObject {
      *                different from its location-idenpendent identifier.
      *                (may be null)
      * @param vol   the identifer of the volume where the object is located
-     *                (may be null)
+     *                (may be null).  If non-null, the cached flag will be set to true.
      */
     public CacheObject(String name, String vol) {
         this.volname = vol;
+        if (vol != null) cached = true;
         this.name = name;
         this._md = new JSONObject();
     }
@@ -101,10 +110,10 @@ public class CacheObject {
      *                different from its location-idenpendent identifier.
      *                (may be null)
      * @param vol   a CacheVolume instance where the object is purported to be 
-     *                located (may be null)
+     *                located (may be null).  If non-null, the cached flag will be set to true.
      */
     public CacheObject(String name, CacheVolume vol) {
-        this(name, vol.getName());
+        this(name, (vol != null) ? vol.getName() : null);
         this.volume = vol;
     }
 
@@ -115,10 +124,10 @@ public class CacheObject {
      *                (may be null)
      * @param md    the object metadata provided as a JSON object
      * @param vol   the identifer of the volume where the object is located
-     *                (may be null)
+     *                (may be null).  If non-null, the cached flag will be set to true.
      */
     public CacheObject(String name, JSONObject md, CacheVolume vol) {
-        this(name, md, vol.getName());
+        this(name, md, (vol != null) ? vol.getName() : null);
         this.volume = vol;
     }
 
@@ -129,10 +138,11 @@ public class CacheObject {
      *                (may be null)
      * @param md    the object metadata provided as a JSON object
      * @param vol   the identifer of the volume where the object is located
-     *                (may be null)
+     *                (may be null).  If non-null, the cached flag will be set to true.
      */
     public CacheObject(String name, JSONObject md, String vol) {
         this.volname = vol;
+        if (vol != null) cached = true;
         this.name = name;
         _md = md;
         if (_md == null)

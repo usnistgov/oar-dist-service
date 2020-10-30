@@ -81,9 +81,9 @@ import java.time.format.DateTimeFormatter;
 public class JDBCStorageInventoryDB implements StorageInventoryDB {
 
     protected static final String find_sql_base =
-        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, d.checked, "+
+        "SELECT d.objid as id, d.name as name, v.name as volume, d.size as size, d.checked, d.cached, "+
         "d.priority as priority, d.since as since, d.metadata as metadata " +
-        "FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1 ";
+        "FROM objects d, volumes v WHERE d.volume=v.id ";
 
     static final String deletion_pSelect = 
         find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
@@ -265,6 +265,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     protected CacheObject extractObject(ResultSet rs) throws SQLException, InventoryException {
         JSONObject md = metadataToJSON(rs);
         CacheObject co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
+        co.cached = rs.getInt("cached") != 0;
         if (rs.getObject("id") != null)
             co.id = rs.getString("id");
         return co;
