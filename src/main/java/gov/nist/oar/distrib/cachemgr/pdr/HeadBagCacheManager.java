@@ -148,12 +148,12 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
      *                 AIPID/filepath (where AIPID is the AIP ID, and filepath is the filepath to the 
      *                 desired component).  This ID can optionally be prefixed with the ark: prefix.  
      * @param version  the desired version.  If null or empty, the latest version is retrieved.  
-     * @throws OARServiceException  if something goes wrong with the interaction with resolving service.
+     * @throws CacheManagementException  if something goes wrong with the interaction with resolving service.
      */
-    public JSONObject resolveDistribution(String aipid, String filepath, String version)
+    public JSONObject resolveDistribution(String distid, String filepath, String version)
         throws CacheManagementException
     {
-        JSONObject resmd = resolveAIPID(aipid, version);
+        JSONObject resmd = resolveAIPID(distid, version);
         if (resmd == null)
             return null;
         return findComponentByFilepath(resmd, filepath);

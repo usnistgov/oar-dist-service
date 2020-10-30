@@ -335,7 +335,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
     }
 
     /**
-     * return a list of cache objects having a given EDI (Enterprise Data Inventory) resource identifier
+     * return a list of cache objects having cache identifiers matching a particular pattern
      * @param idpat    an SQL text pattern to look for.  This value should include '%' wildcard characters
      *                 as needed
      * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
