@@ -347,7 +347,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
     protected List<CacheObject> selectObjectsLikeID(String idpat, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
         sql.append("AND d.objid LIKE '").append(idpat).append("' AND v.status >= ").append(purpose);
-        if (purpose >= VOL_FOR_UPDATE)
+        if (purpose >= VOL_FOR_GET)
             sql.append(" AND d.cached=1");
         sql.append(";");
 

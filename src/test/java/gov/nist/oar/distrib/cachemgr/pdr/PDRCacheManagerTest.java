@@ -36,6 +36,7 @@ import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
 import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.File;
@@ -81,8 +83,7 @@ public class PDRCacheManagerTest {
         return new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), "88434");
     }
 
-    ConfigurableCache createDataCache() throws CacheManagementException, IOException {
-        File croot = tempf.newFolder("data");
+    ConfigurableCache createDataCache(File croot) throws CacheManagementException, IOException {
         File dbf = new File(croot, "inventory.sqlite");
         PDRStorageInventoryDB.initializeSQLiteDB(dbf.getAbsolutePath());
         PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
@@ -110,15 +111,16 @@ public class PDRCacheManagerTest {
 
     @Before
     public void setUp() throws IOException, CacheManagementException {
+        File croot = tempf.newFolder("data");
         BagStorage ltstore = new FilesystemLongTermStorage(ltsdir);
         HeadBagCacheManager hbcm = createHBCache(ltstore);
 
-        cache = createDataCache();
+        cache = createDataCache(croot);
         rstr = new PDRDatasetRestorer(ltstore, hbcm, 500);
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
         checks.add(new ChecksumCheck());
-        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, null);
+        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, new File(croot,"cacheq"), null);
     }
 
     @Test
@@ -168,24 +170,15 @@ public class PDRCacheManagerTest {
         assertNotEquals("",        ((JSONObject) data.get(1)).optString("checkedDate",""));
         assertNotEquals("(never)", ((JSONObject) data.get(1)).optString("checkedDate",""));
 
-        /*
-        Map<String, JSONObject> rows = new HashMap<String, JSONObject>(2);
-        for (Object item : data) {
-            JSONObject jo = (JSONObject) item;
-            rows.put(jo.optString("aipid", ""), jo);
-        }
-        assertTrue("Missing aip: 67C783D4BA814C8EE05324570681708A1899",
-                   rows.containsKey("67C783D4BA814C8EE05324570681708A1899"));
-        assertTrue("Missing aip: 3A1EE2F169DD3B8CE0531A570681DB5D1491",
-                   rows.containsKey("3A1EE2F169DD3B8CE0531A570681DB5D1491"));
-        assertFalse("Unexpected empty key", rows.containsKey(""));
-        assertEquals(2, rows.size());
-        */
+        data = mgr.summarizeContents("old");
+        assertEquals(1, data.length());
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", data.getJSONObject(0).get("aipid"));
     }
 
     @Test
     public void testMonitorUntilDone()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+        throws StorageVolumeException, ResourceNotFoundException,
+               CacheManagementException, InterruptedException
     {
         PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
         List<CacheObject> prob = new ArrayList<CacheObject>();
@@ -221,6 +214,190 @@ public class PDRCacheManagerTest {
         thrd.start();
         try { Thread.currentThread().sleep(3000); }
         catch (InterruptedException ex) { }
-        thrd.stopSoonAndWait();
+        thrd.interruptAndWait();
+    }
+
+    @Test
+    public void testGetRolesFor() {
+        assertEquals(0, mgr.getRolesFor("goober"));
+        assertEquals(16, mgr.getRolesFor("old"));
+        assertEquals(9, mgr.getRolesFor("cranky"));
+        assertEquals(6, mgr.getRolesFor("foobar"));
+    }
+
+    @Test
+    public void testSummarizeVolumes()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        try {
+            mgr.summarizeVolume("goob");
+            fail("Failed to throw VolumeNotFoundException on unknown volume");
+        }
+        catch (VolumeNotFoundException ex) { /* successful */ }
+
+        JSONObject info = mgr.summarizeVolume("old");
+        assertEquals("old", info.opt("name"));
+        assertEquals(16, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(0, info.optLong("filecount"));
+        assertEquals(0, info.optLong("totalsize"));
+        assertEquals(0, info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        JSONArray vols = mgr.summarizeVolumes();
+        assertEquals(3, vols.length());
+        info = new JSONObject((Map<String,Object>)
+                              vols.toList().stream()
+                                  .filter(v -> "old".equals(((Map<String,Object>)v).get("name")))
+                                  .collect(Collectors.toList()).get(0));
+        assertEquals("old", info.opt("name"));
+        assertEquals(16, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(0, info.optLong("filecount"));
+        assertEquals(0, info.optLong("totalsize"));
+        assertEquals(0, info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        info = new JSONObject((Map<String,Object>)
+                              vols.toList().stream()
+                                  .filter(v -> "cranky".equals(((Map)v).get("name")))
+                                  .collect(Collectors.toList()).get(0));
+        assertEquals("cranky", info.opt("name"));
+        assertEquals(9, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(0, info.optLong("filecount"));
+        assertEquals(0, info.optLong("totalsize"));
+        assertEquals(0, info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        info = new JSONObject((Map<String,Object>)
+                              vols.toList().stream()
+                                  .filter(v -> "foobar".equals(((Map)v).get("name")))
+                                  .collect(Collectors.toList()).get(0));
+        assertEquals("foobar", info.opt("name"));
+        assertEquals(6, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(0, info.optLong("filecount"));
+        assertEquals(0, info.optLong("totalsize"));
+        assertEquals(0, info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        cacheAllTestData();
+
+        info = mgr.summarizeVolume("old");
+        assertEquals("old", info.opt("name"));
+        assertEquals(16, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(6, info.optLong("filecount"));
+        assertTrue(0 < info.optLong("totalsize"));
+        assertTrue(0 < info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        vols = mgr.summarizeVolumes();        
+        info = new JSONObject((Map<String,Object>)
+                              vols.toList().stream()
+                                  .filter(v -> "foobar".equals(((Map)v).get("name")))
+                                  .collect(Collectors.toList()).get(0));
+        assertEquals("foobar", info.opt("name"));
+        assertEquals(6, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(2, info.optLong("filecount"));
+        assertTrue(0 < info.optLong("totalsize"));
+        assertTrue(0 < info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+
+        vols = mgr.summarizeVolumes();        
+        info = new JSONObject((Map<String,Object>)
+                              vols.toList().stream()
+                                  .filter(v -> "cranky".equals(((Map)v).get("name")))
+                                  .collect(Collectors.toList()).get(0));
+        assertEquals("cranky", info.opt("name"));
+        assertEquals(9, info.optInt("roles"));
+        assertEquals(2000000, info.optLong("capacity"));
+        assertEquals(3, info.optLong("filecount"));
+        assertTrue(0 < info.optLong("totalsize"));
+        assertTrue(0 < info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+        assertEquals("(never)", info.opt("checkedDate"));
+    }
+
+    @Test
+    public void testDescribeObject()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+
+        CacheObject co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_GET);
+        assertNotNull(co);
+        assertEquals("mds1491/trial1.json", co.id);
+        assertEquals("foobar", co.volname);
+        assertTrue(co.cached);
+
+        mgr.uncache("mds1491/trial1.json");
+        co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_GET);
+        assertNull(co);
+
+        co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_INFO);
+        assertNotNull(co);
+        assertEquals("mds1491/trial1.json", co.id);
+        assertEquals("foobar", co.volname);
+        assertFalse(co.cached);
+    }
+
+    @Test
+    public void testSelectDatasetObjects()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+
+        List<CacheObject> cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
+        assertEquals(3, cos.size());
+        assertEquals(1, cos.stream().filter(c -> "mds1491/trial1.json".equals(c.id))
+                           .collect(Collectors.toList()).size());
+        assertEquals(1, cos.stream().filter(c -> "mds1491/trial2.json".equals(c.id))
+                           .collect(Collectors.toList()).size());
+        assertEquals(1, cos.stream().filter(c -> "mds1491/trial3/trial3a.json".equals(c.id))
+                           .collect(Collectors.toList()).size());
+
+        mgr.uncache("mds1491/trial1.json");
+        cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
+        assertEquals(2, cos.size());
+        cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_INFO);
+        assertEquals(3, cos.size());
+    }
+
+    @Test
+    public void testSummarizeDataset()
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        cacheAllTestData();
+
+        JSONObject info = mgr.summarizeDataset("mds1491");
+        assertNotNull(info);
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", info.get("aipid")); // quirk of this sample data
+        assertEquals(3, info.getInt("filecount"));
+        assertEquals(691, info.getInt("totalsize"));
+        assertTrue(0 < info.optLong("since"));
+        assertEquals(0, info.optLong("checked"));
+
+        mgr.check("mds1491", false);
+        info = mgr.summarizeDataset("mds1491");
+        assertNotNull(info);
+        assertTrue(0 < info.optLong("checked"));
+
+        mgr.uncache("mds1491/trial3/trial3a.json");
+        info = mgr.summarizeDataset("mds1491");
+        assertNotNull(info);
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", info.get("aipid"));
+        assertEquals(2, info.getInt("filecount"));
+        assertEquals(138, info.getInt("totalsize"));
+        assertTrue(0 < info.optLong("since"));
+        assertTrue(0 < info.optLong("checked"));
     }
 }
