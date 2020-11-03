@@ -56,7 +56,7 @@ public class DownloadBundlePlannerTest {
 	@Before
 	public void construct() {
 		dplanner = new DownloadBundlePlanner(bundleRequest, mxFileSize, numberofFiles, domains, "bundlename",
-				redirectURLTrials);
+				redirectURLTrials,"");
 	}
 
 	private static void createBundleRequest() throws IOException {

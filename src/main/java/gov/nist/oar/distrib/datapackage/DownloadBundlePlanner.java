@@ -12,15 +12,22 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.net.MalformedURLException;
+import java.text.SimpleDateFormat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,19 +76,36 @@ public class DownloadBundlePlanner {
 	private List recordId;
 	private List logsFilesSizes;
 	private HashMap<String, List<String>> logsRecords = new HashMap<>();
-	private long requestId =0;
+	private String requestId ;
+	
+	String printSummary = "";
+	List<FileRequestLogs> filesLogs = new ArrayList<FileRequestLogs>();
+	
+	//@Value("${logging.path}")
+	private String logFile;
+	
 	public DownloadBundlePlanner() {
 		// Default constructor
 	}
 
+	/**
+	 * 
+	 * @param inputjson
+	 * @param maxFileSize
+	 * @param numOfFiles
+	 * @param validdomains
+	 * @param bundleName
+	 * @param allowedRedirects
+	 */
 	public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
-			String bundleName, int allowedRedirects) {
+			String bundleName, int allowedRedirects, String logFile) {
 		this.bundleRequest = inputjson;
 		this.mxFilesBundleSize = maxFileSize;
 		this.mxBundledFilesCount = numOfFiles;
 		this.validdomains = validdomains;
 		this.bundleName = bundleName;
 		this.allowedRedirects = allowedRedirects;
+		this.logFile = logFile;
 	}
 
 	/**
@@ -92,8 +116,7 @@ public class DownloadBundlePlanner {
 	 */
 	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException, InvalidInputException {
 
-	    	Random rand = new Random(); 
-		this.requestId = rand.nextLong();
+	        requestId = UUID.randomUUID().toString();
 		notIncludedFiles = new ArrayList<NotIncludedFile>();
 		filePathUrls = new ArrayList<FileRequest>();
 		bundleFilePathUrls = new ArrayList<BundleRequest>();
@@ -157,52 +180,107 @@ public class DownloadBundlePlanner {
 
 	}
 	
-	public void forLogs(String filePath, String fileURL, long fileSize) {
-	    try {
-		String[] recordPath = filePath.split("/");
-		if(!logsRecords.containsKey(recordPath[0]) || logsForFiles == null) 
-		    logsForFiles = new ArrayList<String>();
-		logsForFiles.add(" FilePath "+filePath+" FileURL : "+fileURL+" FileSize: "+fileSize);
-		this.logsRecords.put(recordPath[0],logsForFiles); 
-	    }catch(Exception exp) {
-		logger.error("Exception creating Logs for List of the files and sizes.");
-	    }
-	}
+//	public void forLogs(String filePath, String fileURL, long fileSize, String timeStamp) {
+//	    try {
+//		String[] recordPath = filePath.split("/");
+//		if(!logsRecords.containsKey(recordPath[0]) || logsForFiles == null) 
+//		    logsForFiles = new ArrayList<String>();
+//		logsForFiles.add(" FilePath "+filePath+" FileURL : "+fileURL+" FileSize: "+fileSize);
+//		
+//		 printLog += requestId+","+bundleFilePathUrls.get(i).getBundleName()
+//		this.logsRecords.put(recordPath[0],logsForFiles); 
+//	    }catch(Exception exp) {
+//		logger.error("Exception creating Logs for List of the files and sizes.");
+//	    }
+//	}
 	
+	/**
+	 * 
+	 */
 	private void printLogsSummary() {
+	    try {
+	    //Print logs about files
+	    String fileName = "RequestSummary.csv";
+	    String printLog = "";
+	    int fileList = 0 ;
+	    if(inputfileList != null ) fileList = inputfileList.length;
+		
+	    logger.info("Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
+		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
+	    
+	    String requestSummary = requestId+","+this.status+","+totalRequestedFileSize+" ,"+ bundleCount
+		    +","+fileList+ ","+this.notIncludedFiles.size()+" \n";
+	    this.writeFile(fileName, requestSummary);
 	    
 	    logger.info("Requested files size info ::");
-//	    logger.info(Arrays.toString( bundleFilePathUrls.toArray()));
-//	    ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-//	    try {
-//		String json = ow.writeValueAsString(bundleFilePathUrls);
-//		logger.info(json);
-//	    } catch (JsonProcessingException e) {
-//		// TODO Auto-generated catch block
-//		e.printStackTrace();
-//	    }
-	    
 	    for(int i=0; i<bundleFilePathUrls.size(); i++) {
 		logger.info("BundleName:"+bundleFilePathUrls.get(i).getBundleName()+
 			", Bundle Size:"+bundleFilePathUrls.get(i).getBundleSize()+","+"No of Files:"+bundleFilePathUrls.get(i).getFilesInBundle());
 		FileRequest[] fRequest = bundleFilePathUrls.get(i).getIncludeFiles();
 		logger.info("List of Files in bundle:");
 		for(int j=0; j<fRequest.length ; j++) {
-		    logger.info(fRequest[j].getFilePath()+","+fRequest[j].getFileSize());
+		    logger.info(fRequest[j].getFilePath()+","+fRequest[j].getFileSize()+","+fRequest[j].getDownloadUrl());
+		
 		}
 	    }
 	    
-	    
-//	    logger.info(logsRecords.toString());
-	    int fileList = 0 ;
-		if(inputfileList != null ) fileList = inputfileList.length;
 	    //Print logs about files
-	    logger.info("BundlePlan Summary ::");
-//	    BundleDownloadPlan bPlan =new BundleDownloadPlan( this.status, this.totalRequestedFileSize, bundleCount, fileList);
-	    logger.info("Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
-		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
+	     fileName = "RequestedFilesLogs.csv";
+	     printLog = "";
+	    for(int i=0; i< this.filesLogs.size(); i++) {		
+		//logger.info(filesLogs.get(i).toString());
+		FileRequestLogs fileLog = filesLogs.get(i);
+		printLog += fileLog.getRequestId()+","+ fileLog.getBundleName()+","+fileLog.getRecordId()+","+
+			fileLog.getFilePath()+","+fileLog.getFileSize()+","+fileLog.getDownloadUrl()+","+
+			fileLog.getTimeStamp()+"\n";
+		
+	    }
+	    writeFile(fileName, printLog);
+	    }catch(Exception e) {
+		logger.error("Error writing logs on console."+e.getMessage());
+	    }
 	}
+	
+	/**
+	 * 
+	 * @param fileName
+	 * @param filecontent
+	 */
+	public void writeFile(String fileName, String filecontent) {
+	    try {
+		fileName = logFile+"/"+fileName;
+		File loggingFile = new File(fileName);
+		loggingFile.createNewFile();
+		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
+		byte[] strToBytes = filecontent.getBytes();
+		outputStream.write(strToBytes);
+		outputStream.close();
+	    } catch(IOException e) {
+		logger.error("Error Writing Logs File. "+e.getMessage());
+	    }
+	}
+	
 
+	/**
+	 * This function helps capture information about individual files to create a log file. 
+	 * @param uObj
+	 * @param jobject
+	 */
+	public void createLogs(URLStatusLocation uObj, FileRequest jobject) {
+	    try {
+		String recordId = "";
+	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+		try {
+		 recordId = jobject.getFilePath().split("/")[0];
+		}catch(Exception e) {
+		   //ignore recordid will be empty.   
+		}
+		this.filesLogs.add(new FileRequestLogs(this.requestId, this.bundleName+(this.bundleCount+1),recordId,jobject.getFilePath(),
+			uObj.getLength(),jobject.getDownloadUrl(), timeStamp));
+	    }catch(Exception e) {
+		logger.error("Error creating logs for this file.");
+	    }
+	}
 	/**
 	 * Add to Bundle of the input requested based on the size and number of files
 	 * allowed per bundle request.
@@ -217,6 +295,8 @@ public class DownloadBundlePlanner {
 		URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains,
 				this.allowedRedirects);
 		
+		createLogs(uObj, jobject);
+		
 		String whyNotIncluded = "File not added in package; ";
 		if (uObj.getStatus() >= 300 && uObj.getStatus() < 400) {
 			whyNotIncluded += "There are too many redirects for this URL.";
@@ -225,8 +305,7 @@ public class DownloadBundlePlanner {
 			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
 			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
 		} else {
-			long individualFileSize = uObj.getLength();
-			this.forLogs(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize);
+		    	long individualFileSize = uObj.getLength();
 			totalRequestedFileSize += individualFileSize;
 			if (individualFileSize >= this.mxFilesBundleSize) {
 				//bundleSize = individualFileSize;
@@ -256,15 +335,12 @@ public class DownloadBundlePlanner {
 
 	/***
 	 * Create Bundle of FileList
-	 * 
 	 * @param fPathUrls
 	 */
 	public void makePlan(List<FileRequest> fPathUrls, long bundleSize) {
 		bundleCount++;
 		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-		
-		
-		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length));
+		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length, this.requestId));
 	}
 
 	/**

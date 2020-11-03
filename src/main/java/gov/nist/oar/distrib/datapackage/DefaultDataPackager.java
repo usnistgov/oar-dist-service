@@ -16,6 +16,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,6 +30,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
@@ -64,7 +67,10 @@ public class DefaultDataPackager implements DataPackager {
 	private long totalRequestedPackageSize = -1;
 	private int requestValidity = 0;
 	
-
+	private String logFile;
+	
+	private String writeLog = "";
+	
 	public DefaultDataPackager() {
 		// Default Constructor
 	}
@@ -77,12 +83,13 @@ public class DefaultDataPackager implements DataPackager {
 	 * @param numOfFiles  total number of files allowed to download
 	 */
 	public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains,
-			int allowedRedirects) {
+			int allowedRedirects, String logPath) {
 		this.bundleRequest = inputjson;
 		this.mxFileSize = maxFileSize;
 		this.mxFilesCount = numOfFiles;
 		this.domains = domains;
 		this.allowedRedirects = allowedRedirects;
+		this.logFile = logPath;
 	}
 
 	/***
@@ -98,13 +105,15 @@ public class DefaultDataPackager implements DataPackager {
 	public void getData(ZipOutputStream zout) throws IOException, DistributionException {
 		HttpURLConnection con = null;
 		this.validateBundleRequest();
-
+		
 		logger.info("Forming zip file from the the input fileurls");
 
 		for (int i = 0; i < inputfileList.length; i++) {
+		    writeLog += bundleRequest.getRequestId()+ ","+bundleRequest.getBundleName()+",";
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
+			writeLog +=filepath+","+jobject.getFileSize()+","+downloadurl+",";
 			if (this.validateUrl(downloadurl)) {
 				URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 				if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
@@ -122,7 +131,9 @@ public class DefaultDataPackager implements DataPackager {
 						zout.closeEntry();
 						fstream.close();
 						fileCount++;
+						writeLog += "success \n";
 					} catch (IOException ie) {
+					        writeLog += "failed \n";
 						bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl
 								+ "\n" + "This file might be corrupt.");
 						logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
@@ -137,6 +148,7 @@ public class DefaultDataPackager implements DataPackager {
 
 				}
 			}
+			
 		}
 
 		if (fileCount == 0) {
@@ -144,6 +156,7 @@ public class DefaultDataPackager implements DataPackager {
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
 		this.writeLog(zout);
+		writeFile("fileDownloadStatus.csv",writeLog);
 
 	}
 
@@ -471,5 +484,23 @@ public class DefaultDataPackager implements DataPackager {
         }
     }
 
+    /**
+	 * 
+	 * @param fileName
+	 * @param filecontent
+	 */
+	public void writeFile(String fileName, String filecontent) {
+	    try {
+		fileName = logFile+"/"+fileName;
+		File loggingFile = new File(fileName);
+		loggingFile.createNewFile();
+		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
+		byte[] strToBytes = filecontent.getBytes();
+		outputStream.write(strToBytes);
+		outputStream.close();
+	    } catch(IOException e) {
+		logger.error("Error Writing Logs File. "+e.getMessage());
+	    }
+	}
 
 }

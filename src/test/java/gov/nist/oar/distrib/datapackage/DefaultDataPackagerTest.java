@@ -87,7 +87,7 @@ public class DefaultDataPackagerTest {
 
     @Before
     public void construct() {
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials,"");
     }
 
     @After
@@ -177,7 +177,7 @@ public class DefaultDataPackagerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	bundleRequest = new BundleRequest("testdatabundle", inputfileList,0,2);
-	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials);
+	dp = new DefaultDataPackager(bundleRequest, mxFileSize, numberofFiles, domains, redirectURLTrials,"");
     }
 
     private void createBundleStream() throws IOException {

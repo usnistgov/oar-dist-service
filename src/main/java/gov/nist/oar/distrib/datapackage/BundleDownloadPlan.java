@@ -13,6 +13,8 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
+import java.util.UUID;
+
 /**
  * A representation of a plan for bundling a requested list of data files into one or more data 
  * bundles (zip files).  
@@ -36,7 +38,7 @@ public class BundleDownloadPlan {
     /**
      * Request Id
      */
-    private long requestId;
+    private String requestId;
     /**
      * Post to the end point mentioned
      */
@@ -93,7 +95,7 @@ public class BundleDownloadPlan {
      *            If files are not included in the bundle.
      */
     public BundleDownloadPlan(String postEachTo, String status, BundleRequest[] requests, 
-                              String[] messages, NotIncludedFile[] notIncluded, long size, long bundleCount, long filesCount, long requestId)
+                              String[] messages, NotIncludedFile[] notIncluded, long size, long bundleCount, long filesCount, String requestId)
     {
 	this.postEachTo = postEachTo;
 	this.status = status;
@@ -229,11 +231,11 @@ public class BundleDownloadPlan {
 	return this.notIncluded;
     }
     
-    public void setRequestId(long requestId) {
+    public void setRequestId(String requestId) {
 	this.requestId = requestId;
     }
     
-    public long getRequestId() {
+    public String getRequestId() {
 	return this.requestId;
     }
 

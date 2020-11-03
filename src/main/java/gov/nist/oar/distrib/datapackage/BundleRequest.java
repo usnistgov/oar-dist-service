@@ -11,6 +11,8 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
+import java.util.UUID;
+
 /**
  * a container for holding a request for set of files to be packaged up into a bundle (or bundles).
  * A request is composed of a list of file requests (as {@link FileRequest} objects) and an optional
@@ -20,7 +22,7 @@ package gov.nist.oar.distrib.datapackage;
  */
 public class BundleRequest {
 
-    private long requestId;
+    private String requestId;
     /**
      * Name of the bundle to be downloaded
      */
@@ -58,6 +60,20 @@ public class BundleRequest {
 	this.includeFiles = includeFiles;
 	this.bundleSize = bundleSize;
 	this.filesInBundle = filesInBundle;
+    }
+    
+    /**
+     * Create an object with bundle name and array of files with URLs.
+     * 
+     * @param bundleName
+     * @param includeFiles
+     */
+    public BundleRequest(String bundleName, FileRequest[] includeFiles, long bundleSize, long filesInBundle, String requestId) {
+	this.bundleName = bundleName;
+	this.includeFiles = includeFiles;
+	this.bundleSize = bundleSize;
+	this.filesInBundle = filesInBundle;
+	this.requestId = requestId;
     }
 
     /**
@@ -133,11 +149,11 @@ public class BundleRequest {
 	return this.includeFiles;
     }
     
-    public void setRequestId(long requestId) {
+    public void setRequestId(String requestId) {
    	this.requestId = requestId;
     }
        
-    public long getRequestId() {
+    public String getRequestId() {
    	return this.requestId;
     }
 }

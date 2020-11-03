@@ -43,6 +43,9 @@ public class DefaultDataPackagingService implements DataPackagingService {
     int allowedRedirects = 0;
     String domains;
     DownloadBundlePlanner dwnldPlanner;
+    
+    @Value("${logging.path}")
+    private String logFile;
 
     public DefaultDataPackagingService() {
 	// Default constructor
@@ -67,7 +70,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     @Override
     public DefaultDataPackager getDataPackager(BundleRequest br)
 	    throws DistributionException {
-	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
+	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects, logFile);
     }
 
     /*
@@ -76,7 +79,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {
-	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
+	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects, logFile);
 	dp.validateBundleRequest();
     }
 
@@ -87,7 +90,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
         throws DistributionException, InvalidInputException
     {
-	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects);
+	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects, logFile);
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 

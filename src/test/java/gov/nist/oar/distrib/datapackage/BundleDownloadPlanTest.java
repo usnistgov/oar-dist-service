@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.datapackage;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.UUID;
+
 import org.junit.Test;
 
 /**
@@ -56,7 +58,7 @@ public class BundleDownloadPlanTest {
     @Test
     public void testBundleDownloadPlan() {
 	BundleDownloadPlan bundlePlan = new BundleDownloadPlan("_bundle", "partial", this.makeBundles(),
-		this.makeMessages(), this.makeNotIncluded(),0,0,0, 88888);
+		this.makeMessages(), this.makeNotIncluded(),0,0,0, UUID.randomUUID().toString());
 
 	assertEquals("_bundle", bundlePlan.getPostEachTo());
 	assertEquals("partial", bundlePlan.getStatus());

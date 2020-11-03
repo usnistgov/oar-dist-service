@@ -169,6 +169,14 @@ The service can be configured via command-line arguments; provide the
 scripts/run_service.sh -h
 ```
 
+## Logging
+
+For each download request submitted to service, it captures different information about the files or group of files. Group of files is called bundle. There are two types of requestes a group or a bundle plan and actual bundle download request. The first request, groups files together as per the total allowed bundle size based on settings in the configuration. It returns a plan to download files. This is usually contains, name of the bundle and one or more file name and file url. We capture all the information about requested file and check size and its download status.
+There are three files generated apart from standard log files 
+FileRequestLogs.csv   Lists all files requested to bundlePlan endpoint
+RequestSummary.csv  Lists summary of requests 
+fileDownloadStatus.csv Lists actual file download related information
+
 
 ## Disclaimer
 
