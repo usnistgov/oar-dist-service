@@ -210,7 +210,8 @@ public class DownloadBundlePlanner {
 	    
 	    String requestSummary = requestId+","+this.status+","+totalRequestedFileSize+" ,"+ bundleCount
 		    +","+fileList+ ","+this.notIncludedFiles.size()+" \n";
-	    this.writeFile(fileName, requestSummary);
+	    logger.info(requestSummary);
+//	    this.writeFile(fileName, requestSummary);
 	    
 	    logger.info("Requested files size info ::");
 	    for(int i=0; i<bundleFilePathUrls.size(); i++) {
@@ -235,30 +236,31 @@ public class DownloadBundlePlanner {
 			fileLog.getTimeStamp()+"\n";
 		
 	    }
-	    writeFile(fileName, printLog);
+	    logger.info(printLog);
+	    //writeFile(fileName, printLog);
 	    }catch(Exception e) {
 		logger.error("Error writing logs on console."+e.getMessage());
 	    }
 	}
 	
-	/**
-	 * 
-	 * @param fileName
-	 * @param filecontent
-	 */
-	public void writeFile(String fileName, String filecontent) {
-	    try {
-		fileName = logFile+"/"+fileName;
-		File loggingFile = new File(fileName);
-		loggingFile.createNewFile();
-		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
-		byte[] strToBytes = filecontent.getBytes();
-		outputStream.write(strToBytes);
-		outputStream.close();
-	    } catch(IOException e) {
-		logger.error("Error Writing Logs File. "+e.getMessage());
-	    }
-	}
+//	/**
+//	 * 
+//	 * @param fileName
+//	 * @param filecontent
+//	 */
+//	public void writeFile(String fileName, String filecontent) {
+//	    try {
+//		fileName = logFile+"/"+fileName;
+//		File loggingFile = new File(fileName);
+//		loggingFile.createNewFile();
+//		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
+//		byte[] strToBytes = filecontent.getBytes();
+//		outputStream.write(strToBytes);
+//		outputStream.close();
+//	    } catch(IOException e) {
+//		logger.error("Error Writing Logs File. "+e.getMessage());
+//	    }
+//	}
 	
 
 	/**

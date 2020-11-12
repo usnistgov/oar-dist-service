@@ -156,7 +156,8 @@ public class DefaultDataPackager implements DataPackager {
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
 		this.writeLog(zout);
-		writeFile("fileDownloadStatus.csv",writeLog);
+		logger.info(writeLog);
+//		writeFile("fileDownloadStatus.csv",writeLog);
 
 	}
 
@@ -484,23 +485,23 @@ public class DefaultDataPackager implements DataPackager {
         }
     }
 
-    /**
-	 * 
-	 * @param fileName
-	 * @param filecontent
-	 */
-	public void writeFile(String fileName, String filecontent) {
-	    try {
-		fileName = logFile+"/"+fileName;
-		File loggingFile = new File(fileName);
-		loggingFile.createNewFile();
-		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
-		byte[] strToBytes = filecontent.getBytes();
-		outputStream.write(strToBytes);
-		outputStream.close();
-	    } catch(IOException e) {
-		logger.error("Error Writing Logs File. "+e.getMessage());
-	    }
-	}
+//    /**
+//	 * 
+//	 * @param fileName
+//	 * @param filecontent
+//	 */
+//	public void writeFile(String fileName, String filecontent) {
+//	    try {
+//		fileName = logFile+"/"+fileName;
+//		File loggingFile = new File(fileName);
+//		loggingFile.createNewFile();
+//		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
+//		byte[] strToBytes = filecontent.getBytes();
+//		outputStream.write(strToBytes);
+//		outputStream.close();
+//	    } catch(IOException e) {
+//		logger.error("Error Writing Logs File. "+e.getMessage());
+//	    }
+//	}
 
 }
