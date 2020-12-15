@@ -121,7 +121,7 @@ public class DownloadBundlePlanner {
 		filePathUrls = new ArrayList<FileRequest>();
 		bundleFilePathUrls = new ArrayList<BundleRequest>();
 		messages = new ArrayList<String>();
-		logger.info("Creating bundle plan..");
+		logger.debug("Creating bundle plan..");
 		try {
 		    
 			ObjectMapper mapper = new ObjectMapper();
@@ -199,35 +199,36 @@ public class DownloadBundlePlanner {
 	 */
 	private void printLogsSummary() {
 	    try {
+
 	    //Print logs about files
-	    String fileName = "RequestSummary.csv";
-	    String printLog = "";
+//	    String fileName = "RequestSummary.csv";
+	    String printLog = "BundlePlan : ";
 	    int fileList = 0 ;
 	    if(inputfileList != null ) fileList = inputfileList.length;
 		
-	    logger.info("Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
+	    logger.info("BundlePlan Summary Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
 		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
 	    
-	    String requestSummary = requestId+","+this.status+","+totalRequestedFileSize+" ,"+ bundleCount
-		    +","+fileList+ ","+this.notIncludedFiles.size()+" \n";
-	    logger.info(requestSummary);
+//	    String requestSummary = requestId+","+this.status+","+totalRequestedFileSize+" ,"+ bundleCount
+//		    +","+fileList+ ","+this.notIncludedFiles.size()+" \n";
+//	    logger.info(requestSummary);
 //	    this.writeFile(fileName, requestSummary);
-	    
-	    logger.info("Requested files size info ::");
-	    for(int i=0; i<bundleFilePathUrls.size(); i++) {
-		logger.info("BundleName:"+bundleFilePathUrls.get(i).getBundleName()+
-			", Bundle Size:"+bundleFilePathUrls.get(i).getBundleSize()+","+"No of Files:"+bundleFilePathUrls.get(i).getFilesInBundle());
-		FileRequest[] fRequest = bundleFilePathUrls.get(i).getIncludeFiles();
-		logger.info("List of Files in bundle:");
-		for(int j=0; j<fRequest.length ; j++) {
-		    logger.info(fRequest[j].getFilePath()+","+fRequest[j].getFileSize()+","+fRequest[j].getDownloadUrl());
-		
-		}
-	    }
+//	    
+//	    logger.info("Requested files size info ::");
+//	    for(int i=0; i<bundleFilePathUrls.size(); i++) {
+//		logger.info("BundleName:"+bundleFilePathUrls.get(i).getBundleName()+
+//			", Bundle Size:"+bundleFilePathUrls.get(i).getBundleSize()+","+"No of Files:"+bundleFilePathUrls.get(i).getFilesInBundle());
+//		FileRequest[] fRequest = bundleFilePathUrls.get(i).getIncludeFiles();
+//		logger.info("List of Files in bundle:");
+//		for(int j=0; j<fRequest.length ; j++) {
+//		    logger.info(fRequest[j].getFilePath()+","+fRequest[j].getFileSize()+","+fRequest[j].getDownloadUrl());
+//		
+//		}
+//	    }
 	    
 	    //Print logs about files
-	     fileName = "RequestedFilesLogs.csv";
-	     printLog = "";
+	    // fileName = "RequestedFilesLogs.csv";
+	     printLog = "BundlePlan: ";
 	    for(int i=0; i< this.filesLogs.size(); i++) {		
 		//logger.info(filesLogs.get(i).toString());
 		FileRequestLogs fileLog = filesLogs.get(i);
@@ -237,6 +238,7 @@ public class DownloadBundlePlanner {
 		
 	    }
 	    logger.info(printLog);
+
 	    //writeFile(fileName, printLog);
 	    }catch(Exception e) {
 		logger.error("Error writing logs on console."+e.getMessage());
@@ -271,7 +273,7 @@ public class DownloadBundlePlanner {
 	public void createLogs(URLStatusLocation uObj, FileRequest jobject) {
 	    try {
 		String recordId = "";
-	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+	        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
 		try {
 		 recordId = jobject.getFilePath().split("/")[0];
 		}catch(Exception e) {
@@ -366,7 +368,7 @@ public class DownloadBundlePlanner {
 	 * of BundleDownloadPlan after processing input request.
 	 */
 	public BundleDownloadPlan makeBundlePlan() {
-		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
+		logger.debug("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
 		
 		int fileList = 0 ;
 		if(inputfileList != null ) fileList = inputfileList.length;

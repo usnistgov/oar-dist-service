@@ -13,11 +13,9 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -30,14 +28,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
-import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * DefaultDataPackager implements DataPackager interface and gives a default
@@ -58,17 +50,14 @@ public class DefaultDataPackager implements DataPackager {
 	private BundleRequest bundleRequest;
 	private String domains;
 	private int allowedRedirects;
-
 	private int fileCount;
 	private StringBuilder bundlelogfile = new StringBuilder("");
 	private StringBuilder bundlelogError = new StringBuilder("");
 	private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 	private long totalRequestedPackageSize = -1;
-	private int requestValidity = 0;
-	
-	private String logFile;
-	
+	private int requestValidity = 0;	
+	private String logFile = "";	
 	private String writeLog = "";
 	
 	public DefaultDataPackager() {
@@ -155,7 +144,7 @@ public class DefaultDataPackager implements DataPackager {
 			logger.info("The package does not contain any data. These errors :" + this.bundlelogError);
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
-		this.writeLog(zout);
+		this.writeLogMessages(zout);
 		logger.info(writeLog);
 //		writeFile("fileDownloadStatus.csv",writeLog);
 
@@ -229,10 +218,11 @@ public class DefaultDataPackager implements DataPackager {
 	 * @param zout
 	 * @throws IOException
 	 */
-	private void writeLog(ZipOutputStream zout) throws IOException {
+	private void writeLogMessages(ZipOutputStream zout) throws IOException {
 		InputStream nStream = null;
 		try {
-		    	logger.info("Bundle Request :"+this.bundleRequest.getRequestId());
+		    	String bundlerequestStatus = "Bundle Request "+ this.bundleRequest.getRequestId();
+//		    	logger.info("Bundle Request :"+this.bundleRequest.getRequestId());
 			String filename = "";
 			int l;
 			byte[] buf = new byte[10000];
@@ -242,22 +232,26 @@ public class DefaultDataPackager implements DataPackager {
 				bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 				bundleInfo.append(this.bundlelogfile);
 				filename = "/PackagingErrors.txt";
-				logger.info("This bundle request is not completely successful. ");
+				bundlerequestStatus += ": partial";
+//				logger.info(bundlerequestStatus + "This bundle request is not completely successful. ");
 			}
 
 			if (bundlelogError.length() != 0) {
 				bundleInfo.append(
 						"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
 				filename = "/PackagingErrors.txt";
-				logger.info("There are errors getting data in this bundle request. ");
+				bundlerequestStatus += ": errors";
+//				logger.info(bundlerequestStatus + "There are errors getting data in this bundle request. ");
 			}
 
 			if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
 				bundleInfo.append("\n All requested files are successfully added to this bundle.");
 				filename = "/PackagingSuccessful.txt";
-				logger.info("This bundle request is successful.");
+				bundlerequestStatus += ": complete";
+//				logger.info(bundlerequestStatus +" This bundle request is successful.");
 			}
 
+			logger.info(bundlerequestStatus);
 			nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
 			zout.putNextEntry(new ZipEntry(filename));
 			while ((l = nStream.read(buf)) != -1) {

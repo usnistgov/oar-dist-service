@@ -421,6 +421,7 @@ public class DatasetAccessController {
                              @ApiIgnore HttpServletResponse response)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
+	
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	filepath = filepath.substring("/ds/".length() + dsid.length());
 	if (filepath.startsWith("/"))
@@ -571,7 +572,6 @@ public class DatasetAccessController {
     {
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
-
 	String ver = null;
 	if (filepath.startsWith("_v/")) {
 	    filepath = filepath.substring(3);
@@ -615,9 +615,11 @@ public class DatasetAccessController {
 	    if (version != null)
 		msg += " (version " + version + ")";
 	    logger.info(msg);
+	  
 	}
 	FileDescription fi = downl.getDataFileInfo(dsid, filepath, version);
-
+	logger.info("HeadRequest:"+ dsid + "/" + filepath+","+" (version " + version + "),"+Long.toString(fi.contentLength)); 
+	
 	/*
 	 * Need encodeDigest implementation that converts hex to base64
 	 *
@@ -628,6 +630,7 @@ public class DatasetAccessController {
 	response.setHeader("Content-Type", fi.contentType);
 	response.setHeader("Content-Disposition",
 		"filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+	
     }
 
     static Pattern baddsid = Pattern.compile("[\\s]");

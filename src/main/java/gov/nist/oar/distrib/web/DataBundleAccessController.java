@@ -89,7 +89,7 @@ public class DataBundleAccessController {
 	    dataPackager.getData(zout);
 	    response.flushBuffer();
 	    zout.close();
-	    logger.info("Data bundled in zip delivered");
+	    logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
 
 	} catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");

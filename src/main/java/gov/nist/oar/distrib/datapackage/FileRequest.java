@@ -14,8 +14,6 @@ package gov.nist.oar.distrib.datapackage;
 
 import javax.validation.constraints.NotNull;
 
-import org.hibernate.validator.constraints.NotBlank;
-
 /**
  * a container for holding a request for a file to be part of a data package (or bundle).  A
  * request is composed of a URL, where the file can be downloaded from, and a file path, the 
