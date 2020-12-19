@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: default,aws
+    active: local
   cloud:
     config:
       uri: http://localhost:8087
@@ -38,5 +38,5 @@ server:
      
 logging:
   file: distservice.log
-  path : /var/log/dist-service
+  path : /Users/dsn1/NIST/2020/10-oct/oar-dist-service/logs/19-dec
   exception-conversion-word: '%wEx'

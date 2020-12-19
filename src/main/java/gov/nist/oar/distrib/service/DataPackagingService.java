@@ -13,19 +13,13 @@
 package gov.nist.oar.distrib.service;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.ZipOutputStream;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.web.InvalidInputException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.datapackage.DataPackager;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * Service interface for creating arbitrary bundles of data files from the repository.

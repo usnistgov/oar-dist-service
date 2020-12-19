@@ -11,44 +11,41 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.bags.preservation.BagUtils;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.DistributionException;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URL;
 import java.net.MalformedURLException;
-import java.util.List;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.servlet.HandlerMapping;
-
-import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
 
-import io.swagger.annotations.ApiOperation;
+import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.FileDescription;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.PreservationBagService;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import springfox.documentation.annotations.ApiIgnore;
 
 /**
@@ -117,6 +114,7 @@ public class DatasetAccessController {
     public List<FileDescription> describeAIPs(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
+	String fileInfo = "List descriptions of available AIP files: ";
 	checkDatasetID(dsid);
 
 	List<String> bags = pres.listBags(dsid);
@@ -127,10 +125,12 @@ public class DatasetAccessController {
 		aip = pres.getInfo(bag);
 		addDownloadURL(aip, bag);
 		info.add(aip);
+		fileInfo += aip.name + ","+ aip.contentLength +"\n";
 	    } catch (FileNotFoundException ex) {
 		logger.error("Unable to get file information for bag, " + bag + " (skipping...)");
 	    }
 	}
+	logger.info(fileInfo);
 	return info;
     }
 
@@ -155,6 +155,7 @@ public class DatasetAccessController {
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
+	logger.info("List Versions:"+ dsid);
 	checkDatasetID(dsid);
 	return pres.listVersions(dsid);
     }
@@ -188,6 +189,7 @@ public class DatasetAccessController {
                                                         @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
     {
+	String versionDescription = " Describe versions:";
 	checkDatasetID(dsid);
 
 	if (ver.equals("latest")) {
@@ -210,6 +212,7 @@ public class DatasetAccessController {
 		    continue;
 		addDownloadURL(aip, bag);
 		info.add(aip);
+		versionDescription += aip.name+","+aip.contentType+"\n";
 	    } catch (FileNotFoundException ex) {
 		logger.error("Unable to get file information for bag, " + bag + " (skipping...)");
 	    }
@@ -217,6 +220,7 @@ public class DatasetAccessController {
 	if (info.size() == 0)
 	    throw ResourceNotFoundException.forID(dsid, ver);
 
+	logger.info(versionDescription);
 	return info;
     }
 
@@ -257,8 +261,8 @@ public class DatasetAccessController {
 		ver = versions.get(versions.size() - 1);
 	    }
 	}
-
 	String headbag = pres.getHeadBagName(dsid, ver);
+	logger.info("Describe/version head bag"+ headbag);
 	try {
 	    return pres.getInfo(headbag);
 	} catch (FileNotFoundException ex) {
@@ -289,6 +293,7 @@ public class DatasetAccessController {
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
+	logger.info("Describe head bag"+ dsid);
 	return describeHeadAIPForVersion(dsid, null);
     }
 
@@ -498,11 +503,13 @@ public class DatasetAccessController {
 		    out.write(buf, 0, len);
 		}
 		response.flushBuffer();
-		logger.info("Data File delivered: " + filepath);
+		logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+Long.toString(sh.getInfo().contentLength));
 	    } catch (org.apache.catalina.connector.ClientAbortException ex) {
-		logger.info("Client cancelled the download");
+		//logger.info("Client cancelled the download");
+		logger.info("Data File client canceled: " + filepath+","+Long.toString(sh.getInfo().contentLength));
 		// response.flushBuffer();
 	    } catch (IOException ex) {
+		logger.info("Data File IOException: " + filepath+","+Long.toString(sh.getInfo().contentLength));
 		logger.debug("IOException type: " + ex.getClass().getName());
 
 		// "Connection reset by peer" gets thrown if the user cancels

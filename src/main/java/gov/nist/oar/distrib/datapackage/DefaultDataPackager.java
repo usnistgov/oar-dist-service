@@ -57,7 +57,6 @@ public class DefaultDataPackager implements DataPackager {
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 	private long totalRequestedPackageSize = -1;
 	private int requestValidity = 0;	
-	private String logFile = "";	
 	private String writeLog = "";
 	
 	public DefaultDataPackager() {
@@ -72,13 +71,12 @@ public class DefaultDataPackager implements DataPackager {
 	 * @param numOfFiles  total number of files allowed to download
 	 */
 	public DefaultDataPackager(BundleRequest inputjson, long maxFileSize, int numOfFiles, String domains,
-			int allowedRedirects, String logPath) {
+			int allowedRedirects) {
 		this.bundleRequest = inputjson;
 		this.mxFileSize = maxFileSize;
 		this.mxFilesCount = numOfFiles;
 		this.domains = domains;
 		this.allowedRedirects = allowedRedirects;
-		this.logFile = logPath;
 	}
 
 	/***
@@ -102,7 +100,27 @@ public class DefaultDataPackager implements DataPackager {
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
-			writeLog +=filepath+","+jobject.getFileSize()+","+downloadurl+",";
+			/**
+			 * This section is added to improve logs for each dowload request through bundles.
+			 */
+			String recordid ="", filedir ="";
+			if(filepath.contains("/") && filepath.contains("ark")) {
+			   int in = filepath.indexOf('/', 1 + filepath.indexOf('/', 1 + filepath.indexOf('/')));
+			   
+			    recordid = filepath.substring(0, in);
+			    filedir = filepath.substring(in+1);
+			}
+			else if(filepath.contains("/")) {
+			    int in = filepath.indexOf('/');
+			   
+			    recordid = filepath.substring(0, in);
+			    filedir = filepath.substring(in+1);
+			}
+			writeLog +=recordid+","+filepath+","+jobject.getFileSize()+","+downloadurl+",";
+			/*
+			 *End of part for logs
+			*/
+			
 			if (this.validateUrl(downloadurl)) {
 				URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 				if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
@@ -145,7 +163,7 @@ public class DefaultDataPackager implements DataPackager {
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
 		this.writeLogMessages(zout);
-		logger.info(writeLog);
+		logger.info("Bundle Request Details:"+ writeLog);
 //		writeFile("fileDownloadStatus.csv",writeLog);
 
 	}
@@ -221,7 +239,7 @@ public class DefaultDataPackager implements DataPackager {
 	private void writeLogMessages(ZipOutputStream zout) throws IOException {
 		InputStream nStream = null;
 		try {
-		    	String bundlerequestStatus = "Bundle Request "+ this.bundleRequest.getRequestId();
+		    	String bundlerequestStatus = "Bundle Request Summary : "+ this.bundleRequest.getRequestId();
 //		    	logger.info("Bundle Request :"+this.bundleRequest.getRequestId());
 			String filename = "";
 			int l;
@@ -479,23 +497,5 @@ public class DefaultDataPackager implements DataPackager {
         }
     }
 
-//    /**
-//	 * 
-//	 * @param fileName
-//	 * @param filecontent
-//	 */
-//	public void writeFile(String fileName, String filecontent) {
-//	    try {
-//		fileName = logFile+"/"+fileName;
-//		File loggingFile = new File(fileName);
-//		loggingFile.createNewFile();
-//		FileOutputStream outputStream = new FileOutputStream(loggingFile, true);
-//		byte[] strToBytes = filecontent.getBytes();
-//		outputStream.write(strToBytes);
-//		outputStream.close();
-//	    } catch(IOException e) {
-//		logger.error("Error Writing Logs File. "+e.getMessage());
-//	    }
-//	}
 
 }

@@ -81,6 +81,7 @@ public class DataBundleAccessController {
 	    @ApiIgnore Errors errors) throws DistributionException {
 	ZipOutputStream zout = null;
 	try {
+	    logger.info("Data bundled in zip requested."+bundleRequest.getBundleName());
 	    DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
 	    dataPackager.validateBundleRequest();
 	    zout = new ZipOutputStream(response.getOutputStream());
@@ -89,7 +90,9 @@ public class DataBundleAccessController {
 	    dataPackager.getData(zout);
 	    response.flushBuffer();
 	    zout.close();
-	    logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
+	    
+	    logger.info("Data bundled in zip delivered."+ bundleRequest.getBundleName() +","+bundleRequest.getBundleSize());
+	    //logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
 
 	} catch (org.apache.catalina.connector.ClientAbortException ex) {
 	    logger.info("Client cancelled the download");

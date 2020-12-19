@@ -13,22 +13,16 @@
 package gov.nist.oar.distrib.service;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.web.InvalidInputException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
-import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * This class implements the functionalities defined in DataPackagingService.
@@ -70,7 +64,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     @Override
     public DefaultDataPackager getDataPackager(BundleRequest br)
 	    throws DistributionException {
-	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects, logFile);
+	return new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
     }
 
     /*
@@ -79,7 +73,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public void validateRequest(BundleRequest br) throws DistributionException, IOException, InputLimitException {
-	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects, logFile);
+	DefaultDataPackager dp = new DefaultDataPackager(br, maxFileSize, numOfFiles, domains, allowedRedirects);
 	dp.validateBundleRequest();
     }
 
@@ -90,7 +84,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
         throws DistributionException, InvalidInputException
     {
-	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects, logFile);
+	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects);
 	return dwnldPlanner.getBundleDownloadPlan();
     }
 

@@ -11,8 +11,6 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import java.util.UUID;
-
 /**
  * a container for holding a request for set of files to be packaged up into a bundle (or bundles).
  * A request is composed of a list of file requests (as {@link FileRequest} objects) and an optional
