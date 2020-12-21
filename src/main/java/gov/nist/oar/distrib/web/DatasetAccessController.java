@@ -474,7 +474,7 @@ public class DatasetAccessController {
 	checkFilePath(filepath);
 
 	if (logger.isInfoEnabled()) {
-	    String msg = "Download requested for " + dsid + "/" + filepath;
+	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
 	    logger.info(msg);
