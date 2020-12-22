@@ -173,10 +173,10 @@ public class DownloadBundlePlanner {
 	    int fileList = 0 ;
 	    if(inputfileList != null ) fileList = inputfileList.length;
 		
-	    logger.info("BundlePlan Summary Request Id:"+requestId+", Status :"+this.status+", Total Size:"+totalRequestedFileSize+" , Bundles:"+ bundleCount
-		    +", Files:"+fileList+ ", Number of files not included:"+this.notIncludedFiles.size());
+	    logger.info("BundlePlan Summary Request Id:"+requestId+",Status :"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
+		    +",Files:"+fileList+ ",Number of files not included:"+this.notIncludedFiles.size());
 
-	     printLog = "BundlePlan: ";
+	    printLog = "BundlePlan: ";
 	    for(int i=0; i< this.filesLogs.size(); i++) {		
 		//logger.info(filesLogs.get(i).toString());
 		FileRequestLogs fileLog = filesLogs.get(i);
