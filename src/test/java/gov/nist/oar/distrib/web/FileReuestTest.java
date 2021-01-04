@@ -39,7 +39,9 @@ public class FileReuestTest {
 
     @Test
     public void testJson() throws JsonProcessingException, JSONException {
-	String testJson = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String testJson = "{\"filePath\":\"/1894/license.pdf\","
+		+ "\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\","
+		+ "\"fileSize\":0}";
 	FileRequest fpathUrl = new FileRequest("/1894/license.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	String json = new ObjectMapper().writeValueAsString(fpathUrl);

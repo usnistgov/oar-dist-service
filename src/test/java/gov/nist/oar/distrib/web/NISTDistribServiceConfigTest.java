@@ -36,7 +36,8 @@ import static org.junit.Assert.*;
         "distrib.packaging.maxpackagesize = 100000",
         "distrib.packaging.maxfilecount = 2",
         "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
-        "distrib.baseurl=http://localhost/od/ds"
+        "distrib.baseurl=http://localhost/od/ds",
+        "logging.path=${basedir}/logs"
 })
 public class NISTDistribServiceConfigTest {
 
