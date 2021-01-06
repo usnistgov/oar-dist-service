@@ -38,5 +38,5 @@ server:
      
 logging:
   file: distservice.log
-  path : /Users/dsn1/NIST/2020/10-oct/oar-dist-service/logs/19-dec
+  path : /var/log/dist-service
   exception-conversion-word: '%wEx'
