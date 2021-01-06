@@ -477,7 +477,7 @@ public class DatasetAccessController {
 	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
-	    //logger.info(msg);
+	    logger.info(msg);
 //	}
 	
 	StreamHandle sh = null;
