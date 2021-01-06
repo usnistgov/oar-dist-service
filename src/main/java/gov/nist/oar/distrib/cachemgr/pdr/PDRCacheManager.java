@@ -249,8 +249,13 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         public void setCycling(long dutycyclemsec, long graceperiodmsec, long startoffset) {
             if (dutycyclemsec >= 0)
                 dutycycle = dutycyclemsec;
-            if (graceperiodmsec >= 0)
+            if (graceperiodmsec >= 0) {
                 grace = graceperiodmsec;
+                try {
+                    BasicCache cache = (BasicCache) theCache;
+                    ((JDBCStorageInventoryDB) cache.getInventoryDB()).setCheckGracePeriod(graceperiodmsec);
+                } catch (ClassCastException ex) { /* ignore grace period parameter: not supported */ }
+            }
             initstart(startoffset);
         }
 

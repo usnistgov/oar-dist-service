@@ -59,7 +59,9 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     final String arknaan;
     final Pattern ARK_PAT;
 
-    HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, BagStorage store, Restorer restorer, String naan) {
+    public HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, BagStorage store,
+                               Restorer restorer, String naan)
+    {
         super(cache, restorer);
         db = hbdb;
         ltstore = store;

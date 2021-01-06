@@ -262,7 +262,7 @@ public abstract class BasicCache extends Cache {
      * @throws InventoryException  if a problem occurs while registering the volume with 
      *                  the inventory database.
      */
-    public void addCacheVolume(CacheVolume vol, int capacity, JSONObject metadata, boolean updmd)
+    public void addCacheVolume(CacheVolume vol, long capacity, JSONObject metadata, boolean updmd)
         throws CacheManagementException
     {
         if (metadata == null)

@@ -54,7 +54,8 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
      */
     public BySizeSelectionStrategy(long szlim, double normsz) {
         super(szlim, "deletion_s");
-        norm = normsz;
+        if (normsz > 0)
+            norm = normsz;
     }
 
     /**
@@ -67,7 +68,8 @@ public class BySizeSelectionStrategy extends SizeLimitedSelectionStrategy {
      */
     public BySizeSelectionStrategy(long szlim, long needed, double normsz) {
         super(szlim, "deletion_s", needed);
-        norm = normsz;
+        if (normsz > 0)
+            norm = normsz;
     }
 
     /**

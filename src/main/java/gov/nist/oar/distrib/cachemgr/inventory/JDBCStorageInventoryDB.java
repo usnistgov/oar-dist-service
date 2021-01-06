@@ -111,7 +111,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     private HashMap<String, Integer> _volids = null;
     private HashMap<String, Integer> _algids = null;
     protected HashMap<String, String> purposes = new HashMap<String, String>(7);
-    private long checkGracePeriod = 60 * 60 * 1000;   // 1 hour;  TODO: make configurable
+    private long checkGracePeriod = 60 * 60 * 1000;   // 1 hour;
 
     protected String dplanselect = defaultDeletionPlanSelect;
 
@@ -149,6 +149,18 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         this(dburl);
         this.dplanselect = dplanselect;
     }
+
+    /**
+     * return the currently set the object grace period, the time since an object's last integrity check 
+     * before it becomes necessary to be checked again.
+     */
+    public long getCheckGracePeriod() { return checkGracePeriod; }
+
+    /**
+     * set the object grace period, the time (in msec) since an object's last integrity check 
+     * before it becomes necessary to be checked again.  
+     */
+    public void setCheckGracePeriod(long gracemsec) { checkGracePeriod = gracemsec; }
 
     protected void connect() throws SQLException {
         if (_conn != null) disconnect();

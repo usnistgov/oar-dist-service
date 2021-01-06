@@ -131,7 +131,7 @@ public class ConfigurableCache extends BasicCache {
      * @throws InventoryException  if a problem occurs while registering the volume with 
      *                  the inventory database.
      */
-    public void addCacheVolume(CacheVolume vol, int capacity, JSONObject metadata, VolumeConfig config,
+    public void addCacheVolume(CacheVolume vol, long capacity, JSONObject metadata, VolumeConfig config,
                                boolean updmd)
         throws CacheManagementException
     {
