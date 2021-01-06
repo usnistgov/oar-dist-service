@@ -164,16 +164,18 @@ public class DownloadBundlePlanner {
 	
 	
 	/**
-	 * 
+	 * This method combines all the details of current bundle plan request
+	 * ** Note to keep the format exactly same for the scripts to run and scrape the logs.
+	 * ** No specing after commas. Keep semicolons
 	 */
 	private void printLogsSummary() {
 	    try {
 
-	    String printLog = "BundlePlan : ";
+	    String printLog = "";
 	    int fileList = 0 ;
 	    if(inputfileList != null ) fileList = inputfileList.length;
 		
-	    logger.info("BundlePlan Summary Request Id:"+requestId+",Status :"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
+	    logger.info("BundlePlan Summary: RequestId:"+requestId+",Status :"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
 		    +",Files:"+fileList+ ",Number of files not included:"+this.notIncludedFiles.size());
 
 	    printLog = "BundlePlan: ";
