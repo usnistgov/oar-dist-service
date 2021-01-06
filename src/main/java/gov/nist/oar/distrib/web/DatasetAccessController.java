@@ -473,12 +473,13 @@ public class DatasetAccessController {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
-	if (logger.isInfoEnabled()) {
+//	if (logger.isInfoEnabled()) {
 	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
-	    logger.info(msg);
-	}
+	    //logger.info(msg);
+//	}
+	
 	StreamHandle sh = null;
 	try {
 	    sh = downl.getDataFile(dsid, filepath, version);
@@ -502,8 +503,9 @@ public class DatasetAccessController {
 		while ((len = sh.dataStream.read(buf)) != -1) {
 		    out.write(buf, 0, len);
 		}
-		response.flushBuffer();
 		logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+Long.toString(sh.getInfo().contentLength));
+		response.flushBuffer();
+//		logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+Long.toString(sh.getInfo().contentLength));
 	    } catch (org.apache.catalina.connector.ClientAbortException ex) {
 		//logger.info("Client cancelled the download");
 		logger.info("Data File client canceled: " + filepath+","+Long.toString(sh.getInfo().contentLength));
