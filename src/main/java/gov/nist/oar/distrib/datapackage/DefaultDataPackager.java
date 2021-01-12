@@ -139,6 +139,7 @@ public class DefaultDataPackager implements DataPackager {
 						fstream.close();
 						fileCount++;
 						writeLog += "success \n";
+						
 					} catch (IOException ie) {
 					        writeLog += "failed \n";
 						bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl
