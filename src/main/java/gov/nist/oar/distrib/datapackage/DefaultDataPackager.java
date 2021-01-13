@@ -148,7 +148,7 @@ public class DefaultDataPackager implements DataPackager {
 								+ ie.getMessage());
 						zout.closeEntry();
 					} finally {
-					        this.writeLogMessages(zout);
+					       
 						logger.info("Bundle Request Details:"+ writeLog);
 						if (fstream != null)
 							fstream.close();
@@ -166,7 +166,7 @@ public class DefaultDataPackager implements DataPackager {
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
 
-
+		 this.writeLogMessages(zout);
 	}
 
 	/**
