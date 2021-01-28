@@ -70,6 +70,11 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     }
 
     /**
+     * return the NAAN this class will use to recognize new-style MIDAS-assigned EDI identifiers
+     */
+    public String getARKNAAN() { return arknaan; }
+
+    /**
      * create a name for a data object within a particular {@link gov.nist.oar.distrib.cachemgr.CacheVolume}.  
      */
     protected String determineCacheObjectName(String volname, String id) {

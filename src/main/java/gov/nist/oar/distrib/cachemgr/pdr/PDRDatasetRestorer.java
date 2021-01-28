@@ -141,6 +141,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     }
 
     /**
+     * return the size-limit for "small files" in bytes.  Files restored by this Restorer that are smaller
+     * than this limit will preferentially be cached into volumes marked for small files.
+     */
+    public long getSmallSizeLimit() { return smszlim; }
+
+    /**
      * return true if an object does <i>not</i> exist in the long term storage system.  Returning 
      * true indicates that the object <i>may</i> exist, but it is not guaranteed.  These semantics
      * are intended to allow the implementation to be fast and without large overhead. 

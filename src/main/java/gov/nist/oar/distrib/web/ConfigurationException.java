@@ -18,7 +18,7 @@ package gov.nist.oar.distrib.web;
  */
 public class ConfigurationException extends Exception {
 
-    protected String parameter = null;
+    protected String parameter = "";
     protected String reason = null;
 
     /**
@@ -39,6 +39,22 @@ public class ConfigurationException extends Exception {
      */
     public ConfigurationException(String param, String reason) {
         this(param, reason, null);
+    }
+
+    /**
+     * Create an exception about a specific parameter.  The parameter will be combined with 
+     * the given reason.
+     * 
+     * @param param   the configuration parameter name whose value (or lack thereof)
+     *                has resulted in an error.
+     * @param reason  an explanation of what is wrong with the parameter.  This will be combined
+     *                with the parameter name to created the exception message (returned via
+     *                {@code getMessage()}.
+     * @param cause   An underlying exception that was thrown as a result of the parameter value.
+     */
+    public ConfigurationException(String msg, Throwable cause) {
+        super(msg, cause);
+        reason = msg;
     }
 
     /**
