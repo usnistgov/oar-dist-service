@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
@@ -54,7 +55,7 @@ public class CacheVolumeConfigTest {
         voldir = new File(tempf.getRoot(), "volume");
         voldir.mkdir();
         
-        cfg = cmcfg.new CacheVolumeConfig();
+        cfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         cfg.setCapacity(2000L);
         cfg.setLocation("file://"+voldir.toString());
         cfg.setStatus("update");
@@ -132,28 +133,30 @@ public class CacheVolumeConfigTest {
     }
 
     @Test
-    public void testCreateCacheVolume() throws ConfigurationException, FileNotFoundException, MalformedURLException {
-        CacheVolume cv = cfg.createCacheVolume();
+    public void testCreateCacheVolume()
+        throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
+    {
+        CacheVolume cv = cfg.createCacheVolume(cmcfg);
         assertTrue(cv instanceof FilesystemCacheVolume);
         assertEquals(voldir, ((FilesystemCacheVolume) cv).getRootDir());
 
         try {
             cfg.setLocation("s3://nist-goober/gurn");
-            cfg.createCacheVolume();
+            cfg.createCacheVolume(cmcfg);
             fail("Failed to raise exception for unconfigured S3 client");
         }
         catch (ConfigurationException ex) { /* success */ }
 
         try {
             cfg.setLocation("next://nist-goober/gurn");
-            cfg.createCacheVolume();
+            cfg.createCacheVolume(cmcfg);
             fail("Failed to raise exception for unrecognized volume type");
         }
         catch (ConfigurationException ex) { /* success */ }
 
         try {
             cfg.setLocation("/oar/data/nist-goober/gurn");
-            cfg.createCacheVolume();
+            cfg.createCacheVolume(cmcfg);
             fail("Failed to raise exception for missing location scheme");
         }
         catch (ConfigurationException ex) { /* success */ }

@@ -67,7 +67,7 @@ public class NISTCacheManagerConfigTest {
         List<NISTCacheManagerConfig.CacheVolumeConfig> vols = 
             new ArrayList<NISTCacheManagerConfig.CacheVolumeConfig>();
         
-        NISTCacheManagerConfig.CacheVolumeConfig vcfg = cfg.new CacheVolumeConfig();
+        NISTCacheManagerConfig.CacheVolumeConfig vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         vcfg.setCapacity(2000L);
         File vdir = new File(rootdir,"vols/king");
         vdir.mkdirs();
@@ -85,7 +85,7 @@ public class NISTCacheManagerConfigTest {
         vcfg.setDeletionStrategy(strat);
         vols.add(vcfg);
 
-        vcfg = cfg.new CacheVolumeConfig();
+        vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         vcfg.setCapacity(3000L);
         vdir = new File(rootdir,"vols/pratt");
         vdir.mkdirs();

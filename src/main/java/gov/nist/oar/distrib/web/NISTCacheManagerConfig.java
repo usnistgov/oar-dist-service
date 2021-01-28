@@ -37,6 +37,7 @@ import gov.nist.oar.distrib.BagStorage;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -46,6 +47,7 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.net.MalformedURLException;
 
 import org.slf4j.Logger;
@@ -183,7 +185,10 @@ public class NISTCacheManagerConfig {
      * </dl>
      * 
      */
-    public class CacheVolumeConfig {
+    public static class CacheVolumeConfig {
+        /** the default deletion strategy to use with a volume if one is not set by configuration */
+        public final static String DEFAULT_DELETION_STRATEGY_TYPE = "oldest";
+
         private long capacity;
         private String location;    // either "s3://..." or "file://.."
         private String status = "update";
@@ -226,49 +231,54 @@ public class NISTCacheManagerConfig {
          * of the <code>deletionStrategy</code> configuration.
          */
         public DeletionStrategy createDeletionStrategy() throws ConfigurationException {
-            if (! delStrat.containsKey("type"))
+            Map<String, Object> use = delStrat;
+            if (use == null) {
+                use = new HashMap<String, Object>();
+                use.put("type", DEFAULT_DELETION_STRATEGY_TYPE);
+            }
+            if (! use.containsKey("type"))
                 throw new ConfigurationException("deletionStrategy is missing required sub-property, type");
 
-            if ("oldest".equals(delStrat.get("type"))) {
+            if ("oldest".equals(use.get("type"))) {
                 int p0 = 10;
-                if (delStrat.containsKey("priority0")) {
+                if (use.containsKey("priority0")) {
                     try {
-                        p0 = ((Number) delStrat.get("priority0")).intValue();
+                        p0 = ((Number) use.get("priority0")).intValue();
                     } catch (ClassCastException ex) {
                         throw new ConfigurationException("deletionStrategy sub-property, priority0, not an " +
-                                                         "int: " + delStrat.get("priority0").toString());
+                                                         "int: " + use.get("priority0").toString());
                     }
                 }
                 return new OldSelectionStrategy(1, 1, p0);
             }
 
-            if ("biggest".equals(delStrat.get("type"))) {
+            if ("biggest".equals(use.get("type"))) {
                 double normsz = 1.0;
-                if (delStrat.containsKey("normSize")) {
+                if (use.containsKey("normSize")) {
                     try {
-                        normsz = ((Number) delStrat.get("normSize")).doubleValue();
+                        normsz = ((Number) use.get("normSize")).doubleValue();
                     } catch (ClassCastException ex) {
                         throw new ConfigurationException("deletionStrategy sub-property, normSize, not a " +
-                                                         "double: " + delStrat.get("normSize").toString());
+                                                         "double: " + use.get("normSize").toString());
                     }
                 }
                 return new BySizeSelectionStrategy(1, normsz);
             }
 
-            if ("bigoldest".equals(delStrat.get("type"))) {
+            if ("bigoldest".equals(use.get("type"))) {
                 double[] param = {
                     2.5 * 3600000,   // ageTurnOver: 2.5 hours
                     0.5 * 1.0e9      // sizeTurnOver: 0.5 GB
                 };
                 String[] props = { "ageTurnOver", "sizeTurnOver" };
                 for (int i=0; i < param.length; i++) {
-                    if (delStrat.containsKey(props[i])) {
+                    if (use.containsKey(props[i])) {
                         try {
-                            param[i] = ((Number) delStrat.get(props[i])).doubleValue();
+                            param[i] = ((Number) use.get(props[i])).doubleValue();
                         } catch (ClassCastException ex) {
                             throw new ConfigurationException("deletionStrategy sub-property, " + props[i] +
                                                              ", not a double: " +
-                                                             delStrat.get(props[i]).toString());
+                                                             use.get(props[i]).toString());
                         }
                     }
                 }
@@ -276,20 +286,20 @@ public class NISTCacheManagerConfig {
             }
 
             throw new ConfigurationException("Unrecognized deletionStrategy type: "+
-                                             delStrat.get("type").toString());
+                                             use.get("type").toString());
         }
 
         /**
          * create a CacheVolume as prescribed by this configuration
          */
-        public CacheVolume createCacheVolume()
-            throws ConfigurationException, FileNotFoundException, MalformedURLException
+        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg)
+            throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
         {
             if (location == null || location.length() == 0)
                 throw new ConfigurationException("Missing cache volume config parameter: "+location);
             
             // parse the location URL
-            Pattern typescheme = Pattern.compile("^(\\w+):/");
+            Pattern typescheme = Pattern.compile("^(\\w+)://");
             Matcher m = typescheme.matcher(location);
             if (! m.find())
                 throw new ConfigurationException("Bad cache volume location URL: "+location);
@@ -298,7 +308,7 @@ public class NISTCacheManagerConfig {
                     throw new ConfigurationException("S3 client instance not provided for volume, "+location);
 
                 // S3 bucket; note: location starts with "s3://"
-                Path bucketfolder = Paths.get(location.substring(m.end()+1));
+                Path bucketfolder = Paths.get(location.substring(m.end()));
                 return new AWSS3CacheVolume(bucketfolder.subpath(0,1).toString(),
                                             bucketfolder.subpath(1, bucketfolder.getNameCount()).toString(), 
                                             s3client, getRedirectBase());
@@ -308,8 +318,18 @@ public class NISTCacheManagerConfig {
 
                 // directory on local filesystem; location will start with "file:///" when path is absolute
                 Path cachedir = Paths.get(location.substring(m.end()));
-                if (! cachedir.isAbsolute())
-                    cachedir = Paths.get(admindir).resolve(cachedir);
+                if (! cachedir.isAbsolute()) {
+                    cachedir = Paths.get(mgrcfg.getAdmindir()).resolve(cachedir);
+                    if (! Files.exists(cachedir)) {
+                        try {
+                            Files.createDirectories(cachedir);
+                        } catch (IOException ex) {
+                            throw new CacheManagementException("Unable to initialize new FilesystemCacheVolume: " +
+                                                               "failed to create volume root directory: "+
+                                                               ex.getMessage(), ex);
+                        }
+                    }
+                }
                 String name = getName();
                 if (name == null)
                     name = location.substring(m.end());
@@ -329,6 +349,8 @@ public class NISTCacheManagerConfig {
         File rootdir = new File(admindir);
         if (! rootdir.exists() || ! rootdir.isDirectory())
             throw new ConfigurationException(rootdir+": Not an existing directory");
+        if (volumes == null || volumes.size() == 0)
+            throw new ConfigurationException("No cache volumes are configured!");
 
         // set up the inventory database
         File dbfile = new File(rootdir, "data.sqlite");
@@ -359,7 +381,7 @@ public class NISTCacheManagerConfig {
 
             vc = (new VolumeConfig(cfg.getStatusCode())).withDeletionStrategy(cfg.createDeletionStrategy())
                                                         .withRoles(roles);
-            cache.addCacheVolume(cfg.createCacheVolume(), cfg.getCapacity(), null, vc, false);
+            cache.addCacheVolume(cfg.createCacheVolume(this), cfg.getCapacity(), null, vc, false);
         }
                 
         return cache;

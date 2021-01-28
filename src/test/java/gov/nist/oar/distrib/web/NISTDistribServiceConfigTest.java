@@ -20,12 +20,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.util.FileSystemUtils;
 
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.io.File;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -36,12 +42,59 @@ import static org.junit.Assert.*;
         "distrib.packaging.maxpackagesize = 100000",
         "distrib.packaging.maxfilecount = 2",
         "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
-        "distrib.baseurl=http://localhost/od/ds"
+        "distrib.baseurl=http://localhost/od/ds",
+        "distrib.cachemgr.admindir=${java.io.tmpdir}/testcmgr",
+        "distrib.cachemgr.headbagCacheSize=40000000",
+        "distrib.cachemgr.volumes[0].location=file://vols/king",
+        "distrib.cachemgr.volumes[0].name=king",
+        "distrib.cachemgr.volumes[0].capacity=30000000",
+        "distrib.cachemgr.volumes[1].location=file://vols/pratt",
+        "distrib.cachemgr.volumes[1].name=pratt",
+        "distrib.cachemgr.volumes[1].capacity=36000000",
+        "distrib.cachemgr.volumes[0].roles[0]=small",
+        "distrib.cachemgr.volumes[0].roles[1]=fast",
+        "distrib.cachemgr.volumes[1].roles[0]=large",
+        "distrib.cachemgr.volumes[1].roles[1]=general"
 })
 public class NISTDistribServiceConfigTest {
 
+    static File testdir = null;
+
     @Autowired
     NISTDistribServiceConfig config;
+
+    @Autowired
+    CacheManagerProvider provider;
+
+    public static void cleanTestDir(File testdir) throws IOException {
+        /*
+        */
+        if (testdir.exists()) 
+            FileSystemUtils.deleteRecursively(testdir);
+        testdir.mkdirs();
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws IOException {
+        String tmpdir = System.getProperty("java.io.tmpdir");
+        if (tmpdir == null)
+            throw new RuntimeException("java.io.tmpdir property not set");
+        File tmp = new File(tmpdir);
+        if (! tmp.exists())
+            tmp.mkdir();
+        testdir = new File(tmp, "testcmgr");
+        cleanTestDir(testdir);
+    }
+
+    @AfterClass
+    public static void tearDownClass() throws IOException {
+        testdir.delete();
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        cleanTestDir(testdir);
+    }
 
     @Test
     public void testInjection() {
@@ -50,5 +103,23 @@ public class NISTDistribServiceConfigTest {
         assertNotNull(config.mimemap);
         assertNotNull(config.lts);
         assertTrue(config.lts instanceof FilesystemLongTermStorage);
+        assertTrue(provider.canCreateManager());
+
+        File tst = new File(testdir, "data.sqlite");
+        assertTrue(tst.isFile());
+        File cvroot = new File(testdir, "vols");
+        assertTrue(cvroot.isDirectory());
+        tst = new File(cvroot, "king");
+        assertTrue(tst.isDirectory());
+        tst = new File(cvroot, "pratt");
+        assertTrue(tst.isDirectory());
+        tst = new File(testdir, "headbags");
+        assertTrue(tst.isDirectory());
+        tst = new File(testdir, "headbags/inventory.sqlite");
+        assertTrue(tst.isFile());
+        tst = new File(testdir, "headbags/cv0");
+        assertTrue(tst.isDirectory());
+        tst = new File(testdir, "headbags/cv1");
+        assertTrue(tst.isDirectory());
     }
 }

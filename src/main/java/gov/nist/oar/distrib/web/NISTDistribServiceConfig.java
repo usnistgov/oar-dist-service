@@ -20,13 +20,16 @@ import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.FileNotFoundException;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -132,6 +135,14 @@ public class NISTDistribServiceConfig {
     String region;
 
     /**
+     * a local directory where the cache manager can store its databases and head bag cache
+     */
+    @Value("${distrib.cachemgr.admindir:@null}")
+    String cacheadmin;
+
+    
+
+    /**
      * the maximum allowed size of a data package.  A package will only exceed this size if it contains
      * a single file (that would not fit otherwise).
      */
@@ -158,8 +169,10 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired BagStorage               lts;    // set via getter below
-    @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
+    @Autowired AmazonS3             s3client;    // set via getter below
+    @Autowired BagStorage                lts;    // set via getter below
+    @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
+    @Autowired CacheManagerProvider cmgrprov;    // set via getter below
 
     /**
      * the storage service to use to access the bags
@@ -168,7 +181,7 @@ public class NISTDistribServiceConfig {
     public BagStorage getLongTermStorage() throws ConfigurationException {
         try {
             if (mode.equals("aws") || mode.equals("remote")) 
-                return new AWSS3LongTermStorage(bagstore, getAmazonS3());
+                return new AWSS3LongTermStorage(bagstore, s3client);
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
             else
@@ -184,6 +197,7 @@ public class NISTDistribServiceConfig {
     /**
      * the client for access S3 storage
      */
+    @Bean
     public AmazonS3 getAmazonS3() throws ConfigurationException {
         logger.info("Creating S3 client");
 
@@ -236,6 +250,24 @@ public class NISTDistribServiceConfig {
     @Bean
     public DataPackagingService getDataPackagingService(){
         return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount, allowedRedirects);
+    }
+
+    /**
+     * create a configuration object for the cache manager
+     */
+    @Bean
+    @ConfigurationProperties("distrib.cachemgr")
+    public NISTCacheManagerConfig getCacheManagerConfig() throws ConfigurationException {
+        // this will have config properties injected into it
+        return new NISTCacheManagerConfig();
+    }
+
+    /**
+     * the configured CacheManagerProvider to use
+     */
+    @Bean
+    public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstor) {
+        return new CacheManagerProvider(config, bagstor);
     }
 
     /**
