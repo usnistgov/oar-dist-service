@@ -60,15 +60,15 @@ public class BundleDownloadPlan {
      */
     private NotIncludedFile[] notIncluded;
     /**
-     * 
+     * Size of bundles
      */
     private long size;
     /**
-     * 
+     *  No of bundles
      */
     private long bundleCount;
     /**
-     * 
+     * No of files
      */
     private long filesCount;
 
@@ -155,28 +155,49 @@ public class BundleDownloadPlan {
     public void setNotIncluded(NotIncludedFile[] notIncluded) {
 	this.notIncluded = notIncluded;
     }
-    
+    /**
+     * Set size of the bundle
+     * @param long size
+     */
     public void setSize(long size) {
     	this.size = size;
     }
-
+    /**
+     * Get Size
+     * @return long size
+     */
     public long getSize() {
     	return this.size;
     }
     
-    
+    /**
+     * Set total number of bundles
+     * @param long bCount
+     */
     public void setBundleCount(long bCount) {
     	this.bundleCount = bCount;
     }
 
+    /**
+     * Get total number of bundles
+     * @return
+     */
     public long getBundleCount() {
     	return this.bundleCount;
     }
     
+    /**
+     * Set total number of files
+     * @param long fCount
+     */
     public void setFilesCount(long fCount) {
     	this.filesCount = fCount;
     }
 
+    /**
+     * Get total  number of files
+     * @return long filescount
+     */
     public long getFilesCount() {
     	return this.filesCount;
     }
@@ -231,10 +252,18 @@ public class BundleDownloadPlan {
 	return this.notIncluded;
     }
     
+    /**
+     * Set unique request identifier
+     * @param String requestId
+     */
     public void setRequestId(String requestId) {
 	this.requestId = requestId;
     }
     
+    /**
+     * Get unique request identifier
+     * @return String requestid
+     */
     public String getRequestId() {
 	return this.requestId;
     }

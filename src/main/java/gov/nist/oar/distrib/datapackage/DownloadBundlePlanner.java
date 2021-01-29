@@ -72,7 +72,7 @@ public class DownloadBundlePlanner {
 	}
 
 	/**
-	 * 
+	 * This contructor takes number of input parameters which can be used to process request and create bundle.
 	 * @param inputjson
 	 * @param maxFileSize
 	 * @param numOfFiles
@@ -175,7 +175,7 @@ public class DownloadBundlePlanner {
 	    int fileList = 0 ;
 	    if(inputfileList != null ) fileList = inputfileList.length;
 		
-	    logger.info("BundlePlan Summary: RequestId:"+requestId+",Status :"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
+	    logger.info("BundlePlan Summary: RequestId:"+requestId+",Status:"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
 		    +",Files:"+fileList+ ",Number of files not included:"+this.notIncludedFiles.size());
 
 	    printLog = "BundlePlan: ";

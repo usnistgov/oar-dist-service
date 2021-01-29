@@ -262,7 +262,7 @@ public class DatasetAccessController {
 	    }
 	}
 	String headbag = pres.getHeadBagName(dsid, ver);
-	logger.info("Describe/version head bag"+ headbag);
+	logger.info("Describe/version head bag:"+ headbag);
 	try {
 	    return pres.getInfo(headbag);
 	} catch (FileNotFoundException ex) {
@@ -293,7 +293,7 @@ public class DatasetAccessController {
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
-	logger.info("Describe head bag"+ dsid);
+	logger.info("Describe head bag:"+ dsid);
 	return describeHeadAIPForVersion(dsid, null);
     }
 
@@ -473,12 +473,11 @@ public class DatasetAccessController {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
-//	if (logger.isInfoEnabled()) {
+
 	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
 	    logger.info(msg);
-//	}
 	
 	StreamHandle sh = null;
 	try {
