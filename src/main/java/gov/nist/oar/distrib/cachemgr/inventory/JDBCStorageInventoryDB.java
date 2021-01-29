@@ -489,7 +489,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
-        String fsql = find_sql_base + "AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        String fsql = find_sql_base + "AND d.cached=1 AND v.name='" + volname + "' AND d.name='" + objname + "';";
         List<CacheObject> objs = null;
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
