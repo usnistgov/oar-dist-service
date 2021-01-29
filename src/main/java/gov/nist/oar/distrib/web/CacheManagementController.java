@@ -127,6 +127,7 @@ public class CacheManagementController {
     {
         _checkForManager();
 	String volname=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        volname = volname.substring("/cache/volumes/".length());
         return mgr.summarizeVolume(volname).toMap();
     }
 
@@ -210,6 +211,7 @@ public class CacheManagementController {
     {
         _checkForManager();
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        filepath = filepath.substring("/cache/objects/".length()+dsid.length()+1);
         String opstat = null;
 
         Matcher opmatch = OP_PATH_FIELD.matcher(filepath);
@@ -253,6 +255,7 @@ public class CacheManagementController {
     {
         _checkForManager();
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        filepath = filepath.substring("/cache/objects/".length()+dsid.length()+1);
         String opstat = null;
 
         Matcher opmatch = OP_PATH_FIELD.matcher(filepath);
@@ -329,7 +332,14 @@ public class CacheManagementController {
 
     @ExceptionHandler(VolumeNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(VolumeNotFoundException ex, HttpServletRequest req) {
+    public ErrorInfo handleVolumeNotFoundException(VolumeNotFoundException ex, HttpServletRequest req) {
+        log.warn("Non-existent volume requested: " + req.getRequestURI() + "\n  " + ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 404, "Volume name not found");
+    }
+    
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
         log.warn("Non-existent resource requested: " + req.getRequestURI() + "\n  " + ex.getMessage());
         return new ErrorInfo(req.getRequestURI(), 404, "Resource ID not found");
     }
