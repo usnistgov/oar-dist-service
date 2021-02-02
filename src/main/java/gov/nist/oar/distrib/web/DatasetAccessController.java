@@ -473,11 +473,12 @@ public class DatasetAccessController {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
-
+	if (logger.isInfoEnabled()) {
 	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
 	    logger.info(msg);
+        }
 	
 	StreamHandle sh = null;
 	try {
