@@ -219,9 +219,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @param objsql   an SQL query that returns a list of data objects
      */
     public List<CacheObject> queryForObjects(String objsql) throws InventoryException {
+        Statement stmt = null;
         try {
             if (_conn == null) connect();
-            Statement stmt = _conn.createStatement();
+            stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(objsql);
             ArrayList<CacheObject> out = new ArrayList<CacheObject>();
             while (rs.next()) {
@@ -231,6 +232,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
         catch (SQLException ex) {
             throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
@@ -585,9 +590,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             removeObject(co.volname, co.name);
 
         // add the new object name to the database
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(add_sql);
+            stmt = _conn.prepareStatement(add_sql);
             stmt.setString(1, id);
             stmt.setString(2, objname);
             stmt.setLong(3, size);
@@ -603,6 +609,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         }
         catch (SQLException ex) {
             throw new InventoryException("Failed to register object " + id + ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
 
         return new CacheObject(objname, metadata, volname);
@@ -783,10 +793,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     private void loadAlgorithms() throws InventoryException {
         if (_algids != null) _algids = null;
         String sql = "SELECT id,name FROM algorithms";
-        
+
+        Statement stmt = null;
         try {
             if (_conn == null) connect();
-            Statement stmt = _conn.createStatement();
+            stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             _algids = new HashMap<String, Integer>();
 
@@ -797,6 +808,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             _algids = null;
             throw new InventorySearchException("Failed to load checksum algorithm info from inventory: " +
                                                ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
@@ -825,10 +840,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     private void loadVolumes() throws InventoryException {
         if (_volids != null) _volids = null;
         String sql = "SELECT id,name FROM volumes";
-        
+
+        Statement stmt = null;
         try {
             if (_conn == null) connect();
-            Statement stmt = _conn.createStatement();
+            stmt = _conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             _volids = new HashMap<String, Integer>();
 
@@ -839,6 +855,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             _volids = null;
             throw new InventorySearchException("Failed to load volume info from inventory: " +
                                                ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
@@ -943,10 +963,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         if (getAlgorithmID(algname) >= 0)
             // the name is already registered; don't add again
             return;
-        
+
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(add_alg_sql);
+            stmt = _conn.prepareStatement(add_alg_sql);
             stmt.setString(1, algname);
 
             stmt.executeUpdate();
@@ -955,6 +976,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to register new algorithm into DB ("+algname+
                                          "): "+ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
@@ -993,14 +1018,15 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             }
             jmd = metadata.toString();
         }
-        
+
+        PreparedStatement stmt = null;
         if (id < 0) {
             try {
                 // not registered yet
                 // FYI: add_vol_sql =
                 //   "INSERT INTO volumes(name,capacity,priority,status,metadata) VALUES (?,?,?,?,?)";
                 if (_conn == null) connect();
-                PreparedStatement stmt = _conn.prepareStatement(add_vol_sql);
+                stmt = _conn.prepareStatement(add_vol_sql);
                 stmt.setString(1, name);
                 stmt.setLong(2, capacity);
                 if (priority == null)
@@ -1019,6 +1045,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 throw new InventoryException("Failed to register new volume in DB ("+name+
                                              "): "+ex.getMessage(), ex);
             }
+            finally {
+                try { if (stmt != null) stmt.close(); }
+                catch (SQLException ex) { }
+            }
         }
         else {
             try {
@@ -1026,7 +1056,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 // FYI: upd_vol_sql =
                 //    "UPDATE volumes SET capacity=?, priority=?, status=?, metadata=? WHERE name=?";
                 if (_conn == null) connect();
-                PreparedStatement stmt = _conn.prepareStatement(upd_vol_sql);
+                stmt = _conn.prepareStatement(upd_vol_sql);
                 stmt.setLong(1, capacity);
                 if (priority == null)
                     stmt.setNull(2, Types.INTEGER);
@@ -1042,6 +1072,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                 throw new InventoryException("Failed to update info for registered volume ("+name+
                                              "): "+ex.getMessage(), ex);
             }
+            finally {
+                try { if (stmt != null) stmt.close(); }
+                catch (SQLException ex) { }
+            }
         }
         loadVolumes();
     }
@@ -1056,9 +1090,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws VolumeNotFoundException  if the requested name is not registered as a known volume
      */
     public JSONObject getVolumeInfo(String name) throws InventoryException {
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(get_vol_info);
+            stmt = _conn.prepareStatement(get_vol_info);
             stmt.setString(1, name);
             ResultSet rs = stmt.executeQuery();
             if (! rs.next())
@@ -1082,6 +1117,10 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         catch (SQLException ex) {
             throw new InventoryException("Failed to pull info for volume "+name+
                                          ": "+ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); }
+            catch (SQLException ex) { }
         }
     }
 
