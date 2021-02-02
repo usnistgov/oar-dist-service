@@ -12,30 +12,26 @@
  */
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.BagDescription;
-
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.TreeSet;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+
 import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.distrib.BagDescription;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.FileDescription;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StreamHandle;
 
 /**
  * A PreservationBagService implementation that leverages default AIP storage and naming conventions.  

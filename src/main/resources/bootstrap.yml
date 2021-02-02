@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: default,aws
+    active: local
   cloud:
     config:
       uri: http://localhost:8087

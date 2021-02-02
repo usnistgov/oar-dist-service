@@ -72,7 +72,7 @@ public class DownloadBundlePlannerTest {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
-	String val3 = "{\"filePath\":\"/1894/contract.pdf\",\"downloadUrl\":\"https://www.nist.gov/sites/default/files/documents/2018/12/26/letter_for_contractors_12.26.2018.pdf\"}";
+	String val3 = "{\"filePath\":\"/1894/contract.pdf\",\"downloadUrl\":\"https://webbook.nist.gov/chemistry/faq/\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
@@ -89,7 +89,7 @@ public class DownloadBundlePlannerTest {
 	assertEquals(bundlePlan.getStatus(), "warnings");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
-	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
 
     }
     
@@ -100,7 +100,7 @@ public class DownloadBundlePlannerTest {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1894/open-data.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
-	String val3 = "{\"filePath\":\"/1894/contract.pdf\",\"downloadUrl\":\"https://www.nist.gov/sites/default/files/documents/2018/12/26/letter_for_contractors_12.26.2018.pdf\"}";
+	String val3 = "{\"filePath\":\"/1894/contract.pdf\",\"downloadUrl\":\"https://webbook.nist.gov/chemistry/faq/\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
@@ -117,7 +117,7 @@ public class DownloadBundlePlannerTest {
 	BundleRequest[] test = bundlePlan.getBundleNameFilePathUrl();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "warnings");
-	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 2);
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getBundleName(), "testdownload-1.zip");
 	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
 
