@@ -175,9 +175,16 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         throws StorageVolumeException, CacheManagementException, UnsupportedOperationException
     {
         String[] parts = parseId(id);
-        JSONObject cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
-        if (cmpmd == null)
+        JSONObject cmpmd = null;
+        try {
+            cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
+        }
+        catch (ResourceNotFoundException ex) {
             throw new ObjectNotFoundException(id);
+        }
+        catch (FileNotFoundException ex) {
+            throw new ObjectNotFoundException(id);
+        }
         return cmpmd.optLong("size", -1L);
     }
 
@@ -193,9 +200,16 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         throws StorageVolumeException, CacheManagementException, UnsupportedOperationException
     {
         String[] parts = parseId(id);
-        JSONObject cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
-        if (cmpmd == null)
+        JSONObject cmpmd = null;
+        try {
+            cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
+        }
+        catch (ResourceNotFoundException ex) {
             throw new ObjectNotFoundException(id);
+        }
+        catch (FileNotFoundException ex) {
+            throw new ObjectNotFoundException(id);
+        }
         JSONObject chksum = cmpmd.optJSONObject("checksum");
         if (chksum == null)
             return null;
@@ -347,8 +361,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         int prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
 
         // pull out the NERDm resource metadata record
-        JSONObject resmd = hbcm.resolveAIPID(aipid, version);
-        if (resmd == null) {
+        JSONObject resmd = null;
+        try {
+            resmd = hbcm.resolveAIPID(aipid, version);
+        }
+        catch (ResourceNotFoundException ex) {
+            // this should have been raised by findHeadBagFor() above
             if (version != null) aipid += "#"+version;
             throw new RestorationException("Failed to retrieve resource metadata for aipid="+aipid);
         }
@@ -448,15 +466,21 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (version.length() == 0)
             version = "1";
 
-        JSONObject resmd = hbcm.resolveAIPID(aipid, version);
-        int cap = 5;
-        if (files != null)
-            cap = files.size();
-        HashSet<String> cached = new HashSet<String>(cap);
-        int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+        try {
+            JSONObject resmd = hbcm.resolveAIPID(aipid, version);
+            int cap = 5;
+            if (files != null)
+                cap = files.size();
+            HashSet<String> cached = new HashSet<String>(cap);
+            int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
 
-        cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into);
-        return cached;
+            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into);
+            return cached;
+        }
+        catch (ResourceNotFoundException ex) {
+            throw new RestorationException("Unable to pull needed metadata for bag file, " + bagfile +
+                                           ": resource not found");
+        }
     }
 
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,

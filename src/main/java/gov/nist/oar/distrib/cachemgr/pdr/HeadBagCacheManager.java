@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.List;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.text.ParseException;
 
 /**
@@ -92,12 +93,16 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
      * @throws CacheManagementException -- if an error occurs while trying to cache the source head bag
      *                                         or reading its contents
      */
-    public JSONObject resolveAIPID(String aipid, String version) throws CacheManagementException {
+    public JSONObject resolveAIPID(String aipid, String version)
+        throws CacheManagementException, ResourceNotFoundException
+    {
+        String aip = aipid;
         int p = aipid.indexOf("/");
         if (p >= 0)
             aipid = aipid.substring(0, p);
         if (aipid.length() == 0)
-            return null;
+            throw new ResourceNotFoundException(aip);
+
         try {
             String headbagname = ltstore.findHeadBagFor(aipid, version);
             cache(headbagname);
@@ -105,7 +110,7 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
             // make sure the head bag for it is in the cache and return a handle for it
             List<CacheObject> headbags = db.findObject(headbagname, VolumeStatus.VOL_FOR_GET);
             if (headbags.size() == 0)
-                return null;
+                throw new ResourceNotFoundException(aip);
             headbags.get(0).volume = theCache.getVolume(headbags.get(0).volname);
             
             if (! headbags.get(0).name.endsWith(".zip"))
@@ -116,9 +121,6 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
             return ZipBagUtils.getResourceMetadata(BagUtils.multibagVersionOf(headbags.get(0).name),
                                                    headbags.get(0).volume.getStream(headbags.get(0).name),
                                                    bagname);
-        }
-        catch (ResourceNotFoundException ex) {
-            return null;
         }
         catch (IOException ex) {
             throw new CacheManagementException("Failed to read metadata for id="+aipid+": "+ex.getMessage(),
@@ -138,7 +140,9 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
      * @param version  the desired version.  If null or empty, the latest version is retrieved.  
      * @throws OARServiceException  if something goes wrong with the interaction with resolving service.
      */
-    public JSONObject resolveDistID(String distid, String version) throws CacheManagementException {
+    public JSONObject resolveDistID(String distid, String version)
+        throws CacheManagementException, ResourceNotFoundException, FileNotFoundException
+    {
         Matcher m = ARK_PAT.matcher(distid);
         if (m.find())
             distid = m.replaceFirst("");
@@ -149,21 +153,21 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
     }
 
     /**
-     * return a NERDm component metadata record corresponding to the given component distribut identifier
-     * (i.e., AIPID/filepath), or null if no record exists with this identifier.
-     * @param distid   the distribution ID of the desired component which is nominally of the form, 
-     *                 AIPID/filepath (where AIPID is the AIP ID, and filepath is the filepath to the 
-     *                 desired component).  This ID can optionally be prefixed with the ark: prefix.  
-     * @param version  the desired version.  If null or empty, the latest version is retrieved.  
+     * return a NERDm component metadata record corresponding to the given AIP-ID and filepath, 
+     * or null if no record exists with this identifier.
+     * @param aipid     the AIP-ID of the desired component's dataset.   
+     * @param filepath  the filepath to desired component
+     * @param version   the desired version.  If null or empty, the latest version is retrieved.  
      * @throws CacheManagementException  if something goes wrong with the interaction with resolving service.
      */
-    public JSONObject resolveDistribution(String distid, String filepath, String version)
-        throws CacheManagementException
+    public JSONObject resolveDistribution(String aipid, String filepath, String version)
+        throws CacheManagementException, ResourceNotFoundException, FileNotFoundException
     {
-        JSONObject resmd = resolveAIPID(distid, version);
-        if (resmd == null)
-            return null;
-        return findComponentByFilepath(resmd, filepath);
+        JSONObject resmd = resolveAIPID(aipid, version);
+        JSONObject out = findComponentByFilepath(resmd, filepath);
+        if (out == null)
+            throw new FileNotFoundException(filepath + ": file component not found in " + aipid);
+        return out;
     }
 
     /**

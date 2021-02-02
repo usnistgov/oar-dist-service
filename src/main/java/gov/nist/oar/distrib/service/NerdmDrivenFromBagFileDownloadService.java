@@ -27,6 +27,7 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.net.URL;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.activation.MimetypesFileTypeMap;
@@ -107,6 +108,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -222,5 +224,19 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
         catch (URISyntaxException ex) {
             throw new DistributionException("Not acceptable as URI path: "+urlpath);
         }
+    }
+
+    /**
+     * return a URL where the identified file can be downloaded directly from.  This implementation 
+     * always returns null.  
+     *
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @return null, always
+     */
+    @Override
+    public URL getDataFileRedirect(String dsid, String filepath, String version) {
+        return null;
     }
 }

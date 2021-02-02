@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.io.IOException;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 public class HeadBagCacheManagerTest {
 
@@ -127,8 +128,10 @@ public class HeadBagCacheManagerTest {
         assertNotNull(resmd);
         assertTrue(hbcmgr.isCached("67C783D4BA814C8EE05324570681708A1899.mbag0_3-1.zip"));
 
-        resmd = hbcmgr.resolveAIPID("mds1492", null);
-        assertNull(resmd);
+        try {
+            hbcmgr.resolveAIPID("mds1492", null);
+            fail("Found non-existent AIP");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
     }
 
     /*
@@ -175,7 +178,9 @@ public class HeadBagCacheManagerTest {
     }
 
     @Test
-    public void testResolveDistID() throws ResourceNotFoundException, CacheManagementException {
+    public void testResolveDistID()
+        throws ResourceNotFoundException, CacheManagementException, FileNotFoundException
+    {
         assertTrue(! hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
         assertTrue(! hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
@@ -190,5 +195,10 @@ public class HeadBagCacheManagerTest {
         assertNotNull(cmpmd);
         assertEquals("cmps/trial1.json", cmpmd.optString("@id"));
         assertEquals("trial1.json", cmpmd.optString("filepath"));
+
+        try {
+            hbcmgr.resolveDistID("mds1491/goober", "0");
+            fail("Found non-existent filepath");
+        } catch (FileNotFoundException ex) { /* success! */ }
     }
 }

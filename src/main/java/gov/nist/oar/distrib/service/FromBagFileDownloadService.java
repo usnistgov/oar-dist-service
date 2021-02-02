@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.Closeable;
 import java.util.List;
+import java.net.URL;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
@@ -141,6 +142,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public StreamHandle getDataFile(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -167,6 +169,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -295,5 +298,19 @@ public class FromBagFileDownloadService implements FileDownloadService {
      */
     public String getDefaultContentType(String filename) {
         return typemap.getContentType(filename);
+    }
+
+    /**
+     * return a URL where the identified file can be downloaded directly from.  This implementation 
+     * always returns null.  
+     *
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @return null, always
+     */
+    @Override
+    public URL getDataFileRedirect(String dsid, String filepath, String version) {
+        return null;
     }
 }

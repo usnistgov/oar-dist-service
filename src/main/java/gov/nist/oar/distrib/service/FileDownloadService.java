@@ -18,6 +18,7 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.net.URL;
 
 /**
  * Service interface for downloading data products from the repository
@@ -54,6 +55,26 @@ public interface FileDownloadService {
     public StreamHandle getDataFile(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException;
 
+    /**
+     * return a URL where the identified file can be downloaded directly from.  If the file 
+     * is not available via such a URL, null is returned.  When a user of this interface prefers 
+     * to redirect a client to a URL, it can call this method first; if it returns null, it can 
+     * fall back on {@link #getDataFile(String,String,String)}.
+     *
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @throws ResourceNotFoundException   if the dsid is not recognized or there is no such version
+     *                                        available for the dataset with dsid.
+     * @throws FileNotFoundException       if the filepath is not found in the requested version of 
+     *                                        the identified dataset.  Note that the filepath may be
+     *                                        recognized as part of the dataset, but this method may
+     *                                        still return null if the file is not available via a URL.
+     * @throws DistributionException       if an internal error has occurred
+     */
+    public URL getDataFileRedirect(String dsid, String filepath, String version)
+        throws ResourceNotFoundException, DistributionException, FileNotFoundException;
+        
     /**
      * Describe the data file with the given filepath.  The returned information includes the 
      * file size, type, and checksum information.  
