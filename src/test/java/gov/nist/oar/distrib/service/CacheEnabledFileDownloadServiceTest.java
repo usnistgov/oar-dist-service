@@ -328,4 +328,38 @@ public class CacheEnabledFileDownloadServiceTest {
         assertTrue(files.contains("trial3/trial3a.json.sha256"));
         assertEquals(files.size(), 5);
     }
+
+    @Test
+    public void testEfficientAccess()
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
+        URL redir = null;
+        CacheObject co = null;
+        byte[] buf = new byte[200];
+
+        // try non-existent file
+        co = svc.findCachedObject("goober", "gurn.txt", null);
+        assertNull(co);
+        try (StreamHandle sh = svc.getDataFile("goober", "gurn.txt", null)) {
+            if (sh != null) sh.dataStream.close();
+            fail("Found non-existent file");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
+
+        // try file not in cache
+        co = svc.findCachedObject("mds1491", "trial1.json", null);
+        assertNull(co);
+        try (StreamHandle sh = svc.getDataFile("mds1491", "trial1.json.sha256", null)) {
+            assertEquals(90, sh.dataStream.read(buf));
+        }
+
+        // now a file in the cache
+        mgr.cache("mds1491/trial3/trial3a.json#0");
+        co = svc.findCachedObject("mds1491", "trial3/trial3a.json", "0");
+        assertNotNull(co);
+        redir = svc.redirectFor(co);
+        assertEquals("https://goob.net/c/foobar/mds1491/trial3/trial3a.json", redir.toString());
+        try (StreamHandle sh = svc.openStreamFor(co)) {
+            assertEquals(70, sh.dataStream.read(buf));
+        }
+    }
 }

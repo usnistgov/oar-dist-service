@@ -292,7 +292,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
     /**
      * given a {@link gov.nist.oar.distrib.cachemgr.CacheObject}, return a redirect URL for accessing the 
      * underlying object or null, if such a URL is not available.  Using this function on a 
-     * {@link gov.nist.oar.distrib.cachemgr.CacheObject} returned by {@link #findObject(String,String,String)}
+     * {@link gov.nist.oar.distrib.cachemgr.CacheObject} returned by {@link #findCachedObject(String,String,String)}
      * is more efficient than calling {@link #getDataFileRedirect(String,String,String)} followed possibly 
      * by a call to  {@link #getDataFile(String,String,String)} as the latter will repeat the search of the 
      * cache inventory.  
@@ -313,6 +313,16 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         }
 
         return null;
+    }
+
+    /**
+     * given a {@link gov.nist.oar.distrib.cachemgr.CacheObject}, return a {@link gov.nist.oar.distrib.StreamHandle}
+     * to the object.  This is a convenience function to be used in the use case described for {@link #redirectFor}:
+     * if that function returns null--i.e. there is no redirect URL available--one can open a stream to the
+     * object in the cache via this function.
+     */
+    public static StreamHandle openStreamFor(CacheObject co) throws StorageVolumeException {
+        return cacheObject2StreamHandle(co);
     }
     
     /**
@@ -381,7 +391,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         return srcsvc.getDataFileRedirect(dsid, filepath, version);
     }
 
-    private FileDescription cacheObject2FileDesc(CacheObject co) {
+    private static FileDescription cacheObject2FileDesc(CacheObject co) {
         String ct = getMetadatumString(co, "contentType", null);
         String hash = getMetadatumString(co, "checksum", null);
         Checksum cs = null;
@@ -394,7 +404,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         return new FileDescription(name, co.getSize(), ct, cs);
     }
 
-    private String getMetadatumString(CacheObject co, String mdname, String defval) {
+    private static String getMetadatumString(CacheObject co, String mdname, String defval) {
         try {
             return co.getMetadatumString(mdname, defval);
         }
@@ -405,7 +415,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         return defval;
     }
 
-    private StreamHandle cacheObject2StreamHandle(CacheObject co) throws StorageVolumeException {
+    private static StreamHandle cacheObject2StreamHandle(CacheObject co) throws StorageVolumeException {
         FileDescription fd = cacheObject2FileDesc(co);
         return new StreamHandle(co.volume.getStream(co.name), fd);
     }
