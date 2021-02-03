@@ -91,13 +91,15 @@ public abstract class BasicCacheManager extends CacheManager {
      * @throws ObjectNotFoundException   if the idenifier, <code>id</code> does not exist.
      */
     @Override
-    public boolean cache(String id, boolean recache) throws CacheManagementException {
+    public boolean cache(String id, int prefs, boolean recache) throws CacheManagementException {
         if (! recache && theCache.isCached(id))
             return false;
 
         try {
             long sz = restorer.getSizeOf(id);       // may throw ObjectNotFoundException
-            Reservation resv = theCache.reserveSpace(sz);
+            if (prefs < 1)
+                prefs = getDefaultPreferencesFor(id, sz);
+            Reservation resv = theCache.reserveSpace(sz, prefs);
             String cvname = determineCacheObjectName(resv.getVolumeName(), id);
             try {
                 // restorer would add size if its not here, but we'll add it here in case it's
@@ -138,8 +140,9 @@ public abstract class BasicCacheManager extends CacheManager {
     /**
      * add additional metadata information about the data object with the given ID from an external
      * source to be stored within the cache inventory database.  This method will get called within 
-     * the default {@link #cache(String,boolean)} method.  This implementation adds nothing, but subclasses 
-     * should override this to add additional metadata (after calling <code>super.enrichMetadata()</code>).
+     * the default {@link #cache(String,int,boolean)} method.  This implementation adds nothing, but 
+     * subclasses should override this to add additional metadata (after calling 
+     * <code>super.enrichMetadata()</code>).
      * 
      * @param id       the identifier for the data object
      * @param mdata    the metadata container to add information into

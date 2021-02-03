@@ -46,6 +46,11 @@ public abstract class CacheManager {
      * restore the data object with the given identifier into the cache.  This method is 
      * expected to operate synchronously.  
      * @param id       the identifier for the data object of interest.
+     * @param prefs    an AND-ed set of preferences for determine where (or how) to 
+     *                 cache the object.  Generally, the values are implementation-specific 
+     *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
+     *                 example set).  A non-positive number indicates that default preferences
+     *                 should be applied (see {@link #getDefaultPreferencesFor(String,long)}).
      * @param recache  if true and the object is already in the cache, that object
      *                 will be replaced with a freshly restored version.  If false
      *                 and the object already exists, the method returns without
@@ -55,12 +60,51 @@ public abstract class CacheManager {
      * @throws CacheManagementException  if a failure occurs that prevented caching of the 
      *                 data as requested.
      */
-    public abstract boolean cache(String id, boolean recache) throws CacheManagementException;
+    public abstract boolean cache(String id, int prefs, boolean recache) throws CacheManagementException;
 
     /**
      * restore the data object with the given identifier into the cache.  This method is 
      * expected to operate synchronously.  
+     * @param id       the identifier for the data object of interest.
+     * @param recache  if true and the object is already in the cache, that object
+     *                 will be replaced with a freshly restored version.  If false
+     *                 and the object already exists, the method returns without
+     *                 changing anything.
+     * @return boolean   true if a fresh copy of the data object was restored to disk; 
+     *                 false otherwise.
+     * @throws CacheManagementException  if a failure occurs that prevented caching of the 
+     *                 data as requested.
+     */
+    public boolean cache(String id, boolean recache) throws CacheManagementException {
+        return cache(id, 0, recache);
+    }
+
+    /**
+     * restore the data object with the given identifier into the cache.  This method is 
+     * expected to operate synchronously.  
+     * <p>
+     * Whether the object will be recached by default is implementation-specific.  This 
+     * default implementation will not recache a data object if it already exists in the 
+     * cache.
      *
+     * @param id       the identifier for the data object of interest.
+     * @param prefs    an AND-ed set of preferences for determine where (or how) to 
+     *                 cache the object.  Generally, the values are implementation-specific 
+     *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
+     *                 example set).  Zero indicates no preferences.  
+     * @return boolean   true if a fresh copy of the data object was restored to disk; 
+     *                 false otherwise.
+     * @throws CacheManagementException  if a failure occurs that prevented caching of the 
+     *                 data as requested.
+     */
+    public boolean cache(String id, int prefs) throws CacheManagementException {
+        return cache(id, prefs, false);
+    }
+
+    /**
+     * restore the data object with the given identifier into the cache.  This method is 
+     * expected to operate synchronously.  
+     * <p>
      * Whether the object will be recached by default is implementation-specific.  This 
      * default implementation will not recache a data object if it already exists in the 
      * cache.
@@ -73,6 +117,22 @@ public abstract class CacheManager {
      */
     public boolean cache(String id) throws CacheManagementException {
         return this.cache(id, false);
+    }
+
+    /**
+     * return a set of caching preferences for an object with the given identifier and size
+     * to be applied by {@link #cache(String)} when preferences are not specified.  Other internal 
+     * processes may alter those preferences as more is learned about the object during restoration. 
+     * The default set returned here is expected to reflect the specific cache manager implementation
+     * and/or the configured internal cache.  
+     * <p>
+     * This base implementation simply returns zero--no preferences.
+     * @param id     the identifier for the object being cached
+     * @param size   the size of the object in bytes; if negative, the size is not known
+     * @return int -- an ANDed set of caching preferences, or zero if no preferences are applicable
+     */
+    public int getDefaultPreferencesFor(String id, long size) {
+        return 0;
     }
 
     /**

@@ -144,6 +144,23 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
     }
 
     /**
+     * return a set of caching preferences for an object with the given identifier and size
+     * to be applied by {@link #cache(String)} when preferences are not specified.  Other internal 
+     * processes may alter those preferences as more is learned about the object during restoration. 
+     * The default set returned here is expected to reflect the specific cache manager implementation
+     * and/or the configured internal cache.  
+     * <p>
+     * This implementation returns a preference set drawn from the {@link PDRCacheRoles} definitions
+     * according to PDR conventions.  
+     * @param id     the identifier for the object being cached
+     * @param size   the size of the object in bytes; if negative, the size is not known
+     * @return int -- an ANDed set of caching preferences, or zero if no preferences are applicable
+     */
+    public int getDefaultPreferencesFor(String id, long size) {
+        return ((PDRDatasetRestorer) restorer).getPreferencesFor(id, size, -1);
+    }
+
+    /**
      * cache all of the files from the given dataset
      * @param dsid     the AIP identifier for the dataset; this is either the old-style EDI-ID or 
      *                   local portion of the PDR ARK identifier (e.g., <code>"mds2-2119"</code>).  

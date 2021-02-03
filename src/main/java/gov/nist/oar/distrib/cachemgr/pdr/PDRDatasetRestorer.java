@@ -681,4 +681,23 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
         return hbcm.getIntegrityMonitor(checks);
     }
+
+    /** 
+     * return an AND-ed set of caching preferences for the an object with a given ID, size, and priority.
+     * <p>
+     * The returned set is drawn from the {@link PDRCacheRoles} definitions.
+     * Currently, this implementation always ignores the priority value.
+     * @param id        the object's id
+     * @param size      the object's content length in bytes; if non-positive, the value is unknown
+     * @param priority  the priority that will be attached to the object when cached.  If &lt; 0, 
+     *                     the priority will be ignored.  
+     */
+    public int getPreferencesFor(String id, long size, int priority) {
+        String[] idparts = parseId(id);
+        if (idparts.length > 2 && idparts[2] != null && idparts[2].length() > 0)
+            return ROLE_OLD_VERSIONS;
+        if (size > 0 && size <= getSmallSizeLimit())
+            return ROLE_SMALL_OBJECTS;
+        return ROLE_GENERAL_PURPOSE;
+    }
 }

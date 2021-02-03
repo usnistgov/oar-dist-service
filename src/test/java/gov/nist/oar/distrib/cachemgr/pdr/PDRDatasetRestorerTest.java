@@ -362,6 +362,23 @@ public class PDRDatasetRestorerTest {
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
     }
+
+    @Test
+    public void testGetPreferencesFor() {
+        assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0", 200L, -1));
+        assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0",
+                                                                    rstr.getSmallSizeLimit()+10, -1));
+        assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                       rstr.getSmallSizeLimit()+10, -1));
+        assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, -1));
+        assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", 0, -1));
+        assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", -1, -1));
+        assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                       rstr.getSmallSizeLimit()+10, 3));
+        assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                       rstr.getSmallSizeLimit()+10, 10));
+        assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, 2));
+    }
 }
 
 

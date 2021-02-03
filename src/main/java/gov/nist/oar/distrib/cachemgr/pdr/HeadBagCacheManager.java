@@ -220,9 +220,9 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
 
     /**
      * add additional metadata information about the data object with the given ID from an external
-     * source to be stored within the cache inventory database.  This method will get called within 
-     * the default {@link #cache(String,boolean)} method.  This implementation adds nothing, but subclasses 
-     * should override this to add additional metadata (after calling <code>super.enrichMetadata()</code>).
+     * source to be stored within the cache inventory database.  This method gets called within 
+     * the default {@link #cache(String,int,boolean)} method.  This implementation adds PDR-specific 
+     * metadata.
      * 
      * @param id       the identifier for the data object
      * @param mdata    the metadata container to add information into

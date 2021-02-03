@@ -101,6 +101,10 @@ public class BagCacher implements PDRCacheRoles {
     public Set<String> cacheDataset(String aipid, String version)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
+        if (version == null)
+            // latest requested
+            return cacheDataset(aipid);
+
         int prefs = ROLE_OLD_VERSIONS;
         String headbag = bagstore.findHeadBagFor(aipid, version);
         try {

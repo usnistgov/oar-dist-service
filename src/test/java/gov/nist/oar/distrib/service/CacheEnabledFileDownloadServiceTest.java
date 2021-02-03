@@ -218,7 +218,7 @@ public class CacheEnabledFileDownloadServiceTest {
         // a ResourceNotFoundException indicates that the cache was not leveraged as it should have been
         setupFileDownloadService(true);
         fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
-        assertEquals("trial3/trial3a.json", fd.name);
+        assertEquals("trial3/trial3a-v0.json", fd.name);
         assertEquals(70, fd.contentLength);
 
         fd = svc.getDataFileInfo("mds1491", "trial1.json.sha256", null);
@@ -294,7 +294,7 @@ public class CacheEnabledFileDownloadServiceTest {
         mgr.cache("mds1491/trial1.json.sha256");
 
         redir = svc.getDataFileRedirect("mds1491", "trial3/trial3a.json", "0");
-        assertEquals("https://goob.net/c/foobar/mds1491/trial3/trial3a.json", redir.toString());
+        assertEquals("https://goob.net/c/old/mds1491/trial3/trial3a-v0.json", redir.toString());
 
         redir = svc.getDataFileRedirect("mds1491", "trial1.json.sha256", null);
         assertEquals("https://goob.net/c/foobar/mds1491/trial1.json.sha256", redir.toString());
@@ -357,7 +357,7 @@ public class CacheEnabledFileDownloadServiceTest {
         co = svc.findCachedObject("mds1491", "trial3/trial3a.json", "0");
         assertNotNull(co);
         redir = svc.redirectFor(co);
-        assertEquals("https://goob.net/c/foobar/mds1491/trial3/trial3a.json", redir.toString());
+        assertEquals("https://goob.net/c/old/mds1491/trial3/trial3a-v0.json", redir.toString());
         try (StreamHandle sh = svc.openStreamFor(co)) {
             assertEquals(70, sh.dataStream.read(buf));
         }
