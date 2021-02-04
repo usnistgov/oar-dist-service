@@ -103,7 +103,7 @@ public class NISTDistribServiceConfigTest {
         assertNotNull(config.mimemap);
         assertNotNull(config.lts);
         assertTrue(config.lts instanceof FilesystemLongTermStorage);
-        assertTrue(provider.canCreateManager());
+        assertTrue(provider.canProvideManager());
 
         File tst = new File(testdir, "data.sqlite");
         assertTrue(tst.isFile());

@@ -71,7 +71,7 @@ public class CacheManagementController {
 
     @Autowired
     public CacheManagementController(CacheManagerProvider provider) throws ConfigurationException {
-        if (provider != null && provider.managerAvailable())
+        if (provider != null && provider.canProvideManager())
             mgr = provider.getPDRCacheManager();
     }
 

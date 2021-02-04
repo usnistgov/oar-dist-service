@@ -12,12 +12,18 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
+import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
+import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 
 import java.io.IOException;
+import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.lang.Nullable;
 import org.slf4j.LoggerFactory;
@@ -35,6 +41,7 @@ public class CacheManagerProvider {
 
     private NISTCacheManagerConfig cfg = null;
     private BagStorage bagstore = null;
+    private HeadBagCacheManager hbcmgr = null;
     private PDRCacheManager cmgr = null;
 
     /**
@@ -60,7 +67,7 @@ public class CacheManagerProvider {
      * this method does not check the validity of configuration; thus, createCacheManager() may still 
      * raise exceptions.  
      */
-    public boolean canCreateManager() {
+    protected boolean canCreateManager() {
         if (cfg == null || cfg.getAdmindir() == null || cfg.getAdmindir().equals("@null"))
             return false;
         return true;
@@ -71,12 +78,38 @@ public class CacheManagerProvider {
      * created yet but can be from the configuration (i.e. {@link #canCreateManager()} returns true),
      * then this method will still return true.  
      */
-    public boolean managerAvailable() {
+    public boolean canProvideManager() {
         if (cmgr != null)
             return true;
         return canCreateManager();
     }
     
+    /**
+     * return the instance of the HeadBagCacheManager that was created based on the configuration for the 
+     * application.  If one has not been created yet, it will be and cached in within this class. 
+     * @throws ConfigurationException   if there is a problem with the configuration that prevents 
+     *                                     creating the CacheManager instance.  
+     */
+    public HeadBagCacheManager getHeadBagManager() throws ConfigurationException {
+        if (hbcmgr == null && canCreateManager()) {
+            try {
+                hbcmgr = cfg.createHeadBagManager(bagstore);
+            }
+            catch (ConfigurationException ex) {
+                throw ex;
+            }
+            catch (IOException ex) {
+                throw new ConfigurationException("Failed to configure HeadBagCacheManager due to io error: " +
+                                                 ex.getMessage(), ex);
+            }
+            catch (CacheManagementException ex) {
+                throw new ConfigurationException("Failed to configure CacheManager due to set-up error: " +
+                                                 ex.getMessage(), ex);
+            }
+        }
+        return hbcmgr;
+    }
+
     /**
      * return the instance of the CacheManager that was created based on the configuration for the 
      * application.  If one has not been created yet, it will be and cached in within this class. 
@@ -85,7 +118,7 @@ public class CacheManagerProvider {
      */
     public PDRCacheManager getPDRCacheManager() throws ConfigurationException {
         if (cmgr == null && canCreateManager())
-            cmgr = createPDRCacheManager();
+            cmgr = createPDRCacheManager(getHeadBagManager());
         return cmgr;
     }
 
@@ -93,18 +126,23 @@ public class CacheManagerProvider {
      * instantiate a CacheManager based on the configuration.  Called by {@link #getPDRCacheManager()},
      * this method will always create a new instance; thus, a Spring boot configuration should call 
      * {@link #getPDRCacheManager()} instead so as to use a single instance across the whole application.
+     * @param headbagcmgr    the HeadBagCacheManager to use internal to the data CacheManager; if null,
+     *                       a new one will be created.  
      * @throws ConfigurationException   if there is a problem with the configuration that prevents 
      *                                     creating the CacheManager instance.  
      */
-    public PDRCacheManager createPDRCacheManager() throws ConfigurationException {
+    protected PDRCacheManager createPDRCacheManager(HeadBagCacheManager headbagcmgr)
+        throws ConfigurationException
+    {
         if (! canCreateManager())
             throw new ConfigurationException("Configuration is not set for running a CacheManager "
                                              +"(Missing 'admindir')");
+        headbagcmgr = getHeadBagManager();
 
         try {
             BasicCache cache = cfg.createDefaultCache();
             PDRDatasetRestorer restorer = 
-                cfg.createDefaultRestorer(bagstore, cfg.createHeadBagManager(bagstore));
+                cfg.createDefaultRestorer(bagstore, headbagcmgr);
 
             return cfg.createCacheManager(cache, restorer, _getLogger());
         }
@@ -119,5 +157,24 @@ public class CacheManagerProvider {
             throw new ConfigurationException("Failed to configure CacheManager due to set-up error: " +
                                              ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Create a FileDownloadService reflecting the cache manager configuration.  If the configuration
+     * can support a cache manager, a service with a cache manager built-in will be returned.  
+     * @param bagService   the PreservationBagService instance the output service should use to access 
+     *                         preservation bags in long-term storage.
+     * @param mimemap      the MimetypesFileTypeMap that can provide default content-type values based 
+     *                         on a file's filename extension.  
+     */
+    public FileDownloadService getFileDownloadService(PreservationBagService bagService,
+                                                      MimetypesFileTypeMap mimemap)
+        throws ConfigurationException
+    {
+        if (canProvideManager()) 
+            return new CacheEnabledFileDownloadService(bagService, getPDRCacheManager(),
+                                                       getHeadBagManager(), mimemap);
+
+        return new NerdmDrivenFromBagFileDownloadService(bagService, mimemap);
     }
 }

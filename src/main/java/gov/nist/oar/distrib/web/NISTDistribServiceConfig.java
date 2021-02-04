@@ -232,15 +232,18 @@ public class NISTDistribServiceConfig {
      * the service implementation to use to download data products.
      */
     @Bean
-    public FileDownloadService getFileDownloadService() {
-        return new NerdmDrivenFromBagFileDownloadService(lts, mimemap);
+    public FileDownloadService getFileDownloadService(PreservationBagService bagsvc, MimetypesFileTypeMap mimemap,
+                                                      CacheManagerProvider cmprovider)
+        throws ConfigurationException
+    {
+        return cmprovider.getFileDownloadService(bagsvc, mimemap);
     }
         
     /**
      * the service implementation to use to download data products.
      */
     @Bean
-    public PreservationBagService getPreservationBagService() {
+    public PreservationBagService getPreservationBagService(BagStorage lts, MimetypesFileTypeMap mimemap) {
         return new DefaultPreservationBagService(lts, mimemap);
     }
 
