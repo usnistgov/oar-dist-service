@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
  * <h3> Integrity checking </h3>
  * 
  * This uses an {@link gov.nist.oar.distrib.cachemgr.IntegrityMonitor} instance (provided via the 
- * {@link gov.nist.oar.distrib.cachemgr.BasicCache} at construction time) to periodically check the 
+ * {@link gov.nist.oar.distrib.cachemgr.BasicCache} set at construction time) to periodically check the 
  * integrity of the files; an object that fails at least one configured check (for the PDR, this is just a 
  * checksum check) is deleted from the cache.  Normally, this happens continuously via a dedicated thread
  * availble via {@link #getMonitorThread()} and started soon after this manager is instantiated.  It will 
