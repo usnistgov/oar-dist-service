@@ -106,6 +106,7 @@ public abstract class BasicCacheManager extends CacheManager {
                 // expensive to obtain.  (We'll let it add the checksum on its own.)
                 JSONObject md = new JSONObject();
                 md.put("size", sz);
+                md.put("cachePrefs", prefs);
 
                 // allow additional metadata to be added to what gets stored in the
                 // cache inventory database

@@ -555,6 +555,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("pdrid", resmd.get("@id"));
                 if (resmd.has("ediid"))
                     md.put("ediid", resmd.get("ediid"));
+                md.put("cachePrefs", prefs);
 
                 // find space in the cache, and copy the data file into it
                 Reservation resv = into.reserveSpace(ze.getSize(), prefs);
