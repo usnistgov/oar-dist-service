@@ -14,8 +14,6 @@ package gov.nist.oar.distrib.datapackage;
 
 import javax.validation.constraints.NotNull;
 
-import org.hibernate.validator.constraints.NotBlank;
-
 /**
  * a container for holding a request for a file to be part of a data package (or bundle).  A
  * request is composed of a URL, where the file can be downloaded from, and a file path, the 
@@ -35,6 +33,8 @@ public class FileRequest {
     @NotNull
     private String downloadUrl;
 
+    private long fileSize;
+    
     public FileRequest() {
 	// DefaultConstructor
     }
@@ -50,6 +50,17 @@ public class FileRequest {
 	this.downloadUrl = downloadurl;
     }
 
+    /**
+     * 
+     * @param filepath
+     * @param downloadurl
+     * @param fileSize
+     */
+    public FileRequest(String filepath, String downloadurl, long fileSize) {
+  	this.filePath = filepath;
+  	this.downloadUrl = downloadurl;
+  	this.fileSize = fileSize;
+    }
     /**
      * Set the desired file path within a data bundle for the requested file
      * 
@@ -67,6 +78,7 @@ public class FileRequest {
     public String getFilePath() {
 	return this.filePath;
     }
+
 
     /**
      * Set the URL where the requested file can be retrieved from 
@@ -86,6 +98,21 @@ public class FileRequest {
 	return this.downloadUrl;
     }
 
+    /**
+     * Return file Size
+     * @return long
+     */
+    public long getFileSize() {
+	return this.fileSize;
+    }
+    
+    /**
+     * Set File Size
+     */
+    public void setFileSize(long fileSize) {
+	this.fileSize = fileSize;
+    }
+    
     @Override
     public int hashCode() {
 	return filePath.hashCode() ^ downloadUrl.hashCode();

@@ -13,9 +13,13 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.net.MalformedURLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,10 +27,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
-import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
-import gov.nist.oar.distrib.datapackage.NotIncludedFile;
 import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
@@ -61,11 +61,25 @@ public class DownloadBundlePlanner {
 	private String validdomains;
 	private int allowedRedirects;
 	private long totalRequestedFileSize = 0;
-
+	private String requestId ;
+	
+	String printSummary = "";
+	List<FileRequestLogs> filesLogs = new ArrayList<FileRequestLogs>();
+	
+	
 	public DownloadBundlePlanner() {
 		// Default constructor
 	}
 
+	/**
+	 * This contructor takes number of input parameters which can be used to process request and create bundle.
+	 * @param inputjson
+	 * @param maxFileSize
+	 * @param numOfFiles
+	 * @param validdomains
+	 * @param bundleName
+	 * @param allowedRedirects
+	 */
 	public DownloadBundlePlanner(BundleRequest inputjson, long maxFileSize, int numOfFiles, String validdomains,
 			String bundleName, int allowedRedirects) {
 		this.bundleRequest = inputjson;
@@ -84,12 +98,14 @@ public class DownloadBundlePlanner {
 	 */
 	public BundleDownloadPlan getBundleDownloadPlan() throws DistributionException, InvalidInputException {
 
+	        requestId = UUID.randomUUID().toString();
 		notIncludedFiles = new ArrayList<NotIncludedFile>();
 		filePathUrls = new ArrayList<FileRequest>();
 		bundleFilePathUrls = new ArrayList<BundleRequest>();
 		messages = new ArrayList<String>();
-		logger.info("Creating bundle plan..");
+		logger.debug("Creating bundle plan..");
 		try {
+		    
 			ObjectMapper mapper = new ObjectMapper();
 			String requestString = mapper.writeValueAsString(this.bundleRequest);
 			if (ValidationHelper.hasHTMLTags(requestString)) {
@@ -122,6 +138,7 @@ public class DownloadBundlePlanner {
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
+			
 			try {
 				if (ValidationHelper.isAllowedURL(downloadurl, validdomains)) {
 					this.makeBundles(jobject);
@@ -140,10 +157,64 @@ public class DownloadBundlePlanner {
 		}
 
 		this.updateMessagesAndStatus();
+		printLogsSummary();
 		return this.makeBundlePlan();
 
 	}
+	
+	
+	/**
+	 * This method combines all the details of current bundle plan request
+	 * ** Note to keep the format exactly same for the scripts to run and scrape the logs.
+	 * ** No specing after commas. Keep semicolons
+	 */
+	private void printLogsSummary() {
+	    try {
 
+	    String printLog = "";
+	    int fileList = 0 ;
+	    if(inputfileList != null ) fileList = inputfileList.length;
+		
+	    logger.info("BundlePlan Summary: RequestId:"+requestId+",Status:"+this.status+",Total Size:"+totalRequestedFileSize+",Bundles:"+ bundleCount
+		    +",Files:"+fileList+ ",Number of files not included:"+this.notIncludedFiles.size());
+
+	    printLog = "BundlePlan: ";
+	    for(int i=0; i< this.filesLogs.size(); i++) {		
+		//logger.info(filesLogs.get(i).toString());
+		FileRequestLogs fileLog = filesLogs.get(i);
+		printLog += fileLog.getRequestId()+","+ fileLog.getBundleName()+","+fileLog.getRecordId()+","+
+			fileLog.getFilePath()+","+fileLog.getFileSize()+","+fileLog.getDownloadUrl()+","+
+			fileLog.getTimeStamp()+"\n";
+		
+	    }
+	    logger.info(printLog);
+
+	    }catch(Exception e) {
+		logger.error("Error writing logs on console."+e.getMessage());
+	    }
+	}
+
+
+	/**
+	 * This function helps capture information about individual files to create a log file. 
+	 * @param uObj
+	 * @param jobject
+	 */
+	public void createLogs(URLStatusLocation uObj, FileRequest jobject) {
+	    try {
+		String recordId = "";
+	        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+		try {
+		 recordId = jobject.getFilePath().split("/")[0];
+		}catch(Exception e) {
+		   //ignore recordid will be empty.   
+		}
+		this.filesLogs.add(new FileRequestLogs(this.requestId, this.bundleName+(this.bundleCount+1),recordId,jobject.getFilePath(),
+			uObj.getLength(),jobject.getDownloadUrl(), timeStamp));
+	    }catch(Exception e) {
+		logger.error("Error creating logs for this file.");
+	    }
+	}
 	/**
 	 * Add to Bundle of the input requested based on the size and number of files
 	 * allowed per bundle request.
@@ -152,10 +223,13 @@ public class DownloadBundlePlanner {
 	 * @throws IOException
 	 */
 	public void makeBundles(FileRequest jobject) {
-		logger.info("Make bundles: validate urls, check size and accordinlgy create bundle plan.");
-		bundledFilesCount++;
+		//logger.info("Make bundles: validate urls, check size and accordinlgy create bundle plan.");
+	
+	    	bundledFilesCount++;
 		URLStatusLocation uObj = ValidationHelper.getFileURLStatusSize(jobject.getDownloadUrl(), this.validdomains,
 				this.allowedRedirects);
+		
+		createLogs(uObj, jobject);
 		
 		String whyNotIncluded = "File not added in package; ";
 		if (uObj.getStatus() >= 300 && uObj.getStatus() < 400) {
@@ -165,18 +239,18 @@ public class DownloadBundlePlanner {
 			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
 			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
 		} else {
-			long individualFileSize = uObj.getLength();
+		    	long individualFileSize = uObj.getLength();
 			totalRequestedFileSize += individualFileSize;
 			if (individualFileSize >= this.mxFilesBundleSize) {
 				//bundleSize = individualFileSize;
 				List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
-				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
 				this.makePlan(onefilePathUrls,individualFileSize);
 				
 			} else {
 				bundleSize += individualFileSize;
 				if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
 
 				} else {
 					if(!filePathUrls.isEmpty()) {
@@ -185,24 +259,22 @@ public class DownloadBundlePlanner {
 					}
 					filePathUrls.clear();
 					bundledFilesCount = 1;
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl()));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(),individualFileSize));
 					bundleSize = individualFileSize;
 				}
 			}
 		}
+		
 	}
 
 	/***
 	 * Create Bundle of FileList
-	 * 
 	 * @param fPathUrls
 	 */
 	public void makePlan(List<FileRequest> fPathUrls, long bundleSize) {
 		bundleCount++;
 		FileRequest[] bundlefilePathUrls = fPathUrls.toArray(new FileRequest[0]);
-		
-		
-		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length));
+		bundleFilePathUrls.add(new BundleRequest(bundleName + "-" + bundleCount + ".zip", bundlefilePathUrls, bundleSize,bundlefilePathUrls.length, this.requestId));
 	}
 
 	/**
@@ -219,13 +291,15 @@ public class DownloadBundlePlanner {
 		}
 
 	}
+	
 
 	/**
 	 * Create final Bundle plan (JSON) to return to client. It creates Java Object
 	 * of BundleDownloadPlan after processing input request.
 	 */
 	public BundleDownloadPlan makeBundlePlan() {
-		logger.info("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
+		logger.debug("makeBundlePlan called to return bundleDownloadPlan with urls and sizes.");
+		
 		int fileList = 0 ;
 		if(inputfileList != null ) fileList = inputfileList.length;
 			BundleDownloadPlan bPlan = new BundleDownloadPlan();
@@ -238,6 +312,7 @@ public class DownloadBundlePlanner {
 			bPlan.setNotIncluded(notIncludedFiles.toArray(new NotIncludedFile[0]));
 			bPlan.setPostEachTo("_bundle");
 			bPlan.setSize(this.totalRequestedFileSize);
+			bPlan.setRequestId(requestId);
 				
 		return bPlan;
 				

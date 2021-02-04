@@ -13,9 +13,9 @@
 package gov.nist.oar.distrib.datapackage;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Closeable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -30,11 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.datapackage.EmptyBundleRequestException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
-import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
 
 /**
  * DefaultDataPackager implements DataPackager interface and gives a default
@@ -55,16 +50,15 @@ public class DefaultDataPackager implements DataPackager {
 	private BundleRequest bundleRequest;
 	private String domains;
 	private int allowedRedirects;
-
 	private int fileCount;
 	private StringBuilder bundlelogfile = new StringBuilder("");
 	private StringBuilder bundlelogError = new StringBuilder("");
 	private List<URLStatusLocation> listUrlsStatusSize = new ArrayList<>();
 	protected static Logger logger = LoggerFactory.getLogger(DefaultDataPackager.class);
 	private long totalRequestedPackageSize = -1;
-	private int requestValidity = 0;
+	private int requestValidity = 0;	
+	private String writeLog = "";
 	
-
 	public DefaultDataPackager() {
 		// Default Constructor
 	}
@@ -98,13 +92,35 @@ public class DefaultDataPackager implements DataPackager {
 	public void getData(ZipOutputStream zout) throws IOException, DistributionException {
 		HttpURLConnection con = null;
 		this.validateBundleRequest();
-
+		
 		logger.info("Forming zip file from the the input fileurls");
 
 		for (int i = 0; i < inputfileList.length; i++) {
+		    writeLog += bundleRequest.getRequestId()+ ","+bundleRequest.getBundleName()+",";
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
+			/**
+			 * This section is added to improve logs for each dowload request through bundles.
+			 */
+			String recordid ="", filedir ="";
+			if(filepath.contains("/") && filepath.contains("ark")) {
+			   int in = filepath.indexOf('/', 1 + filepath.indexOf('/', 1 + filepath.indexOf('/')));
+			   
+			    recordid = filepath.substring(0, in);
+			    filedir = filepath.substring(in+1);
+			}
+			else if(filepath.contains("/")) {
+			    int in = filepath.indexOf('/');
+			   
+			    recordid = filepath.substring(0, in);
+			    filedir = filepath.substring(in+1);
+			}
+			writeLog +=recordid+","+filepath+","+jobject.getFileSize()+","+downloadurl+",";
+			/*
+			 *End of part for logs
+			*/
+			
 			if (this.validateUrl(downloadurl)) {
 				URLStatusLocation uLoc = listUrlsStatusSize.get(i);
 				if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
@@ -122,13 +138,18 @@ public class DefaultDataPackager implements DataPackager {
 						zout.closeEntry();
 						fstream.close();
 						fileCount++;
+						writeLog += "success \n";
+						
 					} catch (IOException ie) {
+					        writeLog += "failed \n";
 						bundlelogError.append("\n Exception in getting data for: " + filepath + " at " + downloadurl
 								+ "\n" + "This file might be corrupt.");
 						logger.error("There is an error reading this file at location: " + downloadurl + "Exception: "
 								+ ie.getMessage());
 						zout.closeEntry();
 					} finally {
+					       
+						logger.info("Bundle Request Details:"+ writeLog);
 						if (fstream != null)
 							fstream.close();
 						if (con != null)
@@ -137,14 +158,15 @@ public class DefaultDataPackager implements DataPackager {
 
 				}
 			}
+			
 		}
 
 		if (fileCount == 0) {
 			logger.info("The package does not contain any data. These errors :" + this.bundlelogError);
 			throw new NoContentInPackageException("No data or files written in Bundle/Package.");
 		}
-		this.writeLog(zout);
 
+		 this.writeLogMessages(zout);
 	}
 
 	/**
@@ -215,9 +237,11 @@ public class DefaultDataPackager implements DataPackager {
 	 * @param zout
 	 * @throws IOException
 	 */
-	private void writeLog(ZipOutputStream zout) throws IOException {
+	private void writeLogMessages(ZipOutputStream zout) throws IOException {
 		InputStream nStream = null;
 		try {
+		    	String bundlerequestStatus = "Bundle Request Summary : "+ this.bundleRequest.getRequestId();
+//		    	logger.info("Bundle Request :"+this.bundleRequest.getRequestId());
 			String filename = "";
 			int l;
 			byte[] buf = new byte[10000];
@@ -227,19 +251,26 @@ public class DefaultDataPackager implements DataPackager {
 				bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 				bundleInfo.append(this.bundlelogfile);
 				filename = "/PackagingErrors.txt";
+				bundlerequestStatus += ": partial";
+//				logger.info(bundlerequestStatus + "This bundle request is not completely successful. ");
 			}
 
 			if (bundlelogError.length() != 0) {
 				bundleInfo.append(
 						"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
 				filename = "/PackagingErrors.txt";
+				bundlerequestStatus += ": errors";
+//				logger.info(bundlerequestStatus + "There are errors getting data in this bundle request. ");
 			}
 
 			if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
 				bundleInfo.append("\n All requested files are successfully added to this bundle.");
 				filename = "/PackagingSuccessful.txt";
+				bundlerequestStatus += ": complete";
+//				logger.info(bundlerequestStatus +" This bundle request is successful.");
 			}
 
+			logger.info(bundlerequestStatus);
 			nStream = new ByteArrayInputStream(bundleInfo.toString().getBytes());
 			zout.putNextEntry(new ZipEntry(filename));
 			while ((l = nStream.read(buf)) != -1) {

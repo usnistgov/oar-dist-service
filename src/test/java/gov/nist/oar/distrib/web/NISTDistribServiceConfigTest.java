@@ -55,6 +55,7 @@ import java.io.File;
         "distrib.cachemgr.volumes[0].roles[1]=fast",
         "distrib.cachemgr.volumes[1].roles[0]=large",
         "distrib.cachemgr.volumes[1].roles[1]=general"
+        "logging.path=${basedir}/logs"
 })
 public class NISTDistribServiceConfigTest {
 

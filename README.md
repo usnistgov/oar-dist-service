@@ -169,6 +169,21 @@ The service can be configured via command-line arguments; provide the
 scripts/run_service.sh -h
 ```
 
+## Logging
+For each download request submitted to service, it captures information about an individual file or group/bundle of files requested to download. There are three types of requests,
+Single file download
+This request serves a file which is part of a collection associated with particular data record/data publication. 
+Single file download is served by using a long term URL.
+For this request we updated the service logs to print/output the record identifies, filename/filepath, its size and status of the download (success, failure or canceled by user)
+
+BundlePlan 
+Once bundleplan request is submitted for bundle/collection of files, it checks the size of each file and create bundles suggestion for download based on the size limitation per bundle. This request does not return actual data but returns the plan which user should use to download data to avoid issues getting large data sizes. For this type of request we log in details each file requested per bundle with common request identifier.
+
+Bundle Download
+This request actually serves data and delivers files as per request. In this request collection of files called bundle is requested with unique request identifier. The logs now collection information about each request and print request identifier, bundle name, files and sizes etc. It also produces information about whether bundle is successfully downloaded or partially downloaded or all files failed so bundle is failed to download.
+
+Note for developer ::
+Keep/maintain the formatting for these log messages as it is because there are log parsing scripts written in python in a separate project to get the request related information from log file and load in readable tables/collections in the database/
 
 ## Disclaimer
 
