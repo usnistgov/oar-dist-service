@@ -39,7 +39,7 @@ import org.slf4j.Logger;
  */
 public class CacheManagerProvider {
 
-    private NISTCacheManagerConfig cfg = null;
+    NISTCacheManagerConfig cfg = null;
     private BagStorage bagstore = null;
     private HeadBagCacheManager hbcmgr = null;
     private PDRCacheManager cmgr = null;
@@ -91,23 +91,35 @@ public class CacheManagerProvider {
      *                                     creating the CacheManager instance.  
      */
     public HeadBagCacheManager getHeadBagManager() throws ConfigurationException {
-        if (hbcmgr == null && canCreateManager()) {
-            try {
-                hbcmgr = cfg.createHeadBagManager(bagstore);
-            }
-            catch (ConfigurationException ex) {
-                throw ex;
-            }
-            catch (IOException ex) {
-                throw new ConfigurationException("Failed to configure HeadBagCacheManager due to io error: " +
-                                                 ex.getMessage(), ex);
-            }
-            catch (CacheManagementException ex) {
-                throw new ConfigurationException("Failed to configure CacheManager due to set-up error: " +
-                                                 ex.getMessage(), ex);
-            }
-        }
+        if (hbcmgr == null && canCreateManager())
+            hbcmgr = createHeadBagManager();
         return hbcmgr;
+    }
+    
+    /**
+     * return the instance of the HeadBagCacheManager that was created based on the configuration for the 
+     * application.  If one has not been created yet, it will be and cached in within this class. 
+     * @throws ConfigurationException   if there is a problem with the configuration that prevents 
+     *                                     creating the CacheManager instance.  
+     */
+    public HeadBagCacheManager createHeadBagManager() throws ConfigurationException {
+        if (! canCreateManager())
+            throw new ConfigurationException("Cache management not configured");
+        
+        try {
+            return cfg.createHeadBagManager(bagstore);
+        }
+        catch (ConfigurationException ex) {
+            throw ex;
+        }
+        catch (IOException ex) {
+            throw new ConfigurationException("Failed to configure HeadBagCacheManager due to io error: " +
+                                             ex.getMessage(), ex);
+        }
+        catch (CacheManagementException ex) {
+            throw new ConfigurationException("Failed to configure CacheManager due to set-up error: " +
+                                             ex.getMessage(), ex);
+        }
     }
 
     /**
