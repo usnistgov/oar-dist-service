@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.File;
 import java.util.List;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
@@ -231,9 +232,10 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
             removeObject(co.volname, co.name);
 
         // add the new object name to the database
+        PreparedStatement stmt = null;
         try {
             if (_conn == null) connect();
-            PreparedStatement stmt = _conn.prepareStatement(add_sql);
+            stmt = _conn.prepareStatement(add_sql);
             stmt.setString(1, id);
             stmt.setString(2, objname);
             stmt.setLong(3, size);
@@ -251,6 +253,10 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         }
         catch (SQLException ex) {
             throw new InventoryException("Failed to register object " + id + ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) {  }
+            try { disconnect(); } catch (SQLException ex) {} 
         }
 
         return new CacheObject(objname, metadata, volname);
@@ -361,8 +367,15 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
 
     protected ResultSet query(String sqlselect) throws SQLException {
         if (_conn == null) connect();
-        Statement stmt = _conn.createStatement();
-        return stmt.executeQuery(sqlselect);
+        Statement stmt = null;
+        try {
+            stmt = _conn.createStatement();
+            return stmt.executeQuery(sqlselect);
+        }
+        finally {
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) {  }
+            try { disconnect(); } catch (SQLException ex) {} 
+        }
     }
 
     /**
@@ -370,12 +383,19 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
      */
     public static PDRStorageInventoryDB createSQLiteDB(String filepath) {
         class SQLitePDRSIDB extends PDRStorageInventoryDB {
-            protected String dbfile = null;
+            protected File dbfile = null;
             SQLitePDRSIDB(String filepath) {
                 // we're allowing the file path to include the jdbc URL prefix.
                 super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
-                dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length())
-                                                               : filepath;
+                dbfile = new File((filepath.startsWith("jdbc:sqlite:"))
+                                  ? filepath.substring("jdbc:sqlite:".length())
+                                  : filepath);
+            }
+            @Override
+            protected void connect() throws SQLException {
+                if (! dbfile.isFile())
+                    throw new SQLException("Missing SQLite db file: "+dbfile.toString());
+                super.connect();
             }
         }
 

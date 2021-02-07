@@ -17,6 +17,7 @@ import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.InventorySearchException;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -32,7 +33,7 @@ import java.sql.SQLException;
  */
 public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
 
-    protected String dbfile = null;
+    protected File dbfile = null;
 
     /**
      * initialize the class to access the database via a given filename
@@ -42,8 +43,9 @@ public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
     public SQLiteStorageInventoryDB(String filepath) {
         // we're allowing the file path to include the jdbc URL prefix.
         super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
-        dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length())
-                                                       : filepath;
+        dbfile = new File((filepath.startsWith("jdbc:sqlite:"))
+                          ? filepath.substring("jdbc:sqlite:".length())
+                          : filepath);
     }
 
     /**
@@ -96,5 +98,12 @@ public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
             try { if (conn != null) conn.close(); } catch (SQLException ex) { }
         }
     }
-    
+
+    @Override
+    protected void connect() throws SQLException {
+        if (! dbfile.isFile())
+            throw new SQLException("Missing SQLite db file: "+dbfile.toString());
+        super.connect();
+    }
+
 }

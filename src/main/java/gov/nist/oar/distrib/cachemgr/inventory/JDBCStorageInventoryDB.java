@@ -173,6 +173,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             _conn = null;
         }
     }
+    private void quietDisconnect() {
+        try { disconnect(); } catch (SQLException ex) { }
+    }
 
     /**
      * return all the known locations of an object with a given id in the volumes
@@ -234,8 +237,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventorySearchException(ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -336,8 +339,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -390,8 +393,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
     
@@ -437,8 +440,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventoryException("Failure while selecting objects: " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
 
     }
@@ -481,8 +484,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventoryException("Failure while selecting objects: " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -611,8 +614,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventoryException("Failed to register object " + id + ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
 
         return new CacheObject(objname, metadata, volname);
@@ -681,8 +684,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
 
         return true;
@@ -810,8 +813,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -857,8 +860,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                                ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -926,8 +929,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          volname + ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -948,8 +951,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventoryException("Problem emptying database: "+ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -978,8 +981,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          "): "+ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -1046,8 +1049,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                              "): "+ex.getMessage(), ex);
             }
             finally {
-                try { if (stmt != null) stmt.close(); }
-                catch (SQLException ex) { }
+                try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+                quietDisconnect();
             }
         }
         else {
@@ -1073,8 +1076,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                              "): "+ex.getMessage(), ex);
             }
             finally {
-                try { if (stmt != null) stmt.close(); }
-                catch (SQLException ex) { }
+                try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+                quietDisconnect();
             }
         }
         loadVolumes();
@@ -1119,8 +1122,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          ": "+ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -1147,8 +1150,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          volname + ": " + ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -1176,8 +1179,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                                          ": "+ex.getMessage(), ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect();
         }
     }
 
@@ -1256,8 +1259,8 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             throw new InventorySearchException(ex);
         }
         finally {
-            try { if (stmt != null) stmt.close(); }
-            catch (SQLException ex) {  }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) {  }
+            quietDisconnect();
         }
     }
     
@@ -1275,7 +1278,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     }
 
     protected void finalize() {
-        try { disconnect(); } catch (SQLException ex) {} 
+        quietDisconnect();
     }
 
     private JSONObject copy(JSONObject jo) {

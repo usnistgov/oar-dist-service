@@ -29,6 +29,8 @@ import org.json.JSONException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import java.io.File;
+import java.sql.SQLException;
 
 /**
  * an extension of the {@link PDRStorageInventoryDB} class that adds specialized functionality to 
@@ -131,12 +133,19 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
      */
     public static HeadBagDB createHeadBagDB(String filepath) {
         class SQLiteHeadBagDB extends HeadBagDB {
-            protected String dbfile = null;
+            protected File dbfile = null;
             SQLiteHeadBagDB(String filepath) {
                 // we're allowing the file path to include the jdbc URL prefix.
                 super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
-                dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length())
-                                                               : filepath;
+                dbfile = new File((filepath.startsWith("jdbc:sqlite:"))
+                                  ? filepath.substring("jdbc:sqlite:".length())
+                                  : filepath);
+            }
+            @Override
+            protected void connect() throws SQLException {
+                if (! dbfile.isFile())
+                    throw new SQLException("Missing SQLite db file: "+dbfile.toString());
+                super.connect();
             }
         }
 
