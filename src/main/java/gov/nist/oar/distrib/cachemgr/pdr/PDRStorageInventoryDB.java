@@ -367,15 +367,9 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
 
     protected ResultSet query(String sqlselect) throws SQLException {
         if (_conn == null) connect();
-        Statement stmt = null;
-        try {
-            stmt = _conn.createStatement();
-            return stmt.executeQuery(sqlselect);
-        }
-        finally {
-            try { if (stmt != null) stmt.close(); } catch (SQLException ex) {  }
-            try { disconnect(); } catch (SQLException ex) {} 
-        }
+        Statement stmt = _conn.createStatement();
+        stmt.closeOnCompletion();
+        return stmt.executeQuery(sqlselect);
     }
 
     /**

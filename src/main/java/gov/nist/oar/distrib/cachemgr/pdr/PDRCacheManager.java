@@ -534,6 +534,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             if (! res.next())
                 throw new VolumeNotFoundException(volname);
             int vid = res.getInt("id");
+            res.close();
 
             JSONObject out = new JSONObject();
             out.put("name", volname);
@@ -562,6 +563,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                                                     .format(DateTimeFormatter.ISO_INSTANT));
             else
                 out.put("checkedDate", "(never)");
+            try { res.close(); } catch (SQLException ex) { /* try ignoring */ }
 
             return out;
         }
@@ -686,9 +688,10 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
             .append(aipid).append("/%' GROUP BY d.ediid");
 
+        ResultSet res = null;
         PDRStorageInventoryDB sidb = getInventoryDB();
         try {
-            ResultSet res = sidb.query(qsel.toString());
+            res = sidb.query(qsel.toString());
             JSONObject row = null;
             if (! res.next())
                 return null;
@@ -696,6 +699,9 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         }
         catch (SQLException ex) {
             throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (res != null) res.close(); } catch (SQLException ex) { /* try ignoring */ }
         }
     }
 
@@ -723,6 +729,8 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                 row = extractDatasetInfo(res);
                 out.put(row);
             }
+            try { res.close(); } catch (SQLException ex) { /* try ignoring */ }
+
             return out;
         }
         catch (SQLException ex) {
