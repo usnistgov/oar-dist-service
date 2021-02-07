@@ -179,7 +179,7 @@ public class NISTCacheManagerConfig {
      *        <ul> 
      *   </dd>
      * 
-     *   <dt> <b><code>redirectURL</code></b> (string)  </dt>
+     *   <dt> <b><code>redirectBase</code></b> (string)  </dt>
      *   <dd> a base URL for accessing objects in the volume by name (see 
      *        {@link gov.nist.oar.distrib.cachemgr.CacheVolume#getRedirectFor(String)}). </dd>
      * </dl>
