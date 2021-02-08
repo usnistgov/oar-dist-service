@@ -11,6 +11,8 @@
  */
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
+
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -84,12 +86,14 @@ public class CacheManagementControllerTest {
     @Autowired
     CacheManagerProvider provider;
 
-    public static void cleanTestDir(File testdir) throws IOException {
+    public void cleanTestDir(File testdir) throws IOException, ConfigurationException {
         /*
         */
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
+        HeadBagCacheManager hbcm = provider.createHeadBagManager();
+        provider.createPDRCacheManager(hbcm);
     }
 
     @BeforeClass
@@ -101,7 +105,8 @@ public class CacheManagementControllerTest {
         if (! tmp.exists())
             tmp.mkdir();
         testdir = new File(tmp, "testcmgr");
-        cleanTestDir(testdir);
+        testdir.mkdirs();
+        // cleanTestDir(testdir);
     }
 
     @AfterClass
@@ -110,7 +115,7 @@ public class CacheManagementControllerTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws IOException, ConfigurationException {
         cleanTestDir(testdir);
     }
 
