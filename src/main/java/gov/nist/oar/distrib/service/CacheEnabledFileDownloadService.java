@@ -297,12 +297,13 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
      * by a call to  {@link #getDataFile(String,String,String)} as the latter will repeat the search of the 
      * cache inventory.  
      */
-    public static URL redirectFor(CacheObject co) {
+    public URL redirectFor(CacheObject co) {
         if (co == null || co.volume == null)
             return null;
 
+        URL out = null;
         try {
-            return co.volume.getRedirectFor(co.name);
+            out = co.volume.getRedirectFor(co.name);
         }
         catch (UnsupportedOperationException ex) { }
         catch (StorageVolumeException ex) {
@@ -312,7 +313,16 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
             logger.warn("Ignoring redirect cached version of file");
         }
 
-        return null;
+        if (out != null) {
+            try {
+                cmgr.confirmAccessOf(co);
+            }
+            catch (CacheManagementException ex) {
+                logger.error("Failure confirming access for object, {}: {}", co.name, ex.getMessage());
+            }
+        }
+
+        return out;
     }
 
     /**
@@ -321,7 +331,13 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
      * if that function returns null--i.e. there is no redirect URL available--one can open a stream to the
      * object in the cache via this function.
      */
-    public static StreamHandle openStreamFor(CacheObject co) throws StorageVolumeException {
+    public StreamHandle openStreamFor(CacheObject co) throws StorageVolumeException {
+        try {
+            cmgr.confirmAccessOf(co);
+        }
+        catch (CacheManagementException ex) {
+            logger.error("Failure confirming access for object, {}: {}", co.name, ex.getMessage());
+        }
         return cacheObject2StreamHandle(co);
     }
     

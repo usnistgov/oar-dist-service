@@ -175,6 +175,12 @@ public class SimpleCacheManagerTest {
 
         File cf = new File(new File(tempf.getRoot(), co.volname), "mds1491.mbag0_2-0.zip");
         assertTrue("Can't find cache file", cf.exists());
+
+        long accesstime = co.getMetadatumLong("since", -1L);
+        assertTrue(accesstime > 0);
+        scm.confirmAccessOf(co);
+        co = scm.findObject("mds1491.mbag0_2-0.zip");
+        assertTrue(accesstime < co.getMetadatumLong("since", -1L));
     }
 
     @Test

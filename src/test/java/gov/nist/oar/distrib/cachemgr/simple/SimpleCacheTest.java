@@ -171,6 +171,13 @@ public class SimpleCacheTest
         assertEquals(6321, co.getSize());
         assertTrue("Funny timestamp on cranky1: age="+Long.toString(now-co.getMetadatumLong("since", 0L)),
                    now-co.getMetadatumLong("since", 0L)-6321*60000 < 5000);
+
+        // test confirmAccessOf() while we're at it
+        long accesstime = co.getMetadatumLong("since", -1L);
+        assertTrue(accesstime > 0);
+        cache.confirmAccessOf(co);
+        co = cache.findObject("cranky1");
+        assertTrue(accesstime < co.getMetadatumLong("since", -1L));
     }
 
     @Test

@@ -155,11 +155,13 @@ public interface StorageInventoryDB extends VolumeStatus {
         throws InventoryException;
 
     /**
-     * update the time of last access for an object to the current time.
+     * update the time of last access for an object to the current time.  
      * <p>
      * Note that this time should be initialized automatically when the object is first added
      * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
      * should not be necessary to call this to initialize the access time.
+     * @return boolean   false if the objname is not registered as in the specified volume
+     * @throws InventoryException   if there is a failure updating the database.
      */
     public boolean updateAccessTime(String volname, String objname) throws InventoryException;
 
@@ -170,6 +172,8 @@ public interface StorageInventoryDB extends VolumeStatus {
      * to a volume (via {@link #addObject(String,String,String,JSONObject) addObject()}); thus, it 
      * should not be necessary to call this to initialize the access time.  A time equal to 0 indicates
      * the file has never been checked or that that time is otherwise unknown.  
+     * @return boolean   false if the objname is not registered as in the specified volume
+     * @throws InventoryException   if there is a failure updating the database.
      */
     public boolean updateCheckedTime(String volname, String objname, long timemilli) throws InventoryException;
 

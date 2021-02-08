@@ -145,11 +145,17 @@ public abstract class CacheManager {
      * return a CacheObject representation of a data object having a given identifier.
      * This method will restore the object into the cache if it does not already exist there.  
      * The CacheObject will include a reference to the CacheVolume the object is contained in.
+     * <p>
+     * Note that this default implementation transparently call {@link #confirmAccessOf(CacheObject)}. 
      * @param id       the identifier for the data object of interest.
      */
     public CacheObject getObject(String id) throws CacheManagementException {
-        this.cache(id, false);
-        return findObject(id);
+        CacheObject out;
+        boolean newlycached = this.cache(id, false);
+            
+        out = findObject(id);
+        if (! newlycached) confirmAccessOf(out);
+        return out;
     }
 
     /**
@@ -160,11 +166,25 @@ public abstract class CacheManager {
     public abstract CacheObject findObject(String id) throws CacheManagementException;
 
     /**
+     * indicate that a given object was actually used.  It is expected that the given object 
+     * was returned by {@link #findObject(String)}; however, it is not assumed that the object
+     * underlying the returned {@link CacheObject} was actually accessed, so this method provides 
+     * the client a way to indicate it was actually accessed (e.g. delivered to a user)
+     * <p>
+     * Note that the default implementation of {@link getObject(String)} will call this method 
+     * automatically.  
+     * @return boolean      false if the objname is not (e.g. no longer) stored in the cache.
+     */
+    public abstract boolean confirmAccessOf(CacheObject obj) throws CacheManagementException;
+
+    /**
      * return a URL that the object with the given name can be alternatively 
      * read from.  This allows for a potentially faster way to deliver a file
      * to web clients than via a Java stream copy.  Not all implementations may
      * support this.  If a URL is not available for the given identifier, null 
-     * is returned
+     * is returned.
+     * <p>
+     * Note that this default implementation transparently call {@link #confirmAccessOf(CacheObject)}. 
      * @param id       the identifier of the object to get
      * @return URL     the URL from which the object can be streamed 
      * @throws CacheManagementException   if there is an internal error while trying to 

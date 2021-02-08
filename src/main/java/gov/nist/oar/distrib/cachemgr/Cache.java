@@ -76,6 +76,15 @@ public abstract class Cache {
     public abstract CacheObject findObject(String id) throws CacheManagementException;
 
     /**
+     * indicate that a given object was actually used.  It is expected that the given object 
+     * was returned by {@link #findObject(String)}; however, it is not assumed that the 
+     * underlying object is actually accessed, so this method provides the client the ability to 
+     * indicate the underlying object was actually accessed (e.g. delivered to a user)
+     * @return boolean      false if the objname is not (e.g. no longer) stored in the cache.
+     */
+    public abstract boolean confirmAccessOf(CacheObject obj) throws CacheManagementException;
+
+    /**
      * return the CacheVolume with the given name or null if name does not exist in this cache.  Note 
      * that this assumes that volume names are unique; however, this interface does not guarantee 
      * it.  Implementations must either guarantee it or have a way of selecting a single 

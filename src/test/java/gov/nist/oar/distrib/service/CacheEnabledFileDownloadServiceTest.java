@@ -296,8 +296,15 @@ public class CacheEnabledFileDownloadServiceTest {
         redir = svc.getDataFileRedirect("mds1491", "trial3/trial3a.json", "0");
         assertEquals("https://goob.net/c/old/mds1491/trial3/trial3a-v0.json", redir.toString());
 
+        // check also that the access time gets updated transparently
+        CacheObject co = svc.findCachedObject("mds1491", "trial1.json.sha256", null);
+        long accesstime = co.getMetadatumLong("since", -1L);
+        assertTrue(accesstime > 0);
+        
         redir = svc.getDataFileRedirect("mds1491", "trial1.json.sha256", null);
         assertEquals("https://goob.net/c/foobar/mds1491/trial1.json.sha256", redir.toString());
+        co = svc.findCachedObject("mds1491", "trial1.json.sha256", null);
+        assertTrue(accesstime < co.getMetadatumLong("since", -1L));
     }
 
     @Test
@@ -353,13 +360,18 @@ public class CacheEnabledFileDownloadServiceTest {
         }
 
         // now a file in the cache
+        // check also that the access time gets updated transparently
         mgr.cache("mds1491/trial3/trial3a.json#0");
         co = svc.findCachedObject("mds1491", "trial3/trial3a.json", "0");
         assertNotNull(co);
+        long accesstime = co.getMetadatumLong("since", -1L);
+        assertTrue(accesstime > 0);
         redir = svc.redirectFor(co);
         assertEquals("https://goob.net/c/old/mds1491/trial3/trial3a-v0.json", redir.toString());
         try (StreamHandle sh = svc.openStreamFor(co)) {
             assertEquals(70, sh.dataStream.read(buf));
         }
+        co = svc.findCachedObject("mds1491", "trial3/trial3a.json", "0");
+        assertTrue(accesstime < co.getMetadatumLong("since", -1L));
     }
 }

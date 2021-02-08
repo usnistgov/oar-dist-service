@@ -251,6 +251,19 @@ public abstract class BasicCache extends Cache {
     }
 
     /**
+     * indicate that a given object was actually used.  It is expected that the given object 
+     * was returned by {@link #findObject(String)}; however, it is not assumed that the 
+     * underlying object is actually accessed, so this method provides the client the ability to 
+     * indicate the underlying object was actually accessed (e.g. delivered to a user)
+     * @return boolean      false if the objname is not (e.g. no longer) stored in the cache.
+     * @throws InventoryException   if there is a failure updating the database.
+     */
+    @Override
+    public boolean confirmAccessOf(CacheObject obj) throws CacheManagementException {
+        return db.updateAccessTime(obj.volname, obj.name);
+    }
+
+    /**
      * make the cache volume part of this cache.  The cache is expected to be empty.
      * @param vol       the CacheVolume to add to this Cache
      * @param capacity  the limit on the amount of space available for data objects

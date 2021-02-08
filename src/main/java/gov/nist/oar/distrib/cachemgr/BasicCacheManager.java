@@ -68,6 +68,20 @@ public abstract class BasicCacheManager extends CacheManager {
     }
 
     /**
+     * indicate that a given object was actually used.  It is expected that the given object 
+     * was returned by {@link #findObject(String)}; however, it is not assumed that the object
+     * underlying the returned {@link CacheObject} was actually accessed, so this method provides 
+     * the client a way to indicate it was actually accessed (e.g. delivered to a user).
+     * <p>
+     * Note that the default implementation of {@link getObject(String)} will call this method 
+     * automatically.  
+     * @return boolean      false if the objname is not (e.g. no longer) stored in the cache.
+     */
+    public boolean confirmAccessOf(CacheObject obj) throws CacheManagementException {
+        return theCache.confirmAccessOf(obj);
+    }
+
+    /**
      * remove all copies of the data object with the given ID from the cache
      * @param id       the identifier for the data object of interest.
      */
