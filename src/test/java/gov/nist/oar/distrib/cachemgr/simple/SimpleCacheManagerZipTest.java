@@ -47,8 +47,8 @@ import gov.nist.oar.distrib.cachemgr.restore.ZipFileRestorer;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 
-import gov.nist.oar.distrib.RequireWebSite;
-import gov.nist.oar.distrib.EnvVarIncludesWords;
+import gov.nist.oar.RequireWebSite;
+import gov.nist.oar.EnvVarIncludesWords;
 
 import org.json.JSONObject;
 import org.json.JSONException;

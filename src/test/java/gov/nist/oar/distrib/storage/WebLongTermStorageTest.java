@@ -41,8 +41,8 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
-import gov.nist.oar.distrib.RequireWebSite;
-import gov.nist.oar.distrib.EnvVarIncludesWords;
+import gov.nist.oar.RequireWebSite;
+import gov.nist.oar.EnvVarIncludesWords;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
