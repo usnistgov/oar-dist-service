@@ -58,7 +58,15 @@ public abstract class BasicCache extends Cache {
      */
     protected StorageInventoryDB db = null;
 
-    private Deque<String> recent = null;  // used to help distribute files across volumes
+    /**
+     * an list of the volume names in {@link #volumes} (reverse-)ordered by how recently it was 
+     * added to.  The names are ordered from least-recent to most-recent.  This can be used by 
+     * subclasses to help distribute data across the different across the different volumes, 
+     * particularly before the volues fill up.  (After that, the deletion plans play a stronger 
+     * role in where data is saved.)
+     */
+    protected Deque<String> recent = null;  // used to help distribute files across volumes
+
     protected Logger log = null;
 
     /**

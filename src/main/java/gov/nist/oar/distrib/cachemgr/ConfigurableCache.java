@@ -343,13 +343,18 @@ public class ConfigurableCache extends BasicCache {
      *                      returned.  
      */
     protected Collection<CacheVolume> selectVolumes(int preferences) throws InventoryException {
-        ArrayList<CacheVolume> out = new ArrayList<CacheVolume>(volumes.size());
+        ArrayList<CacheVolume> out = new ArrayList<CacheVolume>(recent.size());
+        Collection<String> volnames = db.volumes();
 
-        for (String volnm : db.volumes()) {
-            if (db.getVolumeStatus(volnm) < VolumeStatus.VOL_FOR_UPDATE) {
-                log.debug("Cache volume {} is not available for updates; skipping", volnm);
-                continue;
+        // Note: recent sets the order that the volumes are analyzed. 
+        for (String volnm : recent) {
+            try {
+                if (db.getVolumeStatus(volnm) < VolumeStatus.VOL_FOR_UPDATE) {
+                    log.debug("Cache volume {} is not available for updates; skipping", volnm);
+                    continue;
+                }
             }
+            catch (VolumeNotFoundException ex) { continue; }
 
             if (preferences > 0) {
                 JSONObject vmd = db.getVolumeInfo(volnm);
