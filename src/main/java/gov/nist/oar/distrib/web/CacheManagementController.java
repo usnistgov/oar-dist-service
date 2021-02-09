@@ -177,7 +177,7 @@ public class CacheManagementController {
                   notes="Each item describes a dataset which currently exists in the cache")
     @GetMapping(value="/objects/{dsid}/{opstat}")
     public ResponseEntity<List<Object>> listObjectsFor(@PathVariable("dsid") String dsid,
-                                                       @PathVariable("dsid") String opstat)
+                                                       @PathVariable("opstat") String opstat)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
         _checkForManager();
