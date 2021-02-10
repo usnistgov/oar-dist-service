@@ -590,7 +590,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         List<CacheObject> found = queryForObjects(sb.toString());
         for(CacheObject co : found)
             // remove these entries with the same name
-            removeObject(co.volname, co.name);
+            removeObject(co.volname, co.name, true);
 
         // add the new object name to the database
         PreparedStatement stmt = null;

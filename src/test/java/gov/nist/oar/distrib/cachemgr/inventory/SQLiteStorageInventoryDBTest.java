@@ -217,7 +217,7 @@ public class SQLiteStorageInventoryDBTest {
         assertTrue("unexpected since value: "+Long.toString(since), since > 0);
         assertTrue("cached flag not set to True", cob.cached);
         
-        List<CacheObject> cos = sidb.findObject("1234/goober.json");
+        List<CacheObject> cos = sidb.findObject("1234/goober.json", sidb.VOL_FOR_INFO);
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
         assertEquals(-1L, cos.get(0).getSize());
@@ -238,7 +238,7 @@ public class SQLiteStorageInventoryDBTest {
 
         // add a 2nd object with the same ID, different volume
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
-        cos = sidb.findObject("1234/goober.json");
+        cos = sidb.findObject("1234/goober.json", sidb.VOL_FOR_INFO);
         assertEquals(2, cos.size());
         assertEquals(-1L, cos.get(0).getSize());
         assertEquals(5, cos.get(0).metadatumNames().size());
@@ -276,7 +276,7 @@ public class SQLiteStorageInventoryDBTest {
         assertEquals(4, cob.getMetadatumInt("priority", 0));
         assertEquals(456L, cob.getMetadatumLong("size", -1L));
         
-        cos = sidb.findObject("1234/goober.json");
+        cos = sidb.findObject("1234/goober.json", sidb.VOL_FOR_INFO);
         assertEquals(2, cos.size());
         CacheObject first=null, second=null;
         for(CacheObject co : cos) {
