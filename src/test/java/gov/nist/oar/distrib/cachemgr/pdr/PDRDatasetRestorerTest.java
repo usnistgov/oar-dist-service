@@ -29,6 +29,7 @@ import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
@@ -361,6 +362,40 @@ public class PDRDatasetRestorerTest {
         assertEquals(2, cached.size());
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+
+        // test what happens when attempting recache
+        List<CacheObject> found =
+            cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                                              VolumeStatus.VOL_FOR_GET);
+        assertEquals(1, found.size());
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        found =
+            cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                                              VolumeStatus.VOL_FOR_INFO);
+        assertEquals(1, found.size());
+
+        // test when file might get cached to different volume
+        File croot = new File(tempf.getRoot(),"data");
+        File cvdir = new File(croot, "crunchy");  cvdir.mkdir();
+        VolumeConfig vc = new VolumeConfig();
+        CacheVolume cv = new FilesystemCacheVolume(cvdir, "crunchy");
+        cv = new FilesystemCacheVolume(cvdir, "crunchy");
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
+        
+        assertTrue(
+            cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
+        assertTrue(
+            cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        found =
+            cache.getInventoryDB()
+                 .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                             VolumeStatus.VOL_FOR_GET);
+        assertEquals(1, found.size());
+        assertEquals("cranky", found.get(0).volname);
     }
 
     @Test

@@ -540,27 +540,31 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 if (forVersion != null)
                     id += "#"+forVersion;
 
-                // extract the file's metadata; convert it for storage in cache
-                JSONObject md = hbcm.findComponentByFilepath(resmd, filepath);
-                if (md == null) {
-                    log.warn("Unable to find metadata for filepath: {}", filepath);
-                    md = new JSONObject();
-                    md.put("size", ze.getSize());
-                }
-                md = getCacheMDFrom(md);
-                md.put("aipid", aipid);
-                md.put("version", version);
-                md.put("bagfile", bagfile);
-                if (resmd.has("@id"))
-                    md.put("pdrid", resmd.get("@id"));
-                if (resmd.has("ediid"))
-                    md.put("ediid", resmd.get("ediid"));
-                md.put("cachePrefs", prefs);
+                if (! into.isCached(id)) {
+                    // extract the file's metadata; convert it for storage in cache
+                    JSONObject md = hbcm.findComponentByFilepath(resmd, filepath);
+                    if (md == null) {
+                        log.warn("Unable to find metadata for filepath: {}", filepath);
+                        md = new JSONObject();
+                        md.put("size", ze.getSize());
+                    }
+                    md = getCacheMDFrom(md);
+                    md.put("aipid", aipid);
+                    md.put("version", version);
+                    md.put("bagfile", bagfile);
+                    if (resmd.has("@id"))
+                        md.put("pdrid", resmd.get("@id"));
+                    if (resmd.has("ediid"))
+                        md.put("ediid", resmd.get("ediid"));
+                    md.put("cachePrefs", prefs);
 
-                // find space in the cache, and copy the data file into it
-                Reservation resv = into.reserveSpace(ze.getSize(), prefs);
-                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
-                log.info("Cached "+id);
+                    // find space in the cache, and copy the data file into it
+                    Reservation resv = into.reserveSpace(ze.getSize(), prefs);
+                    co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
+                    log.info("Cached "+id);
+                }
+                else
+                    log.info("Skipping caching of {}: already cached");
 
                 if (need != null)
                     need.remove(filepath);
