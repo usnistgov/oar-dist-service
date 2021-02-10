@@ -252,7 +252,7 @@ public class Reservation {
             if (_incr > 0) bytesread += _incr;
             return _incr;
         }
-        public void close() throws IOException { dep.close(); }
+        public void close() throws IOException { /* do not close the wrapped stream */ }
         public long count() { return bytesread; }
     }
 
