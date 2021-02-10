@@ -395,7 +395,7 @@ public class PDRDatasetRestorerTest {
                  .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
                              VolumeStatus.VOL_FOR_GET);
         assertEquals(1, found.size());
-        assertEquals("cranky", found.get(0).volname);
+        assertEquals("crunchy", found.get(0).volname);
     }
 
     @Test
