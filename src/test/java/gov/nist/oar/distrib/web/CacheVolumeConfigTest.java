@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.net.MalformedURLException;
+import com.amazonaws.services.s3.AmazonS3;
 
 public class CacheVolumeConfigTest {
 
@@ -52,7 +53,7 @@ public class CacheVolumeConfigTest {
     @Before
     public void setUp() throws IOException {
         cmcfg.setAdmindir(tempf.newFolder("cache").toString());
-        voldir = new File(tempf.getRoot(), "volume");
+        voldir = new File(cmcfg.getAdmindir(), "volume");
         voldir.mkdir();
         
         cfg = new NISTCacheManagerConfig.CacheVolumeConfig();
@@ -136,27 +137,27 @@ public class CacheVolumeConfigTest {
     public void testCreateCacheVolume()
         throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
     {
-        CacheVolume cv = cfg.createCacheVolume(cmcfg);
+        CacheVolume cv = cfg.createCacheVolume(cmcfg, null);
         assertTrue(cv instanceof FilesystemCacheVolume);
         assertEquals(voldir, ((FilesystemCacheVolume) cv).getRootDir());
 
         try {
             cfg.setLocation("s3://nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg);
+            cfg.createCacheVolume(cmcfg, null);
             fail("Failed to raise exception for unconfigured S3 client");
         }
         catch (ConfigurationException ex) { /* success */ }
 
         try {
             cfg.setLocation("next://nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg);
+            cfg.createCacheVolume(cmcfg, null);
             fail("Failed to raise exception for unrecognized volume type");
         }
         catch (ConfigurationException ex) { /* success */ }
 
         try {
             cfg.setLocation("/oar/data/nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg);
+            cfg.createCacheVolume(cmcfg, null);
             fail("Failed to raise exception for missing location scheme");
         }
         catch (ConfigurationException ex) { /* success */ }

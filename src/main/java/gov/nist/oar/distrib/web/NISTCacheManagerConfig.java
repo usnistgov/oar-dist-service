@@ -196,7 +196,6 @@ public class NISTCacheManagerConfig {
         private Map<String,Object> delStrat = null;
         private String redirectbase = null;
         private String volname = null;
-        private AmazonS3 s3client = null;
 
         public long     getCapacity()           { return capacity; }
         public void     setCapacity(long cap)   { capacity = cap;  }
@@ -212,8 +211,6 @@ public class NISTCacheManagerConfig {
         public void     setRedirectBase(String urlbase) { redirectbase = urlbase; }
         public String   getName()             { return volname;   }
         public void     setName(String n)     { volname = n;      }
-        public AmazonS3 getS3Client()         { return s3client; }
-        public void     setS3Client(AmazonS3 s3) { s3client = s3; }
 
         int getStatusCode() throws ConfigurationException {
             if ("info".equals(getStatus()))
@@ -292,7 +289,7 @@ public class NISTCacheManagerConfig {
         /**
          * create a CacheVolume as prescribed by this configuration
          */
-        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg)
+        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg, AmazonS3 s3client)
             throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
         {
             if (location == null || location.length() == 0)
@@ -305,7 +302,8 @@ public class NISTCacheManagerConfig {
                 throw new ConfigurationException("Bad cache volume location URL: "+location);
             if (m.group(1).equals("s3")) {
                 if (s3client == null)
-                    throw new ConfigurationException("S3 client instance not provided for volume, "+location);
+                    throw new ConfigurationException("S3 client instance not availabe for AWS volume, "
+                                                     +location);
 
                 // S3 bucket; note: location starts with "s3://"
                 Path bucketfolder = Paths.get(location.substring(m.end()));
@@ -342,7 +340,7 @@ public class NISTCacheManagerConfig {
         }
     }
 
-    public BasicCache createDefaultCache()
+    public BasicCache createDefaultCache(AmazonS3 s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         // establish the base directory
@@ -381,7 +379,7 @@ public class NISTCacheManagerConfig {
 
             vc = (new VolumeConfig(cfg.getStatusCode())).withDeletionStrategy(cfg.createDeletionStrategy())
                                                         .withRoles(roles);
-            cache.addCacheVolume(cfg.createCacheVolume(this), cfg.getCapacity(), null, vc, false);
+            cache.addCacheVolume(cfg.createCacheVolume(this, s3), cfg.getCapacity(), null, vc, false);
         }
                 
         return cache;

@@ -164,7 +164,7 @@ public class NISTCacheManagerConfigTest {
 
     @Test
     public void testCreateDefaultCache() throws ConfigurationException, IOException, CacheManagementException {
-        BasicCache cache = cfg.createDefaultCache();
+        BasicCache cache = cfg.createDefaultCache(null);
 
         File inv = new File(rootdir, "data.sqlite");
         assertTrue(inv.isFile());
@@ -185,7 +185,7 @@ public class NISTCacheManagerConfigTest {
         BagStorage bags = makeBagStorage();
         HeadBagCacheManager hbcmgr = cfg.createHeadBagManager(bags);
         PDRDatasetRestorer restr = cfg.createDefaultRestorer(bags, hbcmgr);
-        BasicCache cache = cfg.createDefaultCache();
+        BasicCache cache = cfg.createDefaultCache(null);
 
         PDRCacheManager cmgr = cfg.createCacheManager(cache, restr, LoggerFactory.getLogger("cachemgr"));
         assertNull(cmgr.findObject("goober"));

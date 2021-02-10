@@ -28,6 +28,7 @@ import javax.activation.MimetypesFileTypeMap;
 import org.springframework.lang.Nullable;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * A factory for creating the PDR's CacheManager that can work with the Spring framework's configuration 
@@ -43,15 +44,17 @@ public class CacheManagerProvider {
     private BagStorage bagstore = null;
     private HeadBagCacheManager hbcmgr = null;
     private PDRCacheManager cmgr = null;
+    private AmazonS3 s3client = null;
 
     /**
      * create the factory.
      * @param config      the cache configuration data 
      * @param bagstorage  the long-term bag storage
      */
-    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage) {
+    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage, AmazonS3 s3c) {
         cfg = config;
         bagstore = bagstorage;
+        s3client = s3c;
         if (canCreateManager())
             _getLogger().info("A CacheManager will be created for this application.");
         else
@@ -152,7 +155,7 @@ public class CacheManagerProvider {
         headbagcmgr = getHeadBagManager();
 
         try {
-            BasicCache cache = cfg.createDefaultCache();
+            BasicCache cache = cfg.createDefaultCache(s3client);
             PDRDatasetRestorer restorer = 
                 cfg.createDefaultRestorer(bagstore, headbagcmgr);
 

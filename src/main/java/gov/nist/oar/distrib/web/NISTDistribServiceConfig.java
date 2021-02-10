@@ -269,8 +269,10 @@ public class NISTDistribServiceConfig {
      * the configured CacheManagerProvider to use
      */
     @Bean
-    public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstor) {
-        return new CacheManagerProvider(config, bagstor);
+    public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config,
+                                                        BagStorage bagstor, AmazonS3 s3client)
+    {
+        return new CacheManagerProvider(config, bagstor, s3client);
     }
 
     /**
