@@ -47,6 +47,7 @@ RUN chown $devuser:$devuser /home/$devuser/.m2/settings.xml && \
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod a+rx /app/entrypoint.sh
 
+ENV S3MOCK_JAVA_OPTS -XX:+UseContainerSupport 
 WORKDIR /app/dev
 USER $devuser
 
