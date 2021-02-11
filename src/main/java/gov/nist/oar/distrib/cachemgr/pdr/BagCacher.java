@@ -539,15 +539,22 @@ public class BagCacher implements PDRCacheRoles {
 
         Reservation resv = null;
         try {
-            resv = cache.reserveSpace(size, prefs);
+            try {
+                resv = cache.reserveSpace(size, prefs);
+            }
+            catch (NoMatchingVolumesException ex) {
+                if (prefs == 0 || (prefs & ROLE_GENERAL_PURPOSE) > 0)
+                    throw ex;
+                // try again with looser preferences
+                resv = cache.reserveSpace(size, ROLE_GENERAL_PURPOSE);
+            }
+            resv.saveAs(in, id, nm, md);
         }
-        catch (NoMatchingVolumesException ex) {
-            if (prefs == 0 || (prefs & ROLE_GENERAL_PURPOSE) > 0)
-                throw ex;
-            // try again with looser preferences
-            resv = cache.reserveSpace(size, ROLE_GENERAL_PURPOSE);
+        catch (CacheManagementException ex) {
+            // don't leave a zombie reservation in the DB
+            if (resv != null) resv.drop();
+            throw ex;
         }
-        resv.saveAs(in, id, nm, md);
         if (need != null)
             need.remove(filepath.toString());
         cached.add(filepath.toString());

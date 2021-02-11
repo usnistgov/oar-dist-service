@@ -516,7 +516,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         }
         else
             fs = ltstore.openFile(bagfile);
-        
+
+        Reservation resv = null;
         try {
             // cycle throught the contents of the zip file
             ZipInputStream zipstrm = new ZipInputStream(fs);
@@ -562,7 +563,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 md.put("cachePrefs", prefs);
 
                 // find space in the cache, and copy the data file into it
-                Reservation resv = into.reserveSpace(ze.getSize(), prefs);
+                resv = into.reserveSpace(ze.getSize(), prefs);
                 co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
                 log.info("Cached "+id);
 
@@ -572,6 +573,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             }
         }
         catch (IOException ex) {
+            // don't leave a zombie reservation in the DB
+            if (resv != null) resv.drop();
             throw new RestorationException(bagfile+": Trouble reading bag contents: "+ex.getMessage(), ex);
         }
         finally {
