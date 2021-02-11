@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 
@@ -33,8 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.sql.DriverManager;
@@ -901,6 +904,193 @@ public class PDRStorageInventoryDBTest {
 
         cos = sidb.selectObjectsByEDIID("ark:/88888/0000", 0);
         assertEquals(0, cos.size());
+    }
+
+    @Test
+    public void testGetVolumeTotals() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONObject md = sidb.getVolumeTotals("foobar");
+        assertEquals(0L, md.getLong("totalsize"));
+        assertEquals(0L, md.getLong("filecount"));
+        assertEquals(0L, md.getLong("since"));
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+        md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+        md.put("pdrid", "ark:/88888/1234");
+        md.put("ediid", "1234");
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        md.put("size", 544L);
+        sidb.addObject("1234/gurn.json", "foobar", "1234_gurn.json", md);
+        sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+
+        md = sidb.getVolumeTotals("foobar");
+        assertEquals(1000L, md.getLong("totalsize"));
+        assertEquals(2L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+        md = sidb.getVolumeTotals("fundrum");
+        assertEquals(544L, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+        try {
+            md = sidb.getVolumeTotals("hank");
+            fail("Found non-existent volume");
+        }
+        catch (VolumeNotFoundException ex) { /* success! */ }
+    }
+
+    @Test
+    public void testSummarizeDataset() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        assertNull(sidb.summarizeDataset("1234"));
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+        md.put("pdrid", "ark:/88888/1234");
+        md.put("ediid", "1234");
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        md.put("size", 544L);
+        sidb.addObject("1234/gurn.json", "fundrum", "1234_gurn.json", md);
+        md.put("pdrid", "ark:/88888/2345");
+        md.put("ediid", "2345");
+        sidb.addObject("2345/goober.json", "fundrum", "2345_goober.json", md);
+
+        md = sidb.summarizeDataset("1234");
+        assertEquals(1000L, md.getLong("totalsize"));
+        assertEquals(2L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+        
+        md = sidb.summarizeDataset("2345");
+        assertEquals(544L, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+    }
+
+    @Test
+    public void testSummarizeContents() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        sidb.registerAlgorithm("md5");
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+        sidb.registerVolume("fundrum", 450000, null);
+
+        JSONArray summs = sidb.summarizeContents(null);
+        assertEquals(0, summs.length());
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+        md.put("pdrid", "ark:/88888/1234");
+        md.put("ediid", "1234");
+
+        sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
+        md.put("size", 544L);
+        sidb.addObject("1234/gurn.json", "fundrum", "1234_gurn.json", md);
+        md.put("pdrid", "ark:/88888/2345");
+        md.put("ediid", "2345");
+        sidb.addObject("2345/goober.json", "fundrum", "2345_goober.json", md);
+
+        summs = sidb.summarizeContents(null);
+        assertEquals(2, summs.length());
+        HashMap<String,JSONObject> map = new HashMap<String,JSONObject>(2);
+        for(int i=0; i < summs.length(); i++)  {
+            JSONObject o = summs.getJSONObject(i);
+            map.put(o.getString("aipid"), o);
+        }
+
+        assertTrue("Missing dataset: 1234", map.containsKey("1234"));
+        md = map.get("1234");
+        assertEquals(1000L, md.getLong("totalsize"));
+        assertEquals(2L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+        
+        assertTrue("Missing dataset: 2345", map.containsKey("2345"));
+        md = map.get("2345");
+        assertEquals(544L, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+        summs = sidb.summarizeContents("foobar");
+        assertEquals(1, summs.length());
+        md = summs.getJSONObject(0);
+        assertEquals("1234", md.getString("aipid"));
+        assertEquals(456, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+
+        summs = sidb.summarizeContents("fundrum");
+        assertEquals(2, summs.length());
+        map = new HashMap<String,JSONObject>(2);
+        for(int i=0; i < summs.length(); i++)  {
+            JSONObject o = summs.getJSONObject(i);
+            map.put(o.getString("aipid"), o);
+        }
+
+        assertTrue("Missing dataset: 1234", map.containsKey("1234"));
+        md = map.get("1234");
+        assertEquals(544L, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
+        
+        assertTrue("Missing dataset: 2345", map.containsKey("2345"));
+        md = map.get("2345");
+        assertEquals(544L, md.getLong("totalsize"));
+        assertEquals(1L, md.getLong("filecount"));
+        assertTrue(0 < md.getLong("since"));
+        assertTrue(0 < md.getString("sinceDate").length());
+        assertEquals(0L, md.getLong("checked"));
+        assertEquals("(never)", md.getString("checkedDate"));
     }
 }
 

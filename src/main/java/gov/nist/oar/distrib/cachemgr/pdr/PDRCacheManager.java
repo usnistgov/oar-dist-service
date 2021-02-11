@@ -512,64 +512,15 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      * @param name    the name of the volume to return the summary for
      */
     public JSONObject summarizeVolume(String name) throws VolumeNotFoundException, InventoryException {
-        StorageInventoryDB db = getInventoryDB();
+        PDRStorageInventoryDB db = getInventoryDB();
         JSONObject out = db.getVolumeInfo(name);
-        JSONObject totals = getVolumeTotals(name);
+        JSONObject totals = db.getVolumeTotals(name);
         out.put("name", name);
 
         for (String prop : JSONObject.getNames(totals))
             out.put(prop, totals.get(prop));
 
         return out;
-    }
-
-    protected JSONObject getVolumeTotals(String volname) throws VolumeNotFoundException, InventoryException {
-        // this implementation will return an object even if the volume is empty
-
-        PDRStorageInventoryDB sidb = getInventoryDB();
-        try {
-            // look up volume ID
-            String qsel = "SELECT id FROM volumes WHERE name='"+volname+"'";
-            ResultSet res = sidb.query(qsel);
-            if (! res.next())
-                throw new VolumeNotFoundException(volname);
-            int vid = res.getInt("id");
-            res.close();
-
-            JSONObject out = new JSONObject();
-            out.put("name", volname);
-            out.put("filecount", 0);
-            out.put("totalsize", 0L);
-            out.put("since", 0L);
-            out.put("checked", 0L);
-
-            // calculate totals for files having that volume ID
-            qsel = "SELECT count(*) as count,sum(size) as totsz,max(since) as newest," +
-                   "min(checked) as oldest FROM objects WHERE cached=1 AND volume=" +vid;
-            res = sidb.query(qsel);
-
-            if (res.next() && res.getInt("count") > 0) {
-                out.put("filecount", res.getInt("count"));
-                out.put("totalsize", res.getLong("totsz"));
-                out.put("since",     res.getLong("newest"));
-                out.put("checked",   res.getLong("oldest"));
-            }
-            out.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("since", 0L)),
-                                                         ZoneOffset.UTC)
-                                              .format(DateTimeFormatter.ISO_INSTANT));
-            if (out.optLong("checked", 0L) > 0L)
-                out.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("oldest",0L)),
-                                                               ZoneOffset.UTC)
-                                                    .format(DateTimeFormatter.ISO_INSTANT));
-            else
-                out.put("checkedDate", "(never)");
-            try { res.close(); } catch (SQLException ex) { /* try ignoring */ }
-
-            return out;
-        }
-        catch (SQLException ex) {
-            throw new InventorySearchException(ex);
-        }
     }
 
     /**
@@ -682,27 +633,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      * </ul>
      */
     public JSONObject summarizeDataset(String aipid) throws InventoryException {
-        StringBuilder qsel = new StringBuilder();
-        qsel.append("SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
-            .append("min(d.checked) as oldest FROM objects d, volumes v ")
-            .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
-            .append(aipid).append("/%' GROUP BY d.ediid");
-
-        ResultSet res = null;
-        PDRStorageInventoryDB sidb = getInventoryDB();
-        try {
-            res = sidb.query(qsel.toString());
-            JSONObject row = null;
-            if (! res.next())
-                return null;
-            return extractDatasetInfo(res);
-        }
-        catch (SQLException ex) {
-            throw new InventorySearchException(ex);
-        }
-        finally {
-            try { if (res != null) res.close(); } catch (SQLException ex) { /* try ignoring */ }
-        }
+        return getInventoryDB().summarizeDataset(aipid);        
     }
 
     /**
@@ -711,53 +642,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      * @param volname   the name of the volume to restrict results to; if null, results span across volumes
      */
     public JSONArray summarizeContents(String volname) throws InventoryException {
-        String qsel = "SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
-                      "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
-
-        if (volname != null) 
-            qsel += " AND v.name='" + volname + "'";
-        else
-            qsel += " AND v.name!='old'";
-        qsel += " GROUP BY d.ediid ORDER BY oldest";
-
-        PDRStorageInventoryDB sidb = getInventoryDB();
-        try {
-            ResultSet res = sidb.query(qsel);
-            JSONArray out = new JSONArray();
-            JSONObject row = null;
-            while (res.next()) {
-                row = extractDatasetInfo(res);
-                out.put(row);
-            }
-            try { res.close(); } catch (SQLException ex) { /* try ignoring */ }
-
-            return out;
-        }
-        catch (SQLException ex) {
-            throw new InventorySearchException(ex);
-        }
-    }
-
-    JSONObject extractDatasetInfo(ResultSet res) throws SQLException {
-        JSONObject row = new JSONObject();
-        String aipid = PDR_ARK_PAT.matcher(res.getString("ediid")).replaceFirst("");
-        row.put("aipid",     aipid);
-        row.put("filecount", res.getInt("count"));
-        row.put("totalsize", res.getLong("totsz"));
-        row.put("since",     res.getLong("newest"));
-        row.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("newest")),
-                                                     ZoneOffset.UTC)
-                                          .format(DateTimeFormatter.ISO_INSTANT));
-
-        long timems = res.getLong("oldest");
-        row.put("checked",   timems);
-        if (timems == 0L)
-            row.put("checkedDate", "(never)");
-        else
-            row.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("oldest")),
-                                                           ZoneOffset.UTC)
-                                                .format(DateTimeFormatter.ISO_INSTANT));
-        return row;
+        return getInventoryDB().summarizeContents(volname);
     }
 
     /**

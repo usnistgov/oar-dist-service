@@ -23,6 +23,7 @@ import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.json.JSONTokener;
 import org.json.JSONException;
 
@@ -89,7 +90,7 @@ import java.time.format.DateTimeFormatter;
  * To create an instance of this class (which is abstract), one should use the static factory function
  * {@link #createSQLiteDB(String)}.
  */
-public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
+public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB implements PDRConstants {
 
     /**
      * create an inventory database around a database accessible via a given JDBC URL.  
@@ -128,6 +129,9 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
     }
      */
 
+    private void quietDisconnect(Connection conn) {
+        try { disconnect(conn); } catch (SQLException ex) { }
+    }
     private JSONObject copy(JSONObject jo) {
         return new JSONObject(jo, JSONObject.getNames(jo));
     }
@@ -232,10 +236,11 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
             removeObject(co.volname, co.name);
 
         // add the new object name to the database
+        Connection conn = null;
         PreparedStatement stmt = null;
         try {
-            if (_conn == null) connect();
-            stmt = _conn.prepareStatement(add_sql);
+            conn = connect();
+            stmt = conn.prepareStatement(add_sql);
             stmt.setString(1, id);
             stmt.setString(2, objname);
             stmt.setLong(3, size);
@@ -256,7 +261,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         }
         finally {
             try { if (stmt != null) stmt.close(); } catch (SQLException ex) {  }
-            try { disconnect(); } catch (SQLException ex) {} 
+            try { disconnect(conn); } catch (SQLException ex) {} 
         }
 
         return new CacheObject(objname, metadata, volname);
@@ -365,11 +370,195 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
         }
     }
 
-    protected ResultSet query(String sqlselect) throws SQLException {
-        if (_conn == null) connect();
-        Statement stmt = _conn.createStatement();
-        stmt.closeOnCompletion();
-        return stmt.executeQuery(sqlselect);
+    /**
+     * return information about the current usage of the named volume, including total 
+     * number of files and bytes stored in that volume.
+     * <p>
+     * The returned JSONObject includes the following properties:
+     * <dl>
+     * <dd> <b>name</b> -- the name of the volume (the same as was requested) </dd>
+     * <dd> <b>filecount</b> -- the total number of files currently cached in the volume </dd>
+     * <dd> <b>totalsize</b> -- the total number of bytes currently cached in the volume </dd>
+     * <dd> <b>since</b> -- the last time since a file was accessed in this volume, in epoch seconds </dd>
+     * <dd> <b>sinceDate</b> -- the last time since a file was accessed in this volume, 
+     *      formatted as a String </dd>
+     * <dd> <b>checked</b> -- the last time since a file was checked for integrity in this volume, 
+     *      in epoch seconds </dd>     
+     * <dd> <b>checkedDate</b> -- the last time since a file was checked for integrity in this volume, 
+     *      formatted as a String </dd> 
+     * </dl>
+     * This method returns an object even if the volume is empty.
+     * @return JSONObject -- the collection of volume properties (see above).  
+     * @throws VolumeNotFoundException  if the named volume is not found in this inventory
+     * @throws InventoryException   if there is an error accessing this database
+     */
+    public JSONObject getVolumeTotals(String volname) throws VolumeNotFoundException, InventoryException {
+        // look up volume ID
+        int vid = getVolumeID(volname);
+        if (vid < 0)
+            throw new VolumeNotFoundException(volname);
+
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet res = null;
+        try {
+            conn = connect();
+            
+            JSONObject out = new JSONObject();
+            out.put("name", volname);
+            out.put("filecount", 0);
+            out.put("totalsize", 0L);
+            out.put("since", 0L);
+            out.put("checked", 0L);
+
+            // calculate totals for files having that volume ID
+            String qsel = "SELECT count(*) as count,sum(size) as totsz,max(since) as newest," +
+                          "min(checked) as oldest FROM objects WHERE cached=1 AND volume=" +vid;
+            stmt = conn.createStatement();
+            res = stmt.executeQuery(qsel);
+
+            if (res.next() && res.getInt("count") > 0) {
+                out.put("filecount", res.getInt("count"));
+                out.put("totalsize", res.getLong("totsz"));
+                out.put("since",     res.getLong("newest"));
+                out.put("checked",   res.getLong("oldest"));
+            }
+            out.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("since", 0L)),
+                                                         ZoneOffset.UTC)
+                                              .format(DateTimeFormatter.ISO_INSTANT));
+            if (out.optLong("checked", 0L) > 0L)
+                out.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("oldest",0L)),
+                                                               ZoneOffset.UTC)
+                                                    .format(DateTimeFormatter.ISO_INSTANT));
+            else
+                out.put("checkedDate", "(never)");
+
+            return out;
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (res != null) res.close(); } catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect(conn);
+        }
+    }
+
+    /**
+     * return a summary of the set of files from a particular dataaset currently cached in the inventory.
+     * <p>
+     * the returned <code>JSONObject</code> will in include the following stats:
+     * <ul>
+     *   <li> "filecount" -- the number of files from the dataset currently in the volume </li>
+     *   <li> "totalsize" -- the total number bytes of all files from the dataset stored in the volume </li>
+     *   <li> "since" -- the last date-time a file from the dataset in the cache was accessed or added, 
+     *            in epoch msecs </li>
+     *   <li> "sinceDate"  -- the last date-time a file from the dataset in the cache was accessed or added, 
+     *            as an ISO string </li>
+     *   <li> "checked" -- the oldest date-time that a file from the dataset was last check for integrity 
+     *            (checksum), in epoch msecs </li>
+     *   <li> "checkedDate" -- the oldest date-time that a file from the dataset was last check for 
+     *            integrity (checksum), as an ISO string </li>
+     * </ul>
+     * @param aipid    the AIP identifier for the dataset
+     * @return JSONObject -- the collection of volume properties (see above), or null if no files with 
+     *         the given AIP ID are currently cached in the inventory.
+     * @throws InventoryException   if there is an error accessing this database
+     */
+    public JSONObject summarizeDataset(String aipid) throws InventoryException {
+        StringBuilder qsel = new StringBuilder();
+        qsel.append("SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
+            .append("min(d.checked) as oldest FROM objects d, volumes v ")
+            .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
+            .append(aipid).append("/%' GROUP BY d.ediid");
+
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet res = null;
+        try {
+            conn = connect();
+
+            stmt = conn.createStatement();
+            res = stmt.executeQuery(qsel.toString());
+            if (! res.next())
+                return null;
+            return extractDatasetInfo(res);
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (res != null) res.close(); } catch (SQLException ex) { /* try ignoring */ }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect(conn);
+        }
+    }
+
+    /**
+     * provide a summary of the contents of the cache by aipid.  Each object in the returned array
+     * summarizes a different AIP with the same properties as returned by {@link #summarizeDataset(String)}.
+     * @param volname   the name of the volume to restrict results to; if null, results span across volumes
+     * @return JSONArray -- the list of dataset summaries for datasets for which there are at least one 
+     *         file cached in the inventory.
+     * @throws InventoryException   if there is an error accessing this database
+     */
+    public JSONArray summarizeContents(String volname) throws InventoryException {
+        String qsel = "SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
+                      "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
+        if (volname != null) 
+            qsel += " AND v.name='" + volname + "'";
+        else
+            qsel += " AND v.name!='old'";
+        qsel += " GROUP BY d.ediid ORDER BY oldest";
+
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet res = null;
+        try {
+            conn = connect();
+            
+            JSONArray out = new JSONArray();
+            JSONObject row = null;
+            stmt = conn.createStatement();
+            res = stmt.executeQuery(qsel);
+            while (res.next()) {
+                row = extractDatasetInfo(res);
+                out.put(row);
+            }
+
+            return out;
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException(ex);
+        }
+        finally {
+            try { if (res != null) res.close(); } catch (SQLException ex) { }
+            try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+            quietDisconnect(conn);
+        }
+    }
+
+    JSONObject extractDatasetInfo(ResultSet res) throws SQLException {
+        JSONObject row = new JSONObject();
+        String aipid = PDR_ARK_PAT.matcher(res.getString("ediid")).replaceFirst("");
+        row.put("aipid",     aipid);
+        row.put("filecount", res.getInt("count"));
+        row.put("totalsize", res.getLong("totsz"));
+        row.put("since",     res.getLong("newest"));
+        row.put("sinceDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("newest")),
+                                                     ZoneOffset.UTC)
+                                          .format(DateTimeFormatter.ISO_INSTANT));
+
+        long timems = res.getLong("oldest");
+        row.put("checked",   timems);
+        if (timems == 0L)
+            row.put("checkedDate", "(never)");
+        else
+            row.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(res.getLong("oldest")),
+                                                           ZoneOffset.UTC)
+                                                .format(DateTimeFormatter.ISO_INSTANT));
+        return row;
     }
 
     /**
@@ -386,10 +575,10 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB {
                                   : filepath);
             }
             @Override
-            protected void connect() throws SQLException {
+            protected Connection connect() throws SQLException {
                 if (! dbfile.isFile())
                     throw new SQLException("Missing SQLite db file: "+dbfile.toString());
-                super.connect();
+                return super.connect();
             }
         }
 

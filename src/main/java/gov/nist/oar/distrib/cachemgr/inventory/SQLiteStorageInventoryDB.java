@@ -100,10 +100,10 @@ public class SQLiteStorageInventoryDB extends JDBCStorageInventoryDB {
     }
 
     @Override
-    protected void connect() throws SQLException {
+    protected Connection connect() throws SQLException {
         if (! dbfile.isFile())
             throw new SQLException("Missing SQLite db file: "+dbfile.toString());
-        super.connect();
+        return super.connect();
     }
 
 }

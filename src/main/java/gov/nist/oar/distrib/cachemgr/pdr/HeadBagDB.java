@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.io.File;
 import java.sql.SQLException;
+import java.sql.Connection;
 
 /**
  * an extension of the {@link PDRStorageInventoryDB} class that adds specialized functionality to 
@@ -142,10 +143,10 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
                                   : filepath);
             }
             @Override
-            protected void connect() throws SQLException {
+            protected Connection connect() throws SQLException {
                 if (! dbfile.isFile())
                     throw new SQLException("Missing SQLite db file: "+dbfile.toString());
-                super.connect();
+                return super.connect();
             }
         }
 
