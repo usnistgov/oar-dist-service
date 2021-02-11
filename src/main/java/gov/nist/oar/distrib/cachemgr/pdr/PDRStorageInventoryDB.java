@@ -541,7 +541,9 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
     JSONObject extractDatasetInfo(ResultSet res) throws SQLException {
         JSONObject row = new JSONObject();
-        String aipid = PDR_ARK_PAT.matcher(res.getString("ediid")).replaceFirst("");
+        String aipid = res.getString("ediid");
+        if (aipid == null) aipid = "";
+        PDR_ARK_PAT.matcher(aipid).replaceFirst("");
         row.put("aipid",     aipid);
         row.put("filecount", res.getInt("count"));
         row.put("totalsize", res.getLong("totsz"));

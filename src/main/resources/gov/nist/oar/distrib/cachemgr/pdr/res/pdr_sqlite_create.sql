@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS objects (
    since     integer NOT NULL,
    checked   integer NOT NULL,
    cached    boolean,
-   pdrid     text,
-   ediid     text,
+   pdrid     text DEFAULT "",
+   ediid     text DEFAULT "",
    metadata  text,
    FOREIGN KEY (volume)    REFERENCES volumes(id),
    FOREIGN KEY (algorithm) REFERENCES algorithms(id)
