@@ -145,22 +145,28 @@ public class CacheManagementController {
     }
 
     /**
-     * return a listing of the files from a particular dataset known to the cache
+     * return a listing of the files from a particular dataset known to the cache.  This will include 
+     * files for which the manager has metadata but are not currently stored in the cache (because they 
+     * were deleted).  
      */
     @ApiOperation(value="List objects from a dataset collection", nickname="list dataset",
                   notes="Each item describes a dataset which may or may not currently exist in the cache")
     @GetMapping(value="/objects/{dsid}")
-    public List<Object> listObjectsFor(@PathVariable("dsid") String dsid)
+    public Map<String,Object> summarizeDataset(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
         _checkForManager();
-        List<CacheObject> files = mgr.selectDatasetObjects(dsid, mgr.VOL_FOR_INFO);
-        if (files.size() == 0)
+        JSONObject summary = mgr.summarizeDataset(dsid);
+        if (summary == null)
             throw new ResourceNotFoundException(dsid);
-        List<Object> out = new ArrayList<Object>(files.size());
-        for (CacheObject co : files) 
-            out.add(toJSONObject(co).toMap());
-        return out;
+        JSONArray files = new JSONArray();
+        List<CacheObject> filelist = mgr.selectDatasetObjects(dsid, mgr.VOL_FOR_INFO);
+        if (filelist.size() > 0) {
+            for (CacheObject co : filelist) 
+                files.put(toJSONObject(co));
+        }
+        summary.put("files", files);
+        return summary.toMap();
     }
 
     /**
@@ -184,6 +190,8 @@ public class CacheManagementController {
         int purpose = mgr.VOL_FOR_GET;
         if (":checked".equals(opstat))
             purpose = mgr.VOL_FOR_UPDATE;
+        else if (":files".equals(opstat))
+            purpose = mgr.VOL_FOR_INFO;
         else if (! ":cached".equals(opstat))
             return new ResponseEntity<List<Object>>( (List<Object>) null, HttpStatus.NOT_FOUND );
         
@@ -321,8 +329,22 @@ public class CacheManagementController {
         catch (RuntimeException ex) {
             throw new CacheManagementException("Unexpected internal error: "+ex.getMessage());
         }
-    }
+    }    
 
+    /**
+     * ensure all the objects in a dataset are cached.  The returned message is the same as 
+     * {@link #listObjectsFor(String,String)}.  
+
+    @ApiOperation(value="Ensure all objects from a dataset collection are deleted from the cache",
+                  nickname="uncache dataset",
+                  notes="")
+    @DeleteMapping(value="/objects/{dsid}/:cached")
+    public ResponseEntity<String> cacheDataset(@PathVariable("dsid") String dsid)
+        throws CacheManagementException, StorageVolumeException, NotOperatingException
+    {
+        _checkForManager();
+    }
+     */
     @ExceptionHandler(NotOperatingException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {

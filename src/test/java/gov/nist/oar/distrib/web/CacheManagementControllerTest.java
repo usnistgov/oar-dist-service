@@ -177,7 +177,7 @@ public class CacheManagementControllerTest {
     }
 
     @Test
-    public void testListObjectsFor() {
+    public void testSummarizeDataset() {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober", 
                                                       HttpMethod.GET, req, String.class);
