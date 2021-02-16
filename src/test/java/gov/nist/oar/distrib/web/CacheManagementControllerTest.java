@@ -12,6 +12,9 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -94,6 +97,19 @@ public class CacheManagementControllerTest {
         testdir.mkdirs();
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
+
+        try {
+            provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
+        }
+        catch (ResourceNotFoundException ex) {
+            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
+        }
+        catch (StorageVolumeException ex) {
+            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
+        }
+        catch (CacheManagementException ex) {
+            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
+        }
     }
 
     @BeforeClass
@@ -155,8 +171,7 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/volumes/king", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONObject summary = new JSONObject(new JSONTokener(resp.getBody()));
-        assertEquals(0, summary.getInt("filecount"));
-        assertEquals(0, summary.getInt("totalsize"));
+        assertEquals(3, summary.getInt("filecount"));
         assertEquals(30000000, summary.getLong("capacity"));
 
         resp = websvc.exchange(getBaseURL() + "/cache/volumes/pratt", HttpMethod.GET, req, String.class);
@@ -173,7 +188,9 @@ public class CacheManagementControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/", 
                                                       HttpMethod.GET, req, String.class);
         JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
-        assertEquals(0, summary.length());
+        assertEquals(1, summary.length());
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", summary.getJSONObject(0).optString("aipid", null));
+        assertEquals(3, summary.getJSONObject(0).optInt("filecount", 0));
     }
 
     @Test
@@ -182,7 +199,13 @@ public class CacheManagementControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        // JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
+
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491", 
+                               HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        JSONObject summary = new JSONObject(new JSONTokener(resp.getBody()));
+        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", summary.optString("aipid", null));
+        assertEquals(3, summary.getJSONArray("files").length());
         // assertEquals(0, summary.length());
     }
 
@@ -192,8 +215,12 @@ public class CacheManagementControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/:checked", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        // JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
-        // assertEquals(0, summary.length());
+
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:files", 
+                               HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
+        assertEquals(3, summary.length());
     }
 
     @Test
@@ -202,8 +229,19 @@ public class CacheManagementControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/gurn/1", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
-        // JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
-        // assertEquals(0, summary.length());
+
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json/:files", 
+                               HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
+        assertEquals(1, summary.length());
+        assertEquals("mds1491/trial1.json", summary.getJSONObject(0).getString("name"));
+
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json", 
+                               HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        JSONObject file = new JSONObject(new JSONTokener(resp.getBody()));
+        assertEquals("mds1491/trial1.json", file.getString("name"));
     }
 
     private String getBaseURL() {

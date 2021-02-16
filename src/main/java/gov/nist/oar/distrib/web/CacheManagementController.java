@@ -68,7 +68,7 @@ import springfox.documentation.annotations.ApiIgnore;
 @RequestMapping(value="/cache")
 public class CacheManagementController {
 
-    Logger log = LoggerFactory.getLogger(DatasetAccessController.class);
+    Logger log = LoggerFactory.getLogger(CacheManagementController.class);
 
     PDRCacheManager mgr = null;
 
@@ -172,38 +172,7 @@ public class CacheManagementController {
         return summary.toMap();
     }
 
-    /**
-     * return a listing of the files from a particular dataset that exists in the cache under a 
-     * given operational status.  The desired operation is the trailing path field, which can be 
-     * of the following: 
-     * <ul>
-     *   <li> <code>:cached</code> -- files that exist in the cache </li>
-     *   <li> <code>:checked</code> -- files that exist in the cache and whose integrity status can be 
-     *            checked and updated. </li>
-     * </ul>
-     */
-    public ResponseEntity<List<Object>> listObjectsFor(String dsid, String selector)
-        throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
-    {
-        _checkForManager();
-        int purpose = mgr.VOL_FOR_GET;
-        if (":checked".equals(selector))
-            purpose = mgr.VOL_FOR_UPDATE;
-        else if (":files".equals(selector))
-            purpose = mgr.VOL_FOR_INFO;
-        else if (! ":cached".equals(selector))
-            return new ResponseEntity<List<Object>>( (List<Object>) null, HttpStatus.NOT_FOUND );
-        
-        List<CacheObject> files = mgr.selectDatasetObjects(dsid, purpose);
-        if (files.size() == 0)
-            throw new ResourceNotFoundException(dsid);
-        List<Object> out = new ArrayList<Object>(files.size());
-        for (CacheObject co : files) 
-            out.add(toJSONObject(co).toMap());
-        return new ResponseEntity<List<Object>>(out, HttpStatus.OK);
-    }
-
-    static final Pattern SEL_PATH_FIELD = Pattern.compile("/(:\\w+)$");
+    static final Pattern SEL_PATH_FIELD = Pattern.compile("/?(:\\w+)$");
 
     /**
      * return information about selected portion of a dataset: a particular file, the list of cached files, entries 
@@ -214,8 +183,6 @@ public class CacheManagementController {
      *       (including a flag, "cached", indicating whether the file currently exists in the cache) </li>
      *  <li> one of selectors:
      *    <dl>
-     *      <dt> <code>:files</code> -- a list of file descriptions for all of the files in the dataset known to 
-     *           the inventory, whether currently cached or not. </dt>
      *      <dt> <code>:files</code> -- a list of file descriptions for all of the files in the dataset known to 
      *           the inventory, whether currently cached or not. </dt>
      *      <dt> <code>:cached</code> -- a list of file descriptions for only those files currently stored in the 
@@ -245,8 +212,11 @@ public class CacheManagementController {
 
         Matcher selmatch = SEL_PATH_FIELD.matcher(filepath);
         if (selmatch.find()) {
-            filepath = filepath.substring(0, selmatch.start());
             selector = selmatch.group(1);
+            if (filepath.length() == selector.length() || filepath.charAt(selmatch.start()) == '/')
+                filepath = filepath.substring(0, selmatch.start());
+            else 
+                selector = null;
         }
 
         int purpose = mgr.VOL_FOR_INFO;
@@ -312,8 +282,7 @@ public class CacheManagementController {
     }
 
     /**
-     * ensure all the objects in a dataset are cached.  The returned message is the same as 
-     * {@link #listObjectsFor(String,String)}.  
+     * ensure all the objects in a dataset are cached.  
      */
     @ApiOperation(value="Ensure all objects from a dataset collection are in the cache",
                   nickname="cache dataset",
@@ -370,8 +339,7 @@ public class CacheManagementController {
     }    
 
     /**
-     * ensure all the objects in a dataset are cached.  The returned message is the same as 
-     * {@link #listObjectsFor(String,String)}.  
+     * ensure all the objects in a dataset are cached.  
      */
     @ApiOperation(value="Ensure all objects from a dataset collection are in the cache",
                   nickname="cache dataset",
