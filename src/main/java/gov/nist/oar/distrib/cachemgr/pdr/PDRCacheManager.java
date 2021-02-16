@@ -164,24 +164,27 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      * cache all of the files from the given dataset
      * @param dsid     the AIP identifier for the dataset; this is either the old-style EDI-ID or 
      *                   local portion of the PDR ARK identifier (e.g., <code>"mds2-2119"</code>).  
+     * @param recache  if false and a file is already in the cache, the file will not be rewritten;
+     *                    otherwise, all current cached files from the dataset will be replaced with a 
+     *                    fresh copy.
      * @param version  the desired version of the dataset or null for the latest version
      */
-    public void cacheDataset(String dsid, String version)
+    public void cacheDataset(String dsid, String version, boolean recache)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache);
+        ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, recache);
     }
 
     /**
      * queue up a dataset or file object to be cached asynchronously via a separate thread
      * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH]#[VERSION])
      */
-    public void queueCache(String id)
+    public void queueCache(String id, boolean recache)
         throws ResourceNotFoundException, StorageVolumeException, CacheManagementException
     {
         if (restorer.doesNotExist(id))
             throw new ResourceNotFoundException(id);
-        cath.queue(id);
+        cath.queue(id, recache);
         if (! cath.isAlive())
             cath.start();
     }
@@ -546,7 +549,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
     /**
      * return a list of objects known to the cache that are part of the dataset having the given AIP dataset 
      * id.  The cache knows about an object if the object is currently in the cache or has once been in the 
-     * cache.  
+     * cache.  The returned list may include different versions of a file.  
      * @param dsid     the AIP id for the dataset; this is either the old-style EDI-ID or 
      *                   local portion of the PDR ARK identifier (e.g., <code>"mds2-2119"</code>).  
      * @param status   A {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} value indicating the status 
@@ -567,10 +570,46 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         CacheObject co = null;
         for (Iterator<CacheObject> it = matched.iterator(); it.hasNext();) {
             co = it.next();
-            if ("old".equals(co.volname))
-                it.remove();
-            else
-                co.volume = theCache.getVolume(co.volname);
+            co.volume = theCache.getVolume(co.volname);
+        }
+        return matched;
+    }
+
+    /**
+     * return a list of objects representing particular files from a dataset having the given AIP dataset 
+     * id.  The cache knows about an object if the object is currently in the cache or has once been in the 
+     * cache.  The different objects in the returned list can represent copies of the files in different 
+     * volumes or different versions of the file.  
+     * @param dsid     the AIP id for the dataset; this is either the old-style EDI-ID or 
+     *                   local portion of the PDR ARK identifier (e.g., <code>"mds2-2119"</code>).  
+     * @param filepath the filepath identifying the particular file of interest.  
+     * @param status   A {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} value indicating the status 
+     *                   of the desired objects.  In particular, specify...
+     *                 <ul>
+     *                    <li> {@link gov.nist.oar.distrib.cachemgr.VolumeStatus#VOL_FOR_INFO VOL_FOR_INFO} 
+     *                         for objects that have ever been in the cache (but may not now be), </li>
+     *                    <li> {@link gov.nist.oar.distrib.cachemgr.VolumeStatus#VOL_FOR_INFO VOL_FOR_GET} 
+     *                         for objects that are currently in the cache, </li>
+     *                    <li> {@link gov.nist.oar.distrib.cachemgr.VolumeStatus#VOL_FOR_INFO VOL_FOR_UPDATE} 
+     *                         for objects that can be removed, recached, or have their status updated 
+     *                         (like the last time it was checked).</li>
+     *                 </ul>
+     */
+    public List<CacheObject> selectFileObjects(String dsid, String filepath, int status)
+        throws CacheManagementException
+    {
+        PDRStorageInventoryDB sidb = getInventoryDB();
+        String srchid = dsid + "/" + filepath;
+        List<CacheObject> matched = sidb.selectObjectsLikeID(srchid, status);
+        srchid += "#%";
+        List<CacheObject> old = sidb.selectObjectsLikeID(srchid, status);
+        for (CacheObject co : old)
+            matched.add(co);
+
+        CacheObject co = null;
+        for (Iterator<CacheObject> it = matched.iterator(); it.hasNext();) {
+            co = it.next();
+            co.volume = theCache.getVolume(co.volname);
         }
         return matched;
     }
@@ -698,7 +737,8 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             }
         }
 
-        public void queue(String aipid) {
+        public void queue(String aipid, boolean recache) {
+            aipid += "\t"+((recache) ? "1" : "0");
             _queue.add(aipid);
             try {
                 saveQueue();
@@ -716,16 +756,21 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         }
 
         public String cacheNext() throws CacheManagementException {
+            boolean recache = true;
             String nextid = _queue.peek();
             if (nextid == null)
                 return null;
-
-            String[] parts = ((PDRDatasetRestorer) restorer).parseId(nextid);
+            String[] parts = nextid.split("\\s\\t\\s");
+            nextid = parts[0];
+            if (parts.length > 1 && "0".equals(parts[1]))
+                recache = false;
+            
+            parts = ((PDRDatasetRestorer) restorer).parseId(nextid);
             try {
                 if (parts[1].length() == 0) 
                     // dataset identifier
-                    cacheDataset(parts[0], parts[2]);
-                else
+                    cacheDataset(parts[0], parts[2], recache);
+                else if (recache || ! isCached(nextid))
                     // data file identifier
                     cache(nextid);
             }

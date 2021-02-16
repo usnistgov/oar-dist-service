@@ -137,19 +137,34 @@ public class PDRCacheManagerTest {
         assertTrue(! mgr.isCached("mds1491/trial1.json"));
         assertTrue(! mgr.isCached("mds1491/trial2.json"));
         assertTrue(! mgr.isCached("mds1491/trial3/trial3a.json"));
-        mgr.cacheDataset("mds1491", null);
+        mgr.cacheDataset("mds1491", null, true);
         assertTrue(mgr.isCached("mds1491/trial1.json"));
         assertTrue(mgr.isCached("mds1491/trial2.json"));
         assertTrue(mgr.isCached("mds1491/trial3/trial3a.json"));
+
+        // test recache=false
+        CacheObject co = mgr.findObject("mds1491/trial2.json");
+        assertNotNull(co);
+        long since = co.getMetadatumLong("since", 0L);
+        assertTrue("Missing since metadatum", since > 0L);
+        mgr.uncache("mds1491/trial1.json");
+        assertTrue(! mgr.isCached("mds1491/trial1.json"));
+        assertTrue(mgr.isCached("mds1491/trial2.json"));
+        mgr.cacheDataset("mds1491", null, false);
+        assertTrue(mgr.isCached("mds1491/trial1.json"));
+        assertTrue(mgr.isCached("mds1491/trial2.json"));
+        co = mgr.findObject("mds1491/trial2.json");
+        assertNotNull(co);
+        assertEquals("File appears to have been recached:", since, co.getMetadatumLong("since", 0L));
     }
 
     public void cacheAllTestData()
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        mgr.cacheDataset("mds1491", null);
-        mgr.cacheDataset("mds1491", "1");
-        mgr.cacheDataset("mds1491", "1.1.0");
-        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null);
+        mgr.cacheDataset("mds1491", null, true);
+        mgr.cacheDataset("mds1491", "1", true);
+        mgr.cacheDataset("mds1491", "1.1.0", true);
+        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, true);
     }
 
     @Test
@@ -357,7 +372,7 @@ public class PDRCacheManagerTest {
         cacheAllTestData();
 
         List<CacheObject> cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
-        assertEquals(3, cos.size());
+        assertEquals(9, cos.size()); // three for each version cached
         assertEquals(1, cos.stream().filter(c -> "mds1491/trial1.json".equals(c.id))
                            .collect(Collectors.toList()).size());
         assertEquals(1, cos.stream().filter(c -> "mds1491/trial2.json".equals(c.id))
@@ -367,9 +382,9 @@ public class PDRCacheManagerTest {
 
         mgr.uncache("mds1491/trial1.json");
         cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
-        assertEquals(2, cos.size());
+        assertEquals(8, cos.size());
         cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_INFO);
-        assertEquals(3, cos.size());
+        assertEquals(9, cos.size());
     }
 
     @Test

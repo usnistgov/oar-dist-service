@@ -347,9 +347,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     /**
      * cache all data that is part of a the latest version of the archive information package (AIP).
      * @param aipid    the identifier for the AIP.  
+     * @param version  the version of the AIP to cache.  If null, the latest is cached. 
+     * @param into     the Cache to save the files to 
+     * @param recache  if false and a file is already in the cache, the file will not be rewritten;
+     *                    otherwise, it will be.  
      * @return Set<String> -- a list of the filepaths for files that were cached
      */
-    public Set<String> cacheDataset(String aipid, String version, Cache into)
+    public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
         // find the head bag in the bag store
@@ -406,7 +410,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
             try {
-                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into);
+                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
@@ -449,9 +453,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      *                    <code>"#"+forVersion</code>) to indicate that this file was request for a particular
      *                    version of the dataset.  This will also affect where the file gets cached.
      * @param into        The cache to cache the files into
+     * @param recache     if false and a file is already in the cache, the file will not be rewritten;
+     *                    otherwise, it will be replaced with fresh copy
      * @return Set<String>   a listing of data files that were cached to disk.  
      */
-    public Set<String> cacheFromBag(String bagfile, Collection<String> files, String forVersion, Cache into)
+    public Set<String> cacheFromBag(String bagfile, Collection<String> files, String forVersion, Cache into,
+                                    boolean recache)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         String aipid = null, version = null;
@@ -474,7 +481,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             HashSet<String> cached = new HashSet<String>(cap);
             int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
 
-            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into);
+            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into, recache);
             return cached;
         }
         catch (ResourceNotFoundException ex) {
@@ -484,7 +491,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     }
 
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,
-                                JSONObject resmd, int defprefs, String forVersion, Cache into)
+                                JSONObject resmd, int defprefs, String forVersion, Cache into,
+                                boolean recache)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         if (! bagfile.endsWith(".zip"))
@@ -541,9 +549,15 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 if (forVersion != null)
                     id += "#"+forVersion;
 
-                if (into.isCached(id))
-                    // replace the file
-                    into.uncache(id);
+                if (into.isCached(id)) {
+                    if (recache)
+                        // replace the file
+                        into.uncache(id);
+                    else {
+                        log.info("Skipping already cached {}", id);
+                        continue;
+                    }
+                }
                 
                 // extract the file's metadata; convert it for storage in cache
                 JSONObject md = hbcm.findComponentByFilepath(resmd, filepath);

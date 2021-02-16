@@ -23,11 +23,14 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -179,20 +182,16 @@ public class CacheManagementController {
      *            checked and updated. </li>
      * </ul>
      */
-    @ApiOperation(value="List objects from a dataset collection in the cache", nickname="list cached",
-                  notes="Each item describes a dataset which currently exists in the cache")
-    @GetMapping(value="/objects/{dsid}/{opstat}")
-    public ResponseEntity<List<Object>> listObjectsFor(@PathVariable("dsid") String dsid,
-                                                       @PathVariable("opstat") String opstat)
+    public ResponseEntity<List<Object>> listObjectsFor(String dsid, String selector)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
         _checkForManager();
         int purpose = mgr.VOL_FOR_GET;
-        if (":checked".equals(opstat))
+        if (":checked".equals(selector))
             purpose = mgr.VOL_FOR_UPDATE;
-        else if (":files".equals(opstat))
+        else if (":files".equals(selector))
             purpose = mgr.VOL_FOR_INFO;
-        else if (! ":cached".equals(opstat))
+        else if (! ":cached".equals(selector))
             return new ResponseEntity<List<Object>>( (List<Object>) null, HttpStatus.NOT_FOUND );
         
         List<CacheObject> files = mgr.selectDatasetObjects(dsid, purpose);
@@ -204,38 +203,84 @@ public class CacheManagementController {
         return new ResponseEntity<List<Object>>(out, HttpStatus.OK);
     }
 
-    static final Pattern OP_PATH_FIELD = Pattern.compile("/(:\\w+)$");
+    static final Pattern SEL_PATH_FIELD = Pattern.compile("/(:\\w+)$");
 
     /**
-     * return information about a particular cache object.  If the filepath is appended with "/:cached",
-     * the object is only returned if the object is currently in the cache.
+     * return information about selected portion of a dataset: a particular file, the list of cached files, entries 
+     * in the inventory, etc.  This method handles several sub-endpoints of a dataset resource endpoint; the path
+     * following the dataset identifier can be one of the following:
+     * <ul>
+     *  <li> the filepath to a file in the dataset:  this returns a description of the file from the inventory 
+     *       (including a flag, "cached", indicating whether the file currently exists in the cache) </li>
+     *  <li> one of selectors:
+     *    <dl>
+     *      <dt> <code>:files</code> -- a list of file descriptions for all of the files in the dataset known to 
+     *           the inventory, whether currently cached or not. </dt>
+     *      <dt> <code>:files</code> -- a list of file descriptions for all of the files in the dataset known to 
+     *           the inventory, whether currently cached or not. </dt>
+     *      <dt> <code>:cached</code> -- a list of file descriptions for only those files currently stored in the 
+     *           tha cache. </dt>
+     *      <dt> <code>:checked</code> -- the subset of the files listed by <code>:cached</code>, including only 
+     *           those files in read-write volumes that are subject to integrity checking. </dt>
+     *    </dl> </li>
+     *  <li> the filepath followed by one of the above selectors:  if the file matches the selector's criterion,
+     *       a descriptions of the file are returned in a list (as the inventory may have more than one entry).
+     *       If no files match (e.g. <code>:cached</code> is used but the file is not currently cached), the 
+     *       list will be empty.</li>
+     * </ul>
+     * If a filepath is given and no information exists about it in the inventory, 404 is returned.  
      */
     @ApiOperation(value="Return a description of an object in the cache", nickname="Summarize object",
                   notes="The returned object describes what is known about the object, including a flag indicating whether is cached.")
     @GetMapping(value="/objects/{dsid}/**")
-    public ResponseEntity<Map<String,Object>> describeObject(@PathVariable("dsid") String dsid,
-                                                             @ApiIgnore HttpServletRequest request)
-        throws InventoryException, StorageVolumeException, NotOperatingException, CacheManagementException
+    public void describeDatasetComp(@PathVariable("dsid") String dsid, @ApiIgnore HttpServletRequest request,
+                                    @ApiIgnore HttpServletResponse response)
+        throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
+        // ResponseEntity<Map<String,Object>>
         _checkForManager();
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         filepath = filepath.substring("/cache/objects/".length()+dsid.length()+1);
-        String opstat = null;
+        String selector = null;
 
-        Matcher opmatch = OP_PATH_FIELD.matcher(filepath);
-        if (opmatch.find()) {
-            filepath = filepath.substring(0, opmatch.start());
-            opstat = opmatch.group(1);
+        Matcher selmatch = SEL_PATH_FIELD.matcher(filepath);
+        if (selmatch.find()) {
+            filepath = filepath.substring(0, selmatch.start());
+            selector = selmatch.group(1);
         }
 
         int purpose = mgr.VOL_FOR_INFO;
-        if (":checked".equals(opstat))
-            purpose = mgr.VOL_FOR_UPDATE;
-        CacheObject co = mgr.describeObject(dsid, filepath, purpose);
-        if (co == null || (opstat != null && ! co.cached))
-            return new ResponseEntity<Map<String,Object>>( (Map<String,Object>) null, HttpStatus.NOT_FOUND );
+        if (selector != null) {
+            if (":checked".equals(selector))
+                purpose = mgr.VOL_FOR_UPDATE;
+            else if (":cached".equals(selector))
+                purpose = mgr.VOL_FOR_GET;
+        }
 
-        return new ResponseEntity<Map<String,Object>>(toJSONObject(co).toMap(), HttpStatus.OK);
+        List<CacheObject> files = mgr.selectDatasetObjects(dsid, mgr.VOL_FOR_INFO);
+        if (files.size() == 0)
+            throw new ResourceNotFoundException(dsid);
+
+        if (filepath.length() > 0)
+            files = mgr.selectFileObjects(dsid, filepath, purpose);
+        else if (purpose != mgr.VOL_FOR_INFO)
+            files = mgr.selectDatasetObjects(dsid, purpose);
+
+        if (selector == null && filepath.length() > 0) {
+            // return a single JSON object; get the one that's cached
+            List<CacheObject> use = files.stream().filter(c -> c.cached).collect(Collectors.toList());
+            if (use.size() == 0)
+                // or get last accessed
+                use.add(files.stream().max(Comparator.comparingLong(this::lastAccessTime)).get());
+            sendJSON(response, toJSONObject(use.get(0)).toString(2));
+        }
+        else {
+            // return a JSON array of objects
+            JSONArray out = new JSONArray();
+            for(CacheObject co : files) 
+                out.put(toJSONObject(co));
+            sendJSON(response, out.toString(2));
+        }
     }
 
     static JSONObject toJSONObject(CacheObject co) {
@@ -247,6 +292,23 @@ public class CacheManagementController {
         info.put("id", co.id);
         info.put("name", co.name);
         return info;
+    }
+
+    private long lastAccessTime(CacheObject co) {
+        return co.getMetadatumLong("since", 0L);
+    }
+
+    private void sendJSON(HttpServletResponse response, String jsonstr) throws CacheManagementException {
+        response.setContentLength(jsonstr.length()+1);
+        response.setContentType("application/json");
+        try (PrintStream out = new PrintStream(response.getOutputStream())) {
+            out.println(jsonstr);
+        }
+        catch (IOException ex) {
+            log.error("Trouble sending back JSON data: {}", ex.getMessage());
+            if (! response.isCommitted())
+                throw new CacheManagementException("Trouble sending JSON data: "+ex.getMessage());
+        }
     }
 
     /**
@@ -264,12 +326,12 @@ public class CacheManagementController {
         _checkForManager();
 	String filepath=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         filepath = filepath.substring("/cache/objects/".length()+dsid.length()+1);
-        String opstat = null;
+        String selector = null;
 
-        Matcher opmatch = OP_PATH_FIELD.matcher(filepath);
+        Matcher opmatch = SEL_PATH_FIELD.matcher(filepath);
         if (opmatch.find()) {
             filepath = filepath.substring(0, opmatch.start());
-            opstat = opmatch.group(1);
+            selector = opmatch.group(1);
         }
         if (":cached".equals(opmatch)) 
             return cacheDataFile(dsid, filepath, null);
@@ -296,7 +358,7 @@ public class CacheManagementController {
         if (version != null)
             id += "#"+version;
         try {
-            mgr.queueCache(id);
+            mgr.queueCache(id, true);
             return new ResponseEntity("Cache target queued", HttpStatus.ACCEPTED);
         }
         catch (ResourceNotFoundException ex) {
@@ -315,13 +377,18 @@ public class CacheManagementController {
                   nickname="cache dataset",
                   notes="The list returned is the same as with GET; it may take a while for all objects to be cached.")
     @PutMapping(value="/objects/{dsid}/:cached")
-    public ResponseEntity<String> cacheDataset(@PathVariable("dsid") String dsid)
+    public ResponseEntity<String> cacheDataset(@PathVariable("dsid") String dsid,
+                                               @ApiIgnore HttpServletRequest request)
         throws CacheManagementException, StorageVolumeException, NotOperatingException
     {
         _checkForManager();
+        String recachep = request.getParameter("recache");
+        if (recachep != null) recachep = recachep.toLowerCase();
+        boolean recache = ! ("0".equals(recachep) || "false".equals(recachep));
+            
         try {
-            mgr.queueCache(dsid);
-            return new ResponseEntity("Cache target queued", HttpStatus.ACCEPTED);
+            mgr.queueCache(dsid, recache);
+            return new ResponseEntity("Dataset target queued for caching", HttpStatus.ACCEPTED);
         }
         catch (ResourceNotFoundException ex) {
             return new ResponseEntity("Resource ID not found", HttpStatus.NOT_FOUND);

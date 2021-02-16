@@ -250,7 +250,7 @@ public class PDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
 
-        Set<String> cached = rstr.cacheDataset("mds1491", null, cache);
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
@@ -266,7 +266,7 @@ public class PDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
 
-        cached = rstr.cacheDataset("mds1491", "1", cache);
+        cached = rstr.cacheDataset("mds1491", "1", cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
@@ -282,7 +282,7 @@ public class PDRDatasetRestorerTest {
         assertTrue(cache.isCached("mds1491/trial2.json#1"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
 
-        cached = rstr.cacheDataset("mds1491", "1.1.0", cache);
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
@@ -300,7 +300,7 @@ public class PDRDatasetRestorerTest {
 
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
-        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache);
+        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache, true);
         assertEquals(2, cached.size());
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
@@ -322,7 +322,7 @@ public class PDRDatasetRestorerTest {
         need.add("trial1.json");
         need.add("trial3/trial3a.json");
 
-        Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache);
+        Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(! cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
@@ -337,7 +337,7 @@ public class PDRDatasetRestorerTest {
 
         need.add("trial1.json");
         need.add("trial3/trial3a.json");
-        cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, "8", cache);
+        cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, "8", cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(! cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
@@ -358,7 +358,7 @@ public class PDRDatasetRestorerTest {
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
         Set<String> cached =
-            rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
+            rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
         assertEquals(2, cached.size());
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
@@ -368,13 +368,16 @@ public class PDRDatasetRestorerTest {
             cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
                                               VolumeStatus.VOL_FOR_GET);
         assertEquals(1, found.size());
-        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
+        long since = found.get(0).getMetadatumLong("since", 0L);
+        assertTrue("Missing since metadatum", since > 0L);
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
         found =
             cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
                                               VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
+        assertTrue("File appears not to have been recached", since < found.get(0).getMetadatumLong("since", 0L));
 
         // test when file might get cached to different volume
         File croot = new File(tempf.getRoot(),"data");
@@ -387,7 +390,7 @@ public class PDRDatasetRestorerTest {
         
         assertTrue(
             cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
-        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache);
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
         assertTrue(
             cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
         found =
@@ -396,6 +399,20 @@ public class PDRDatasetRestorerTest {
                              VolumeStatus.VOL_FOR_GET);
         assertEquals(1, found.size());
         assertEquals("crunchy", found.get(0).volname);
+
+        // test optional recache
+        since = found.get(0).getMetadatumLong("since", 0L);
+        assertTrue("Missing since metadatum", since > 0L);
+        cache.uncache("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf");
+        assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, false);
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        found =
+            cache.getInventoryDB()
+                 .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                             VolumeStatus.VOL_FOR_GET);
+        assertEquals("File appears to have been recached:", since, found.get(0).getMetadatumLong("since", 0L));
+
     }
 
     @Test
