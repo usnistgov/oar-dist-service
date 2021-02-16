@@ -297,74 +297,37 @@ public class CacheManagementController {
         filepath = filepath.substring("/cache/objects/".length()+dsid.length()+1);
         String selector = null;
 
-        Matcher opmatch = SEL_PATH_FIELD.matcher(filepath);
-        if (opmatch.find()) {
-            filepath = filepath.substring(0, opmatch.start());
-            selector = opmatch.group(1);
+        Matcher selmatch = SEL_PATH_FIELD.matcher(filepath);
+        if (selmatch.find()) {
+            selector = selmatch.group(1);
+            if (filepath.length() == selector.length() || filepath.charAt(selmatch.start()) == '/')
+                filepath = filepath.substring(0, selmatch.start());
+            else 
+                selector = null;
         }
-        if (":cached".equals(opmatch)) 
-            return cacheDataFile(dsid, filepath, null);
-        else if (":checked".equals(opmatch))
-            return checkDataFile(dsid, filepath, null);
-        else
-            return new ResponseEntity<String>("Unrecognized operation", HttpStatus.NOT_FOUND);
-    }
 
-    public ResponseEntity<String> checkDataFile(String dsid, String filepath, String version)
-        throws CacheManagementException
-    {
-        String id = dsid + "/" + filepath;
+        String version = request.getParameter("version");
+        String id = dsid;
+        if (filepath.length() > 0)
+            id += "/"+filepath;
         if (version != null)
             id += "#"+version;
-
-        return null;
-    }
-
-    public ResponseEntity<String> cacheDataFile(String dsid, String filepath, String version)
-        throws CacheManagementException, StorageVolumeException
-    {
-        String id = dsid + "/" + filepath;
-        if (version != null)
-            id += "#"+version;
-        try {
-            mgr.queueCache(id, true);
-            return new ResponseEntity("Cache target queued", HttpStatus.ACCEPTED);
-        }
-        catch (ResourceNotFoundException ex) {
-            return new ResponseEntity("Resource ID not found", HttpStatus.NOT_FOUND);
-        }
-        catch (RuntimeException ex) {
-            throw new CacheManagementException("Unexpected internal error: "+ex.getMessage());
-        }
-    }    
-
-    /**
-     * ensure all the objects in a dataset are cached.  
-     */
-    @ApiOperation(value="Ensure all objects from a dataset collection are in the cache",
-                  nickname="cache dataset",
-                  notes="The list returned is the same as with GET; it may take a while for all objects to be cached.")
-    @PutMapping(value="/objects/{dsid}/:cached")
-    public ResponseEntity<String> cacheDataset(@PathVariable("dsid") String dsid,
-                                               @ApiIgnore HttpServletRequest request)
-        throws CacheManagementException, StorageVolumeException, NotOperatingException
-    {
-        _checkForManager();
         String recachep = request.getParameter("recache");
-        if (recachep != null) recachep = recachep.toLowerCase();
         boolean recache = ! ("0".equals(recachep) || "false".equals(recachep));
-            
-        try {
-            mgr.queueCache(dsid, recache);
-            return new ResponseEntity("Dataset target queued for caching", HttpStatus.ACCEPTED);
+        
+        if (":cached".equals(selector)) {
+            try {
+                mgr.queueCache(id, recache);
+                return new ResponseEntity<String>("Cache target queued", HttpStatus.ACCEPTED);
+            } catch (ResourceNotFoundException ex) {
+                return new ResponseEntity<String>("Resource not found", HttpStatus.NOT_FOUND);
+            }
         }
-        catch (ResourceNotFoundException ex) {
-            return new ResponseEntity("Resource ID not found", HttpStatus.NOT_FOUND);
-        }
-        catch (RuntimeException ex) {
-            throw new CacheManagementException("Unexpected internal error: "+ex.getMessage());
-        }
-    }    
+        else if (":checked".equals(selector))
+            return new ResponseEntity<String>("check trigger not yet implemented", HttpStatus.METHOD_NOT_ALLOWED);
+        else
+            return new ResponseEntity<String>("Method not allowed on URL", HttpStatus.METHOD_NOT_ALLOWED);
+    }
 
     /**
      * ensure all the objects in a dataset are cached.  The returned message is the same as 

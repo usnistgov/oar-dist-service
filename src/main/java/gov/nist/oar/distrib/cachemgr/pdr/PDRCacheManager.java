@@ -177,7 +177,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
 
     /**
      * queue up a dataset or file object to be cached asynchronously via a separate thread
-     * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH]#[VERSION])
+     * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH][#VERSION])
      */
     public void queueCache(String id, boolean recache)
         throws ResourceNotFoundException, StorageVolumeException, CacheManagementException
