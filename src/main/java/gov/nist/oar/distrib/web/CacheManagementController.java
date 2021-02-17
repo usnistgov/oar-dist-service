@@ -256,7 +256,7 @@ public class CacheManagementController {
     static JSONObject toJSONObject(CacheObject co) {
         JSONObject info = co.exportMetadata();
         info.put("cached", co.cached);
-        info.put("volume", co.volume);
+        info.put("volume", co.volname);
         info.put("size", co.getSize());
         info.put("score", co.score);
         info.put("id", co.id);

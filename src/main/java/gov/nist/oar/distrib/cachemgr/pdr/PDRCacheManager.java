@@ -760,7 +760,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             String nextid = _queue.peek();
             if (nextid == null)
                 return null;
-            String[] parts = nextid.split("\\s\\t\\s");
+            String[] parts = nextid.split("\\s*\\t\\s*");
             nextid = parts[0];
             if (parts.length > 1 && "0".equals(parts[1]))
                 recache = false;
