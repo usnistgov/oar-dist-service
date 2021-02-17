@@ -13,8 +13,10 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.web.ConfigurationException;
 
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -63,6 +65,7 @@ import org.slf4j.LoggerFactory;
     "distrib.baseurl=http://localhost/od/ds",
     "distrib.cachemgr.admindir=${java.io.tmpdir}/testcmgr",
     "distrib.cachemgr.headbagCacheSize=40000000",
+    "distrib.cachemgr.checkDutyCycle=3",
     "distrib.cachemgr.volumes[0].location=file://vols/king",
     "distrib.cachemgr.volumes[0].name=king",
     "distrib.cachemgr.volumes[0].capacity=30000000",
@@ -98,6 +101,7 @@ public class CacheManagementControllerTest {
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
 
+        /*
         try {
             provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
         }
@@ -110,6 +114,7 @@ public class CacheManagementControllerTest {
         catch (CacheManagementException ex) {
             throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
         }
+        */
     }
 
     @BeforeClass
@@ -127,13 +132,23 @@ public class CacheManagementControllerTest {
 
     @AfterClass
     public static void tearDownClass() throws IOException {
-        testdir.delete();
+        if (testdir.exists()) 
+            FileSystemUtils.deleteRecursively(testdir);
     }
 
     @After
     public void tearDown() throws IOException, ConfigurationException {
         cleanTestDir(testdir);
     }
+
+    @Before
+    public void setUp()
+        throws CacheManagementException, StorageVolumeException, ResourceNotFoundException, ConfigurationException
+    {
+        provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
+    }
+
+        
 
     @Test
     public void testConfig() {
@@ -300,6 +315,84 @@ public class CacheManagementControllerTest {
         file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("mds1491/trial1.json", file.getString("name"));
         assertTrue(since < file.optLong("since", 0L));
+    }
+
+    @Test
+    public void testRunMonitor() throws ConfigurationException {
+        JSONObject status = null;
+        ResponseEntity<String> resp = null;
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        status = new JSONObject(new JSONTokener(resp.getBody()));
+        assertEquals(0L, status.getLong("lastRan"));
+        assertEquals("(never)", status.getString("lastRanDate"));
+        assertFalse("Monitor started on its own", status.getBoolean("running"));
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        PDRCacheManager mgr = provider.getPDRCacheManager();
+        PDRCacheManager.MonitorThread month = mgr.getMonitorThread();
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.PUT, req, String.class);
+        assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
+        assertFalse(month.isContinuous());
+        try { month.join(5000); } catch (InterruptedException ex) {  }
+        
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        status = new JSONObject(new JSONTokener(resp.getBody()));
+        assertTrue(0L < status.getLong("lastRan"));
+        assertNotEquals("(never)", status.getString("lastRanDate"));
+        assertFalse("Monitor failed to finish?", status.getBoolean("running"));
+    }
+
+    @Test
+    public void testStartMonitor() throws ConfigurationException {
+        JSONObject status = null;
+        ResponseEntity<String> resp = null;
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        status = new JSONObject(new JSONTokener(resp.getBody()));
+        assertEquals(0L, status.getLong("lastRan"));
+        assertEquals("(never)", status.getString("lastRanDate"));
+        assertFalse("Monitor started on its own", status.getBoolean("running"));
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        PDRCacheManager mgr = provider.getPDRCacheManager();
+        PDRCacheManager.MonitorThread month = mgr.getMonitorThread();
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running?repeat=1", HttpMethod.PUT, req, String.class);
+        assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
+        assertTrue(month.isContinuous());
+        assertTrue(month.isAlive());
+        
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+        month = mgr.getMonitorThread();
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running?repeat=0", HttpMethod.PUT, req, String.class);
+        assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
+        assertFalse(month.isContinuous());
+        try { month.join(5000); } catch (InterruptedException ex) {  }
+        assertFalse(month.isAlive());
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        status = new JSONObject(new JSONTokener(resp.getBody()));
+        assertTrue(0L < status.getLong("lastRan"));
+        assertNotEquals("(never)", status.getString("lastRanDate"));
+        assertFalse("Monitor failed to finish?", status.getBoolean("running"));
     }
 
     private String getBaseURL() {

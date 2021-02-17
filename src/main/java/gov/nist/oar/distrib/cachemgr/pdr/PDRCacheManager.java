@@ -58,6 +58,7 @@ import java.time.format.DateTimeFormatter;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,6 +100,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
     IntegrityMonitor datamon = null;
     IntegrityMonitor hbmon = null;
     Logger log = null;
+    File monstatus = null;
     MonitorThread month = null;
     CachingThread cath = null;
 
@@ -120,26 +122,29 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      *                           than zero, checks will start on multiples of the duty cycle since midnight
      *                           <i>plus the offset</i>.  This is usually set to a value less than 
      *                           <code>dutycyclemsec</code>.
-     * @param cacheq         the file to use as the persistence of the queue for on-demand caching.  This 
-     *                           file need not exist yet, but its parent directory must.
+     * @param admdir         the directory to use for storing administrative data.  This directory must 
+     *                           already exist.  
      * @param logger         the Logger instance to use for log messages
      */
     public PDRCacheManager(BasicCache cache, PDRDatasetRestorer restorer, List<CacheObjectCheck> checklist,
-                           long dutycyclemsec, long graceperiod, long startoffset, File cacheq, Logger logger)
+                           long dutycyclemsec, long graceperiod, long startoffset, File admdir, Logger logger)
         throws IOException
     {
         super(cache, restorer);
         if (logger == null)
             logger = LoggerFactory.getLogger(getClass());
         log = logger;
+        if (! admdir.isDirectory())
+            throw new FileNotFoundException("Not an existing directory: "+admdir.toString());
 
         datamon = cache.getIntegrityMonitor(checklist);
         hbmon = restorer.getIntegrityMonitor(checklist);
 
         month = new MonitorThread(dutycyclemsec, graceperiod, startoffset, false);
         month.setPriority(Math.min(Thread.currentThread().getPriority() - 4, Thread.MIN_PRIORITY));
+        monstatus = new File(admdir, "monitorstatus.json");
 
-        cath = new CachingThread(cacheq);
+        cath = new CachingThread(new File(admdir, "cacheq"));
         cath.setPriority(Math.min(Thread.currentThread().getPriority() - 2, Thread.MIN_PRIORITY));
     }
 
@@ -191,27 +196,93 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
 
     /**
      * send the results of the integrity monitor's work to interested consumers.  This includes 
-     * record information into the log (via {@link #logMonitorResults(int,List)}. 
+     * record information into the log (via {@link #recordMonitorResults(int,List)}. 
      * @param checked    the number of files checked
      * @param deleted    the list of cache objects that were deleted because they failed the 
      *                      integrity check.
+     * @throws CacheManagementException  if something goes wrong during the dispatch or recording
      */
-    public void dispatchMonitorResults(int checked, List<CacheObject> deleted) {
-        logMonitorResults(checked, deleted);
+    public void dispatchMonitorResults(int checked, List<CacheObject> deleted)
+        throws CacheManagementException
+    {
+        recordMonitorResults(checked, deleted);
         // FUTURE: email results
     }
 
     /**
-     * send the results of the integrity monitor's work to interested consumers.  This includes 
-     * record information into the log (via {@link #logMonitorResults(int,List)}. 
+     * return data describing the integrity montoring status.  This data includes when the last time
+     * the integrity monitor was ran, how many files were checked, and which ones had to be deleted.  
+     */
+    public JSONObject getMonitorStatus() throws CacheManagementException {
+        JSONObject out = retrieveMonitorStatus();
+        out.put("running", getMonitorThread().isAlive());
+        return out;
+    }
+    private JSONObject retrieveMonitorStatus() {
+        JSONObject out = null;
+        if (monstatus.exists()) {
+            synchronized (monstatus) {
+                try (FileReader rdr = new FileReader(monstatus)) {
+                    out = new JSONObject(new JSONTokener(rdr));
+                }
+                catch (IOException ex) {
+                    log.error("Failed to read monitor status (JSON) data: {}", ex.getMessage());
+                    out = new JSONObject();
+                    out.put("lastRanDate", "(unknown)");
+                    out.put("lastRan", 0L);
+                    out.put("lastCheckedDate", "(unknown)");
+                    out.put("lastChecked", 0L);
+                }
+            }
+        }
+        
+        if (out == null) {
+            out = new JSONObject();
+            out.put("lastRanDate", "(never)");
+            out.put("lastRan", 0L);
+            out.put("lastCheckedDate", "(never)");
+            out.put("lastChecked", 0L);
+        }
+        return out;
+    }
+    private void saveMonitorStatus(JSONObject status) throws CacheManagementException {
+        synchronized (monstatus) {
+            try (FileWriter wrtr = new FileWriter(monstatus)) {
+                status.write(wrtr, 2, 0);
+            }
+            catch (IOException ex) {
+                log.error("Trouble saving monitor status (JSON) data: {}", ex.getMessage());
+                throw new CacheManagementException("Trouble saving monitor status (JSON) data: " +
+                                                   ex.getMessage(), ex);
+            }
+        }
+    }
+
+    /**
+     * record the results of the integrity monitor's work.  This includes both sending messages to 
+     * the log and to a persistent file that can be consulted asynchronously.
      * @param checked    the number of files checked
      * @param deleted    the list of cache objects that were deleted because they failed the 
      *                      integrity check.
+     * @throws CacheManagementException  if something goes wrong during the recording (such as IO errors).
      */
-    public void logMonitorResults(int checked, List<CacheObject> deleted) {
+    public void recordMonitorResults(int checked, List<CacheObject> deleted)
+        throws CacheManagementException
+    {
+        JSONObject rec = retrieveMonitorStatus();
+        Instant ran = Instant.now();
+        String ranDate = ZonedDateTime.ofInstant(ran, ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+        rec.put("lastRan", ran.toEpochMilli());
+        rec.put("lastRanDate", ranDate);
+
         if (checked > 0) {
             log.info("Monitor checked {} file{}", checked, (checked == 1) ? "" : "s");
-            if (deleted.size() > 0 && log.isWarnEnabled()) {
+            rec.put("lastChecked", ran.toEpochMilli());
+            rec.put("lastCheckedDate", ranDate);
+            rec.put("filecount", checked);
+
+            JSONArray del = new JSONArray();
+            if (deleted.size() > 0) {
                 StringBuilder sb = new StringBuilder("Monitor deleted ");
                 sb.append(Integer.toString(deleted.size())).append(" file")
                   .append((deleted.size() == 1) ? "" : "s")
@@ -222,17 +293,22 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
 
                 int i=0;
                 for (CacheObject co : deleted) {
-                    if (++i > 5) break;  // limit listing to 5 files
-                    sb.append("\n   ").append(co.id);
+                    del.put(co.id);
+                    if (++i <= 5)
+                        // limit log listing to 5 files
+                        sb.append("\n   ").append(co.id);
                 }
 
                 log.warn(sb.toString());
             }
             else
                 log.info("No files detected with integrity failures");
+            rec.put("deleted", del);
         }
         else
             log.info("Monitor completes cycle with no files to check");
+
+        saveMonitorStatus(rec);
     }
 
     /**

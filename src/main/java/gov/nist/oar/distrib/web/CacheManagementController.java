@@ -42,6 +42,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -329,6 +330,74 @@ public class CacheManagementController {
         else
             return new ResponseEntity<String>("Method not allowed on URL", HttpStatus.METHOD_NOT_ALLOWED);
     }
+
+    /**
+     * return status information about integrity monitoring 
+     */
+    @ApiOperation(value="Return status information about cache file integrity checking",
+                  nickname="monitor status",
+                  notes="The properties in the returned JSON Object describe results from the last integrity check.")
+    @GetMapping(value="/monitor/")
+    public ResponseEntity<Map<String,Object>> getMonitorStatus() throws CacheManagementException {
+        return new ResponseEntity<Map<String,Object>>(mgr.getMonitorStatus().toMap(), HttpStatus.OK);
+    }
+    
+    /**
+     * start integrity monitoring.  Set <code>repeat=true</code> as a query parameter to have monitoring cycle 
+     * continuously on the configured schedule.
+     */
+    @ApiOperation(value="Starts integrity monitoring",
+                  nickname="start monitoring",
+                  notes="Use repeat=true to check repeatably on configured schedule")
+    @PutMapping(value="/monitor/running")
+    public ResponseEntity<String> startMonitor(@ApiIgnore HttpServletRequest request)
+        throws CacheManagementException
+    {
+        String repeatp = request.getParameter("repeat");
+        if (repeatp != null) repeatp = repeatp.toLowerCase();
+        boolean repeat = repeatp != null && ! ("false".equals(repeatp) || "0".equals(repeatp));
+
+        PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
+        mt.setContinuous(repeat);
+        if (mt.isAlive()) 
+            return new ResponseEntity<String>("Monitor is already running", HttpStatus.ACCEPTED);
+
+        mt.start();
+        return new ResponseEntity<String>("Monitor started", HttpStatus.ACCEPTED);
+    }
+
+    /**
+     * start integrity monitoring.  Set <code>repeat=true</code> as a query parameter to have monitoring cycle 
+     * continuously on the configured schedule.
+     */
+    @ApiOperation(value="Report whether integrity monitoring is currently running", nickname="query monitoring")
+    @GetMapping(value="/monitor/running")
+    public ResponseEntity<String> isMonitorRunning()
+        throws CacheManagementException
+    {
+        PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
+        if (mt.isAlive()) 
+            return new ResponseEntity<String>("True", HttpStatus.OK);
+
+        return new ResponseEntity<String>("False", HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * stop integrity monitoring after the current cycle completes
+     */
+    @ApiOperation(value="Stops integrity monitoring", nickname="stop monitoring",
+                  notes="If running, the monitor will stop after the current cycle")
+    @DeleteMapping(value="/monitor/running")
+    public ResponseEntity<String> stopMonitor() {
+        PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
+        if (mt.isAlive()) {
+            mt.setContinuous(false);
+            return new ResponseEntity<String>("Monitor will end after next cycle", HttpStatus.ACCEPTED);
+        }
+
+        return new ResponseEntity<String>("Monitor is not running", HttpStatus.NOT_FOUND);
+    }
+    
 
     /**
      * ensure all the objects in a dataset are cached.  The returned message is the same as 

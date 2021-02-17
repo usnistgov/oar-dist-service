@@ -120,7 +120,7 @@ public class PDRCacheManagerTest {
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
         checks.add(new ChecksumCheck());
-        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, new File(croot,"cacheq"), null);
+        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot, null);
     }
 
     @Test

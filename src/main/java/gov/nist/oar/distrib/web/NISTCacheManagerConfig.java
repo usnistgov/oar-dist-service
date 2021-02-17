@@ -102,9 +102,9 @@ public class NISTCacheManagerConfig {
     public long getSmallSizeLimit() { return smallszlim; }
     public void setSmallSizeLimit(long bytes) { smallszlim = bytes; }
     public long getCheckDutyCycle() { return dutycycle; }
-    public void getCheckDutyCycle(long cyclesec) { dutycycle = cyclesec; }
+    public void setCheckDutyCycle(long cyclesec) { dutycycle = cyclesec; }
     public long getCheckGracePeriod() { return graceperiod; }
-    public void getCheckGracePeriod(long sec) { graceperiod = sec; }
+    public void setCheckGracePeriod(long sec) { graceperiod = sec; }
     public long getHeadbagCacheSize() { return headbagcachesize; }
     public void setHeadbagCacheSize(long size) { headbagcachesize = size; }
     public List<CacheVolumeConfig> getVolumes() { return volumes; }
@@ -441,6 +441,6 @@ public class NISTCacheManagerConfig {
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
         checks.add(new ChecksumCheck());
         return new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, getCheckGracePeriod()*1000, 
-                                   -1, new File(admindir,"cacheq"), logger);
+                                   -1, rootdir, logger);
     }
 }
