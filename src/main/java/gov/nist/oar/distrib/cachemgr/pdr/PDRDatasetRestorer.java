@@ -554,6 +554,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                         // replace the file
                         into.uncache(id);
                     else {
+                        if (need != null) need.remove(id);
+                        cached.add(id);
                         log.info("Skipping already cached {}", id);
                         continue;
                     }
