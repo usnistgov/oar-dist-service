@@ -75,7 +75,8 @@ import org.slf4j.LoggerFactory;
     "distrib.cachemgr.volumes[0].roles[0]=small",
     "distrib.cachemgr.volumes[0].roles[1]=fast",
     "distrib.cachemgr.volumes[1].roles[0]=large",
-    "distrib.cachemgr.volumes[1].roles[1]=general"
+    "distrib.cachemgr.volumes[1].roles[1]=general",
+    "distrib.cachemgr.restapi.accesstoken=SECRET"
 })
 public class CacheManagementControllerTest {
 
@@ -91,6 +92,10 @@ public class CacheManagementControllerTest {
 
     @Autowired
     CacheManagerProvider provider;
+
+    public CacheManagementControllerTest() {
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer: SECRET");
+    }
 
     public void cleanTestDir(File testdir) throws IOException, ConfigurationException {
         /*

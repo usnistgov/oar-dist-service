@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
     "distrib.bagstore.mode=local",
     "distrib.bagstore.location=${basedir}/src/test/resources",
     "distrib.baseurl=http://localhost/oar-distrb-service",
+    "distrib.cachemgr.restapi.accesstoken=SECRET",
     "logging.path=${basedir}/target/surefire-reports"
 })
 public class NoCacheManagementControllerTest {
@@ -59,6 +60,10 @@ public class NoCacheManagementControllerTest {
 
     @Autowired
     CacheManagerProvider provider;
+
+    public NoCacheManagementControllerTest() {
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer: SECRET");
+    }
 
     @Test
     public void testProvider() {
