@@ -139,13 +139,8 @@ public class BasicIntegrityMonitorTest {
 
         chks.add(new ChecksumCheck());
         mon = new BasicIntegrityMonitor("Fred", cachert.sidb, cachert.cache.volumes, chks);
-        try {
-            mon.selectCorruptedObjects(cos, failed, false);
-            fail("Failed to detect too many errors");
-        }
-        catch (CacheManagementException ex) {
-            assertTrue(ex.getMessage().contains("Too many check failures"));
-        }
+        mon.selectCorruptedObjects(cos, failed, false);
+        assertTrue(failed.size() > 0);
 
         cos = cos.stream().filter(c -> c.id.contains("trial")).collect(Collectors.toList());
         failed = new ArrayList<CacheObject>();
