@@ -199,6 +199,7 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
         }
 
         // success!
+        log.debug("Successfully checked: "+co.volname+":"+co.name);
         try {
             db.updateCheckedTime(co.volname, co.name, Instant.now().toEpochMilli());
         }
@@ -260,7 +261,7 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
     public int selectCorruptedObjects(List<CacheObject> cos, List<CacheObject> failed, boolean deleteOnFail)
         throws StorageVolumeException, CacheManagementException
     {
-        int faillim=10, failcnt=0, successcnt=0;
+        int errlim=10, errcnt=0, successcnt=0;
         for(CacheObject co : cos) {
             try {
                 check(co);
@@ -277,16 +278,17 @@ public class BasicIntegrityMonitor implements IntegrityMonitor {
                 if (deleteOnFail) removeObject(co);
             }
             catch (StorageVolumeException ex) {
-                if (++failcnt > faillim)
-                    throw new StorageVolumeException("Too many check failures; latest: "+ex.getMessage(), ex);
+                if (++errcnt > errlim)
+                    throw new StorageVolumeException("Too many check errors; latest: "+ex.getMessage(), ex);
+                failed.add(co);
                 log.error("Problem accessing object in storage during check (volname={}, name={}): {}",
                           co.volname, co.name, ex.getMessage());
             }
             catch (CacheManagementException ex) {
-                if (++failcnt > faillim)
-                    throw new CacheManagementException("Too many check failures; latest: "+ex.getMessage(), ex);
                 log.error("Problem interacting with cache during check (volname={}, name={}): {}",
                           co.volname, co.name, ex.getMessage());
+                failed.add(co);
+                if (deleteOnFail) removeObject(co);
             }
         }
         return successcnt;

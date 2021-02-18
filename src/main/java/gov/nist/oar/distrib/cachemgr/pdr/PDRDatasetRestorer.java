@@ -24,14 +24,18 @@ import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.cachemgr.Restorer;
 import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
+import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.Map;
 import java.util.HashSet;
@@ -41,6 +45,8 @@ import java.util.zip.ZipEntry;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
@@ -525,9 +531,11 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         else
             fs = ltstore.openFile(bagfile);
 
+        Map<String,String> manifest = null;
+        List<String> fix = new ArrayList<String>();
         Reservation resv = null;
         try {
-            // cycle throught the contents of the zip file
+            // cycle through the contents of the zip file
             ZipInputStream zipstrm = new ZipInputStream(fs);
             ZipEntry ze = null;
             while ((ze = zipstrm.getNextEntry()) != null) {
@@ -537,6 +545,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 prefs = defprefs;
                 if ((prefs & ROLE_OLD_VERSIONS) == 0 && ze.getSize() <= smszlim)
                     prefs = ROLE_SMALL_OBJECTS;
+
+                // cache the manifest file, just in case
+                if (fname.equals("manifest-sha256.txt")) {
+                    manifest = extractFromManifest(zipstrm, need);
+                    continue;
+                }
 
                 // pay attention only to data files under the data subdirectory
                 if (! fname.subpath(1, 2).toString().equals("data") || fname.toString().endsWith(".sha256"))
@@ -582,6 +596,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 resv = into.reserveSpace(ze.getSize(), prefs);
                 co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
                 log.info("Cached "+id);
+                if (co.getMetadatumString("checksum", null) != null &&
+                    co.getMetadatumString("checksumAlgorithm", null) != null)
+                {
+                    String nm = co.volname+":"+co.name;
+                    log.debug("Object {} is missing its checksum (will try to fix)", nm);
+                    fix.add(nm);
+                }
 
                 if (need != null)
                     need.remove(filepath);
@@ -597,6 +618,72 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             try { fs.close(); }
             catch (IOException ex) {
                 log.warn("Trouble closing bag file, {}: {}", bagfile, ex.getMessage());
+            }
+        }
+
+        if (fix.size() > 0 && manifest != null)
+            fixMissingChecksums(into, fix, manifest);
+    }
+
+    private Map<String,String> extractFromManifest(InputStream manifest, Collection<String> need)
+        throws IOException
+    {
+        Map<String,String> out = new HashMap<String,String>(need.size());
+
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(manifest));
+        String line = null;
+        String[] parts = null;
+        while ((line = rdr.readLine()) != null) {
+            parts = line.split(" ", 2);
+            if (parts.length < 2 || ! parts[1].startsWith("data/") || parts[0].length() < 1)
+                continue;
+            parts[1] = parts[1].substring(5);
+            if (need.contains(parts[1]))
+                out.put(parts[1], parts[0]);
+        }
+        return out;
+    }
+
+    private void fixMissingChecksums(Cache cache, List<String> names, Map<String,String> manifest) {
+        log.debug("Attempting to add checksum hashes to files missing them.");
+        StorageInventoryDB sidb = null;
+        try {
+            sidb = ((BasicCache) cache).getInventoryDB();
+        }
+        catch (ClassCastException ex) {
+            log.debug("Inventory DB is not available; unable to fix checksums.");
+            return;
+        }
+
+        String[] parts = null;
+        String hash = null;
+        JSONObject md = null;
+        for (String name : names) {
+            parts = name.split(":", 2);
+            if (parts.length < 2) continue;
+            hash = manifest.get(parts[1]);
+            if (hash != null) {
+                md = new JSONObject();
+                md.put("checksum", hash);
+                md.put("checksumAlgorithm", "sha256");
+                try {
+                    sidb.updateMetadata(parts[0], parts[1], md);
+                    log.debug("Added missing checksum to {}", name);
+                }
+                catch (InventoryException ex) {
+                    log.warn("Failed to add checksum to {}: {}", name, ex.getMessage());
+                }
+            }
+            else {
+                log.debug("Unable to add checksum to {}: no hash in manifest", name);
+                try {
+                    CacheObject co = sidb.findObject(parts[0], parts[1]);
+                    cache.uncache(co.id);
+                } catch (InventoryException ex) {
+                    log.warn("Trouble querying the inventory DB (to uncache): {}", ex.getMessage());
+                } catch (CacheManagementException ex) {
+                    log.warn("Trouble uncaching (for missing checksum) {}: {}", name, ex.getMessage());
+                }
             }
         }
     }
