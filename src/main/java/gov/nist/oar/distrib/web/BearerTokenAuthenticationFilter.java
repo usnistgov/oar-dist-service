@@ -57,7 +57,7 @@ public class BearerTokenAuthenticationFilter extends AbstractAuthenticationProce
             return null;
         }
 
-        final String BEARERTAG = "Bearer:";
+        final String BEARERTAG = "Bearer ";
         String token = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (token == null) token = "";
         if (! token.startsWith(BEARERTAG))

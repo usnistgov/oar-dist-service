@@ -62,7 +62,7 @@ public class NoCacheManagementControllerTest {
     CacheManagerProvider provider;
 
     public NoCacheManagementControllerTest() {
-        headers.set(HttpHeaders.AUTHORIZATION, "Bearer: SECRET");
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer SECRET");
     }
 
     @Test

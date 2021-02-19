@@ -94,7 +94,7 @@ public class CacheManagementControllerTest {
     CacheManagerProvider provider;
 
     public CacheManagementControllerTest() {
-        headers.set(HttpHeaders.AUTHORIZATION, "Bearer: SECRET");
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer SECRET");
     }
 
     public void cleanTestDir(File testdir) throws IOException, ConfigurationException {
