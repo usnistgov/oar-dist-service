@@ -18,6 +18,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
@@ -337,7 +338,7 @@ public class DatasetAccessController {
     public void downloadFileViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
                                    @ApiIgnore HttpServletRequest request,
                                    @ApiIgnore HttpServletResponse response,
-                                   @RequestParam String requestId)
+                                   @RequestParam Optional<String> requestId)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
         logger.debug("Matched ARK ID for download: ark:/"+naan+"/"+dsid);
@@ -425,7 +426,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "stream the data product with the given name", nickname = "get file", notes = "This is the primary way to download a data file")
     @GetMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**")
     public void downloadFile(@PathVariable("dsid") String dsid, @ApiIgnore HttpServletRequest request,
-                             @ApiIgnore HttpServletResponse response, @RequestParam String requestId)
+                             @ApiIgnore HttpServletResponse response, @RequestParam Optional<String> requestId)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
 	
