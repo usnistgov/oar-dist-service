@@ -99,10 +99,18 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
                                                       "/ds/%3Cscript%3Egoober%3C%2Fscript%3E/_aip",
                                                       HttpMethod.GET, req, String.class);
-        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertFalse(resp.getBody().contains("script>"));
-        JSONAssert.assertEquals("{status:404,message:\"Resource ID not found\",method:GET}",
-                                resp.getBody(), false);
+    }
+    
+    @Test
+    public void testDescribeAIPsEvil2() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
+                                                      "/ds/%3Cscript%3Egoober%3Cscript%3E/_aip",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertFalse(resp.getBody().contains("script>"));
     }
     
     @Test
