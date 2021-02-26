@@ -68,9 +68,14 @@ import com.amazonaws.services.s3.AmazonS3;
  *        databases, and the head bag cache.  Local cache volumes will be located here when 
  *        a such volumes data directory is configured via a relative path (see 
  *        {@link NISTCacheManagerConfig.CacheVolumeConfig}. </dd>
+ *   <dt> <b><code>dbrootdir</code></b> (string)  </dt>
+ *   <dd> the directory containing the inventory database data.  Default is <code>admindir</code>. </dd>
  *   <dt> <b><code>smallSizeLimit</code></b> (long integer)  </dt>
  *   <dd> The size limit, in bytes, for a file to be considered small and eligible to be stored 
  *        the "small file" volume.  Default is 10 MB.</dd>
+ *   <dt> <b><code>headbagDbrootdir</code></b> (string)  </dt>
+ *   <dd> the directory containing the inventory database data specifically for the headbag cache.  
+ *         Default is <code>admindir/headbags</code>. </dd>
  *   <dt> <b><code>headbagCacheSize</code></b> (long integer)  </dt>
  *   <dd> The total size limit for the headbag cache.  Note that this size will be split between two 
  *        volumes </dd>
@@ -87,13 +92,15 @@ public class NISTCacheManagerConfig {
     /** the ARK NAAN assigned to NIST */
     public final static String NIST_ARK_NAAN = "88434";
 
-    String admindir;
+    String admindir = null;
     List<CacheVolumeConfig> volumes;
     long smallszlim = 10000000;       // default: 10 MB
     long dutycycle = 20 * 60;         // 20 mins
     long graceperiod = 24 * 3600;     // 24 hours
     long headbagcachesize = 50000000; // 50 MB
     String arknaan = NIST_ARK_NAAN;
+    String dbroot = null;
+    String hbdbroot = null;
 
     public String getAdmindir() { return admindir; }
     public void setAdmindir(String dirpath) { admindir = dirpath; }
@@ -109,6 +116,10 @@ public class NISTCacheManagerConfig {
     public void setHeadbagCacheSize(long size) { headbagcachesize = size; }
     public List<CacheVolumeConfig> getVolumes() { return volumes; }
     public void setVolumes(List<CacheVolumeConfig> volcfgs) { volumes = volcfgs; }
+    public String getDbrootdir() { return dbroot; }
+    public void   setDbrootdir(String dir) { dbroot = dir; }
+    public String getHeadbagDbrootdir() { return hbdbroot; }
+    public void   setHeadbagDbrootdir(String dir) { hbdbroot = dir; }
 
     /**
      * the configuration of a volume within the cache.  It is expected to be part of a list of 
@@ -351,7 +362,10 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException("No cache volumes are configured!");
 
         // set up the inventory database
-        File dbfile = new File(rootdir, "data.sqlite");
+        File dbrootdir = rootdir;
+        if (dbroot != null)
+            dbrootdir = new File(dbroot);
+        File dbfile = new File(dbrootdir, "data.sqlite");
         File dbf = dbfile.getAbsoluteFile();
         if (! dbf.exists()) 
             PDRStorageInventoryDB.initializeSQLiteDB(dbf.toString());
@@ -396,7 +410,10 @@ public class NISTCacheManagerConfig {
         if (! cmroot.exists()) cmroot.mkdir();
 
         // create the database
-        File dbf = new File(cmroot, "inventory.sqlite");
+        File dbrootdir = cmroot;
+        if (hbdbroot != null)
+            dbrootdir = new File(hbdbroot);
+        File dbf = new File(dbrootdir, "inventory.sqlite");
         if (! dbf.exists())
             HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
         if (! dbf.isFile())

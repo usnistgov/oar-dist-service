@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
     "distrib.cachemgr.admindir=${java.io.tmpdir}/testcmgr",
     "distrib.cachemgr.headbagCacheSize=40000000",
     "distrib.cachemgr.checkDutyCycle=3",
+    "distrib.cachemgr.dbrootdir=${java.io.tmpdir}/testcmgr/db",
     "distrib.cachemgr.volumes[0].location=file://vols/king",
     "distrib.cachemgr.volumes[0].name=king",
     "distrib.cachemgr.volumes[0].capacity=30000000",
@@ -103,6 +104,7 @@ public class CacheManagementControllerTest {
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
+        (new File(testdir,"db")).mkdirs();
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
 
@@ -132,6 +134,7 @@ public class CacheManagementControllerTest {
             tmp.mkdir();
         testdir = new File(tmp, "testcmgr");
         testdir.mkdirs();
+        (new File(testdir,"db")).mkdirs();
         // cleanTestDir(testdir);
     }
 
@@ -153,11 +156,11 @@ public class CacheManagementControllerTest {
         provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
     }
 
-        
-
     @Test
     public void testConfig() {
         assertTrue(provider.canCreateManager());
+        File db = new File(testdir, "db/data.sqlite");
+        assertTrue(db.isFile());
     }
 
     @Test
