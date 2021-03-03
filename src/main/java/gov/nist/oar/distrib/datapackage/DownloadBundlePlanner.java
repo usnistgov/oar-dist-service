@@ -232,25 +232,26 @@ public class DownloadBundlePlanner {
 		createLogs(uObj, jobject);
 		
 		String whyNotIncluded = "File not added in package; ";
+		String fileUrlWithRequestId= jobject.getDownloadUrl()+"?requestId="+this.requestId;
 		if (uObj.getStatus() >= 300 && uObj.getStatus() < 400) {
 			whyNotIncluded += "There are too many redirects for this URL.";
-			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
+			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), fileUrlWithRequestId, whyNotIncluded));
 		} else if (uObj.getLength() <= 0) {
 			whyNotIncluded += ValidationHelper.getStatusMessage(uObj.getStatus());
-			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), jobject.getDownloadUrl(), whyNotIncluded));
+			notIncludedFiles.add(new NotIncludedFile(jobject.getFilePath(), fileUrlWithRequestId, whyNotIncluded));
 		} else {
 		    	long individualFileSize = uObj.getLength();
 			totalRequestedFileSize += individualFileSize;
 			if (individualFileSize >= this.mxFilesBundleSize) {
 				//bundleSize = individualFileSize;
 				List<FileRequest> onefilePathUrls = new ArrayList<FileRequest>();
-				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
+				onefilePathUrls.add(new FileRequest(jobject.getFilePath(), fileUrlWithRequestId, individualFileSize));
 				this.makePlan(onefilePathUrls,individualFileSize);
 				
 			} else {
 				bundleSize += individualFileSize;
 				if (bundleSize < this.mxFilesBundleSize && bundledFilesCount <= this.mxBundledFilesCount) {
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(), individualFileSize));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), fileUrlWithRequestId, individualFileSize));
 
 				} else {
 					if(!filePathUrls.isEmpty()) {
@@ -259,12 +260,11 @@ public class DownloadBundlePlanner {
 					}
 					filePathUrls.clear();
 					bundledFilesCount = 1;
-					filePathUrls.add(new FileRequest(jobject.getFilePath(), jobject.getDownloadUrl(),individualFileSize));
+					filePathUrls.add(new FileRequest(jobject.getFilePath(), fileUrlWithRequestId,individualFileSize));
 					bundleSize = individualFileSize;
 				}
 			}
-		}
-		
+		}		
 	}
 
 	/***

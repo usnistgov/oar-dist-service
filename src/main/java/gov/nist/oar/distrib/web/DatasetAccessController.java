@@ -18,6 +18,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
@@ -335,7 +337,8 @@ public class DatasetAccessController {
     @GetMapping(value = "/ark:/{naan:\\d+}/{dsid}/**")
     public void downloadFileViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
                                    @ApiIgnore HttpServletRequest request,
-                                   @ApiIgnore HttpServletResponse response)
+                                   @ApiIgnore HttpServletResponse response,
+                                   @RequestParam Optional<String> requestId)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
         logger.debug("Matched ARK ID for download: ark:/"+naan+"/"+dsid);
@@ -423,7 +426,7 @@ public class DatasetAccessController {
     @ApiOperation(value = "stream the data product with the given name", nickname = "get file", notes = "This is the primary way to download a data file")
     @GetMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**")
     public void downloadFile(@PathVariable("dsid") String dsid, @ApiIgnore HttpServletRequest request,
-                             @ApiIgnore HttpServletResponse response)
+                             @ApiIgnore HttpServletResponse response, @RequestParam Optional<String> requestId)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
 	
@@ -473,7 +476,7 @@ public class DatasetAccessController {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
-	if (logger.isInfoEnabled()) {
+        if (logger.isInfoEnabled()) {
 	    String msg = "Data File requested: " + dsid + "/" + filepath;
 	    if (version != null)
 		msg += " (version " + version + ")";
