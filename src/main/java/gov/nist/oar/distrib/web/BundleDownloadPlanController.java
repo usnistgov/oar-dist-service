@@ -65,12 +65,11 @@ public class BundleDownloadPlanController {
     DataPackagingService df;
 
     /**
-     * The controller api endpoint to accept list of requested files in json
-     * format and return a plan to send requests to download files. once the
-     * request is posted it is parsed and files are sorted
+     * The controller api endpoint to accept list of requested files in json format
+     * and return a plan to send requests to download files. once the request is
+     * posted it is parsed and files are sorted
      * 
-     * @param jsonObject
-     *            of type BundleNameFilePathUrl
+     * @param jsonObject of type BundleNameFilePathUrl
      * @param response
      * @param errors
      * @return JsonObject of type BundleDownloadPlan
@@ -84,13 +83,12 @@ public class BundleDownloadPlanController {
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
 	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-        throws DistributionException,InvalidInputException
-    {
+	    throws DistributionException, InvalidInputException {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
-	}else {
-		throw new InvalidInputException("The input is empty or invalid");
+	} else {
+	    throw new InvalidInputException("The input is empty or invalid");
 	}
 //	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
 //		this.numofFiles, jsonObject, bundleName);
@@ -101,70 +99,78 @@ public class BundleDownloadPlanController {
 
     /**
      * Exception thrown due to invalid input.
+     * 
      * @param ex
      * @param req
      * @return
      */
+
     @ExceptionHandler(JsonProcessingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
-	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
-	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
+
+	return this.createErrorInfo(req, 400, "Malformed input", "POST", "Malformed input detected in ",
+		ex.getMessage());
     }
 
     /**
-	 * Invalid input exception
-	 * @param ex
-	 * @param req
-	 * @return
-	 */
-	@ExceptionHandler(InvalidInputException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
-		logger.info("There is an error processing input data: " + req.getRequestURI() + "\n  " + ex.getMessage());
-		return new ErrorInfo(req.getRequestURI(), 400, "Invalid input error", req.getMethod());
-	}
-	
+     * Invalid input exception
+     * 
+     * @param ex
+     * @param req
+     * @return
+     **/
+    @ExceptionHandler(InvalidInputException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 400, "Invalid input error", req.getMethod(),
+		"There is an error processing input data: ", ex.getMessage());
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex,
-                                                     HttpServletRequest req)
-    {
-        // error is not specific to a version
-        logger.info("Non-existent bag file requested: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 404, "AIP file not found");
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+	return this.createErrorInfo(req, 404, "AIP file not found", "", "Non-existent bag file requested: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex,
-                                         HttpServletRequest req)
-    {
-        logger.info("Failure processing request: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Failure processing request: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(DistributionException ex,
-                                          HttpServletRequest req)
-    {
-        logger.info("Streaming failure during request: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
+	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Streaming failure during request: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(RuntimeException ex,
-                                          HttpServletRequest req)
-    {
-        logger.error("Unexpected failure during request: " + req.getRequestURI() +
-                     "\n  " + ex.getMessage(), ex);
-        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
+		ex.getMessage());
     }
 
+    public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
+	    String logMessage, String exception) {
+	try {
+	    String URI = "";
+	    if (req.equals(null) || req == null)
+		URI = "NULL";
+	    else
+		URI = req.getRequestURI();
+	    logger.error(logMessage + " " + URI + " " + exception);
+	    return new ErrorInfo(URI, errorcode, pubMessage, method);
+	} catch (Exception ex) {
+	    return new ErrorInfo("", errorcode, pubMessage, method);
+	}
+    }
 
 }
