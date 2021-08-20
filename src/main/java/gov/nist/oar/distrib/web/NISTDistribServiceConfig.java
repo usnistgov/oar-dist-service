@@ -14,6 +14,10 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
@@ -22,6 +26,8 @@ import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import javax.activation.MimetypesFileTypeMap;
 
@@ -266,6 +272,48 @@ public class NISTDistribServiceConfig {
         };
     }
 
+    @Bean
+    public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {
+//       appVersion = VERSION;
+       return new OpenAPI()
+	       .components(new Components())
+        .info(new Info().title("Data Distribution Service API").version(VersionController.NAME+" "+VersionController.VERSION)
+                .license(new License().name("NIST Software").url("https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications")));
+    }
+    
+//    /**
+//     * The service name
+//     */
+//    public final static String NAME;
+//
+//    /**
+//     * The version of the service
+//     */
+//    public final static String VERSION;
+//
+//    static {
+//        String name = null;
+//        String version = null;
+//        try (InputStream verf =  NISTDistribServiceConfig.class.getClassLoader().getResourceAsStream("VERSION")) {
+//            if (verf == null) {
+//                name = "oar-dist-service";
+//                version = "not set";
+//            }
+//            else {
+//                BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
+//                String line = vrdr.readLine();
+//                String[] parts = line.split("\\s+");
+//                name = parts[0];
+//                version = (parts.length > 1) ? parts[1] : "missing";
+//            }
+//        } catch (Exception ex) {
+//            name = "oar-dist-service";
+//            version = "unknown";
+//        }
+//        NAME = name;
+//        VERSION = version;
+//    }
+    
     /**
      * the spring-boot application main()
      */

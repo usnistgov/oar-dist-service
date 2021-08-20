@@ -36,11 +36,11 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.service.DataPackagingService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import springfox.documentation.annotations.ApiIgnore;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.*;
 
 /**
  * BundleDownloadPlanController has api endpoint where client sends list of
@@ -57,7 +57,7 @@ import springfox.documentation.annotations.ApiIgnore;
  *
  */
 @RestController
-@Api
+@Tag(name="Get Bundles Plan", description="Get the set of files in the form of bundle as per requested criteria.")
 public class BundleDownloadPlanController {
 
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
@@ -75,14 +75,15 @@ public class BundleDownloadPlanController {
      * @return JsonObject of type BundleDownloadPlan
      * @throws JsonProcessingException
      */
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
-	    @ApiResponse(code = 400, message = "Malformed request."),
-	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
-    @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.", notes = "This api endpoint provides the information to client to how to divide request for number of files download "
+    
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
+	    @ApiResponse(responseCode = "400", description = "Malformed request."),
+	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
+    @Operation(summary = "Get the plan to download given list of files. ", description = "This api endpoint provides the information to client to how to divide request for number of files download "
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
+	    @Parameter(hidden = true)  HttpServletResponse response, @Parameter(hidden = true)  Errors errors)
 	    throws DistributionException, InvalidInputException {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {

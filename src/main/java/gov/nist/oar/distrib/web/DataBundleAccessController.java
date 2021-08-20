@@ -38,19 +38,19 @@ import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.NoContentInPackageException;
 import gov.nist.oar.distrib.datapackage.NoFilesAccesibleInPackageException;
 import gov.nist.oar.distrib.service.DataPackagingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import springfox.documentation.annotations.ApiIgnore;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.*;
 /**
  * @author Deoyani Nandrekar-Heinis
  *
  */
 @RestController
-@Api
+@Tag(name="Get Bundles ", description = "Get the group of files in the form of bundles as per requested criteria.")
 public class DataBundleAccessController {
 
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);
@@ -69,14 +69,14 @@ public class DataBundleAccessController {
      * @throws InputLimitException
      * 
      */
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
-	    @ApiResponse(code = 400, message = "Malformed request."),
-	    @ApiResponse(code = 403, message = "Download not allowed"),
-	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
-    @ApiOperation(value = "stream  compressed bundle of data requested", nickname = "get bundle of files", notes = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
+	    @ApiResponse(responseCode = "400", description = "Malformed request."),
+	    @ApiResponse(responseCode = "403", description = "Download not allowed"),
+	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
+    @Operation(summary = "stream  compressed bundle of data requested", description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json")
-    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @ApiIgnore HttpServletResponse response,
-	    @ApiIgnore Errors errors) throws DistributionException {
+    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @Parameter(hidden = true) HttpServletResponse response,
+	    @Parameter(hidden = true) Errors errors) throws DistributionException {
 	ZipOutputStream zout = null;
 	try {
 	    logger.info("Data bundled in zip requested: " + bundleRequest.getBundleName());
