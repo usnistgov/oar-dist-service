@@ -36,11 +36,11 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.service.DataPackagingService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import springfox.documentation.annotations.ApiIgnore;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.*;
 
 /**
  * BundleDownloadPlanController has api endpoint where client sends list of
@@ -57,7 +57,7 @@ import springfox.documentation.annotations.ApiIgnore;
  *
  */
 @RestController
-@Api
+@Tag(name="Get Bundles Plan", description="Get the set of files in the form of bundle as per requested criteria.")
 public class BundleDownloadPlanController {
 
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
@@ -65,32 +65,31 @@ public class BundleDownloadPlanController {
     DataPackagingService df;
 
     /**
-     * The controller api endpoint to accept list of requested files in json
-     * format and return a plan to send requests to download files. once the
-     * request is posted it is parsed and files are sorted
+     * The controller api endpoint to accept list of requested files in json format
+     * and return a plan to send requests to download files. once the request is
+     * posted it is parsed and files are sorted
      * 
-     * @param jsonObject
-     *            of type BundleNameFilePathUrl
+     * @param jsonObject of type BundleNameFilePathUrl
      * @param response
      * @param errors
      * @return JsonObject of type BundleDownloadPlan
      * @throws JsonProcessingException
      */
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
-	    @ApiResponse(code = 400, message = "Malformed request."),
-	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
-    @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.", notes = "This api endpoint provides the information to client to how to divide request for number of files download "
+    
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
+	    @ApiResponse(responseCode = "400", description = "Malformed request."),
+	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
+    @Operation(summary = "Get the plan to download given list of files. ", description = "This api endpoint provides the information to client to how to divide request for number of files download "
 	    + "if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-        throws DistributionException,InvalidInputException
-    {
+	    @Parameter(hidden = true)  HttpServletResponse response, @Parameter(hidden = true)  Errors errors)
+	    throws DistributionException, InvalidInputException {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
-	}else {
-		throw new InvalidInputException("The input is empty or invalid");
+	} else {
+	    throw new InvalidInputException("The input is empty or invalid");
 	}
 //	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
 //		this.numofFiles, jsonObject, bundleName);
@@ -101,70 +100,78 @@ public class BundleDownloadPlanController {
 
     /**
      * Exception thrown due to invalid input.
+     * 
      * @param ex
      * @param req
      * @return
      */
+
     @ExceptionHandler(JsonProcessingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
-	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
-	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
+
+	return this.createErrorInfo(req, 400, "Malformed input", "POST", "Malformed input detected in ",
+		ex.getMessage());
     }
 
     /**
-	 * Invalid input exception
-	 * @param ex
-	 * @param req
-	 * @return
-	 */
-	@ExceptionHandler(InvalidInputException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
-		logger.info("There is an error processing input data: " + req.getRequestURI() + "\n  " + ex.getMessage());
-		return new ErrorInfo(req.getRequestURI(), 400, "Invalid input error", req.getMethod());
-	}
-	
+     * Invalid input exception
+     * 
+     * @param ex
+     * @param req
+     * @return
+     **/
+    @ExceptionHandler(InvalidInputException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 400, "Invalid input error", req.getMethod(),
+		"There is an error processing input data: ", ex.getMessage());
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex,
-                                                     HttpServletRequest req)
-    {
-        // error is not specific to a version
-        logger.info("Non-existent bag file requested: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 404, "AIP file not found");
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+	return this.createErrorInfo(req, 404, "AIP file not found", "", "Non-existent bag file requested: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex,
-                                         HttpServletRequest req)
-    {
-        logger.info("Failure processing request: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Failure processing request: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(DistributionException ex,
-                                          HttpServletRequest req)
-    {
-        logger.info("Streaming failure during request: " + req.getRequestURI() +
-                    "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error");
+    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
+	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Streaming failure during request: ",
+		ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(RuntimeException ex,
-                                          HttpServletRequest req)
-    {
-        logger.error("Unexpected failure during request: " + req.getRequestURI() +
-                     "\n  " + ex.getMessage(), ex);
-        return new ErrorInfo(req.getRequestURI(), 500, "Unexpected Server Error");
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+
+	return this.createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
+		ex.getMessage());
     }
 
+    public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
+	    String logMessage, String exception) {
+	try {
+	    String URI = "";
+	    if (req.equals(null) || req == null)
+		URI = "NULL";
+	    else
+		URI = req.getRequestURI();
+	    logger.error(logMessage + " " + URI + " " + exception);
+	    return new ErrorInfo(URI, errorcode, pubMessage, method);
+	} catch (Exception ex) {
+	    return new ErrorInfo("", errorcode, pubMessage, method);
+	}
+    }
 
 }

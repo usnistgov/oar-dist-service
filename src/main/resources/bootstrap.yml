@@ -17,7 +17,7 @@ server:
     max-http-header-size: 8192
     tomcat:
       accesslog:
-        directory: /tmp/logs/dist-service
+        directory: /var/log/dist-service
         enabled: true
         file-date-format: yyyy-MM-dd
         prefix: tomcat-access-log
@@ -40,3 +40,7 @@ logging:
   file: distservice.log
   path : /var/log/dist-service
   exception-conversion-word: '%wEx'
+  
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
