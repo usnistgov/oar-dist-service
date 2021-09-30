@@ -624,12 +624,12 @@ public class DatasetAccessController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
 	if (ex.version == null) {
-	    return createErrorInfo(req, 404, "Resource ID not found", "", "Non-existent resource requested: ",
+	    return createErrorInfo(req, 404, "Resource ID not found", "Non-existent resource requested: ",
                                    ex.getMessage());
 
 	} else {
 	    // error is not specific to a version
-	    return createErrorInfo(req, 404, "Requested version of resource not found", "",
+	    return createErrorInfo(req, 404, "Requested version of resource not found", 
                                    "Non-existent resource version requested: ", ex.getMessage());
 
 	}
@@ -639,7 +639,7 @@ public class DatasetAccessController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleFileNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
 
-	return createErrorInfo(req, 404, "File not found in requested dataset", "",
+	return createErrorInfo(req, 404, "File not found in requested dataset", 
                                "Non-existent file requested from resource: ", ex.getMessage());
 
     }
@@ -648,7 +648,7 @@ public class DatasetAccessController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
 
-	return createErrorInfo(req, 500, "Internal Server Error", "", "Failure processing request:", ex.getMessage());
+	return createErrorInfo(req, 500, "Internal Server Error", "Failure processing request:", ex.getMessage());
 
     }
 
@@ -663,7 +663,7 @@ public class DatasetAccessController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
 
-	return createErrorInfo(req, 500, "Internal Server Error", "", "Streaming failure during request: ",
+	return createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
                                ex.getMessage());
     }
 
@@ -671,36 +671,35 @@ public class DatasetAccessController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
-	return createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
+	return createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
                                ex.getMessage());
 
     }
 
     /**
-     * Create Error Information object to be displayed by client
+     * Create Error Information object to be returned to the client as a result of failed request
      * 
-     * @param req
-     * @param errorcode
-     * @param pubMessage
-     * @param method
-     * @param logMessage
-     * @param exception
-     * @return
+     * @param req         the request object the resulted in an error
+     * @param errorcode   the HTTP status code to return
+     * @param pubMessage  the message to return to the client
+     * @param logMessage  a message to record in the log
+     * @param exception   the message from the original exception that motivates this error response
+     * @return ErrorInfo  the object to return to the client
      */
-    public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
-                                     String logMessage, String exception)
+    protected ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, 
+                                        String logMessage, String exception)
     {
+        String URI = "unknown";
+        String method = "unknown";
 	try {
-	    String URI = "";
-	    if (req.equals(null) || req == null)
-		URI = "NULL";
-	    else
+            if (req != null) {
 		URI = req.getRequestURI();
+                method = req.getMethod();
+            }
 	    logger.error(logMessage + " " + URI + " " + exception);
-	    return new ErrorInfo(URI, errorcode, pubMessage, method);
 	} catch (Exception ex) {
 	    logger.error("Exception while processing error. " + ex.getMessage());
-	    return new ErrorInfo("", errorcode, pubMessage, method);
 	}
+        return new ErrorInfo(URI, errorcode, pubMessage, method);
     }
 }

@@ -113,7 +113,7 @@ public class BundleDownloadPlanController {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
 
-	return this.createErrorInfo(req, 400, "Malformed input", "POST", "Malformed input detected in ",
+	return this.createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ",
 		ex.getMessage());
     }
 
@@ -128,14 +128,14 @@ public class BundleDownloadPlanController {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
 
-	return this.createErrorInfo(req, 400, "Invalid input error", req.getMethod(),
-		"There is an error processing input data: ", ex.getMessage());
+	return this.createErrorInfo(req, 400, "Invalid input error", 
+                                    "There is an error processing input data: ", ex.getMessage());
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
-	return this.createErrorInfo(req, 404, "AIP file not found", "", "Non-existent bag file requested: ",
+	return this.createErrorInfo(req, 404, "AIP file not found", "Non-existent bag file requested: ",
 		ex.getMessage());
     }
 
@@ -143,14 +143,14 @@ public class BundleDownloadPlanController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
 
-	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Failure processing request: ",
+	return this.createErrorInfo(req, 500, "Internal Server Error", "Failure processing request: ",
 		ex.getMessage());
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
-	return this.createErrorInfo(req, 500, "Internal Server Error", "", "Streaming failure during request: ",
+	return this.createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
 		ex.getMessage());
     }
 
@@ -158,23 +158,34 @@ public class BundleDownloadPlanController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
-	return this.createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
+	return this.createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
 		ex.getMessage());
     }
 
-    public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
-	    String logMessage, String exception) {
+    /**
+     * Create Error Information object to be returned to the client as a result of failed request
+     * 
+     * @param req         the request object the resulted in an error
+     * @param errorcode   the HTTP status code to return
+     * @param pubMessage  the message to return to the client
+     * @param logMessage  a message to record in the log
+     * @param exception   the message from the original exception that motivates this error response
+     * @return ErrorInfo  the object to return to the client
+     */
+    protected ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, 
+                                        String logMessage, String exception)
+    {
+        String URI = "unknown";
+        String method = "unknown";
 	try {
-	    String URI = "";
-	    if (req.equals(null) || req == null)
-		URI = "NULL";
-	    else
+            if (req != null) {
 		URI = req.getRequestURI();
+                method = req.getMethod();
+            }
 	    logger.error(logMessage + " " + URI + " " + exception);
-	    return new ErrorInfo(URI, errorcode, pubMessage, method);
 	} catch (Exception ex) {
-	    return new ErrorInfo("", errorcode, pubMessage, method);
+	    logger.error("Exception while processing error. " + ex.getMessage());
 	}
+        return new ErrorInfo(URI, errorcode, pubMessage, method);
     }
-
 }
