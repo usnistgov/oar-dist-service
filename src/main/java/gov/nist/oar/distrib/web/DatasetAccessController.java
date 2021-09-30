@@ -107,10 +107,12 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List descriptions of available AIP files", description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
+    @Operation(summary = "List descriptions of available AIP files",
+               description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
     @GetMapping(value = "/{dsid}/_aip")
     public List<FileDescription> describeAIPs(@PathVariable("dsid") String dsid)
-	    throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
 	String fileInfo = "List descriptions of available AIP files: ";
 	checkDatasetID(dsid);
 
@@ -143,10 +145,12 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List the AIP versions available for a dataset", description = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
+    @Operation(summary = "List the AIP versions available for a dataset",
+               description = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
     @GetMapping(value = "/{dsid}/_aip/_v")
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
-	    throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
 	logger.info("List Versions:" + dsid);
 	checkDatasetID(dsid);
 	return pres.listVersions(dsid);
@@ -168,10 +172,13 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List descriptions of AIP files available for a particular version of the dataset", description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
+    @Operation(summary = "List descriptions of AIP files available for a particular version of the dataset",
+               description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
     @GetMapping(value = "/{dsid}/_aip/_v/{ver}")
     public List<FileDescription> describeAIPsForVersion(@PathVariable("dsid") String dsid,
-	    @PathVariable("ver") String ver) throws ResourceNotFoundException, DistributionException {
+                                                        @PathVariable("ver") String ver)
+        throws ResourceNotFoundException, DistributionException
+    {
 	String versionDescription = " Describe versions:";
 	checkDatasetID(dsid);
 
@@ -221,10 +228,12 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP", description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
+    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
+               description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
     @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head")
     public FileDescription describeHeadAIPForVersion(@PathVariable("dsid") String dsid, @PathVariable("ver") String ver)
-	    throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
 	checkDatasetID(dsid);
 
 	if (ver == null || ver.equals("latest")) {
@@ -258,10 +267,12 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP", description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
+    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
+               description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
     @GetMapping(value = "/{dsid}/_aip/_head")
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
-	    throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
 	logger.info("Describe head bag:" + dsid);
 	return describeHeadAIPForVersion(dsid, null);
     }
@@ -295,12 +306,15 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "stream the data product with the given name", description = "This supports using the full ARK ID as the dataset identifier")
+    @Operation(summary = "stream the data product with the given name",
+               description = "This supports using the full ARK ID as the dataset identifier")
     @GetMapping(value = "/ark:/{naan:\\d+}/{dsid}/**")
     public void downloadFileViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
-	    @Parameter(hidden = true) HttpServletRequest request, @Parameter(hidden = true) HttpServletResponse response,
-	    @RequestParam Optional<String> requestId)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
+                                   @Parameter(hidden = true) HttpServletRequest request,
+                                   @Parameter(hidden = true) HttpServletResponse response,
+                                   @RequestParam Optional<String> requestId)
+	    throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
 	logger.debug("Matched ARK ID for download: ark:/" + naan + "/" + dsid);
 
 	String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -333,11 +347,14 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given ARK ID", description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
+    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given ARK ID",
+               description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
     @RequestMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", method = RequestMethod.HEAD)
     public void downloadFileInfoViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
-	    @Parameter(hidden = true) HttpServletRequest request, @Parameter(hidden = true) HttpServletResponse response)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException {
+                                       @Parameter(hidden = true) HttpServletRequest request,
+                                       @Parameter(hidden = true) HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
 	logger.debug("Matched ARK ID for info: ark:/" + naan + "/" + dsid);
 
 	String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -369,12 +386,14 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "stream the data product with the given name", description = "This is the primary way to download a data file")
+    @Operation(summary = "stream the data product with the given name",
+               description = "This is the primary way to download a data file")
     @GetMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**")
     public void downloadFile(@PathVariable("dsid") String dsid, @Parameter(hidden = true) HttpServletRequest request,
-	    @Parameter(hidden = true) HttpServletResponse response, @RequestParam Optional<String> requestId)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
-
+                             @Parameter(hidden = true) HttpServletResponse response,
+                             @RequestParam Optional<String> requestId)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
 	String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	filepath = filepath.substring("/ds/".length() + dsid.length());
 	if (filepath.startsWith("/"))
@@ -412,7 +431,8 @@ public class DatasetAccessController {
      *                                   to the client
      */
     public void downloadFile(String dsid, String filepath, String version, HttpServletResponse response)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
@@ -436,7 +456,7 @@ public class DatasetAccessController {
 	    response.setHeader("Content-Length", Long.toString(sh.getInfo().contentLength));
 	    response.setHeader("Content-Type", sh.getInfo().contentType);
 	    response.setHeader("Content-Disposition",
-		    "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+                               "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
 
 	    int len;
 	    byte[] buf = new byte[100000];
@@ -447,7 +467,7 @@ public class DatasetAccessController {
 		    out.write(buf, 0, len);
 		}
 		logger.info("Data File delivered: " + dsid + "," + dsid + "/" + filepath + ","
-			+ Long.toString(sh.getInfo().contentLength));
+                            + Long.toString(sh.getInfo().contentLength));
 		response.flushBuffer();
 //		logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+Long.toString(sh.getInfo().contentLength));
 	    } catch (org.apache.catalina.connector.ClientAbortException ex) {
@@ -512,11 +532,13 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given name", description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
+    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given name",
+               description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
     @RequestMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**", method = RequestMethod.HEAD)
     public void downloadFileInfo(@PathVariable("dsid") String dsid, @Parameter(hidden = true) HttpServletRequest request,
-	    @Parameter(hidden = true) HttpServletResponse response)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException {
+                                 @Parameter(hidden = true) HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
 	String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 	filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
 	String ver = null;
@@ -548,7 +570,8 @@ public class DatasetAccessController {
      *                                   to the client
      */
     public void downloadFileInfo(String dsid, String filepath, String version, HttpServletResponse response)
-	    throws ResourceNotFoundException, FileNotFoundException, DistributionException {
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
 	checkDatasetID(dsid);
 	checkFilePath(filepath);
 
@@ -561,7 +584,7 @@ public class DatasetAccessController {
 	}
 	FileDescription fi = downl.getDataFileInfo(dsid, filepath, version);
 	logger.info("HeadRequest:" + dsid + "/" + filepath + "," + " (version " + version + "),"
-		+ Long.toString(fi.contentLength));
+                    + Long.toString(fi.contentLength));
 
 	/*
 	 * Need encodeDigest implementation that converts hex to base64
@@ -572,7 +595,7 @@ public class DatasetAccessController {
 	response.setHeader("Content-Length", Long.toString(fi.contentLength));
 	response.setHeader("Content-Type", fi.contentType);
 	response.setHeader("Content-Disposition",
-		"filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+                           "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
 
     }
 
@@ -602,12 +625,12 @@ public class DatasetAccessController {
     public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
 	if (ex.version == null) {
 	    return createErrorInfo(req, 404, "Resource ID not found", "", "Non-existent resource requested: ",
-		    ex.getMessage());
+                                   ex.getMessage());
 
 	} else {
 	    // error is not specific to a version
 	    return createErrorInfo(req, 404, "Requested version of resource not found", "",
-		    "Non-existent resource version requested: ", ex.getMessage());
+                                   "Non-existent resource version requested: ", ex.getMessage());
 
 	}
     }
@@ -617,7 +640,7 @@ public class DatasetAccessController {
     public ErrorInfo handleFileNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
 
 	return createErrorInfo(req, 404, "File not found in requested dataset", "",
-		"Non-existent file requested from resource: ", ex.getMessage());
+                               "Non-existent file requested from resource: ", ex.getMessage());
 
     }
 
@@ -641,7 +664,7 @@ public class DatasetAccessController {
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
 
 	return createErrorInfo(req, 500, "Internal Server Error", "", "Streaming failure during request: ",
-		ex.getMessage());
+                               ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -649,7 +672,7 @@ public class DatasetAccessController {
     public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
 	return createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
-		ex.getMessage());
+                               ex.getMessage());
 
     }
 
@@ -665,7 +688,8 @@ public class DatasetAccessController {
      * @return
      */
     public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
-	    String logMessage, String exception) {
+                                     String logMessage, String exception)
+    {
 	try {
 	    String URI = "";
 	    if (req.equals(null) || req == null)

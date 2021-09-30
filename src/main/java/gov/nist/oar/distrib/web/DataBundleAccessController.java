@@ -69,14 +69,17 @@ public class DataBundleAccessController {
      * @throws InputLimitException
      * 
      */
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
-	    @ApiResponse(responseCode = "400", description = "Malformed request."),
-	    @ApiResponse(responseCode = "403", description = "Download not allowed"),
-	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
-    @Operation(summary = "stream  compressed bundle of data requested", description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description="Bundle download request is successful."),
+                            @ApiResponse(responseCode = "400", description="Malformed request."),
+                            @ApiResponse(responseCode = "403", description="Download not allowed"),
+                            @ApiResponse(responseCode = "500", description="There is some error in distribution service") })
+    @Operation(summary = "stream  compressed bundle of data requested",
+               description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json")
-    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @Parameter(hidden = true) HttpServletResponse response,
-	    @Parameter(hidden = true) Errors errors) throws DistributionException {
+    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest,
+                          @Parameter(hidden = true) HttpServletResponse response,
+                          @Parameter(hidden = true) Errors errors) throws DistributionException
+    {
 	ZipOutputStream zout = null;
 	try {
 	    logger.info("Data bundled in zip requested: " + bundleRequest.getBundleName());
@@ -90,7 +93,7 @@ public class DataBundleAccessController {
 	    zout.close();
 
 	    logger.info("Data bundled in zip delivered: " + bundleRequest.getBundleName() + ","
-		    + bundleRequest.getBundleSize());
+                        + bundleRequest.getBundleSize());
 	    // logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
 
 	} catch (org.apache.catalina.connector.ClientAbortException ex) {
@@ -135,7 +138,7 @@ public class DataBundleAccessController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleServiceSyntaxException(NoContentInPackageException ex, HttpServletRequest req) {
 	return createErrorInfo(req, 404, "There is no content in the package.", "POST", "Malformed input detected in ",
-		ex.getMessage());
+                               ex.getMessage());
 
     }
 
@@ -143,7 +146,7 @@ public class DataBundleAccessController {
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
 	return createErrorInfo(req, 502, "No files could be accessed successfully.", "POST",
-		"There are no files successfully accessed ", ex.getMessage());
+                               "There are no files successfully accessed ", ex.getMessage());
 
     }
 
@@ -152,22 +155,22 @@ public class DataBundleAccessController {
     @ResponseBody
     public ErrorInfo handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
 	return createErrorInfo(req, HttpStatus.FORBIDDEN.value(),
-		"Number of files and total size of bundle has some limit.", "POST",
-		"Bundle size and number of files in the bundle have some limits.", ex.getMessage());
+                               "Number of files and total size of bundle has some limit.", "POST",
+                               "Bundle size and number of files in the bundle have some limits.", ex.getMessage());
     }
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
 	return createErrorInfo(req, 500, "Internal Server Error", "POST", "Failure processing request: ",
-		ex.getMessage());
+                               ex.getMessage());
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
 	return createErrorInfo(req, 500, "Internal Server Error", "POST", "Streaming failure during request: ",
-		ex.getMessage());
+                               ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -176,7 +179,7 @@ public class DataBundleAccessController {
     public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
 	return createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
-		ex.getMessage());
+                               ex.getMessage());
     }
 
     /**

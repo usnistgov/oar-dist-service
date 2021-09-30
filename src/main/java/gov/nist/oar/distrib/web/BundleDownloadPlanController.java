@@ -79,12 +79,15 @@ public class BundleDownloadPlanController {
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
 	    @ApiResponse(responseCode = "400", description = "Malformed request."),
 	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
-    @Operation(summary = "Get the plan to download given list of files. ", description = "This api endpoint provides the information to client to how to divide request for number of files download "
-	    + "if some limits are not met.")
+    @Operation(summary = "Get the plan to download given list of files. ",
+               description = "This api endpoint provides the information to client to how to divide request for "
+                             + "number of files download if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @Parameter(hidden = true)  HttpServletResponse response, @Parameter(hidden = true)  Errors errors)
-	    throws DistributionException, InvalidInputException {
+                                            @Parameter(hidden = true)  HttpServletResponse response,
+                                            @Parameter(hidden = true)  Errors errors)
+        throws DistributionException, InvalidInputException
+    {
 	String bundleName = "Download-data";
 	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
 	    bundleName = bundleRequest.getBundleName();
