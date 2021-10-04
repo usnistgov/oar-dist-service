@@ -56,16 +56,17 @@ import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.Api;
-import springfox.documentation.annotations.ApiIgnore;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * a web service controller that provides access to the distribution cache--its contents, its status,
  * and its operation--via its CacheManager.  
  */
 @RestController
-@Api
+@Tag(name="Cache Manager API",
+     description=" These API endpoints provide information on the contents and status of the data cache as well as control of the data monitor")
 @RequestMapping(value="/cache")
 public class CacheManagementController {
 
@@ -101,10 +102,10 @@ public class CacheManagementController {
      * indicate whether the cache manager is operating.  200 is returned if it is, 404 if it isn't.
      * @param req    the request object (from which the request URL is retrieved)
      */
-    @ApiOperation(value="Return the status of the cache manager", nickname="is cache manager in use?",
-                  notes="200 is returned if the cache manager is in operation, 404 otherwise.")
+    @Operation(summary="Return the status of the cache manager",
+               description="200 is returned if the cache manager is in operation, 404 otherwise.")
     @GetMapping(value="/")
-    public ErrorInfo getStatus(@ApiIgnore HttpServletRequest req) throws NotOperatingException {
+    public ErrorInfo getStatus(@Parameter(hidden=true) HttpServletRequest req) throws NotOperatingException {
         _checkForManager();
         return new ErrorInfo(req.getRequestURI(), 200, "Cache Manager in Use");
     }
@@ -112,8 +113,8 @@ public class CacheManagementController {
     /**
      * return a summary of the cache volumes
      */
-    @ApiOperation(value="List summaries of the volumes in the cache", nickname="Summarize volumes",
-                  notes="Each item in the returned JSON array summarizes the state of a volume within the cache")
+    @Operation(summary="List summaries of the volumes in the cache", 
+               description="Each item in the returned JSON array summarizes the state of a volume within the cache")
     @GetMapping(value="/volumes/")
     public List<Object> summarizeVolumes() throws InventoryException, NotOperatingException {
         _checkForManager();
@@ -123,10 +124,10 @@ public class CacheManagementController {
     /**
      * return a summary of a cach volume's metadata and stats
      */
-    @ApiOperation(value="Return a summary of a volume in the cache", nickname="Summarize volume",
-                  notes="Returns metadata and statistics about a volume and its contents")
+    @Operation(summary="Return a summary of a volume in the cache", 
+               description="Returns metadata and statistics about a volume and its contents")
     @GetMapping(value="/volumes/**")
-    public Map<String, Object> summarizeVolume(@ApiIgnore HttpServletRequest request)
+    public Map<String, Object> summarizeVolume(@Parameter(hidden=true) HttpServletRequest request)
         throws VolumeNotFoundException, InventoryException, NotOperatingException
     {
         _checkForManager();
@@ -138,8 +139,8 @@ public class CacheManagementController {
     /**
      * return a summary of the contents of the cache
      */
-    @ApiOperation(value="Summarize the contents of the cache", nickname="Summarize contents",
-                  notes="Each item describes a dataset, some portion of which is cached")
+    @Operation(summary="Summarize the contents of the cache", 
+               description="Each item describes a dataset, some portion of which is cached")
     @GetMapping(value="/objects/")
     public List<Object> summarizeContents()
         throws InventoryException, StorageVolumeException, NotOperatingException, CacheManagementException
@@ -153,8 +154,8 @@ public class CacheManagementController {
      * files for which the manager has metadata but are not currently stored in the cache (because they 
      * were deleted).  
      */
-    @ApiOperation(value="List objects from a dataset collection", nickname="list dataset",
-                  notes="Each item describes a dataset which may or may not currently exist in the cache")
+    @Operation(summary="List objects from a dataset collection", 
+               description="Each item describes a dataset which may or may not currently exist in the cache")
     @GetMapping(value="/objects/{dsid}")
     public Map<String,Object> summarizeDataset(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
@@ -198,11 +199,11 @@ public class CacheManagementController {
      * </ul>
      * If a filepath is given and no information exists about it in the inventory, 404 is returned.  
      */
-    @ApiOperation(value="Return a description of an object in the cache", nickname="Summarize object",
-                  notes="The returned object describes what is known about the object, including a flag indicating whether is cached.")
+    @Operation(summary="Return a description of an object in the cache", 
+               description="The returned object describes what is known about the object, including a flag indicating whether is cached.")
     @GetMapping(value="/objects/{dsid}/**")
-    public void describeDatasetComp(@PathVariable("dsid") String dsid, @ApiIgnore HttpServletRequest request,
-                                    @ApiIgnore HttpServletResponse response)
+    public void describeDatasetComp(@PathVariable("dsid") String dsid, @Parameter(hidden=true) HttpServletRequest request,
+                                    @Parameter(hidden=true) HttpServletResponse response)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
         // ResponseEntity<Map<String,Object>>
@@ -285,12 +286,11 @@ public class CacheManagementController {
     /**
      * ensure all the objects in a dataset are cached.  
      */
-    @ApiOperation(value="Ensure all objects from a dataset collection are in the cache",
-                  nickname="cache dataset",
-                  notes="The list returned is the same as with GET; it may take a while for all objects to be cached.")
+    @Operation(summary="Ensure all objects from a dataset collection are in the cache",
+               description="The list returned is the same as with GET; it may take a while for all objects to be cached.")
     @PutMapping(value="/objects/{dsid}/**")
     public ResponseEntity<String> updateDataFile(@PathVariable("dsid") String dsid,
-                                                 @ApiIgnore HttpServletRequest request)
+                                                 @Parameter(hidden=true) HttpServletRequest request)
         throws CacheManagementException, StorageVolumeException, NotOperatingException
     {
         _checkForManager();
@@ -334,9 +334,8 @@ public class CacheManagementController {
     /**
      * return status information about integrity monitoring 
      */
-    @ApiOperation(value="Return status information about cache file integrity checking",
-                  nickname="monitor status",
-                  notes="The properties in the returned JSON Object describe results from the last integrity check.")
+    @Operation(summary="Return status information about cache file integrity checking",
+               description="The properties in the returned JSON Object describe results from the last integrity check.")
     @GetMapping(value="/monitor/")
     public ResponseEntity<Map<String,Object>> getMonitorStatus() throws CacheManagementException {
         return new ResponseEntity<Map<String,Object>>(mgr.getMonitorStatus().toMap(), HttpStatus.OK);
@@ -346,11 +345,10 @@ public class CacheManagementController {
      * start integrity monitoring.  Set <code>repeat=true</code> as a query parameter to have monitoring cycle 
      * continuously on the configured schedule.
      */
-    @ApiOperation(value="Starts integrity monitoring",
-                  nickname="start monitoring",
-                  notes="Use repeat=true to check repeatably on configured schedule")
+    @Operation(summary="Starts integrity monitoring",
+               description="Use repeat=true to check repeatably on configured schedule")
     @PutMapping(value="/monitor/running")
-    public ResponseEntity<String> startMonitor(@ApiIgnore HttpServletRequest request)
+    public ResponseEntity<String> startMonitor(@Parameter(hidden=true) HttpServletRequest request)
         throws CacheManagementException
     {
         String repeatp = request.getParameter("repeat");
@@ -370,7 +368,7 @@ public class CacheManagementController {
      * start integrity monitoring.  Set <code>repeat=true</code> as a query parameter to have monitoring cycle 
      * continuously on the configured schedule.
      */
-    @ApiOperation(value="Report whether integrity monitoring is currently running", nickname="query monitoring")
+    @Operation(summary="Report whether integrity monitoring is currently running")
     @GetMapping(value="/monitor/running")
     public ResponseEntity<String> isMonitorRunning()
         throws CacheManagementException
@@ -385,8 +383,8 @@ public class CacheManagementController {
     /**
      * stop integrity monitoring after the current cycle completes
      */
-    @ApiOperation(value="Stops integrity monitoring", nickname="stop monitoring",
-                  notes="If running, the monitor will stop after the current cycle")
+    @Operation(summary="Stops integrity monitoring", 
+               description="If running, the monitor will stop after the current cycle")
     @DeleteMapping(value="/monitor/running")
     public ResponseEntity<String> stopMonitor() {
         PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
@@ -403,9 +401,8 @@ public class CacheManagementController {
      * ensure all the objects in a dataset are cached.  The returned message is the same as 
      * {@link #listObjectsFor(String,String)}.  
 
-    @ApiOperation(value="Ensure all objects from a dataset collection are deleted from the cache",
-                  nickname="uncache dataset",
-                  notes="")
+    @Operation(summary="Ensure all objects from a dataset collection are deleted from the cache",
+               description="")
     @DeleteMapping(value="/objects/{dsid}/:cached")
     public ResponseEntity<String> cacheDataset(@PathVariable("dsid") String dsid)
         throws CacheManagementException, StorageVolumeException, NotOperatingException
