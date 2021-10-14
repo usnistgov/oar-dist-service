@@ -94,6 +94,7 @@ public class NISTCacheManagerConfig {
 
     String admindir = null;
     List<CacheVolumeConfig> volumes;
+    boolean startmonitor = false;     // don't start the integrity monitor thread on startup
     long smallszlim = 10000000;       // default: 10 MB
     long dutycycle = 20 * 60;         // 20 mins
     long graceperiod = 24 * 3600;     // 24 hours
@@ -108,6 +109,8 @@ public class NISTCacheManagerConfig {
     public void setArkNaan(String naan) { arknaan = naan; }
     public long getSmallSizeLimit() { return smallszlim; }
     public void setSmallSizeLimit(long bytes) { smallszlim = bytes; }
+    public boolean getMonitorAutoStart() { return startmonitor; }
+    public void setMonitorAutoStart(boolean start) { startmonitor = start; }
     public long getCheckDutyCycle() { return dutycycle; }
     public void setCheckDutyCycle(long cyclesec) { dutycycle = cyclesec; }
     public long getCheckGracePeriod() { return graceperiod; }
@@ -457,7 +460,14 @@ public class NISTCacheManagerConfig {
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
         checks.add(new ChecksumCheck());
-        return new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, getCheckGracePeriod()*1000, 
-                                   -1, rootdir, logger);
+        PDRCacheManager out = new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, 
+                                                  getCheckGracePeriod()*1000, -1, rootdir, logger);
+        if (getMonitorAutoStart()) {
+            PDRCacheManager.MonitorThread mt = out.getMonitorThread();
+            mt.setContinuous(true);
+            if (! mt.isAlive())
+                mt.start();
+        }
+        return out;
     }
 }

@@ -188,6 +188,7 @@ public class NISTCacheManagerConfigTest {
         BasicCache cache = cfg.createDefaultCache(null);
 
         PDRCacheManager cmgr = cfg.createCacheManager(cache, restr, LoggerFactory.getLogger("cachemgr"));
+        assertFalse(cmgr.getMonitorThread().isAlive());
         assertNull(cmgr.findObject("goober"));
 
         JSONObject vsum = cmgr.summarizeVolume("king");
