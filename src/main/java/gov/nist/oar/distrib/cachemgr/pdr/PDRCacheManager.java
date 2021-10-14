@@ -410,7 +410,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
 
         @Override
         public void run() {
-            log.info("Monitoring started with auto-repeat {}", (once) ? "no" : "yes");
+            log.info("Monitoring started with auto-repeat {}", (once) ? "off" : "on");
 
             int checked = 0;
             List<CacheObject> deleted = new ArrayList<CacheObject>();
