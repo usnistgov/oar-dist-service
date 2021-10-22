@@ -146,13 +146,13 @@ public class NISTDistribServiceConfig {
      */
     @Value("${distrib.packaging.maxpackagesize:500000000}")
     long maxPkgSize;
-	
+       
     /**
      * the maximum number of files to allow in a single data package
      */
     @Value("${distrib.packaging.maxfilecount:200}")
     int maxFileCount;
-	
+
     /**
      * a white list of allowed URL patterns from which to retrieve data to include in data packages.
      * This value is given as a regular expression Strings delimited by pipe (|) characters; each 
@@ -163,7 +163,7 @@ public class NISTDistribServiceConfig {
      */
     @Value("${distrib.packaging.allowedurls:}")
     String allowedUrls;
-	
+
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
@@ -279,14 +279,21 @@ public class NISTDistribServiceConfig {
     public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {
        appVersion = VERSION;
        List<Server> servers = new ArrayList<>();
-   	   servers.add(new Server().url("/od"));
-       String description = "The Public data repository hosts the data which is available for users to download via web application. "
-       		+ "This data is accessed by service called data distribution service. This is collection of API endpoints which are used to distribute data based on the query criteria.";
-       return new OpenAPI()
-	       .components(new Components()).components(new Components()).servers(servers)
-        .info(new Info().title("Data Distribution Service API").version(VersionController.NAME+" "+VersionController.VERSION)
-        		.description(description)
-                .license(new License().name("NIST Software").url("https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications")));
+       servers.add(new Server().url("/od"));
+
+       String description = "The Public data repository hosts the data which is available for users to download via " 
+           + "web application.  This data is accessed by service called data distribution service. This is collection "
+           + "of API endpoints which are used to distribute data based on the query criteria.";
+       String licenseurl = "https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications";
+
+       return new OpenAPI().components(new Components())
+                           .components(new Components())
+                           .servers(servers)
+                           .info(new Info().title("Data Distribution Service API")
+                                           .version(VersionController.NAME+" "+VersionController.VERSION)
+                                           .description(description)
+                                           .license(new License().name("NIST Software")
+                                                                 .url(licenseurl)));
     }
     
     /**
