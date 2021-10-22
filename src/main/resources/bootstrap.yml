@@ -44,3 +44,7 @@ logging:
 springdoc:
   swagger-ui:
     tagsSorter: alpha
+    path: /ds-api/swagger-ui.html
+    disable-swagger-default-url: true
+  api-docs:
+    path: /ds-api/v3/api-docs
