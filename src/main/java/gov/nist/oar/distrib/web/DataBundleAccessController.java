@@ -69,81 +69,84 @@ public class DataBundleAccessController {
      * @throws InputLimitException
      * 
      */
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
-	    @ApiResponse(responseCode = "400", description = "Malformed request."),
-	    @ApiResponse(responseCode = "403", description = "Download not allowed"),
-	    @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
-    @Operation(summary = "stream  compressed bundle of data requested", description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description="Bundle download request is successful."),
+                            @ApiResponse(responseCode = "400", description="Malformed request."),
+                            @ApiResponse(responseCode = "403", description="Download not allowed"),
+                            @ApiResponse(responseCode = "500", description="There is some error in distribution service") })
+    @Operation(summary = "stream  compressed bundle of data requested",
+               description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
     @PostMapping(value = "/ds/_bundle", consumes = "application/json")
-    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest, @Parameter(hidden = true) HttpServletResponse response,
-	    @Parameter(hidden = true) Errors errors) throws DistributionException {
-	ZipOutputStream zout = null;
-	try {
-	    logger.info("Data bundled in zip requested: " + bundleRequest.getBundleName());
-	    DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
-	    dataPackager.validateBundleRequest();
-	    zout = new ZipOutputStream(response.getOutputStream());
-	    response.setHeader("Content-Type", "application/zip");
-	    response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
-	    dataPackager.getData(zout);
-	    response.flushBuffer();
-	    zout.close();
+    public void getBundle(@Valid @RequestBody BundleRequest bundleRequest,
+                          @Parameter(hidden = true) HttpServletResponse response,
+                          @Parameter(hidden = true) Errors errors) throws DistributionException
+    {
+        ZipOutputStream zout = null;
+        try {
+            logger.info("Data bundled in zip requested: " + bundleRequest.getBundleName());
+            DataPackager dataPackager = dpService.getDataPackager(bundleRequest);
+            dataPackager.validateBundleRequest();
+            zout = new ZipOutputStream(response.getOutputStream());
+            response.setHeader("Content-Type", "application/zip");
+            response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
+            dataPackager.getData(zout);
+            response.flushBuffer();
+            zout.close();
 
-	    logger.info("Data bundled in zip delivered: " + bundleRequest.getBundleName() + ","
-		    + bundleRequest.getBundleSize());
-	    // logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
+            logger.info("Data bundled in zip delivered: " + bundleRequest.getBundleName() + ","
+                        + bundleRequest.getBundleSize());
+            // logger.info("Data bundled in zip delivered."+dataPackager.getBundleName());
 
-	} catch (org.apache.catalina.connector.ClientAbortException ex) {
-	    logger.info("Client cancelled the download");
-	    logger.error(ex.getMessage());
-	    throw new DistributionException(ex.getMessage());
-	} catch (IOException ex) {
-	    logger.debug("IOException type: " + ex.getClass().getName());
-	    logger.error("IOException in getBundle" + ex.getMessage());
-	    // "Connection reset by peer" gets thrown if the user cancels the
-	    // download
-	    if (ex.getMessage().contains("Connection reset by peer")) {
-		logger.info("Client cancelled download");
-	    } else {
-		logger.error("IO error while sending file, " + ": " + ex.getMessage());
-		throw new DistributionException(ex.getMessage());
-	    }
-	} catch (EmptyBundleRequestException ex) {
-	    logger.warn("Empty bundle request sent");
-	    throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
-	} finally {
-	    if (zout != null) {
-		try {
-		    zout.close();
-		} catch (IOException e) {
-		    logger.error("Error while closing the output ZipOutputStream: " + e.getMessage());
-		    throw new DistributionException("Zip output stream close error: " + e.getMessage(), e);
-		}
-	    }
-	}
+        } catch (org.apache.catalina.connector.ClientAbortException ex) {
+            logger.info("Client cancelled the download");
+            logger.error(ex.getMessage());
+            throw new DistributionException(ex.getMessage());
+        } catch (IOException ex) {
+            logger.debug("IOException type: " + ex.getClass().getName());
+            logger.error("IOException in getBundle" + ex.getMessage());
+            // "Connection reset by peer" gets thrown if the user cancels the
+            // download
+            if (ex.getMessage().contains("Connection reset by peer")) {
+                logger.info("Client cancelled download");
+            } else {
+                logger.error("IO error while sending file, " + ": " + ex.getMessage());
+                throw new DistributionException(ex.getMessage());
+            }
+        } catch (EmptyBundleRequestException ex) {
+            logger.warn("Empty bundle request sent");
+            throw new ServiceSyntaxException("Bundle Request has empty list of files and urls", ex);
+        } finally {
+            if (zout != null) {
+                try {
+                    zout.close();
+                } catch (IOException e) {
+                    logger.error("Error while closing the output ZipOutputStream: " + e.getMessage());
+                    throw new DistributionException("Zip output stream close error: " + e.getMessage(), e);
+                }
+            }
+        }
 
     }
 
     @ExceptionHandler(ServiceSyntaxException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
-	return createErrorInfo(req, 400, "Malformed input", "POST", "Malformed input detected in ", ex.getMessage());
+        return createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ", ex.getMessage());
 
     }
 
     @ExceptionHandler(NoContentInPackageException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleServiceSyntaxException(NoContentInPackageException ex, HttpServletRequest req) {
-	return createErrorInfo(req, 404, "There is no content in the package.", "POST", "Malformed input detected in ",
-		ex.getMessage());
+        return createErrorInfo(req, 404, "There is no content in the package.", "Malformed input detected in ",
+                               ex.getMessage());
 
     }
 
     @ExceptionHandler(NoFilesAccesibleInPackageException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
-	return createErrorInfo(req, 502, "No files could be accessed successfully.", "POST",
-		"There are no files successfully accessed ", ex.getMessage());
+        return createErrorInfo(req, 502, "No files could be accessed successfully.", 
+                               "There are no files successfully accessed ", ex.getMessage());
 
     }
 
@@ -151,23 +154,23 @@ public class DataBundleAccessController {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ResponseBody
     public ErrorInfo handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
-	return createErrorInfo(req, HttpStatus.FORBIDDEN.value(),
-		"Number of files and total size of bundle has some limit.", "POST",
-		"Bundle size and number of files in the bundle have some limits.", ex.getMessage());
+        return createErrorInfo(req, HttpStatus.FORBIDDEN.value(),
+                               "Number of files and total size of bundle has some limit.", 
+                               "Bundle size and number of files in the bundle have some limits.", ex.getMessage());
     }
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
-	return createErrorInfo(req, 500, "Internal Server Error", "POST", "Failure processing request: ",
-		ex.getMessage());
+        return createErrorInfo(req, 500, "Internal Server Error", "Failure processing request: ",
+                               ex.getMessage());
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
-	return createErrorInfo(req, 500, "Internal Server Error", "POST", "Streaming failure during request: ",
-		ex.getMessage());
+        return createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
+                               ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -175,34 +178,34 @@ public class DataBundleAccessController {
 
     public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
-	return createErrorInfo(req, 500, "Unexpected Server Error", "", "Unexpected failure during request: ",
-		ex.getMessage());
+        return createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
+                               ex.getMessage());
     }
 
     /**
-     * Create Error Information object to be displayed by client
+     * Create Error Information object to be returned to the client as a result of failed request
      * 
-     * @param req
-     * @param errorcode
-     * @param pubMessage
-     * @param method
-     * @param logMessage
-     * @param exception
-     * @return
+     * @param req         the request object the resulted in an error
+     * @param errorcode   the HTTP status code to return
+     * @param pubMessage  the message to return to the client
+     * @param logMessage  a message to record in the log
+     * @param exception   the message from the original exception that motivates this error response
+     * @return ErrorInfo  the object to return to the client
      */
-    public ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, String method,
-	    String logMessage, String exception) {
-	try {
-	    String URI = "";
-	    if (req.equals(null) || req == null)
-		URI = "NULL";
-	    else
-		URI = req.getRequestURI();
-	    logger.error(logMessage + " " + URI + " " + exception);
-	    return new ErrorInfo(URI, errorcode, pubMessage, method);
-	} catch (Exception ex) {
-	    logger.error("Exception while processing error. " + ex.getMessage());
-	    return new ErrorInfo("", errorcode, pubMessage, method);
-	}
+    protected ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, 
+                                        String logMessage, String exception)
+    {
+        String URI = "unknown";
+        String method = "unknown";
+        try {
+            if (req != null) {
+                URI = req.getRequestURI();
+                method = req.getMethod();
+            }
+            logger.error(logMessage + " " + URI + " " + exception);
+        } catch (Exception ex) {
+            logger.error("Exception while processing error. " + ex.getMessage());
+        }
+        return new ErrorInfo(URI, errorcode, pubMessage, method);
     }
 }
