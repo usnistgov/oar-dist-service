@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * @author Raymond Plante
  */
 @RestController
-@Tag(name="Get the dataset versions.")
+@Tag(name="Get the AIP service version.")
 @RequestMapping(value = "/ds")
 public class VersionController {
 

@@ -76,7 +76,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * {@link gov.nist.oar.distrib.web.AIPAccessController AIPAccessController}.
  */
 @RestController
-@Tag (name = "Download Files API", description =" These API endpoints allow access to different data products provided by NIST public data repository.")
+@Tag (name = "Download Files", description =" These API endpoints allow access to different data products provided by NIST public data repository.")
 @RequestMapping(value = "/ds")
 public class DatasetAccessController {
 
