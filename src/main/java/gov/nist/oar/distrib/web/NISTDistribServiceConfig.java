@@ -18,6 +18,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.servers.Server;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
@@ -27,6 +28,8 @@ import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import javax.activation.MimetypesFileTypeMap;
@@ -143,13 +146,13 @@ public class NISTDistribServiceConfig {
      */
     @Value("${distrib.packaging.maxpackagesize:500000000}")
     long maxPkgSize;
-	
+       
     /**
      * the maximum number of files to allow in a single data package
      */
     @Value("${distrib.packaging.maxfilecount:200}")
     int maxFileCount;
-	
+
     /**
      * a white list of allowed URL patterns from which to retrieve data to include in data packages.
      * This value is given as a regular expression Strings delimited by pipe (|) characters; each 
@@ -160,7 +163,7 @@ public class NISTDistribServiceConfig {
      */
     @Value("${distrib.packaging.allowedurls:}")
     String allowedUrls;
-	
+
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
@@ -274,45 +277,57 @@ public class NISTDistribServiceConfig {
 
     @Bean
     public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {
-//       appVersion = VERSION;
-       return new OpenAPI()
-	       .components(new Components())
-        .info(new Info().title("Data Distribution Service API").version(VersionController.NAME+" "+VersionController.VERSION)
-                .license(new License().name("NIST Software").url("https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications")));
+       appVersion = VERSION;
+       List<Server> servers = new ArrayList<>();
+       servers.add(new Server().url("/od"));
+
+       String description = "The Public data repository hosts the data which is available for users to download via " 
+           + "web application.  This data is accessed by service called data distribution service. This is collection "
+           + "of API endpoints which are used to distribute data based on the query criteria.";
+       String licenseurl = "https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications";
+
+       return new OpenAPI().components(new Components())
+                           .components(new Components())
+                           .servers(servers)
+                           .info(new Info().title("Data Distribution Service API")
+                                           .version(VersionController.NAME+" "+VersionController.VERSION)
+                                           .description(description)
+                                           .license(new License().name("NIST Software")
+                                                                 .url(licenseurl)));
     }
     
-//    /**
-//     * The service name
-//     */
-//    public final static String NAME;
-//
-//    /**
-//     * The version of the service
-//     */
-//    public final static String VERSION;
-//
-//    static {
-//        String name = null;
-//        String version = null;
-//        try (InputStream verf =  NISTDistribServiceConfig.class.getClassLoader().getResourceAsStream("VERSION")) {
-//            if (verf == null) {
-//                name = "oar-dist-service";
-//                version = "not set";
-//            }
-//            else {
-//                BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
-//                String line = vrdr.readLine();
-//                String[] parts = line.split("\\s+");
-//                name = parts[0];
-//                version = (parts.length > 1) ? parts[1] : "missing";
-//            }
-//        } catch (Exception ex) {
-//            name = "oar-dist-service";
-//            version = "unknown";
-//        }
-//        NAME = name;
-//        VERSION = version;
-//    }
+    /**
+     * The service name
+     */
+    public final static String NAME;
+
+    /**
+     * The version of the service
+     */
+    public final static String VERSION;
+
+    static {
+        String name = null;
+        String version = null;
+        try (InputStream verf =  NISTDistribServiceConfig.class.getClassLoader().getResourceAsStream("VERSION")) {
+            if (verf == null) {
+                name = "oar-dist-service";
+                version = "not set";
+            }
+            else {
+                BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
+                String line = vrdr.readLine();
+                String[] parts = line.split("\\s+");
+                name = parts[0];
+                version = (parts.length > 1) ? parts[1] : "missing";
+            }
+        } catch (Exception ex) {
+            name = "oar-dist-service";
+            version = "unknown";
+        }
+        NAME = name;
+        VERSION = version;
+    }
     
     /**
      * the spring-boot application main()
