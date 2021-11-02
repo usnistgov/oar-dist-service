@@ -427,7 +427,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
                                                          ZoneOffset.UTC)
                                               .format(DateTimeFormatter.ISO_INSTANT));
             if (out.optLong("checked", 0L) > 0L)
-                out.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("oldest",0L)),
+                out.put("checkedDate", ZonedDateTime.ofInstant(Instant.ofEpochMilli(out.optLong("checked",0L)),
                                                                ZoneOffset.UTC)
                                                     .format(DateTimeFormatter.ISO_INSTANT));
             else

@@ -934,6 +934,7 @@ public class PDRStorageInventoryDBTest {
         md.put("size", 544L);
         sidb.addObject("1234/gurn.json", "foobar", "1234_gurn.json", md);
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober.json", md);
+        sidb.updateCheckedTime("fundrum", "1234_goober.json", 1634179333874L);
 
         md = sidb.getVolumeTotals("foobar");
         assertEquals(1000L, md.getLong("totalsize"));
@@ -948,8 +949,9 @@ public class PDRStorageInventoryDBTest {
         assertEquals(1L, md.getLong("filecount"));
         assertTrue(0 < md.getLong("since"));
         assertTrue(0 < md.getString("sinceDate").length());
-        assertEquals(0L, md.getLong("checked"));
-        assertEquals("(never)", md.getString("checkedDate"));
+        assertEquals(1634179333874L, md.getLong("checked"));
+        assertNotEquals("(never)", md.getString("checkedDate"));
+        assertNotEquals("1970-01-01T00:00:00Z", md.getString("checkedDate"));
 
         try {
             md = sidb.getVolumeTotals("hank");
