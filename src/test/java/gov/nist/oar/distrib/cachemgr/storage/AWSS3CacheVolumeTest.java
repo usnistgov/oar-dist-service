@@ -160,11 +160,17 @@ public class AWSS3CacheVolumeTest {
     }
 
     @Test
-    public void testCtor() {
+    public void testCtor() throws FileNotFoundException {
         assertEquals(s3cv.bucket, bucket);
         assertEquals(s3cv.folder, "cach");
-        assertEquals(s3cv.name, "s3://oar-cv-test/cach/");
-        assertEquals(s3cv.getName(), "s3://oar-cv-test/cach/");
+        assertEquals(s3cv.name, "s3:/oar-cv-test/cach/");
+        assertEquals(s3cv.getName(), "s3:/oar-cv-test/cach/");
+
+        s3cv = new AWSS3CacheVolume(bucket, "cach", "goober", s3client);
+        assertEquals(s3cv.bucket, bucket);
+        assertEquals(s3cv.folder, "cach");
+        assertEquals(s3cv.name, "goober");
+        assertEquals(s3cv.getName(), "goober");
 
         // assertTrue(! s3client.doesObjectExist(bucket, folder+"/goob/gurn"));
     }
@@ -362,7 +368,7 @@ public class AWSS3CacheVolumeTest {
         assertEquals(co.getSize(), 13);
         assertEquals(co.getMetadatumString("contentType", null), "text/plain");
         assertEquals(co.volume, s3cv);
-        assertEquals(co.volname, "s3://oar-cv-test/cach/");
+        assertEquals(co.volname, "s3:/oar-cv-test/cach/");
         assertNull(co.id);
         assertEquals(co.score, 0.0, 0.0);
 

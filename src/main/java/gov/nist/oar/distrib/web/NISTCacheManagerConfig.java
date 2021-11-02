@@ -48,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.net.MalformedURLException;
 
 import org.slf4j.Logger;
@@ -204,7 +205,7 @@ public class NISTCacheManagerConfig {
         public final static String DEFAULT_DELETION_STRATEGY_TYPE = "oldest";
 
         private long capacity;
-        private String location;    // either "s3://..." or "file://.."
+        private String location;    // either "s3:/..." or "file://.."
         private String status = "update";
         private List<String> roles = null;
         private Map<String,Object> delStrat = null;
@@ -310,7 +311,7 @@ public class NISTCacheManagerConfig {
                 throw new ConfigurationException("Missing cache volume config parameter: "+location);
             
             // parse the location URL
-            Pattern typescheme = Pattern.compile("^(\\w+)://");
+            Pattern typescheme = Pattern.compile("^(\\w+)://?");
             Matcher m = typescheme.matcher(location);
             if (! m.find())
                 throw new ConfigurationException("Bad cache volume location URL: "+location);
@@ -319,35 +320,42 @@ public class NISTCacheManagerConfig {
                     throw new ConfigurationException("S3 client instance not availabe for AWS volume, "
                                                      +location);
 
-                // S3 bucket; note: location starts with "s3://"
-                Path bucketfolder = Paths.get(location.substring(m.end()));
-                return new AWSS3CacheVolume(bucketfolder.subpath(0,1).toString(),
-                                            bucketfolder.subpath(1, bucketfolder.getNameCount()).toString(), 
-                                            s3client, getRedirectBase());
-
+                // S3 bucket; note: location starts with "s3:/"
+                try {
+                    Path bucketfolder = Paths.get(location.substring(m.end()));
+                    return new AWSS3CacheVolume(bucketfolder.subpath(0,1).toString(),
+                                                bucketfolder.subpath(1, bucketfolder.getNameCount()).toString(), 
+                                                s3client, getRedirectBase());
+                } catch (InvalidPathException ex) {
+                    throw new ConfigurationException("Invalid s3 location URL: " + location);
+                }
             }
             else if (m.group(1).equals("file")) {
 
                 // directory on local filesystem; location will start with "file:///" when path is absolute
-                Path cachedir = Paths.get(location.substring(m.end()));
-                if (! cachedir.isAbsolute()) {
-                    cachedir = Paths.get(mgrcfg.getAdmindir()).resolve(cachedir);
-                    if (! Files.exists(cachedir)) {
-                        try {
-                            Files.createDirectories(cachedir);
-                        } catch (IOException ex) {
-                            throw new CacheManagementException("Unable to initialize new FilesystemCacheVolume: " +
-                                                               "failed to create volume root directory: "+
-                                                               ex.getMessage(), ex);
+                try {
+                    Path cachedir = Paths.get(location.substring(m.end()));
+                    if (! cachedir.isAbsolute()) {
+                        cachedir = Paths.get(mgrcfg.getAdmindir()).resolve(cachedir);
+                        if (! Files.exists(cachedir)) {
+                            try {
+                                Files.createDirectories(cachedir);
+                            } catch (IOException ex) {
+                                throw new CacheManagementException("Unable to initialize new FilesystemCacheVolume: " +
+                                                                   "failed to create volume root directory: "+
+                                                                   ex.getMessage(), ex);
+                            }
                         }
                     }
+                    String name = getName();
+                    if (name == null)
+                        name = location.substring(m.end());
+                    name = name.replace("^/+", "/");
+                    return new FilesystemCacheVolume(cachedir.toFile(), name, getRedirectBase());
                 }
-                String name = getName();
-                if (name == null)
-                    name = location.substring(m.end());
-                name = name.replace("^/+", "/");
-                return new FilesystemCacheVolume(cachedir.toFile(), name, getRedirectBase());
-
+                catch (InvalidPathException ex) {
+                    throw new ConfigurationException("Invalid file location URL: " + location);
+                }
             }
             else
                 throw new ConfigurationException("Unrecognized volume type, "+m.group(0)+" for "+location);
