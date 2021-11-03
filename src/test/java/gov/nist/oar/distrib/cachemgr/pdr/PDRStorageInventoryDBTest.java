@@ -977,7 +977,7 @@ public class PDRStorageInventoryDBTest {
         md.put("priority", 4);
         md.put("size", 456L);
         md.put("pdrid", "ark:/88888/1234");
-        md.put("ediid", "1234");
+        md.put("ediid", "ark:/88888/abcd");
 
         sidb.addObject("1234/goober.json", "foobar", "1234_goober.json", md);
         md.put("size", 544L);
@@ -992,6 +992,9 @@ public class PDRStorageInventoryDBTest {
         assertTrue(0 < md.getLong("since"));
         assertTrue(0 < md.getString("sinceDate").length());
         assertEquals(0L, md.getLong("checked"));
+        assertEquals("abcd", md.getString("aipid"));
+        assertEquals("ark:/88888/abcd", md.getString("ediid"));
+        assertEquals("ark:/88888/1234", md.getString("pdrid"));
         assertEquals("(never)", md.getString("checkedDate"));
         
         md = sidb.summarizeDataset("2345");
@@ -1001,6 +1004,9 @@ public class PDRStorageInventoryDBTest {
         assertTrue(0 < md.getString("sinceDate").length());
         assertEquals(0L, md.getLong("checked"));
         assertEquals("(never)", md.getString("checkedDate"));
+        assertEquals("2345", md.getString("aipid"));
+        assertEquals("2345", md.getString("ediid"));
+        assertEquals("ark:/88888/2345", md.getString("pdrid"));
 
     }
 

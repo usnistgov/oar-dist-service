@@ -468,7 +468,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     public JSONObject summarizeDataset(String aipid) throws InventoryException {
         StringBuilder qsel = new StringBuilder();
-        qsel.append("SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
+        qsel.append("SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
             .append("min(d.checked) as oldest FROM objects d, volumes v ")
             .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
             .append(aipid).append("/%' GROUP BY d.ediid");
@@ -504,7 +504,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONArray summarizeContents(String volname) throws InventoryException {
-        String qsel = "SELECT d.ediid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
+        String qsel = "SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
                       "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
         if (volname != null) 
             qsel += " AND v.name='" + volname + "'";
@@ -541,10 +541,17 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
     JSONObject extractDatasetInfo(ResultSet res) throws SQLException {
         JSONObject row = new JSONObject();
-        String aipid = res.getString("ediid");
-        if (aipid == null) aipid = "";
-        PDR_ARK_PAT.matcher(aipid).replaceFirst("");
-        row.put("aipid",     aipid);
+        String id = res.getString("ediid");
+        if (id == null) id = "";
+        row.put("ediid",     id);
+        
+        id = PDR_ARK_PAT.matcher(id).replaceFirst("");
+        row.put("aipid",     id);
+        
+        id = res.getString("pdrid");
+        if (id == null) id = "";
+        row.put("pdrid",     id);
+        
         row.put("filecount", res.getInt("count"));
         row.put("totalsize", res.getLong("totsz"));
         row.put("since",     res.getLong("newest"));
