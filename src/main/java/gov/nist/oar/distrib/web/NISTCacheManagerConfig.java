@@ -325,7 +325,7 @@ public class NISTCacheManagerConfig {
                     Path bucketfolder = Paths.get(location.substring(m.end()));
                     return new AWSS3CacheVolume(bucketfolder.subpath(0,1).toString(),
                                                 bucketfolder.subpath(1, bucketfolder.getNameCount()).toString(), 
-                                                s3client, getRedirectBase());
+                                                getName(), s3client, getRedirectBase());
                 } catch (InvalidPathException ex) {
                     throw new ConfigurationException("Invalid s3 location URL: " + location);
                 }
