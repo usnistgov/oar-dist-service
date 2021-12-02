@@ -324,8 +324,14 @@ public class DatasetAccessController {
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0)
+            if (i >= 0) {
+                ver = filepath.substring(0, i);
                 filepath = filepath.substring(i + 1);
+            }
+            else {
+                ver = filepath;
+                filepath = "";
+            }
         }
 
         downloadFile(dsid, filepath, ver, response);
@@ -364,8 +370,14 @@ public class DatasetAccessController {
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0)
+            if (i >= 0) {
+                ver = filepath.substring(0, i);
                 filepath = filepath.substring(i + 1);
+            }
+            else {
+                ver = filepath;
+                filepath = "";
+            }
         }
 
         downloadFileInfo(dsid, filepath, ver, response);
@@ -407,8 +419,14 @@ public class DatasetAccessController {
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0)
+            if (i >= 0) {
+                ver = filepath.substring(0, i);
                 filepath = filepath.substring(i + 1);
+            }
+            else {
+                ver = filepath;
+                filepath = "";
+            }
         }
 
         downloadFile(dsid, filepath, ver, response);
@@ -545,8 +563,14 @@ public class DatasetAccessController {
         if (filepath.startsWith("_v/")) {
             filepath = filepath.substring(3);
             int i = filepath.indexOf('/');
-            if (i >= 0)
+            if (i >= 0) {
+                ver = filepath.substring(0, i);
                 filepath = filepath.substring(i + 1);
+            }
+            else {
+                ver = filepath;
+                filepath = "";
+            }
         }
 
         downloadFileInfo(dsid, filepath, ver, response);

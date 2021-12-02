@@ -118,7 +118,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
             // do not rely on the cache; read it directly from the head bag.
             cmp = getFileMetadata(dsid, filepath, version);
         }
-        else {
+        else if (filepath != null && filepath.length() > 0) {
             
             // look for the component metadata in our in-memory cache
             String cmpid = dsid + "/" + filepath;
@@ -169,6 +169,9 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     public JSONObject getFileMetadata(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
+        if (filepath == null || filepath.length() == 0)
+            throw new FileNotFoundException("Empty filepath");
+
         // find the head bag for the requested version
         String headbag = (version == null) ? pres.getHeadBagName(dsid)
                                            : pres.getHeadBagName(dsid, version);

@@ -92,6 +92,9 @@ public class ZipBagUtils {
     public static OpenEntry openFile(InputStream zipfile, String filepath)
         throws IOException, FileNotFoundException
     {
+        if (filepath == null || filepath.length() == 0)
+            throw new FileNotFoundException("Empty filepath");
+
         ZipInputStream zis = new ZipInputStream(zipfile);
 
         ZipEntry entry = null;
@@ -116,6 +119,9 @@ public class ZipBagUtils {
     public static OpenEntry openDataFile(InputStream zipfile, String bagname, String filepath)
         throws IOException, FileNotFoundException
     {
+        if (filepath == null || filepath.length() == 0)
+            throw new FileNotFoundException("Empty filepath");
+
         return openFile(zipfile, bagname + "/data/" + filepath);
     }
 
@@ -224,6 +230,9 @@ public class ZipBagUtils {
     public static JSONObject getFileMetadata(String filepath, InputStream zipfile, String bagname)
         throws FileNotFoundException, IOException, JSONException
     {
+        if (filepath == null || filepath.length() == 0)
+            throw new FileNotFoundException("Empty filepath");
+
         String lookFor = bagname+"/metadata/"+filepath+"/nerdm.json";
         OpenEntry nerdmfile = ZipBagUtils.openFile(zipfile, lookFor);  // may throw FileNotFoundException
         return HeadBagUtils.readJSON(nerdmfile.stream);

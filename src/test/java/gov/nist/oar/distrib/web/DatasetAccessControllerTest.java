@@ -348,6 +348,18 @@ public class DatasetAccessControllerTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertEquals(69, resp.getBody().length());
+
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/1.1.8/trial1.json",
+                               HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        req = new HttpEntity<String>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/trial1.json",
+                               HttpMethod.GET, req, String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
     }
 
     @Test
