@@ -247,8 +247,12 @@ public class DatasetAccessController {
         }
         String headbag = pres.getHeadBagName(dsid, ver);
         logger.info("Describe/version head bag:" + headbag);
+
+        FileDescription aip = null;
         try {
-            return pres.getInfo(headbag);
+            aip = pres.getInfo(headbag);
+            addDownloadURL(aip, headbag);
+            return aip;
         } catch (FileNotFoundException ex) {
             logger.error("Bad bagname, " + headbag + ", returned for version=" + ver + ", id=" + dsid);
             throw new DistributionException("No info found for head bag, " + headbag);
@@ -282,7 +286,7 @@ public class DatasetAccessController {
             try {
                 // set a download URL for the file being described as a property
                 URL dlurl = new URL(svcbaseurl);
-                dlurl = new URL(dlurl, "_aip/" + bagname);
+                dlurl = new URL(dlurl, "ds/_aip/" + bagname);
                 aip.setProp("downloadURL", dlurl.toString());
             } catch (MalformedURLException ex) {
                 // can happen if svcbaseurl is malformed

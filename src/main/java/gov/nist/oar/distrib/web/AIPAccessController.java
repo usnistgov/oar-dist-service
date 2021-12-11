@@ -199,7 +199,7 @@ public class AIPAccessController {
                 try {
                     // set a download URL for the file being described as a property
                     URL dlurl = new URL(svcbaseurl);
-                    dlurl = new URL(dlurl, "_aip/"+name);
+                    dlurl = new URL(dlurl, "ds/_aip/"+name);
                     out.setProp("downloadURL", dlurl.toString());
                 } catch (MalformedURLException ex) {
                     // can happen if svcbaseurl is malformed
