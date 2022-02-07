@@ -344,7 +344,7 @@ public class CacheManagementControllerTest {
         PDRCacheManager mgr = provider.getPDRCacheManager();
         PDRCacheManager.MonitorThread month = mgr.getMonitorThread();
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.PUT, req, String.class);
-        assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
+        assertEquals(HttpStatus.CREATED, resp.getStatusCode());
         assertFalse(month.isContinuous());
         try { month.join(5000); } catch (InterruptedException ex) {  }
         
@@ -378,7 +378,7 @@ public class CacheManagementControllerTest {
         PDRCacheManager mgr = provider.getPDRCacheManager();
         PDRCacheManager.MonitorThread month = mgr.getMonitorThread();
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running?repeat=1", HttpMethod.PUT, req, String.class);
-        assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
+        assertEquals(HttpStatus.CREATED, resp.getStatusCode());
         assertTrue(month.isContinuous());
         assertTrue(month.isAlive());
         

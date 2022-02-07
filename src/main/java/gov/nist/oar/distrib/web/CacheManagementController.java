@@ -358,10 +358,10 @@ public class CacheManagementController {
         PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
         mt.setContinuous(repeat);
         if (mt.isAlive()) 
-            return new ResponseEntity<String>("Monitor is already running", HttpStatus.ACCEPTED);
+            return new ResponseEntity<String>("Monitor is already running\n", HttpStatus.ACCEPTED);
 
         mt.start();
-        return new ResponseEntity<String>("Monitor started", HttpStatus.ACCEPTED);
+        return new ResponseEntity<String>("Monitor started\n", HttpStatus.CREATED);
     }
 
     /**
@@ -375,9 +375,9 @@ public class CacheManagementController {
     {
         PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
         if (mt.isAlive()) 
-            return new ResponseEntity<String>("True", HttpStatus.OK);
+            return new ResponseEntity<String>("True\n", HttpStatus.OK);
 
-        return new ResponseEntity<String>("False", HttpStatus.NOT_FOUND);
+        return new ResponseEntity<String>("False\n", HttpStatus.NOT_FOUND);
     }
 
     /**
