@@ -50,7 +50,7 @@ import io.swagger.v3.oas.annotations.responses.*;
  *
  */
 @RestController
-@Tag(name="Get Bundles ", description = "Get the group of files in the form of bundles as per requested criteria.")
+@Tag(name="Get Bundles ", description = "Download a set of files bundled into a zip file.")
 public class DataBundleAccessController {
 
     Logger logger = LoggerFactory.getLogger(DataBundleAccessController.class);

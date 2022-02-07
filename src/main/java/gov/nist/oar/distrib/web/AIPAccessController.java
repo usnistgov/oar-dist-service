@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
  * @author Raymond Plante
  */
 @RestController
-@Tag(name = "Access to Archive Information Package (AIP) files", description="Get the API files from repository")
+@Tag(name = "Access to Archive Information Package (AIP) files", description="Get AIP files from the repository")
 @RequestMapping(value = "/ds/_aip")
 public class AIPAccessController {
 

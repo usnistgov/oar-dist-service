@@ -57,7 +57,7 @@ import io.swagger.v3.oas.annotations.responses.*;
  *
  */
 @RestController
-@Tag(name="Get Bundles Plan", description="Get the set of files in the form of bundle as per requested criteria.")
+@Tag(name="Get a Bundling Plan", description="Request a plan for downloading files in bundled into zip files.")
 public class BundleDownloadPlanController {
 
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
