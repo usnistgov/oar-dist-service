@@ -46,10 +46,13 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 
 /**
  * A web service controller that provides access to downloadable data products
@@ -76,7 +79,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * {@link gov.nist.oar.distrib.web.AIPAccessController AIPAccessController}.
  */
 @RestController
-@Tag (name = "Download Files", description =" These API endpoints allow access to different data products provided by NIST public data repository.")
+@Tag (name = "Download Files API",
+      description =" These API endpoints allow access to different data products provided by NIST public data repository.")
 @RequestMapping(value = "/ds")
 public class DatasetAccessController {
 
@@ -443,54 +447,85 @@ public class DatasetAccessController {
             logger.info(msg);
         }
 
-        StreamHandle sh = null;
-        try {
-            sh = downl.getDataFile(dsid, filepath, version);
-
-            /*
-             * Need encodeDigest implementation that converts hex to base64
-             *
-             * if (sh.getInfo().checksum != null) response.setHeader("Digest",
-             * encodeDigest(sh.getInfo().checksum));
-             */
-            response.setHeader("Content-Length", Long.toString(sh.getInfo().contentLength));
-            response.setHeader("Content-Type", sh.getInfo().contentType);
-            response.setHeader("Content-Disposition",
-                               "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
-
-            int len;
-            byte[] buf = new byte[100000];
-            OutputStream out = response.getOutputStream();
-
+	StreamHandle sh = null;
+	try {
             try {
-                while ((len = sh.dataStream.read(buf)) != -1) {
-                    out.write(buf, 0, len);
-                }
-                logger.info("Data File delivered: " + dsid + "," + dsid + "/" + filepath + ","
-                            + Long.toString(sh.getInfo().contentLength));
-                response.flushBuffer();
-//                logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+Long.toString(sh.getInfo().contentLength));
-            } catch (org.apache.catalina.connector.ClientAbortException ex) {
-                // logger.info("Client cancelled the download");
-                logger.info("Data File client canceled: " + filepath + "," + Long.toString(sh.getInfo().contentLength));
-                // response.flushBuffer();
-            } catch (IOException ex) {
-                logger.info("Data File IOException: " + filepath + "," + Long.toString(sh.getInfo().contentLength));
-                logger.debug("IOException type: " + ex.getClass().getName());
-
-                // "Connection reset by peer" gets thrown if the user cancels
-                // the download
-                if (ex.getMessage().contains("Connection reset by peer")) {
-                    logger.info("Client cancelled download");
-                } else {
-                    logger.error("IO error while sending file, " + filepath + ": " + ex.getMessage());
-                    throw ex;
+                CacheEnabledFileDownloadService cdls = (CacheEnabledFileDownloadService) downl;
+                CacheObject co = cdls.findCachedObject(dsid, filepath, version);
+                if (co != null && co.volume != null) {
+                    URL redirect = cdls.redirectFor(co);
+                    if (redirect != null) {
+                        logger.info("Data File delivered via redirect: {},{}/{},{}",
+                                    dsid, dsid, filepath, co.getSize());
+                        response.sendRedirect(redirect.toString());   // sends as 302 FOUND
+                        return;
+                    }
+                    sh = cdls.openStreamFor(co);
                 }
             }
-        } finally {
-            if (sh != null)
-                sh.close();
-        }
+            catch (ClassCastException ex) { /* fall back on direct read */ }
+            catch (CacheManagementException ex) {
+                String file = filepath;
+                if (version != null) file += "#"+version;
+                logger.error("Trouble searching cache for data file: {}/{}: {}",
+                             dsid, file, ex.getMessage());
+                // pass through to fallback
+            }
+            catch (IOException ex) {
+                // this can only come from sendRedirect()
+                String file = filepath;
+                if (version != null) file += "#"+version;
+                logger.error("Trouble sending redirect response for {}/{}: {}",
+                             dsid, file, ex.getMessage());
+                return; 
+            }
+
+            if (sh == null)
+                // fallback on direct download
+                sh = downl.getDataFile(dsid, filepath, version);
+
+	    /*
+	     * Need encodeDigest implementation that converts hex to base64
+	     *
+	     * if (sh.getInfo().checksum != null) response.setHeader("Digest",
+	     * encodeDigest(sh.getInfo().checksum));
+	     */
+	    response.setHeader("Content-Length", Long.toString(sh.getInfo().contentLength));
+	    response.setHeader("Content-Type", sh.getInfo().contentType);
+	    response.setHeader("Content-Disposition",
+		    "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+
+	    int len;
+	    byte[] buf = new byte[100000];
+	    OutputStream out = response.getOutputStream();
+
+	    try {
+		while ((len = sh.dataStream.read(buf)) != -1) {
+		    out.write(buf, 0, len);
+		}
+		logger.info("Data File delivered: " + dsid +","+  dsid + "/" + filepath+","+
+                            Long.toString(sh.getInfo().contentLength));
+		response.flushBuffer();
+	    } catch (org.apache.catalina.connector.ClientAbortException ex) {
+		logger.info("Data File client canceled: " + filepath+","+Long.toString(sh.getInfo().contentLength));
+		// response.flushBuffer();
+	    } catch (IOException ex) {
+		logger.info("Data File IOException: " + filepath+","+Long.toString(sh.getInfo().contentLength));
+		logger.debug("IOException type: " + ex.getClass().getName());
+
+		// "Connection reset by peer" gets thrown if the user cancels
+		// the download
+		if (ex.getMessage().contains("Connection reset by peer")) {
+		    logger.info("Client cancelled download");
+		} else {
+		    logger.error("IO error while sending file, " + filepath + ": " + ex.getMessage());
+		    throw ex;
+		}
+	    }
+	} finally {
+	    if (sh != null)
+		sh.close();
+	}
     }
 
     /*
@@ -504,13 +539,13 @@ public class DatasetAccessController {
      * 
      * @throws IllegalStateException always
      * 
-     * @ApiOperation(value = "return (via the HTTP header) an HTTP error response",
+     * @Operation(value = "return (via the HTTP header) an HTTP error response",
      * nickname = "return error")
      * 
      * @RequestMapping(value = "/_error/**", method=RequestMethod.GET) public void
-     * testErrorHandling(@ApiIgnore HttpServletRequest request,
+     * testErrorHandling(@Paramter(hidden=true) HttpServletRequest request,
      * 
-     * @ApiIgnore HttpServletResponse response) throws ResourceNotFoundException,
+     * @Paramter(hidden=true) HttpServletResponse response) throws ResourceNotFoundException,
      * FileNotFoundException, DistributionException { throw new
      * IllegalStateException("fake state"); }
      */

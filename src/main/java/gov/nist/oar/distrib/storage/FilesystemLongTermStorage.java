@@ -32,8 +32,9 @@ import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
-import gov.nist.oar.distrib.storage.LongTermStorageBase;
+import gov.nist.oar.distrib.storage.PDRBagStorageBase;
 import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
@@ -46,29 +47,108 @@ import gov.nist.oar.bags.preservation.BagUtils;
  * @see gov.nist.oar.distrib.LongTermStorage
  * @author Deoyani Nandrekar-Heinis
  */
-public class FilesystemLongTermStorage extends LongTermStorageBase {
+public class FilesystemLongTermStorage extends PDRBagStorageBase {
 
-    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorage.class);
+    public static long defaultChecksumSizeLimit = 50000000L;  // 50 MB
 
     /**
      * the path to the filesystem directory below which its files are stored.
      */
     public final File rootdir;
     
+    private long checksumSizeLim = defaultChecksumSizeLimit;
+    
     /**
-     * create the storage instance
+     * create the storage instance (with a default Logger)
      * 
      * @param dirpath  the directory under which the data accessible to this instance are
      *                 located.
      * @throws FileNotFoundException   if the give path does not exist or is not a directory
      */
     public FilesystemLongTermStorage(String dirpath) throws FileNotFoundException {
+        this(dirpath, null);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, Logger log) throws FileNotFoundException {
+        this(dirpath, null, -1L, log);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param name     a label that identifies this storage system (for, e.g., error messages)
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, String name, Logger log) throws FileNotFoundException {
+        this(dirpath, name, -1L, log);
+    }
+    
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param name     a label that identifies this storage system (for, e.g., error messages)
+     * @param csSizeLim  the file size limit up to which checksums will be calculated on the fly for 
+     *                 a file if it is not cached on disk.  If zero, checksums will never be calculated 
+     *                 on the fly.  If negative, a default value (50 MB) will be set.  
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, String name, long csSizeLim, Logger log)
+        throws FileNotFoundException
+    {
+        super((name != null) ? name : "Store:"+dirpath, log);
         rootdir = new File(dirpath);
         if (! rootdir.isDirectory())
             throw new FileNotFoundException("Not an existing directory: "+dirpath);
-        logger.info("Creating FilesystemLongTermStorage rooted at " + rootdir.toString());
+
+        if (name == null) {
+            logger.info("Creating FilesystemLongTermStorage rooted at {}", rootdir.toString());
+        }
+        else
+            logger.info("Creating FilesystemLongTermStorage, {}, rooted at {}", name, rootdir.toString());
+
+        if (csSizeLim < 0) csSizeLim = defaultChecksumSizeLimit;
+        checksumSizeLim = csSizeLim;
     }
     
+    /**
+     * create the storage instance
+     * 
+     * @param dirpath  the directory under which the data accessible to this instance are
+     *                 located.
+     * @param csSizeLim  the file size limit up to which checksums will be calculated on the fly for 
+     *                 a file if it is not cached on disk.  If zero, checksums will never be calculated 
+     *                 on the fly.  If negative, a default value (50 MB) will be set.  
+     * @param log      a Logger to use; if null, a default is created.
+     * @throws FileNotFoundException   if the give path does not exist or is not a directory
+     */
+    public FilesystemLongTermStorage(String dirpath, long csSizeLim, Logger log) throws FileNotFoundException {
+        this(dirpath, null, csSizeLim, log);
+    }
+
+    /**
+     * return true if a file with the given name exists in the storage 
+     * @param filename   The name of the desired file.  Note that this does not refer to files that 
+     *                   may reside inside a serialized bag or other archive (e.g. zip) file.  
+     */
+    @Override
+    public boolean exists(String filename) {
+        return (new File(rootdir, filename)).exists();
+    }
+
     /**
      * Given an exact file name in the storage, return an InputStream open at the start of the file
      * The caller is responsible for closing the stream when finished with it.
@@ -91,10 +171,10 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
      * @throws UnsupportedOperationException   if an error occurs while retrieving the checksum
      */
     @Override
-    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageStateException {
+    public Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException {
 
         File dataf = new File(rootdir, filename);
-        if (! dataf.isFile())
+        if (! exists(filename))
             throw new FileNotFoundException("File does not exist in storage: "+dataf.toString());
 
         File chksum = new File(rootdir, filename+".sha256");
@@ -102,13 +182,13 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
             // no cached checksum, calculate it the file is not too big
             if (! dataf.getName().endsWith(".sha256"))
                 logger.warn("No cached checksum available for "+filename);
-            if (getSize(filename) > 50000000)
+            if (getSize(filename) > checksumSizeLim)
                 throw new StorageStateException("No cached checksum for large file: "+dataf.toString());
-            try {
-                return Checksum.sha256(calcSHA256(filename));
+            try (InputStream is = openFile(filename)) {
+                return Checksum.calcSHA256(is);
             } catch (Exception ex) {
-                throw new StorageStateException("Unable to calculate checksum for small file: " + dataf.toString() +
-                                                ": " + ex.getMessage());
+                throw new StorageVolumeException("Unable to calculate checksum for small file: " + 
+                                                 dataf.toString() + ": " + ex.getMessage());
             }
         }
 
@@ -116,8 +196,8 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
             return Checksum.sha256(readHash(csrdr));
         }
         catch (IOException ex) {
-            throw new StorageStateException("Failed to read cached checksum value from "+ chksum.toString() +
-                                            ": " + ex.getMessage(), ex);
+            throw new StorageVolumeException("Failed to read cached checksum value from "+ chksum.toString() +
+                                             ": " + ex.getMessage(), ex);
         }
     }
 
@@ -131,7 +211,7 @@ public class FilesystemLongTermStorage extends LongTermStorageBase {
     @Override
     public long getSize(String filename) throws FileNotFoundException {
         File file = new File(this.rootdir, filename);
-        if (! file.isFile())
+        if (! exists(filename))
             throw new FileNotFoundException("File does not exist in storage: "+file.toString());
         return file.length();
     }
@@ -166,6 +246,7 @@ class BagFileFilter implements FileFilter {
     }
     public boolean accept(File f) {
         String name = f.getName();
-        return (name.startsWith(base) && ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
+        return (f.isFile() && name.startsWith(base) &&
+                ! name.endsWith(".sha256") && BagUtils.isLegalBagName(name));
     }
 }

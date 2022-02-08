@@ -13,9 +13,15 @@
  */
 package gov.nist.oar.distrib;
 
+import java.io.InputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * a simple container class used to deliver a checksum hash, labeled with the 
- * the algorithm that was used to calculate it.
+ * the algorithm that was used to calculate it.  A static utility function can also calculate a 
+ * SHA-256 checksum for a file.
  */
 public class Checksum {
 
@@ -23,6 +29,16 @@ public class Checksum {
      * the SHA-256 checksum algorithm
      */
     public static String SHA256 = "sha256";
+
+    /**
+     * the CRC-32 checksum algorithm (used in zip files)
+     */
+    public static String CRC32 = "crc32";
+
+    /**
+     * the MD5 checksum algorithm (used with older sw distributions)
+     */
+    public static String MD5 = "md5";
 
     /**
      * the checksum hash value
@@ -52,4 +68,45 @@ public class Checksum {
     public static Checksum sha256(String hash) {
         return new Checksum(hash, Checksum.SHA256);
     }
+
+    /**
+     * create a CRC32 checksum (used in zip files)
+     */
+    public static Checksum crc32(String hash) {
+        return new Checksum(hash, Checksum.CRC32);
+    }
+
+    /**
+     * calculate the SHA-256 checksum of a file.  
+     *
+     * @param ds    an open stream set at the beginning of the file
+     */
+    public static Checksum calcSHA256(InputStream ds) throws IOException {
+        MessageDigest md = null;
+        
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+            byte[] buf = new byte[50000];
+            int nr = 0;
+            while ( (nr = ds.read(buf)) >= 0 ) 
+                md.update(buf, 0, nr);
+        }
+        catch (NoSuchAlgorithmException ex) {
+            throw new RuntimeException("Unexpected Java configuration: SHA-256 algorithm not supported!");
+        }
+
+        return sha256(bytesToHex(md.digest()));
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuffer hexString = new StringBuffer();
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    
 }

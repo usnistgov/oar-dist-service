@@ -90,6 +90,18 @@ public class StreamHandle implements Closeable {
      * be null, and size should be negative if not known.  The name, contentType, 
      * and checksum will be set to null.
      * @param strm         the InputStream to transport
+     * @param desc         info about the file that this handle provides a stream for
+     */
+    public StreamHandle(InputStream strm, FileDescription desc) {
+        // make a copy of the FileDescription object
+        this(strm, desc.contentLength, desc.name, desc.contentType, desc.checksum);
+    }
+
+    /**
+     * initialize this handle with all available data.  The stream and may
+     * be null, and size should be negative if not known.  The name, contentType, 
+     * and checksum will be set to null.
+     * @param strm         the InputStream to transport
      * @param size         the expected number of bytes available on the stream
      */
     public StreamHandle(InputStream strm, long size) {

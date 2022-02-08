@@ -15,7 +15,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.clients.rmm.ComponentInfoCache;
 import gov.nist.oar.bags.preservation.BagUtils;
@@ -27,6 +27,7 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.net.URL;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.activation.MimetypesFileTypeMap;
@@ -75,12 +76,11 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
-     *                   preservation bags
+     * @param bagstore   a BagStorage instance repesenting the storage holding the preservation bags
      * @param typemap  the map to use for determining content types from filename extensions; 
      *                 if null, a default will be used.  
      */
-    public NerdmDrivenFromBagFileDownloadService(LongTermStorage bagstore, MimetypesFileTypeMap mimemap) {
+    public NerdmDrivenFromBagFileDownloadService(BagStorage bagstore, MimetypesFileTypeMap mimemap) {
         super(bagstore, mimemap);
         setComponentCache(defSzLim, defTmLim);
     }
@@ -88,10 +88,9 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
-     *                   preservation bags
+     * @param bagstore   a BagStorage instance repesenting the storage holding the preservation bags
      */
-    public NerdmDrivenFromBagFileDownloadService(LongTermStorage bagstore) {
+    public NerdmDrivenFromBagFileDownloadService(BagStorage bagstore) {
         super(bagstore);
         setComponentCache(defSzLim, defTmLim);
     }
@@ -109,6 +108,7 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -224,5 +224,19 @@ public class NerdmDrivenFromBagFileDownloadService extends FromBagFileDownloadSe
         catch (URISyntaxException ex) {
             throw new DistributionException("Not acceptable as URI path: "+urlpath);
         }
+    }
+
+    /**
+     * return a URL where the identified file can be downloaded directly from.  This implementation 
+     * always returns null.  
+     *
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @return null, always
+     */
+    @Override
+    public URL getDataFileRedirect(String dsid, String filepath, String version) {
+        return null;
     }
 }

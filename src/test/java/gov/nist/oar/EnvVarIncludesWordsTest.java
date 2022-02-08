@@ -44,6 +44,8 @@ public class EnvVarIncludesWordsTest {
 
     @Test
     public void testWordsInEnv() {
+        assertNotNull("JAVA_HOME is not set as an environment var; consider changing this test",
+                      System.getenv("JAVA_HOME"));
         Collection<String> words = EnvVarIncludesWords.wordsInEnv("JAVA_HOME");
         assertEquals(1, words.size());
 

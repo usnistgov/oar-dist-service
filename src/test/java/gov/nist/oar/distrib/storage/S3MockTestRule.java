@@ -94,7 +94,7 @@ public class S3MockTestRule implements TestRule {
                                                 Integer.toString(server.exitValue()));
             if (checkAvailable())
                 return true;
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         }
 
         return false;
@@ -110,8 +110,8 @@ public class S3MockTestRule implements TestRule {
                                                    ": S3Mock server script not found (skipping AWS tests)");
                 startServer();
                 try {
-                    if (! waitForServer(10000))
-                        throw new IllegalStateException("S3Mock server not responding after 10s.");
+                    if (! waitForServer(30000))
+                        throw new IllegalStateException("S3Mock server not responding after 30s.");
                     base.evaluate();
                 }
                 finally {

@@ -32,7 +32,8 @@ import java.io.UnsupportedEncodingException;
  *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br>
  *        and <i>S</i> is the sequence number (e.g. 0, 1, ...).  </li>
  *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</i>_<i>V</i>_<i>V</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
- *        where <i>V</i>_<i>V</i>_<i>V</i> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
+ *        where <i>V</i>_<i>V</i>_<i>V</i> is the dataset release version (e.g., <tt>1_0_0</tt>, 
+ *        <tt>2_1_10</tt>) </li>
  * </ul>
  * These conventions are used to determine which bags are associated with a given identifier 
  * (and version) and which are the head bags.  
@@ -179,6 +180,24 @@ public class BagUtils {
         } catch (ParseException ex) {
             return -1;
         }
+    }
+
+    /**
+     * return the version of the dataset that the given bag contains files from, according to its name.  
+     * If the bag file name does not include a version (as with NIST bag profile v0.2), the returned version
+     * will "0".
+     */
+    public static String versionOf(String bagname) {
+        String ver = null;
+        try {
+            ver = parseBagName(bagname).get(1);
+        }
+        catch (ParseException ex) {
+            ver = "";
+        }            
+        if (ver.equals(""))
+            ver = "0";
+        return ver;
     }
 
     static class VersionComparator implements Comparator<String> {

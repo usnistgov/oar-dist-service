@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
         // "logging.level.org.springframework.web=DEBUG"
+        // "logging.level.gov.nist.oar.distrib=DEBUG"
 })
 public class DatasetAccessControllerTest {
 
@@ -74,7 +75,7 @@ public class DatasetAccessControllerTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
         String expect = "[{ name:mds1491.mbag0_2-0.zip, contentLength:9841 }," +
-                         "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:13954 }]";
+                         "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:14077 }]";
 
         String got = resp.getBody();
         JSONAssert.assertEquals(expect, got, false);
@@ -98,10 +99,18 @@ public class DatasetAccessControllerTest {
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
                                                       "/ds/%3Cscript%3Egoober%3C%2Fscript%3E/_aip",
                                                       HttpMethod.GET, req, String.class);
-        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertFalse(resp.getBody().contains("script>"));
-        JSONAssert.assertEquals("{status:404,message:\"Resource ID not found\",method:GET}",
-                                resp.getBody(), false);
+    }
+    
+    @Test
+    public void testDescribeAIPsEvil2() throws JSONException {
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
+                                                      "/ds/%3Cscript%3Egoober%3Cscript%3E/_aip",
+                                                      HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertFalse(resp.getBody().contains("script>"));
     }
     
     @Test
@@ -145,7 +154,7 @@ public class DatasetAccessControllerTest {
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-        expect = "[{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:13954 }]";
+        expect = "[{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:14077 }]";
 
         got = resp.getBody();
         JSONAssert.assertEquals(expect, got, false);
@@ -171,7 +180,7 @@ public class DatasetAccessControllerTest {
                                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-        expect = "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:13954 }";
+        expect = "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:14077 }";
 
         got = resp.getBody();
         JSONAssert.assertEquals(expect, got, false);
@@ -199,13 +208,13 @@ public class DatasetAccessControllerTest {
     }
 
     @Test
-    public void testDescribeLatestHeadAIP() throws JSONException {
+    public void testDdescribeLatestHeadAIP() throws JSONException {
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_head",
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-        String expect = "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:13954 }";
+        String expect = "{ name:mds1491.1_1_0.mbag0_4-1.zip, contentLength:14077 }";
 
         String got = resp.getBody();
         JSONAssert.assertEquals(expect, got, false);

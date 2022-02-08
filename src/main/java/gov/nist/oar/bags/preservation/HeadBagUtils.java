@@ -18,8 +18,12 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import org.json.JSONObject;
@@ -44,7 +48,35 @@ import org.json.JSONTokener;
  */
 public class HeadBagUtils {
 
-    public static final String DEFAULT_MULTIBAG_VERSION = "0.4";
+    /**
+     * the default version of the Multibag standard that should be adopted when otherwise not 
+     * specified.
+     */
+    public final static String DEFAULT_MULTIBAG_VERSION = "0.4";
+
+    /**
+     * the file path for the Multibag file-lookup file relative to a bag's root directory (according 
+     * to the latest version of the Multibag standard).
+     */
+    public final static Path FILE_LOOKUP = Paths.get("multibag", "file-lookup.tsv");
+
+    /**
+     * the file path for the Multibag file-lookup file relative to a bag's root directory (according 
+     * to the version 0.2 of the Multibag standard).
+     */
+    public final static Path FILE_LOOKUP_V02 = Paths.get("multibag", "group-directory.txt");
+
+    /**
+     * the file path for the Multibag file listing the member bag names that are part of a Multibag 
+     * aggregation (according to the latest version of the Multibag standard).
+     */
+    public final static Path MEMBER_BAGS = Paths.get("multibag", "member-bags.tsv");
+
+    /**
+     * the file path for the Multibag file listing the member bag names that are part of a Multibag 
+     * aggregation (according to the version 0.2 of the Multibag standard).
+     */
+    public final static Path MEMBER_BAGS_V02 = Paths.get("multibag", "group-members.txt");
 
     /**
      * return the name of the bag that contains a desired file.  The bag name will <em>not</em> include 
@@ -63,6 +95,7 @@ public class HeadBagUtils {
     /**
      * return the name of the bag that contains a desired file.  The bag name will <em>not</em> include 
      * a serialization extension (e.g. {@code .zip}).
+     * @param mbagver       the version of the Multibag profile that open file conforms with
      * @param filelookup    an InputStream opened at the start of the file lookup file
      * @param filepath      the path to the desired file relative to the base of the bag root.  Thus,
      *                      data files must begin with "data/".
@@ -93,6 +126,38 @@ public class HeadBagUtils {
         }
         
         return null;
+    }
+
+    /**
+     * return a lookup map that maps each data file in the collection to the member bag that contains it
+     * @param mbagver       the version of the Multibag profile that open file conforms with
+     * @param filelookup    an InputStream opened at the start of the file lookup file
+     * @return Map&lt;String,String&gt; -- the lookup map
+     */
+    public static Map<String,String> getFileLookup(String mbagver, InputStream filelookup)
+        throws IOException
+    {
+        Pattern delim = Pattern.compile("\\t");
+        if (mbagver.equals("0.2"))
+            delim = Pattern.compile(" +");
+        
+        BufferedReader cnts = new BufferedReader(new InputStreamReader(filelookup));
+        Map<String,String> out = new HashMap<String,String>();
+
+        String line = null;
+        String[] words = null;
+        try {
+            while ((line = cnts.readLine()) != null) {
+                words = delim.split(line.trim());
+                out.put(words[0], words[1]);
+            }
+        }
+        catch (ArrayIndexOutOfBoundsException ex) {
+            throw new IOException("Error parsing file lookup file: line with too few fields "+
+                                  "(Is the multibag version correct?):\n  "+line);
+        }
+        
+        return out;
     }
 
     /**
@@ -186,8 +251,8 @@ public class HeadBagUtils {
     /**
      * read the JSON data object from the open metadata file.  This will advance the stream to the 
      * end of the object.  
-     * @param JSONObject   the JSON object node in the file
-     * @param JSONException   if a JSON object cannot be parsed from the data on the stream (including
+     * @return JSONObject   the JSON object node in the file
+     * @throws JSONException    if a JSON object cannot be parsed from the data on the stream (including
      *                          when there is an IO error while reading the stream).
      */
     public static JSONObject readJSON(InputStream jsonfile) throws JSONException {
