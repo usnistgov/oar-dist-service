@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.springframework.util.FileSystemUtils;
 
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
@@ -96,7 +96,7 @@ public class FilesystemLongTermStorageTest {
   
     @Test
     public void testFindBagsFor() throws DistributionException, FileNotFoundException {
-        LongTermStorage stor = new FilesystemLongTermStorage(testdir.toString());
+        BagStorage stor = new FilesystemLongTermStorage(testdir.toString());
 
         List<String> filenames = new ArrayList<String>();
         filenames.add("mds013u4g.1_0_0.mbag0_4-0.zip");
@@ -132,7 +132,7 @@ public class FilesystemLongTermStorageTest {
 
     @Test
     public void testFileChecksum() throws FileNotFoundException, DistributionException  {
-        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+        BagStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
 
         String hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
         String getChecksumHash = fStorage.getChecksum("mds088kd2.mbag0_3-10.zip").hash;
@@ -145,7 +145,7 @@ public class FilesystemLongTermStorageTest {
 
     @Test
     public void testFileSize() throws FileNotFoundException, DistributionException  {
-        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+        BagStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
 
         long filelength = fStorage.getSize("mds088kd2.1_0_1.mbag0_4-17.7z");
         assertEquals(0, filelength);
@@ -157,7 +157,7 @@ public class FilesystemLongTermStorageTest {
     //Need to update deatils to compare two file streams
     @Test
     public void testFileStream() throws FileNotFoundException, DistributionException, IOException  {
-        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+        BagStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
 
         InputStream is = fStorage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z");
         // the test file happens to be empty
@@ -179,7 +179,7 @@ public class FilesystemLongTermStorageTest {
 
     @Test
     public void testFindHeadbag() throws FileNotFoundException, DistributionException {
-        LongTermStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
+        BagStorage fStorage = new FilesystemLongTermStorage(testdir.toString());
 
         assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", fStorage.findHeadBagFor("mds088kd2")); 
         assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    fStorage.findHeadBagFor("mds013u4g"));

@@ -12,6 +12,8 @@
  */
 package gov.nist.oar.distrib.web;
 
+import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -19,7 +21,6 @@ import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,17 +32,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.service.DefaultDataPackagingService;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.web.ErrorInfo;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import springfox.documentation.annotations.ApiIgnore;
+import gov.nist.oar.distrib.service.DataPackagingService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.*;
 
 /**
  * BundleDownloadPlanController has api endpoint where client sends list of
@@ -58,7 +57,7 @@ import springfox.documentation.annotations.ApiIgnore;
  *
  */
 @RestController
-@Api
+@Tag(name="Get a Bundling Plan", description="Request a plan for downloading files in bundled into zip files.")
 public class BundleDownloadPlanController {
 
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanController.class);
@@ -66,50 +65,127 @@ public class BundleDownloadPlanController {
     DataPackagingService df;
 
     /**
-     * The controller api endpoint to accept list of requested files in json
-     * format and return a plan to send requests to download files. once the
-     * request is posted it is parsed and files are sorted
+     * The controller api endpoint to accept list of requested files in json format
+     * and return a plan to send requests to download files. once the request is
+     * posted it is parsed and files are sorted
      * 
-     * @param jsonObject
-     *            of type BundleNameFilePathUrl
+     * @param jsonObject of type BundleNameFilePathUrl
      * @param response
      * @param errors
      * @return JsonObject of type BundleDownloadPlan
      * @throws JsonProcessingException
      */
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Bundle download request is successful."),
-	    @ApiResponse(code = 400, message = "Malformed request."),
-	    @ApiResponse(code = 500, message = "There is some error in distribution service") })
-    @ApiOperation(value = "Get the plan to download given list of files. ", nickname = "get the plan to download data.", notes = "This api endpoint provides the information to client to how to divide request for number of files download "
-	    + "if some limits are not met.")
+    
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Bundle download request is successful."),
+            @ApiResponse(responseCode = "400", description = "Malformed request."),
+            @ApiResponse(responseCode = "500", description = "There is some error in distribution service") })
+    @Operation(summary = "Get the plan to download given list of files. ",
+               description = "This api endpoint provides the information to client to how to divide request for "
+                             + "number of files download if some limits are not met.")
     @PostMapping(value = "/ds/_bundle_plan", consumes = "application/json", produces = "application/json")
     public BundleDownloadPlan getbundlePlan(@Valid @RequestBody BundleRequest bundleRequest,
-	    @ApiIgnore HttpServletResponse response, @ApiIgnore Errors errors)
-        throws DistributionException
+                                            @Parameter(hidden = true)  HttpServletResponse response,
+                                            @Parameter(hidden = true)  Errors errors)
+        throws DistributionException, InvalidInputException
     {
-	String bundleName = "Download-data";
-	if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
-	    bundleName = bundleRequest.getBundleName();
-	}
-//	DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
-//		this.numofFiles, jsonObject, bundleName);
-	response.setHeader("Content-Type", "application/json");
-	return df.getBundlePlan(bundleRequest, bundleName);
+        String bundleName = "Download-data";
+        if (bundleRequest.getBundleName() != null && !bundleRequest.getBundleName().isEmpty()) {
+            bundleName = bundleRequest.getBundleName();
+        } else {
+            throw new InvalidInputException("The input is empty or invalid");
+        }
+//        DefaultDataPackagingService df = new DefaultDataPackagingService(this.validdomains, this.maxfileSize,
+//                this.numofFiles, jsonObject, bundleName);
+        response.setHeader("Content-Type", "application/json");
+        return df.getBundlePlan(bundleRequest, bundleName);
 
     }
+
+    /**
+     * Exception thrown due to invalid input.
+     * 
+     * @param ex
+     * @param req
+     * @return
+     */
 
     @ExceptionHandler(JsonProcessingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
-	logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
-	return new ErrorInfo(req.getRequestURI(), 400, "Malformed input", "POST");
+
+        return this.createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ",
+                ex.getMessage());
     }
 
-    @ExceptionHandler(Exception.class)
+    /**
+     * Invalid input exception
+     * 
+     * @param ex
+     * @param req
+     * @return
+     **/
+    @ExceptionHandler(InvalidInputException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+
+        return this.createErrorInfo(req, 400, "Invalid input error", 
+                                    "There is an error processing input data: ", ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+        return this.createErrorInfo(req, 404, "AIP file not found", "Non-existent bag file requested: ",
+                ex.getMessage());
+    }
+
+    @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
-	logger.info("Failure processing request: " + req.getRequestURI() + "\n  " + ex.getMessage());
-	return new ErrorInfo(req.getRequestURI(), 500, "Internal Server Error", "POST");
+
+        return this.createErrorInfo(req, 500, "Internal Server Error", "Failure processing request: ",
+                ex.getMessage());
     }
 
+    @ExceptionHandler(IOException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
+        return this.createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
+                ex.getMessage());
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+
+        return this.createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
+                ex.getMessage());
+    }
+
+    /**
+     * Create Error Information object to be returned to the client as a result of failed request
+     * 
+     * @param req         the request object the resulted in an error
+     * @param errorcode   the HTTP status code to return
+     * @param pubMessage  the message to return to the client
+     * @param logMessage  a message to record in the log
+     * @param exception   the message from the original exception that motivates this error response
+     * @return ErrorInfo  the object to return to the client
+     */
+    protected ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage, 
+                                        String logMessage, String exception)
+    {
+        String URI = "unknown";
+        String method = "unknown";
+        try {
+            if (req != null) {
+                URI = req.getRequestURI();
+                method = req.getMethod();
+            }
+            logger.error(logMessage + " " + URI + " " + exception);
+        } catch (Exception ex) {
+            logger.error("Exception while processing error. " + ex.getMessage());
+        }
+        return new ErrorInfo(URI, errorcode, pubMessage, method);
+    }
 }

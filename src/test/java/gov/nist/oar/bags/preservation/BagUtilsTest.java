@@ -77,6 +77,55 @@ public class BagUtilsTest {
       need.set(4, "tar.gz");
       assertEquals(need, BagUtils.parseBagName("6376FC675D0E1D77E0531A5706812BC21886.02.mbag10_22-13.tar.gz"));
     }
+
+    @Test
+    public void testSequenceNumberIn() {
+        assertEquals(0, BagUtils.sequenceNumberIn("goober.mbag0_3-0.zip"));
+        assertEquals(0, BagUtils.sequenceNumberIn("goober.mbag0_3-0"));
+        assertEquals(2, BagUtils.sequenceNumberIn("goober.mbag0_3-2"));
+        assertEquals(2, BagUtils.sequenceNumberIn("goober.1_0_3.mbag0_4-2"));
+        assertEquals(223, BagUtils.sequenceNumberIn("goober.mbag10_2-223"));
+        assertEquals(21, BagUtils.sequenceNumberIn("goober.1_81_413.mbag10_223-21.tar.gz"));
+        assertEquals(-1, BagUtils.sequenceNumberIn("6376FC675D0E1D77E0531A5706812BC21886"));
+        assertEquals(-1, BagUtils.sequenceNumberIn("goober.mbag10_2-test"));
+    }
+
+    @Test
+    public void test_make_nameverre() {
+        String base = "^(\\w[\\w\\-]*)\\.";
+        assertEquals(base+"1(_0)*\\.", BagUtils._make_nameverre("1.0.0.0").pattern());
+        assertEquals(base+"1(_0)*\\.", BagUtils._make_nameverre("1.0.0").pattern());
+        assertEquals(base+"1(_0)*\\.", BagUtils._make_nameverre("1.0").pattern());
+        assertEquals(base+"1(_0)*\\.", BagUtils._make_nameverre("1").pattern());
+
+        assertEquals(base+"2_1(_0)*\\.", BagUtils._make_nameverre("2.1.0").pattern());
+        assertEquals(base+"2_1(_0)*\\.", BagUtils._make_nameverre("2.1").pattern());
+
+        assertEquals(base+"1_3_4(_0)*\\.", BagUtils._make_nameverre("1.3.4").pattern());
+        assertEquals(base+"1_0_4(_0)*\\.", BagUtils._make_nameverre("1.0.4").pattern());
+        
+        assertEquals(base+"0(_0)*\\.", BagUtils._make_nameverre("0.0.0.0").pattern());
+    }
+    
+    @Test
+    public void testMatchesVersion() {
+        assertTrue(BagUtils.matchesVersion("goober.1_0_0.mbag0_3-0.zip", "1.0.0"));
+        assertTrue(BagUtils.matchesVersion("goober.1_0_0.mbag0_3-0", "1.0_0"));
+        assertTrue(BagUtils.matchesVersion("goober.1_0.mbag0_3-0", "1_0_0"));
+        assertTrue(BagUtils.matchesVersion("goober.1_0_0_0.mbag0_3-0", "1.0"));
+        assertTrue(! BagUtils.matchesVersion("goober.2_0.mbag0_3-0", "1.0.0"));
+        assertTrue(! BagUtils.matchesVersion("goober.1_0_0.mbag0_3-0", "1.0.2"));
+        assertTrue(! BagUtils.matchesVersion("goober.1_0_0.mbag0_3-0", "2.0.2"));
+        
+        assertTrue(BagUtils.matchesVersion("goober.mbag0_2-0", ""));
+        assertTrue(BagUtils.matchesVersion("goober.mbag0_2-2", "1"));
+        assertTrue(BagUtils.matchesVersion("goober.1.mbag0_2-2", "1"));
+        assertTrue(BagUtils.matchesVersion("goober.mbag0_2-2", "0"));
+        assertTrue(BagUtils.matchesVersion("goober.mbag0_2-3", "1.0.0"));
+        
+        assertTrue(BagUtils.matchesVersion("goober.1_81_413.mbag10_223-21.tar.gz", "1.81.413.0"));
+        assertTrue(! BagUtils.matchesVersion("6376FC675D0E1D77E0531A5706812BC21886", "1.0"));
+    }
     
     @Test
     public void testParseBagName() throws ParseException {

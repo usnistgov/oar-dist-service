@@ -12,6 +12,9 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.PreservationBagService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.ResourceNotFoundException;
@@ -42,9 +45,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.Api;
-import springfox.documentation.annotations.ApiIgnore;
+
 
 /**
  * A web service controller that provides access to Archive Information Package (AIP) files.
@@ -65,7 +66,7 @@ import springfox.documentation.annotations.ApiIgnore;
  * @author Raymond Plante
  */
 @RestController
-@Api
+@Tag(name = "Access to Archive Information Package (AIP) files", description="Get AIP files from the repository")
 @RequestMapping(value = "/ds/_aip")
 public class AIPAccessController {
 
@@ -83,11 +84,42 @@ public class AIPAccessController {
      * @param resp   the response object.  This will be used to set the response header and 
      *               stream the desired file.
      */
-    @ApiOperation(value = "Return an AIP file (e.g. a preservation bag)", nickname = "getAIPFile",
-                  notes = "return the AIP with the given name")
+    @Operation(summary = "Return an AIP file (e.g. a preservation bag)", description = "return the AIP with the given name")
     @GetMapping(value = "/{name}")
     public void downloadAIP(@PathVariable("name") String name,
-                            @ApiIgnore HttpServletResponse resp)
+	    @Parameter(hidden = true)  HttpServletResponse resp)
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
+        sendAIP(name, resp, false);
+    }
+
+    /**
+     * stream out the AIP file to the web client.
+     * @param name   the name of the desired AIP file
+     * @param resp   the response object.  This will be used to set the response header and 
+     *               stream the desired file.
+     */
+    @Operation(summary = "Return information on an AIP file (e.g. a preservation bag)", 
+                  description = "return the AIP header with the given name")
+    @RequestMapping(value = "/{name}", method = RequestMethod.HEAD)
+    public void downloadAIPInfo(@PathVariable("name") String name,
+	    @Parameter(hidden = true)  HttpServletResponse resp)
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
+        sendAIP(name, resp, true);
+    }
+
+    /**
+     * send the client the requested AIP.  This is the underlying implementation for 
+     * {@link downloadAIP(String,HttpServletResponse) downloadAIP()} and
+     * {@link downloadAIPInfo(String,HttpServletResponse) downloadAIPInfo()}, where in the
+     * latter case, only the header is sent when <code>asHead</code> is true.
+     * @param name    the name of the desired AIP file
+     * @param resp    the response object.  This will be used to set the response header and 
+     *                stream the desired file.
+     * @param asHead  if true, send only the HTTP header; otherwise send header and file.
+     */
+    protected void sendAIP(String name, HttpServletResponse resp, boolean asHead)
         throws ResourceNotFoundException, DistributionException, IOException
     {
         StreamHandle sh = null;
@@ -110,6 +142,10 @@ public class AIPAccessController {
             resp.setHeader("Content-Disposition", "filename=\"" +
                            Pattern.compile("/+").matcher(name).replaceAll("_") + "\"");
 
+            if (asHead)
+                // HEAD request; we're done!
+                return;
+            
             int len;
             byte[] outdata = new byte[100000];
             OutputStream out = resp.getOutputStream();
@@ -152,8 +188,7 @@ public class AIPAccessController {
      * return a description of the AIP with the given name
      * @param name   the name of the desired AIP file
      */
-    @ApiOperation(value = "describe an AIP file (e.g. a preservation bag)", nickname = "describeAIPFile",
-                  notes = "return a description of the AIP with the given name as a JSON object")
+    @Operation(summary = "describe an AIP file (e.g. a preservation bag)", description = "return a description of the AIP with the given name as a JSON object")
     @GetMapping(value = "/{name}/_info")
     public FileDescription describeAIP(@PathVariable("name") String name)
         throws ResourceNotFoundException, DistributionException

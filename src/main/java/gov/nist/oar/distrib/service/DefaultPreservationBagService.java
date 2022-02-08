@@ -12,30 +12,28 @@
  */
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.BagDescription;
-
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.TreeSet;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+
 import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.BagDescription;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.DistributionException;
+import gov.nist.oar.distrib.FileDescription;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StreamHandle;
 
 /**
  * A PreservationBagService implementation that leverages default AIP storage and naming conventions.  
@@ -43,24 +41,24 @@ import gov.nist.oar.bags.preservation.BagUtils;
  * In the OAR PDR model, an <em>archive information package</em> (AIP) is made up of one or more files.  
  * Together, these make up the AIP.  In the default storage model, the AIP files are serialized BagIt
  * bags that conform to the Multibag BagIt Profile.  These bags are stored in a single 
- * {@link gov.nist.oar.distrib.LongTermStorage LongTermStorage} system using a naming convention 
+ * {@link gov.nist.oar.distrib.BagStorage BagStorage} system using a naming convention 
  * encapsulated in the {@link gov.nist.oar.bags.preservation.BagUtils BagUtils} class.  
  * <p>
  * This implementation leverages the naming conventions to provide otherwise generic access to 
  * AIP files.  It is agnostic as to how the files are stored, as it is given a 
- * {@link gov.nist.oar.distrib.LongTermStorage LongTermStorage} to use. 
+ * {@link gov.nist.oar.distrib.BagStorage BagStorage} to use. 
  */
 public class DefaultPreservationBagService implements PreservationBagService {
 
     protected static Logger logger = LoggerFactory.getLogger(PreservationBagService.class);
-    protected LongTermStorage storage = null;
+    protected BagStorage storage = null;
 
     protected MimetypesFileTypeMap typemap = null;
 
     /**
      * create the service instance
      */
-    public DefaultPreservationBagService(LongTermStorage stor, MimetypesFileTypeMap mimemap) {
+    public DefaultPreservationBagService(BagStorage stor, MimetypesFileTypeMap mimemap) {
         if (stor == null)
             throw new IllegalArgumentException("DefaultPreservationBagService: stor cannot be null");
         storage = stor;
@@ -75,7 +73,7 @@ public class DefaultPreservationBagService implements PreservationBagService {
     /**
      * create the service instance
      */
-    public DefaultPreservationBagService(LongTermStorage stor) {
+    public DefaultPreservationBagService(BagStorage stor) {
         this(stor, null);
     }
 

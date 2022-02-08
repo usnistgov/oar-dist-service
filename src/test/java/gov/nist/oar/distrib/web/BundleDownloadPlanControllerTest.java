@@ -14,6 +14,8 @@ package gov.nist.oar.distrib.web;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+import gov.nist.oar.RequireWebSite;
 
 import java.io.IOException;
 import java.net.URI;
@@ -57,6 +59,7 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
         "distrib.packaging.maxfilecount = 2",
 	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us" })
 public class BundleDownloadPlanControllerTest {
+    RequireWebSite required = new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanControllerTest.class);
 
     @LocalServerPort
@@ -72,6 +75,8 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testBundlePlanWithWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+        assumeTrue(required.checkSite());
+        
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/projectopen.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema\"}";
@@ -81,7 +86,7 @@ public class BundleDownloadPlanControllerTest {
 	FileRequest testval2 = mapper.readValue(val2, FileRequest.class);
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
-	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList,0,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -109,7 +114,7 @@ public class BundleDownloadPlanControllerTest {
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"<html>/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"/1895/license2.pdf</body>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val3 = "{\"filePath\":\"/1896/license3.pdf<i>TEST Erro Here</i>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	String val3 = "{\"filePath\":\"/1896/license3.pdf<i>TEST Error Here</i>\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
@@ -119,10 +124,12 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 
-	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,99,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
-
+	System.out.println("request.getStatusCode():" + request + " \n request.getHeaders() :"
+			+ request.getHeaders() + "\n request.getBody():" + request.getBody());
+	
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders() :"
 		+ response.getHeaders() + "\n resp.getBody().length():" + response.getBody());
@@ -155,7 +162,7 @@ public class BundleDownloadPlanControllerTest {
 	ifileList[1] = fileRequest2;
 	
 	
-	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList);
+	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList,0,2);
 	RequestEntity<BundleRequest> newRequest = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bundleRequest);
 
@@ -168,7 +175,7 @@ public class BundleDownloadPlanControllerTest {
 	String respBody = newResponse.getBody();
 	BundleDownloadPlan bundleResponse = mapperResults.readValue(respBody, BundleDownloadPlan.class);
 	System.out.println(" Response :"+respBody+ "\n Bundle Response"+bundleResponse.getStatus());
-	String message = "No Files added in the Bundle, there are problems accessing URLs.".trim();
+	String message = "Files unavailable due to remote server access problem.".trim();
 	assertEquals("Error", bundleResponse.getStatus());
 	assertEquals("_bundle", bundleResponse.getPostEachTo());
 	assertEquals(message,bundleResponse.getMessages()[0].trim());
@@ -178,6 +185,8 @@ public class BundleDownloadPlanControllerTest {
     @Test
     public void testBundlePlanWithNewWarnings()
 	    throws JsonParseException, JsonMappingException, IOException, URISyntaxException, Exception {
+        assumeTrue(required.checkSite());
+        
 	FileRequest[] inputfileList = new FileRequest[3];
 	String val1 = "{\"filePath\":\"someid/path/file1\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 	String val2 = "{\"filePath\":\"someid/path/file2\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-002.json\"}";
@@ -192,7 +201,7 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[1] = testval2;
 	inputfileList[2] = testval3;
 	
-	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList);
+	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList,0,2);
 	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
 		.body(bFL);
 
@@ -205,7 +214,7 @@ public class BundleDownloadPlanControllerTest {
 	String responsetest = response.getBody();
 	BundleDownloadPlan testResponse = mapperResults.readValue(responsetest, BundleDownloadPlan.class);
 //	System.out.println("Response :"+responsetest+"\n"+testResponse.getMessages()[0]);
-	String message = "Some URLs have problem accessing contents.".trim();
+	String message = "Some of the selected data files unavailable, due to remote server access problem.".trim();
 	assertEquals("warnings", testResponse.getStatus());
 	assertEquals("_bundle", testResponse.getPostEachTo());
 	assertEquals(message,testResponse.getMessages()[0].trim());

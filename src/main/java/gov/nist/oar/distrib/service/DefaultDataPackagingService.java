@@ -13,21 +13,16 @@
 package gov.nist.oar.distrib.service;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
-import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
-import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
-import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.datapackage.DefaultDataPackager;
+import gov.nist.oar.distrib.datapackage.DownloadBundlePlanner;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
+import gov.nist.oar.distrib.web.InvalidInputException;
 
 /**
  * This class implements the functionalities defined in DataPackagingService.
@@ -42,6 +37,9 @@ public class DefaultDataPackagingService implements DataPackagingService {
     int allowedRedirects = 0;
     String domains;
     DownloadBundlePlanner dwnldPlanner;
+    
+    @Value("${logging.path}")
+    private String logFile;
 
     public DefaultDataPackagingService() {
 	// Default constructor
@@ -84,7 +82,7 @@ public class DefaultDataPackagingService implements DataPackagingService {
      */
     @Override
     public BundleDownloadPlan getBundlePlan(BundleRequest br, String bundleName)
-        throws DistributionException
+        throws DistributionException, InvalidInputException
     {
 	dwnldPlanner = new DownloadBundlePlanner(br, maxFileSize, numOfFiles, domains, bundleName, allowedRedirects);
 	return dwnldPlanner.getBundleDownloadPlan();

@@ -31,8 +31,9 @@ import java.io.UnsupportedEncodingException;
  *   <li> Original form:  <i>identifier</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
  *        where <i>M</i>_<i>N</i> is the Multibag profile (MbP) version (e.g. <tt>0_2</tt>, <tt>0_4</tt>), <br>
  *        and <i>S</i> is the sequence number (e.g. 0, 1, ...).  </li>
- *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</V>_<i>V</V>_<i>V</V>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
- *        where <i>V</V>_<i>V</V>_<i>V</V> is the dataset release version (e.g., <tt>1_0_0</tt>, <tt>2_1_10</tt>) 
+ *   <li> As of MbP 0.4:  <i>identifier</i>.<i>V</i>_<i>V</i>_<i>V</i>.mbag<i>M</i>_<i>N</i>-<i>S</i> <br>
+ *        where <i>V</i>_<i>V</i>_<i>V</i> is the dataset release version (e.g., <tt>1_0_0</tt>, 
+ *        <tt>2_1_10</tt>) </li>
  * </ul>
  * These conventions are used to determine which bags are associated with a given identifier 
  * (and version) and which are the head bags.  
@@ -163,6 +164,40 @@ public class BagUtils {
         catch (ParseException ex) {
             return "";
         }
+    }
+
+    /**
+     * return the sequence number encoded in the given bag name or -1 if one is not detected.
+     */
+    public static int sequenceNumberIn(String name) {
+        try {
+            String seq = parseBagName(name).get(3);
+            if (seq.equals(""))
+                return 0;
+            return Integer.parseInt(seq);
+        } catch (NumberFormatException ex) {
+            return -1;
+        } catch (ParseException ex) {
+            return -1;
+        }
+    }
+
+    /**
+     * return the version of the dataset that the given bag contains files from, according to its name.  
+     * If the bag file name does not include a version (as with NIST bag profile v0.2), the returned version
+     * will "0".
+     */
+    public static String versionOf(String bagname) {
+        String ver = null;
+        try {
+            ver = parseBagName(bagname).get(1);
+        }
+        catch (ParseException ex) {
+            ver = "";
+        }            
+        if (ver.equals(""))
+            ver = "0";
+        return ver;
     }
 
     static class VersionComparator implements Comparator<String> {
@@ -300,8 +335,45 @@ public class BagUtils {
     }
 
     /**
+     * return true if the given bag name appears to match a requested dataset version.
+     * Note that (with one exception), a given version will match all bag names with 
+     * version numbers having more or fewer trailing ".0"s--e.g., a request for 1.0.0 
+     * will match both 1.0 and 1.0.0.0 in the bagname's version designation.
+     * The exception to this is requesting for version 0 or 1:
+     * this will also match bagnames that do not include a version designation.
+     */
+    public static boolean matchesVersion(String bagname, String version) {
+
+        // if version matches [01](.0)* (e.g. 0, 1, 0.0, 1.0, 1.0.0, etc.), match a bag name
+        // without a version designator.
+        if (_verre_matches_no_ver.matcher(version).find() && _namere_with_no_ver.matcher(bagname).find())
+            // Most likely given current NIST practice, if version is simply "0" or "1",
+            // we're refering to bags following the original naming convention which does
+            // not denote a version 
+            return true;
+
+        else if (version.length() == 0)
+            return _namere_with_no_ver.matcher(bagname).find();
+
+        Pattern vernamere = _make_nameverre(version);  // make a Pattern that selects for this version
+        return vernamere.matcher(bagname).find();
+    }
+
+    static Pattern _verre_matches_no_ver = Pattern.compile("^[01](\\.0)*$");
+    static Pattern _namere_with_no_ver = Pattern.compile("^(\\w[\\w\\-]*)\\.mbag");
+    static Pattern _make_nameverre(String version) {
+        // in bag names, the version appears in N_N_N format; swap . for _
+        version = dotdelim.matcher(version).replaceAll("_");
+        version = Pattern.compile("(_0)+$").matcher(version).replaceAll("");
+
+        // make a Pattern that selects for the given version
+        return Pattern.compile("^(\\w[\\w\\-]*)\\."+version+"(_0)*\\.");
+    }
+
+    /**
      * select the bags from a list of bagnames that match a desired version.  Under
-     * certain circumstances, this will look for certain varients.  If none of the 
+     * certain circumstances, this will look for certain varients.  (see 
+     * {@link #matchesVersion(String,String)}.  If none of the 
      * names match the version, an empty list is returned.
      * @param bagnames   the list of bag names to filter
      * @param version    the desired version in dot-delimited form
@@ -311,35 +383,24 @@ public class BagUtils {
      *                                   bag name
      */
     public static List<String> selectVersion(List<String> bagnames, String version) {
-        // in bag names, the version appears in N_N_N format; swap . for _
-        version = dotdelim.matcher(version)
-                          .replaceAll("_");
-        
-        // Most likely given current NIST practice, if version is simply "0" or "1",
-        // we're refering to bags following the original naming convention.
-        if (version.equals("0") || version.equals("1")) {
-            List<String> out = BagUtils.selectVersion(bagnames, "");
-            if (out.size() > 0) return out;
-        }
-
         ArrayList<String> out = new ArrayList<String>();
-        Pattern vernamere = null;
-        while (true) {
-            // loop through possible matching version strings
-            vernamere = (version.length() == 0)
-                           ? Pattern.compile("^(\\w[\\w\\-]*)\\.mbag")
-                           : Pattern.compile("^(\\w[\\w\\-]*)\\."+version+"\\.");
-            for (String name : bagnames) {
-                if (vernamere.matcher(name).find())
-                    out.add(name);
-            }
-            if (out.size() > 0 || ! version.endsWith("_0"))
-                break;
+        Pattern nameverre = _namere_with_no_ver;
+        if (version.length() > 0)
+            nameverre = _make_nameverre(version);
 
-            // try lopping off trailing zeros
-            version = version.substring(0, version.length()-2);
+        // if version matches [01](.0)* (e.g. 0, 1, 0.0, 1.0, 1.0.0, etc.), look for bagnames
+        // without a version designator.
+        boolean check_no_ver = _verre_matches_no_ver.matcher(version).find();
+
+        for (String name : bagnames) {
+            
+            if (check_no_ver && _namere_with_no_ver.matcher(name).find())
+                out.add(name);
+            
+            else if (nameverre.matcher(name).find())
+                out.add(name);
+            
         }
-
         return out;
     }
 }

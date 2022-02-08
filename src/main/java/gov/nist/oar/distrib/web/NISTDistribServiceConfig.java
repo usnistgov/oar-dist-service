@@ -11,22 +11,33 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.servers.Server;
 import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.FromBagFileDownloadService;
+import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -132,18 +143,26 @@ public class NISTDistribServiceConfig {
     String region;
 
     /**
+     * a local directory where the cache manager can store its databases and head bag cache
+     */
+    @Value("${distrib.cachemgr.admindir:@null}")
+    String cacheadmin;
+
+    
+
+    /**
      * the maximum allowed size of a data package.  A package will only exceed this size if it contains
      * a single file (that would not fit otherwise).
      */
     @Value("${distrib.packaging.maxpackagesize:500000000}")
     long maxPkgSize;
-	
+       
     /**
      * the maximum number of files to allow in a single data package
      */
     @Value("${distrib.packaging.maxfilecount:200}")
     int maxFileCount;
-	
+
     /**
      * a white list of allowed URL patterns from which to retrieve data to include in data packages.
      * This value is given as a regular expression Strings delimited by pipe (|) characters; each 
@@ -154,21 +173,23 @@ public class NISTDistribServiceConfig {
      */
     @Value("${distrib.packaging.allowedurls:}")
     String allowedUrls;
-	
+
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired LongTermStorage          lts;    // set via getter below
-    @Autowired MimetypesFileTypeMap mimemap;    // set via getter below
+    @Autowired AmazonS3             s3client;    // set via getter below
+    @Autowired BagStorage                lts;    // set via getter below
+    @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
+    @Autowired CacheManagerProvider cmgrprov;    // set via getter below
 
     /**
      * the storage service to use to access the bags
      */
     @Bean
-    public LongTermStorage getLongTermStorage() throws ConfigurationException {
+    public BagStorage getLongTermStorage() throws ConfigurationException {
         try {
             if (mode.equals("aws") || mode.equals("remote")) 
-                return new AWSS3LongTermStorage(bagstore, getAmazonS3());
+                return new AWSS3LongTermStorage(bagstore, s3client);
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
             else
@@ -184,6 +205,7 @@ public class NISTDistribServiceConfig {
     /**
      * the client for access S3 storage
      */
+    @Bean
     public AmazonS3 getAmazonS3() throws ConfigurationException {
         logger.info("Creating S3 client");
 
@@ -218,15 +240,18 @@ public class NISTDistribServiceConfig {
      * the service implementation to use to download data products.
      */
     @Bean
-    public FileDownloadService getFileDownloadService() {
-        return new FromBagFileDownloadService(lts, mimemap);
+    public FileDownloadService getFileDownloadService(PreservationBagService bagsvc, MimetypesFileTypeMap mimemap,
+                                                      CacheManagerProvider cmprovider)
+        throws ConfigurationException
+    {
+        return cmprovider.getFileDownloadService(bagsvc, mimemap);
     }
         
     /**
      * the service implementation to use to download data products.
      */
     @Bean
-    public PreservationBagService getPreservationBagService() {
+    public PreservationBagService getPreservationBagService(BagStorage lts, MimetypesFileTypeMap mimemap) {
         return new DefaultPreservationBagService(lts, mimemap);
     }
 
@@ -236,6 +261,26 @@ public class NISTDistribServiceConfig {
     @Bean
     public DataPackagingService getDataPackagingService(){
         return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount, allowedRedirects);
+    }
+
+    /**
+     * create a configuration object for the cache manager
+     */
+    @Bean
+    @ConfigurationProperties("distrib.cachemgr")
+    public NISTCacheManagerConfig getCacheManagerConfig() throws ConfigurationException {
+        // this will have config properties injected into it
+        return new NISTCacheManagerConfig();
+    }
+
+    /**
+     * the configured CacheManagerProvider to use
+     */
+    @Bean
+    public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config,
+                                                        BagStorage bagstor, AmazonS3 s3client)
+    {
+        return new CacheManagerProvider(config, bagstor, s3client);
     }
 
     /**
@@ -266,6 +311,60 @@ public class NISTDistribServiceConfig {
         };
     }
 
+    @Bean
+    public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {
+       appVersion = VERSION;
+       List<Server> servers = new ArrayList<>();
+       servers.add(new Server().url("/od"));
+
+       String description = "The Public data repository hosts the data which is available for users to download via " 
+           + "web application.  This data is accessed by service called data distribution service. This is collection "
+           + "of API endpoints which are used to distribute data based on the query criteria.";
+       String licenseurl = "https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications";
+
+       return new OpenAPI().components(new Components())
+                           .components(new Components())
+                           .servers(servers)
+                           .info(new Info().title("Data Distribution Service API")
+                                           .version(VersionController.NAME+" "+VersionController.VERSION)
+                                           .description(description)
+                                           .license(new License().name("NIST Software")
+                                                                 .url(licenseurl)));
+    }
+    
+    /**
+     * The service name
+     */
+    public final static String NAME;
+
+    /**
+     * The version of the service
+     */
+    public final static String VERSION;
+
+    static {
+        String name = null;
+        String version = null;
+        try (InputStream verf =  NISTDistribServiceConfig.class.getClassLoader().getResourceAsStream("VERSION")) {
+            if (verf == null) {
+                name = "oar-dist-service";
+                version = "not set";
+            }
+            else {
+                BufferedReader vrdr = new BufferedReader(new InputStreamReader(verf));
+                String line = vrdr.readLine();
+                String[] parts = line.split("\\s+");
+                name = parts[0];
+                version = (parts.length > 1) ? parts[1] : "missing";
+            }
+        } catch (Exception ex) {
+            name = "oar-dist-service";
+            version = "unknown";
+        }
+        NAME = name;
+        VERSION = version;
+    }
+    
     /**
      * the spring-boot application main()
      */

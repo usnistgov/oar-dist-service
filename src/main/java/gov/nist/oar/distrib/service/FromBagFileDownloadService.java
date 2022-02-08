@@ -16,7 +16,7 @@ import gov.nist.oar.bags.preservation.HeadBagUtils;
 import gov.nist.oar.bags.preservation.ZipBagUtils;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 
@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.Closeable;
 import java.util.List;
+import java.net.URL;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
@@ -74,22 +75,22 @@ public class FromBagFileDownloadService implements FileDownloadService {
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
+     * @param bagstore   a BagStorage instance repesenting the storage holding the 
      *                   preservation bags
      * @param typemap  the map to use for determining content types from filename extensions; 
      *                 if null, a default will be used.  
      */
-    public FromBagFileDownloadService(LongTermStorage bagstore, MimetypesFileTypeMap mimemap) {
+    public FromBagFileDownloadService(BagStorage bagstore, MimetypesFileTypeMap mimemap) {
         this(new DefaultPreservationBagService(bagstore), mimemap);
     }
 
     /**
      * create the service instance.  
      * 
-     * @param bagstore   a LongTermStorage instance repesenting the storage holding the 
+     * @param bagstore   a BagStorage instance repesenting the storage holding the 
      *                   preservation bags
      */
-    public FromBagFileDownloadService(LongTermStorage bagstore) {
+    public FromBagFileDownloadService(BagStorage bagstore) {
         this(new DefaultPreservationBagService(bagstore), null);
     }
 
@@ -141,6 +142,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public StreamHandle getDataFile(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -167,6 +169,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
      *                                        the identified dataset
      * @throws DistributionException       if an internal error has occurred
      */
+    @Override
     public FileDescription getDataFileInfo(String dsid, String filepath, String version)
         throws ResourceNotFoundException, DistributionException, FileNotFoundException
     {
@@ -210,8 +213,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
             }
             catch (FileNotFoundException ex) {
                 quietClose(bag, bagfile);
-                throw new DistributionException(bagname +
-                                                ": file-lookup.tsv not found (is this a head bag?)", ex);
+                throw new DistributionException(bagname + ": " + filepath + ": failed to find file in bag as expected", ex);
             }
         }
         catch (FileNotFoundException ex) {
@@ -220,7 +222,7 @@ public class FromBagFileDownloadService implements FileDownloadService {
         }
         catch (IOException ex) {
             quietClose(bag, bagfile);
-            throw new DistributionException("Error accessing file-lookup.tsv: " + ex.getMessage(), ex);
+            throw new DistributionException("Error accessing bag, "+bagfile+": " + ex.getMessage(), ex);
         }
     }
 
@@ -296,5 +298,19 @@ public class FromBagFileDownloadService implements FileDownloadService {
      */
     public String getDefaultContentType(String filename) {
         return typemap.getContentType(filename);
+    }
+
+    /**
+     * return a URL where the identified file can be downloaded directly from.  This implementation 
+     * always returns null.  
+     *
+     * @param dsid    the dataset identifier for the desired dataset
+     * @param filepath  the path within the dataset to the desired file
+     * @param version   the version of the dataset.  If null, the latest version is returned.
+     * @return null, always
+     */
+    @Override
+    public URL getDataFileRedirect(String dsid, String filepath, String version) {
+        return null;
     }
 }

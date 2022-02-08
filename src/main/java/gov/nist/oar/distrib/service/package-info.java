@@ -27,8 +27,9 @@
  * interfaces and common classes provided by the parent {@link gov.nist.oar.distrib distrib} package.  
  * (An exception is the {@link gov.nist.oar.distrib.DataPackagingService} which leverages the 
  * {@link gov.nist.oar.distrib.datapackage} package.)  The implementations also make use of the 
- * {@link gov.nist.oar.bags oar.bags} and {@link gov.nist.oar.cachemgr oar.cachemgr} packages.  
- * It does not have any dependencies on the sibling {@link gov.nist.oar.distrib.web web} package.
+ * {@link gov.nist.oar.bags oar.bags} and {@link gov.nist.oar.distrib.cachemgr oar.distrib.cachemgr} 
+ * packages.  It does not have any dependencies on the sibling {@link gov.nist.oar.distrib.web web} 
+ * package.
  */
 package gov.nist.oar.distrib.service;
 

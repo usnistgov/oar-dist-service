@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
@@ -32,20 +33,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 
 import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.bags.preservation.BagUtils;
 
-import io.findify.s3mock.S3Mock;
+// import com.adobe.testing.s3mock.S3MockApplication;
+// import gov.nist.oar.RequireWebSite;
 
 /**
  * This is test class is used to connect to long term storage on AWS S3
@@ -54,33 +58,44 @@ import io.findify.s3mock.S3Mock;
  * @author Deoyani Nandrekar-Heinis
  */
 public class AWSS3LongTermStorageTest {
-  
-    private static Logger logger = LoggerFactory.getLogger(FilesystemLongTermStorageTest.class);
 
-    static int port = 9001;
+    // static S3MockApplication mockServer = null;
+    @ClassRule
+    public static S3MockTestRule siterule = new S3MockTestRule();
+    
+    static AmazonS3 s3client = null;
+  
+    // private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorageTest.class);
+
+    // static int port = 9001;
     static final String bucket = "oar-lts-test";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static S3Mock api = new S3Mock.Builder().withPort(port).withInMemoryBackend().build();
-    static AmazonS3 s3client = null;
     AWSS3LongTermStorage s3Storage = null;
   
     @BeforeClass
     public static void setUpClass() throws IOException {
-        String endpoint = "http://localhost:"+Integer.toString(port);
-        api.start();
-        s3client = AmazonS3ClientBuilder.standard()
-                                        .withPathStyleAccessEnabled(true)  
-                                        .withEndpointConfiguration(
-                                                 new AwsClientBuilder.EndpointConfiguration(endpoint,
-                                                                                            "us-east-1"))
-                                        .withCredentials(new AWSStaticCredentialsProvider(
-                                                                      new AnonymousAWSCredentials()))
-                                        .build();
+        // mockServer = S3MockApplication.start();  // http: port=9090
+        s3client = createS3Client();
         
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
         s3client.createBucket(bucket);
         populateBucket();
+    }
+
+    public static AmazonS3 createS3Client() {
+        // import credentials from the EC2 machine we are running on
+        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
+        final String endpoint = "http://localhost:9090/";
+        final String region = "us-east-1";
+        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
+
+        AmazonS3 client = AmazonS3Client.builder()
+                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                                        .withEndpointConfiguration(epconfig)
+                                        .enablePathStyleAccess()
+                                        .build();
+        return client;
     }
 
     @Before
@@ -96,7 +111,7 @@ public class AWSS3LongTermStorageTest {
     @AfterClass
     public static void tearDownClass() {
         destroyBucket();
-        api.shutdown();
+        // mockServer.stop();
     }
 
     public static void destroyBucket() {
@@ -180,6 +195,23 @@ public class AWSS3LongTermStorageTest {
  
         assertEquals(filenames, found);
     }
+    
+    @Test
+    public void testFindBagsForByPage() throws DistributionException, FileNotFoundException {
+        s3Storage.setPageSize(4);
+        List<String> filenames = new ArrayList<String>();
+        filenames.add("mds013u4g.1_0_0.mbag0_4-0.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-1.zip");
+        filenames.add("mds013u4g.1_0_0.mbag0_4-2.7z");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-3.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-4.zip");
+        filenames.add("mds013u4g.1_0_1.mbag0_4-5.7z");
+        filenames.add("mds013u4g.1_1.mbag0_4-6.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-7.zip");
+        filenames.add("mds013u4g.1_1.mbag0_4-8.7z");
+ 
+        assertEquals(filenames, s3Storage.findBagsFor("mds013u4g"));
+    }
 
     @Test
     public void testFileChecksum() throws FileNotFoundException, DistributionException  {
@@ -225,6 +257,27 @@ public class AWSS3LongTermStorageTest {
 
     @Test
     public void testFileHeadbag() throws FileNotFoundException, DistributionException {
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", s3Storage.findHeadBagFor("mds088kd2")); 
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    s3Storage.findHeadBagFor("mds013u4g"));
+
+        assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    s3Storage.findHeadBagFor("mds013u4g", "1.1"));
+        assertEquals("mds013u4g.1_0_1.mbag0_4-5.7z",  s3Storage.findHeadBagFor("mds013u4g", "1.0.1"));
+        assertEquals("mds013u4g.1_0_0.mbag0_4-2.7z",  s3Storage.findHeadBagFor("mds013u4g", "1.0.0"));
+
+        assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", s3Storage.findHeadBagFor("mds088kd2", "1.0.1")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", s3Storage.findHeadBagFor("mds088kd2", "0")); 
+        assertEquals("mds088kd2.mbag0_3-14.7z", s3Storage.findHeadBagFor("mds088kd2", "1")); 
+
+        try {
+            String bagname = s3Storage.findHeadBagFor("mds013u4g9");
+            fail("Failed to raise ResourceNotFoundException; returned "+bagname.toString());
+        } catch (ResourceNotFoundException ex) { }
+
+    }
+
+    @Test
+    public void testFindHeadbagByPage() throws FileNotFoundException, DistributionException {
+        s3Storage.setPageSize(2);
         assertEquals("mds088kd2.1_0_1.mbag0_4-17.7z", s3Storage.findHeadBagFor("mds088kd2")); 
         assertEquals("mds013u4g.1_1.mbag0_4-8.7z",    s3Storage.findHeadBagFor("mds013u4g"));
 
