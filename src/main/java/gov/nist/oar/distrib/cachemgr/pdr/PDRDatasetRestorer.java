@@ -719,9 +719,17 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         try {
             CacheObject hbo = hbcm.getObject(headbag);
-            JSONObject cmpmd = ZipBagUtils.getFileMetadata(filepath, hbo.volume.getStream(headbag), bagname);
-                                                           
-            return getCacheMDFrom(cmpmd);
+            InputStream is = hbo.volume.getStream(headbag);
+            try {
+                JSONObject cmpmd = ZipBagUtils.getFileMetadata(filepath, is, bagname);
+                return getCacheMDFrom(cmpmd);
+            }
+            finally {
+                try { is.close(); }
+                catch (IOException ex) {
+                    log.warn("Trouble closing headbag stream, "+headbag+"; ignoring");
+                }
+            }
         }
         catch (FileNotFoundException ex) {
             throw new RestorationException("file metadata for "+filepath+" not found in headbag, "+headbag);
