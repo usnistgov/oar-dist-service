@@ -120,7 +120,12 @@ public class NullCacheVolume implements CacheVolume {
         if (! obj.volume.exists(obj.name))
             throw new ObjectNotFoundException(obj.volname, obj.name);
 
-        this.saveAs(obj.volume.getStream(obj.name), name, obj.exportMetadata());
+        try (InputStream is = obj.volume.getStream(obj.name)) {
+            this.saveAs(is, name, obj.exportMetadata());
+        }
+        catch (IOException ex) {
+            throw new StorageVolumeException("Trouble closing source stream while reading object "+obj.name);
+        }
     }    
 
     /**

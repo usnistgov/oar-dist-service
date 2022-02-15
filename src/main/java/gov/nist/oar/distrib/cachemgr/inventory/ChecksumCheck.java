@@ -13,6 +13,7 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
+import java.io.InputStream;
 import java.io.IOException;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
@@ -63,8 +64,8 @@ public class ChecksumCheck implements CacheObjectCheck {
             throw new CacheManagementException("Cache object is missing 'checksum' metadatum");
 
         if (alg.equals(Checksum.SHA256)) {
-            try {
-                Checksum calc = Checksum.calcSHA256(co.volume.getStream(co.name));
+            try (InputStream is = co.volume.getStream(co.name)) {
+                Checksum calc = Checksum.calcSHA256(is);
                 if (! hash.equals(calc.hash))
                     throw new ChecksumMismatchException(co, calc.hash, vsz);
             }
