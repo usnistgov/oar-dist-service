@@ -31,12 +31,15 @@ import org.json.JSONException;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.SdkClientException;
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
+import com.amazonaws.services.s3.transfer.Upload;
 
 /**
  * an implementation of the CacheVolume interface that stores its data 
@@ -266,19 +269,28 @@ public class AWSS3CacheVolume implements CacheVolume {
         String[] nmflds = name.split("/");
         omd.setContentDisposition(nmflds[nmflds.length-1]);
 
+        Upload uplstat = null;
         try {
-            s3client.putObject(bucket, s3name(name), from, omd);
+            TransferManager trxmgr = TransferManagerBuilder.standard().withS3Client(s3client)
+                                                           .withMultipartUploadThreshold(200000000L) 
+                                                           .withMinimumUploadPartSize(100000000L)
+                                                           .build();
+            uplstat = trxmgr.upload(bucket, s3name(name), from, omd);
+            uplstat.waitForUploadResult();
+        } catch (InterruptedException ex) {
+            throw new StorageVolumeException("Upload interrupted for object, " + s3name(name) +
+                                             ", to s3:/"+bucket+": " + ex.getMessage(), ex);
         } catch (AmazonServiceException ex) {
             throw new StorageVolumeException("Failure to save object, " + s3name(name) +
-                                             "to s3:/"+bucket+": " + ex.getMessage(), ex);
-        } catch (SdkClientException ex) {
+                                             ", to s3:/"+bucket+": " + ex.getMessage(), ex);
+        } catch (AmazonClientException ex) {
             if (ex.getMessage().contains("verify integrity") && ex.getMessage().contains("contentMD5")) {
                 // unfortunately this is how we identify a checksum error
                 // clean-up badly transfered file.
                 try { remove(name); }
                 catch (StorageVolumeException e) { }
                 throw new StorageVolumeException("Failure to save object, " + s3name(name) +
-                                                 "to s3:/"+bucket+": md5 transfer checksum failed");
+                                                 ", to s3:/"+bucket+": md5 transfer checksum failed");
             }
             if (ex.getMessage().contains("dataLength=") && ex.getMessage().contains("expectedLength=")) {
                 throw new StorageVolumeException("Failure to transfer correct number of bytes for " + 
