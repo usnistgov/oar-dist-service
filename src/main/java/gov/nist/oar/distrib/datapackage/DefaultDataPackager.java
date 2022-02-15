@@ -58,6 +58,7 @@ public class DefaultDataPackager implements DataPackager {
 	private long totalRequestedPackageSize = -1;
 	private int requestValidity = 0;	
 	private String writeLog = "";
+	private String requestedFrom = "";
 	
 	public DefaultDataPackager() {
 		// Default Constructor
@@ -100,6 +101,15 @@ public class DefaultDataPackager implements DataPackager {
 			FileRequest jobject = inputfileList[i];
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
+			
+			/**
+			 * If the URL coming from datacart or directly
+			 */
+			if(downloadurl.contains("?"))
+				downloadurl= downloadurl+"&requestedFrom="+this.requestedFrom;
+			else
+				downloadurl= downloadurl+"?requestedFrom="+this.requestedFrom;
+			
 			/**
 			 * This section is added to improve logs for each dowload request through bundles.
 			 */
@@ -497,6 +507,12 @@ public class DefaultDataPackager implements DataPackager {
             logger.warn(sb.toString());
         }
     }
+
+	@Override
+	public void setRequestedAddr(String requestedFrom) {
+		this.requestedFrom = requestedFrom;
+		
+	}
 
 
 }
