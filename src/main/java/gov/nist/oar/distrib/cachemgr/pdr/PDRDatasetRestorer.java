@@ -415,11 +415,16 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             Set<String> need = new HashSet<String>(revlu.get(bagfile));
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
+            log.debug("Caching files from bag, "+bagfile);
             try {
                 cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
+            }
+            catch (CacheManagementException ex) {
+                log.error("Problem pulling files from bag, "+bagfile+": "+ex.getMessage()+
+                          "; skipping the rest of this bag.");
             }
             finally {
                 if (need.size() > 0) missing.addAll(need);
