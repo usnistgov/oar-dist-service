@@ -384,8 +384,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         // pull out the mulibag file lookup
         Map<String,String> lu = null;
         CacheObject hbo = hbcm.getObject(headbag);
-        InputStream hbs = hbo.volume.getStream(headbag);
-        try {
+        try (InputStream hbs = hbo.volume.getStream(headbag)) {
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openFileLookup(mbagver, hbs, bagname);
             lu = HeadBagUtils.getFileLookup(mbagver, ntry.stream);
         }
