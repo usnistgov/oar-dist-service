@@ -38,6 +38,7 @@ import org.json.JSONException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.List;
+import java.io.InputStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
@@ -118,9 +119,10 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
                                                    headbags.get(0).name);
 
             String bagname = headbags.get(0).name.substring(0, headbags.get(0).name.length()-4);
-            return ZipBagUtils.getResourceMetadata(BagUtils.multibagVersionOf(headbags.get(0).name),
-                                                   headbags.get(0).volume.getStream(headbags.get(0).name),
-                                                   bagname);
+            try (InputStream is = headbags.get(0).volume.getStream(headbags.get(0).name)) {
+                return ZipBagUtils.getResourceMetadata(BagUtils.multibagVersionOf(headbags.get(0).name),
+                                                       is, bagname);
+            }
         }
         catch (IOException ex) {
             throw new CacheManagementException("Failed to read metadata for id="+aipid+": "+ex.getMessage(),
