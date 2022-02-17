@@ -22,6 +22,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -102,13 +104,6 @@ public class DefaultDataPackager implements DataPackager {
 			String filepath = jobject.getFilePath();
 			String downloadurl = jobject.getDownloadUrl();
 			
-			/**
-			 * If the URL coming from datacart or directly
-			 */
-			if(downloadurl.contains("?"))
-				downloadurl= downloadurl+"&requestedFrom="+this.requestedFrom;
-			else
-				downloadurl= downloadurl+"?requestedFrom="+this.requestedFrom;
 			
 			/**
 			 * This section is added to improve logs for each dowload request through bundles.
@@ -127,16 +122,20 @@ public class DefaultDataPackager implements DataPackager {
 			    filedir = filepath.substring(in+1);
 			}
 			writeLog +=recordid+","+filepath+","+jobject.getFileSize()+","+downloadurl+",";
+			
 			/*
 			 *End of part for logs
 			*/
 			
 			if (this.validateUrl(downloadurl)) {
+				
 				URLStatusLocation uLoc = listUrlsStatusSize.get(i);
+				
+				
 				if ((downloadurl.equalsIgnoreCase(uLoc.getRequestedURL())) && this.checkResponse(uLoc)) {
 					InputStream fstream = null;
 					try {
-						URL obj = new URL(uLoc.getRequestedURL());
+						URL obj = new URL(this.updateURL(uLoc.getRequestedURL()));
 						con = (HttpURLConnection) obj.openConnection();
 						fstream = con.getInputStream();
 						int len;
@@ -510,9 +509,33 @@ public class DefaultDataPackager implements DataPackager {
 
 	@Override
 	public void setRequestedAddr(String requestedFrom) {
-		this.requestedFrom = requestedFrom;
+		this.requestedFrom = requestedFrom.replace(".", "-");
+		
 		
 	}
 
+    
+    /**
+     * Check whether the file is hosted at the given list of servers and then only add the requested IP
+     * This is to avoid sending IPs to external hosts which are not managed by our group
+     */
+    public String updateURL(String url) throws MalformedURLException {
+	
+    	URL obj = new URL(url);
+	    String host = obj.getHost();
+	    String[] domainList = this.domains.split("\\|");
+	    for (int i = 0; i < domainList.length; i++) {
+	       if(domainList[i].contains(host)) {
+		    	String urlReq ="";	
+		    	if(url.contains("?requestId=") || url.contains("?"))
+		    		urlReq= url+"&requestedFrom="+this.requestedFrom;
+		    	else
+		    		urlReq= url+"?requestedFrom="+this.requestedFrom;
+		    	return urlReq;
+	       }
+	    }
+	    return url;
+    }
+    
 
 }
