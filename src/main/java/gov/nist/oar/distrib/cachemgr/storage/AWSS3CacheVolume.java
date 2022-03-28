@@ -305,6 +305,8 @@ public class AWSS3CacheVolume implements CacheVolume {
                 long mod = co.getLastModified();
                 if (mod > 0L)
                     md.put("modified", mod);
+                if (co.hasMetadatum("volumeChecksum"))
+                    md.put("volumeChecksum", co.getMetadatumString("volumeChecksum", " "));
             }
             catch (ObjectNotFoundException ex) {
                 throw new StorageStateException("Upload apparently failed: "+ex.getMessage(), ex);
@@ -393,6 +395,7 @@ public class AWSS3CacheVolume implements CacheVolume {
         md.put("size", omd.getContentLength());
         md.put("contentType", omd.getContentType());
         md.put("modified", omd.getLastModified().getTime());
+        md.put("volumeChecksum", "etag " + omd.getETag());
 
         return new CacheObject(name, md, this);
     }
