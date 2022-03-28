@@ -240,6 +240,20 @@ public class AWSS3CacheVolumeTest {
         }
         assertTrue(s3client.doesObjectExist(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
+        assertTrue("metadata not updated with 'modified'", md.has("modified"));
+        long mod = md.getLong("modified");
+        assertTrue("Bad mod date: "+Long.toString(mod), mod > 0L);
+    }
+
+    @Test
+    public void testGet() throws StorageVolumeException {
+        byte[] obj = "hello world.\n".getBytes();
+        testSaveAs();
+        CacheObject co = s3cv.get("test.txt");
+        assertEquals(co.getSize(), obj.length);
+        long mod = co.getLastModified();
+        assertTrue("Bad mod time: "+Long.toString(mod), mod > 0L);
+        assertEquals(co.getMetadatumString("contentType",""), "text/plain");
     }
 
     @Test

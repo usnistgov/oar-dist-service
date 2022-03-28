@@ -27,6 +27,9 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+
+import org.json.JSONObject;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
@@ -103,6 +106,28 @@ public class FilesystemCacheVolumeTest {
         FilesystemCacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         FileInputStream fs = new FileInputStream(obj);
+        JSONObject md = new JSONObject();
+        try {
+            v.saveAs(fs, "goob", md);
+        } finally { fs.close(); }
+        File out = new File(v.getRootDir(), "goob");
+        assertTrue(out.exists());
+        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertEquals("hello world\n", getFileContents(out));
+        long mod = md.getLong("modified");
+        assertTrue("metadata not updated with 'modified'", md.has("modified"));
+        assertTrue("Mod date not set: "+Long.toString(mod), mod > 0L);
+    }
+
+    @Test
+    public void testNoMetadataSaveAs() throws StorageVolumeException, IOException {
+        // create the file to stream
+        File obj = makefile("hello world");
+
+        // now stream it to the store
+        FilesystemCacheVolume v = makevol("root");
+        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
+        FileInputStream fs = new FileInputStream(obj);
         try {
             v.saveAs(fs, "goob", null);
         } finally { fs.close(); }
@@ -149,6 +174,9 @@ public class FilesystemCacheVolumeTest {
 
     @Test
     public void testGet() throws StorageVolumeException, IOException {
+        Instant nowi = Instant.now();
+        long now = nowi.getEpochSecond() * 1000;
+        try { Thread.sleep(1000); } catch (InterruptedException ex) { fail("Interrupted!"); }
         FilesystemCacheVolume v = makevol("root");
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
         CacheObject co = makeobj(v, "goob", "hello world");
@@ -159,6 +187,8 @@ public class FilesystemCacheVolumeTest {
         assertEquals("root", co.volume.getName());
         assertEquals("goob", co.name);
         assertEquals(12, co.getSize());
+        long mod = co.getLastModified();
+        assertTrue("Bad mod time: "+Long.toString(mod)+" !> "+Long.toString(now), mod > now);
     }
 
     @Test

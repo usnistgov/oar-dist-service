@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.time.Instant;
 import java.net.URL;
 import java.net.MalformedURLException;
 
@@ -173,7 +175,10 @@ public class FilesystemCacheVolume implements CacheVolume {
      *                 to save
      * @param name   the name to assign to the object within the storage.  
      * @param md     the metadata to be associated with that object (can be null).  This 
-     *                 parameter is ignored in this implementation.
+     *                 object (in not null) will be updated with additional metadata, 
+     *                 including "modified"--the object's modification time (effectively 
+     *                 its creation time within the volume).  The provided metadata 
+     *                 are ignored (or overridden) in this implementation.
      * @throws StorageVolumeException  if the method fails to save the object correctly.
      */
     public synchronized void saveAs(InputStream from, String name, JSONObject md)
@@ -182,6 +187,8 @@ public class FilesystemCacheVolume implements CacheVolume {
         File out = new File(root, name);
         try {
             FileUtils.copyToFile(from, out);
+            if (md != null) 
+                md.put("modified", getLastModifiedTimeOf(out));
         } catch (IOException ex) {
             if (out.exists()) out.delete();
             throw new StorageVolumeException(this.name+":"+name+": Failed to save object: "+
@@ -256,7 +263,18 @@ public class FilesystemCacheVolume implements CacheVolume {
 
         JSONObject md = new JSONObject();
         md.put("size", f.length());
+        try {
+            md.put("modified", getLastModifiedTimeOf(f));
+        } catch (IOException ex) { }
         return new CacheObject(name, md, this);
+    }
+
+    /*
+     * return the modification time on a file in epoch milliseconds
+     */
+    private long getLastModifiedTimeOf(File f) throws IOException {
+        Instant mod = Files.getLastModifiedTime(f.toPath()).toInstant();
+        return mod.getEpochSecond() * 1000 + Math.round(mod.getNano()/1000000.0);
     }
 
     /** 
