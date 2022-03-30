@@ -620,7 +620,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         datamon.selectCorruptedObjects(cached, deleted, true);
         if (recache) {
             for (CacheObject co : deleted)
-                cache(co.id);
+                cache(co.id, recache);
         }
         return deleted;
     }
@@ -851,7 +851,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                     cacheDataset(parts[0], parts[2], recache);
                 else if (recache || ! isCached(nextid))
                     // data file identifier
-                    cache(nextid);
+                    cache(nextid, true);
             }
             catch (ResourceNotFoundException ex) {
                 throw new CacheManagementException("Unable to cache "+nextid+": resource not found", ex);
