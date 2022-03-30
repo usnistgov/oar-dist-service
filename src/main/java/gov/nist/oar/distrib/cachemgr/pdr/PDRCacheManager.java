@@ -881,14 +881,24 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                     catch (CacheManagementException ex) {
                         log.error(ex.getMessage());
                     }
+                    catch (RuntimeException ex) {
+                        log.error("Unexpected caching error: "+ex.getMessage()+" (moving on)");
+                    }
                 }
             }
             catch (InterruptedException ex) {
                 log.info("Interruption of caching thread requested; exiting.");
             }
+            catch (RuntimeException ex) {
+                log.error("Unexpected caching error: "+ex.getMessage());
+            }
             finally {
                 try {
                     cath = cloneMe();
+                    if (_queue.peek() != null) {
+                        log.warn("Resuming cache queue processing");
+                        cath.start();
+                    }
                 } catch (IOException ex) {
                     log.error("Failed to refresh caching thread: queue persistence error: "+ex.getMessage());
                 }
