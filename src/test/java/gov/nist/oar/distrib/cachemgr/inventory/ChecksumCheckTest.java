@@ -62,7 +62,7 @@ public class ChecksumCheckTest {
     CacheObject makeobj(FilesystemCacheVolume v, String name, String contents) throws IOException {
         File out = _makefile(new File(v.getRootDir(), name), contents);
         JSONObject md = new JSONObject();
-        md.put("modified", out.lastModified());
+        md.put("modified", FilesystemCacheVolume.getLastModifiedTimeOf(out));
         return new CacheObject(name, md, v);
     }
 
