@@ -240,6 +240,23 @@ public class AWSS3CacheVolumeTest {
         }
         assertTrue(s3client.doesObjectExist(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
+        assertTrue("metadata not updated with 'modified'", md.has("modified"));
+        long mod = md.getLong("modified");
+        assertTrue("Bad mod date: "+Long.toString(mod), mod > 0L);
+        String vcs = md.getString("volumeChecksum");
+        assertTrue("Bad volume checksum: "+vcs,
+                   vcs.startsWith("etag ") && vcs.length() > 36);
+    }
+
+    @Test
+    public void testGet() throws StorageVolumeException {
+        byte[] obj = "hello world.\n".getBytes();
+        testSaveAs();
+        CacheObject co = s3cv.get("test.txt");
+        assertEquals(co.getSize(), obj.length);
+        long mod = co.getLastModified();
+        assertTrue("Bad mod time: "+Long.toString(mod), mod > 0L);
+        assertEquals(co.getMetadatumString("contentType",""), "text/plain");
     }
 
     @Test
@@ -262,6 +279,10 @@ public class AWSS3CacheVolumeTest {
         }
         assertTrue(s3client.doesObjectExist(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
+        assertEquals(md.getString("contentMD5"), "JjJWGp65Tg0F4+AyzFre7Q==");
+
+        // the etag should be an MD5 sum, but for some reason it is not
+        // assertEquals(md.getString("volumeChecksum"), "etag JjJWGp65Tg0F4+AyzFre7Q==");
     }
 
     /*

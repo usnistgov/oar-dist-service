@@ -61,7 +61,9 @@ public class ChecksumCheckTest {
 
     CacheObject makeobj(FilesystemCacheVolume v, String name, String contents) throws IOException {
         File out = _makefile(new File(v.getRootDir(), name), contents);
-        return new CacheObject(name, v);
+        JSONObject md = new JSONObject();
+        md.put("modified", FilesystemCacheVolume.getLastModifiedTimeOf(out));
+        return new CacheObject(name, md, v);
     }
 
     @Before
@@ -83,6 +85,7 @@ public class ChecksumCheckTest {
         md.put("size", 12L);
         md.put("checksum", hash);
         md.put("checksumAlgorithm", "sha256");
+        md.put("modified", co.getMetadatumLong("modified", -1L));
         co = new CacheObject(co.name, md, vol);
 
         chk.check(co);
@@ -101,9 +104,9 @@ public class ChecksumCheckTest {
         co = new CacheObject(co.name, md, vol);
         try {
             chk.check(co);
-            fail("Failed to detect different checksum");
+            fail("Failed to detect different size");
         } catch (ChecksumMismatchException ex) {
-            assertNull(ex.calculatedHash);
+            assertEquals("size 12", ex.calculatedHash);
             assertEquals(12L, ex.size);
         }
 
@@ -119,5 +122,102 @@ public class ChecksumCheckTest {
             chk.check(co);
             fail("Failed to report missing cache object");
         } catch (ObjectNotFoundException ex) {  }
+    }        
+
+    @Test
+    public void testModifiedCheck() throws IOException, CacheManagementException, StorageVolumeException {
+        CacheObject co = makeobj(vol, "hello.txt", "hello world");
+        String hash = "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447";
+        long mod = co.getMetadatumLong("modified", -1L);
+        assertTrue("Bad modified time: "+Long.toString(mod), mod > 0L);
+
+        JSONObject md = co.exportMetadata();
+        md.put("size", 12L);
+        md.put("checksum", hash);
+        md.put("checksumAlgorithm", "sha256");
+        co = new CacheObject(co.name, md, vol);
+
+        // all good
+        chk = new ChecksumCheck(false);
+        chk.check(co);
+
+        // now require matching dates; still good
+        chk = new ChecksumCheck(true);
+        chk.check(co);
+
+        // now muck with the modified date
+        md.put("modified", co.getMetadatumLong("modified", -1L)+2L);
+        co = new CacheObject(co.name, md, vol);
+        try {
+            chk.check(co);
+            fail("Failed to detect difference in mod time");
+        }
+        catch (ChecksumMismatchException ex) {
+            assertEquals("modified "+Long.toString(mod), ex.calculatedHash);
+            assertEquals(12L, ex.size);
+        }
     }
+
+    class HackVolume extends FilesystemCacheVolume {
+        public HackVolume(File root) throws IOException {
+            super(root);
+        }
+        public CacheObject get(String name) throws StorageVolumeException {
+            CacheObject out = super.get(name);
+            JSONObject md = out.exportMetadata();
+            md.put("volumeChecksum", "etag goober");
+            return new CacheObject(out.name, md, this);
+        }
+    }
+
+
+    @Test
+    public void testVolChecksumCheck() throws IOException, CacheManagementException, StorageVolumeException {
+        CacheObject co = makeobj(vol, "hello.txt", "hello world");
+        FilesystemCacheVolume hv = new HackVolume(vol.getRootDir());
+        String hash = "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447";
+        co = hv.get("hello.txt");
+        String vcs = co.getMetadatumString("volumeChecksum", "");
+        assertEquals("etag goober", vcs);
+
+        JSONObject md = co.exportMetadata();
+        md.put("size", 12L);
+        md.put("checksum", hash);
+        md.put("checksumAlgorithm", "sha256");
+        co = new CacheObject(co.name, md, hv);
+
+        // all good
+        chk = new ChecksumCheck(true, false);
+        chk.check(co);
+
+        // now leverage volume checksum; still good
+        chk = new ChecksumCheck(false, true);
+        chk.check(co);
+
+        // now muck with the volume checksum
+        md.put("volumeChecksum", "etag XXXXX");
+        co = new CacheObject(co.name, md, hv);
+        try {
+            chk.check(co);
+            fail("Failed to detect difference in volume checksum");
+        }
+        catch (ChecksumMismatchException ex) {
+            assertEquals("etag goober", ex.calculatedHash);
+            assertEquals(12L, ex.size);
+        }
+
+        // now muck with the modified time
+        md.put("modified", co.getMetadatumLong("modified", -1L)+2L);
+        co = new CacheObject(co.name, md, hv);
+        try {
+            chk.check(co);
+            fail("Failed to detect difference in modified time");
+        }
+        catch (ChecksumMismatchException ex) {
+            long mod = hv.get("hello.txt").getLastModified();
+            assertEquals("modified "+Long.toString(mod), ex.calculatedHash);
+            assertEquals(12L, ex.size);
+        }
+    }
+    
 }

@@ -62,9 +62,12 @@ public interface CacheVolume {
      *                 to save.  (The caller is responsible for closing the stream
      *                 after this method returns.)
      * @param name   the name to assign to the object within the storage.  
-     * @param md     the metadata to be associated with that object (can be null).  Note 
-     *                 some implementations ({@link gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume}) 
-     *                 require that this include the "size" property.  
+     * @param md     the metadata to be associated with that object (can be null).  This 
+     *                 object may be updated with additional metadata (such as the object's
+     *                 modification time which would effectively be the same as the 
+     *                 creation time within the volume).  Note that some implementations 
+     *                 ({@link gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume}) 
+     *                 require that the input metadata include the "size" property.  
      * @throws StorageVolumeException  if the method fails to save the object correctly.
      * @throws JSONException   if a failure occurs while extracting values from the metadata
      */

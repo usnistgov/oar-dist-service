@@ -298,6 +298,23 @@ public class AWSS3CacheVolume implements CacheVolume {
             }
             throw new StorageVolumeException("AWS client error: "+ex.getMessage()+"; object status unclear");
         }
+
+        if (md != null) {
+            try {
+                CacheObject co = get(name);
+                long mod = co.getLastModified();
+                if (mod > 0L)
+                    md.put("modified", mod);
+                if (co.hasMetadatum("volumeChecksum"))
+                    md.put("volumeChecksum", co.getMetadatumString("volumeChecksum", " "));
+            }
+            catch (ObjectNotFoundException ex) {
+                throw new StorageStateException("Upload apparently failed: "+ex.getMessage(), ex);
+            }
+            catch (StorageVolumeException ex) {
+                throw new StorageStateException("Uploaded object status unclear: "+ex.getMessage(), ex);
+            }
+        }
     }
     
     /**
@@ -377,6 +394,8 @@ public class AWSS3CacheVolume implements CacheVolume {
         JSONObject md = new JSONObject();
         md.put("size", omd.getContentLength());
         md.put("contentType", omd.getContentType());
+        md.put("modified", omd.getLastModified().getTime());
+        md.put("volumeChecksum", "etag " + omd.getETag());
 
         return new CacheObject(name, md, this);
     }

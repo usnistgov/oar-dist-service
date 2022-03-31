@@ -467,7 +467,7 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException(rootdir+": Not an existing directory");
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
-        checks.add(new ChecksumCheck());
+        checks.add(new ChecksumCheck(false, true));
         PDRCacheManager out = new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, 
                                                   getCheckGracePeriod()*1000, -1, rootdir, logger);
         if (getMonitorAutoStart()) {
