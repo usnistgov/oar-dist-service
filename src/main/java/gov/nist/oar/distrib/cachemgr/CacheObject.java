@@ -177,6 +177,19 @@ public class CacheObject {
     }
 
     /**
+     * return the time in Epoch milliseconds of the last modification of the object within its
+     * cache volume or -1 if unknown.  This time is normally the time that the object was saved 
+     * to the volume.
+     */
+    public long getLastModified() {
+        try {
+            return getMetadatumLong("modified", -1L);
+        } catch (JSONException ex) {
+            return -1L;
+        }
+    }
+
+    /**
      * return the value of a metadatum as an integer.  
      * @param name   the name of the metadatum
      * @param defval the value to return if a value is not set for name

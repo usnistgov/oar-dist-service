@@ -63,14 +63,17 @@ public class CacheObjectTest {
         job.put("checksum", "s2h56a256");
         job.put("checksumAlgorithm", "sha256");
         job.put("refcount", 3);
+        job.put("modified", 1648461824000L);
 
         CacheObject co = new CacheObject("hank", job, (String)null);
 
         assertEquals(co.name, "hank");
         assertNull(co.volume);
         assertEquals(co.getSize(), 31L);
+        assertEquals(co.getLastModified(), 1648461824000L);
         assertEquals(co.getMetadatumLong("size", -1L), 31L);
         assertEquals(co.getMetadatumString("checksum", null), "s2h56a256");
         assertEquals(co.getMetadatumInt("refcount", -1), 3);
+        assertEquals(co.getMetadatumLong("modified", -1L), 1648461824000L);
     }
 }

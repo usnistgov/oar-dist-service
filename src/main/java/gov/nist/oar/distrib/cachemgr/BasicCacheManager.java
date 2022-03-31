@@ -110,6 +110,9 @@ public abstract class BasicCacheManager extends CacheManager {
             return false;
 
         try {
+            // get rid of any previously existing copies
+            theCache.uncache(id);
+            
             long sz = restorer.getSizeOf(id);       // may throw ObjectNotFoundException
             if (prefs < 1)
                 prefs = getDefaultPreferencesFor(id, sz);

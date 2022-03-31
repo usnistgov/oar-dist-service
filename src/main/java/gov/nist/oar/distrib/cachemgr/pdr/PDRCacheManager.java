@@ -620,7 +620,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         datamon.selectCorruptedObjects(cached, deleted, true);
         if (recache) {
             for (CacheObject co : deleted)
-                cache(co.id);
+                cache(co.id, recache);
         }
         return deleted;
     }
@@ -851,7 +851,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                     cacheDataset(parts[0], parts[2], recache);
                 else if (recache || ! isCached(nextid))
                     // data file identifier
-                    cache(nextid);
+                    cache(nextid, true);
             }
             catch (ResourceNotFoundException ex) {
                 throw new CacheManagementException("Unable to cache "+nextid+": resource not found", ex);
@@ -881,14 +881,24 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                     catch (CacheManagementException ex) {
                         log.error(ex.getMessage());
                     }
+                    catch (RuntimeException ex) {
+                        log.error("Unexpected caching error: "+ex.getMessage()+" (moving on)");
+                    }
                 }
             }
             catch (InterruptedException ex) {
                 log.info("Interruption of caching thread requested; exiting.");
             }
+            catch (RuntimeException ex) {
+                log.error("Unexpected caching error: "+ex.getMessage());
+            }
             finally {
                 try {
                     cath = cloneMe();
+                    if (_queue.peek() != null) {
+                        log.warn("Resuming cache queue processing");
+                        cath.start();
+                    }
                 } catch (IOException ex) {
                     log.error("Failed to refresh caching thread: queue persistence error: "+ex.getMessage());
                 }
