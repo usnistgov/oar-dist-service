@@ -272,7 +272,7 @@ public class FilesystemCacheVolume implements CacheVolume {
     /*
      * return the modification time on a file in epoch milliseconds
      */
-    public static getLastModifiedTimeOf(File f) throws IOException {
+    public static long getLastModifiedTimeOf(File f) throws IOException {
         Instant mod = Files.getLastModifiedTime(f.toPath()).toInstant();
         return mod.getEpochSecond() * 1000 + Math.round(mod.getNano()/1000000.0);
     }
