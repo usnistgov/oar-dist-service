@@ -12,6 +12,7 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
 import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
@@ -44,17 +45,19 @@ public class CacheManagerProvider {
     private BagStorage bagstore = null;
     private HeadBagCacheManager hbcmgr = null;
     private PDRCacheManager cmgr = null;
-    private AmazonS3 s3client = null;
+    private AWSS3ClientProvider s3prov = null;
 
     /**
      * create the factory.
      * @param config      the cache configuration data 
      * @param bagstorage  the long-term bag storage
      */
-    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage, AmazonS3 s3c) {
+    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage,
+                                AWSS3ClientProvider s3p)
+    {
         cfg = config;
         bagstore = bagstorage;
-        s3client = s3c;
+        s3prov = s3p;
         if (canCreateManager())
             _getLogger().info("A CacheManager will be created for this application.");
         else
@@ -155,7 +158,7 @@ public class CacheManagerProvider {
         headbagcmgr = getHeadBagManager();
 
         try {
-            BasicCache cache = cfg.createDefaultCache(s3client);
+            BasicCache cache = cfg.createDefaultCache(s3prov);
             PDRDatasetRestorer restorer = 
                 cfg.createDefaultRestorer(bagstore, headbagcmgr);
 

@@ -63,7 +63,7 @@ public class AWSS3LongTermStorageTest {
     @ClassRule
     public static S3MockTestRule siterule = new S3MockTestRule();
     
-    static AmazonS3 s3client = null;
+    static AWSS3ClientProvider s3 = null;
   
     // private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorageTest.class);
 
@@ -75,32 +75,27 @@ public class AWSS3LongTermStorageTest {
     @BeforeClass
     public static void setUpClass() throws IOException {
         // mockServer = S3MockApplication.start();  // http: port=9090
-        s3client = createS3Client();
+        s3 = createS3Provider();
+        AmazonS3 s3client = s3.client();
         
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
         s3client.createBucket(bucket);
-        populateBucket();
+        populateBucket(s3client);
     }
 
-    public static AmazonS3 createS3Client() {
+    public static AWSS3ClientProvider createS3Provider() {
         // import credentials from the EC2 machine we are running on
         final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
         final String endpoint = "http://localhost:9090/";
         final String region = "us-east-1";
-        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                                        .withEndpointConfiguration(epconfig)
-                                        .enablePathStyleAccess()
-                                        .build();
-        return client;
+        return new AWSS3ClientProvider(new AWSStaticCredentialsProvider(credentials), region, 3, endpoint);
     }
 
     @Before
     public void setUp() throws IOException {
-        s3Storage = new AWSS3LongTermStorage(bucket, s3client);
+        s3Storage = new AWSS3LongTermStorage(bucket, s3);
     }
 
     @After
@@ -112,16 +107,19 @@ public class AWSS3LongTermStorageTest {
     public static void tearDownClass() {
         destroyBucket();
         // mockServer.stop();
+        s3.shutdown();
     }
 
     public static void destroyBucket() {
-        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
+        AmazonS3 s3client = s3.client();
+        
+        List<S3ObjectSummary> files = s3.client().listObjects(bucket).getObjectSummaries();
         for (S3ObjectSummary f : files) 
             s3client.deleteObject(bucket, f.getKey());
         s3client.deleteBucket(bucket);
     }
 
-    public static void populateBucket() throws IOException {
+    public static void populateBucket(AmazonS3 s3client) throws IOException {
         String[] bases = {
             "mds013u4g.1_0_0.mbag0_4-", "mds013u4g.1_0_1.mbag0_4-", "mds013u4g.1_1.mbag0_4-",
             "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-"
@@ -155,7 +153,7 @@ public class AWSS3LongTermStorageTest {
 
     @Test
     public void testCtor() throws FileNotFoundException {
-        assert(s3client.doesBucketExistV2(bucket));
+        assert(s3.client().doesBucketExistV2(bucket));
     }
 
     @Test

@@ -771,21 +771,20 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      */
     public class CachingThread extends Thread {
         File _queuef = null;
-        Queue<String> _queue = new ConcurrentLinkedQueue<String>();
+        String inprocess = null;
 
         CachingThread(File savedqueue) throws IOException {
             super("Cacher");
             _queuef = savedqueue;
             if (_queuef.exists())
-                restoreQueue();
-            else
-                saveQueue();
+                // test to make sure the queue is readable
+                loadQueue();
         }
 
-        synchronized void saveQueue() throws IOException {
+        synchronized void saveQueue(Queue<String> queue) throws IOException {
             BufferedWriter out = new BufferedWriter(new FileWriter(_queuef));
             try {
-                for (String id : _queue) {
+                for (String id : queue) {
                     out.write(id);
                     out.newLine();
                 }
@@ -798,49 +797,87 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             }
         }
 
-        synchronized void restoreQueue() throws IOException {
-            BufferedReader in = new BufferedReader(new FileReader(_queuef));
-            String line = null;
-            try {
-                while ((line = in.readLine()) != null) {
-                    line = line.trim();
-                    if (line.length() > 0)
-                        _queue.add(line);
+        synchronized Queue<String> loadQueue() throws IOException {
+            Queue<String> _queue = new ConcurrentLinkedQueue<String>();
+
+            if (_queuef.exists()) {
+                BufferedReader in = new BufferedReader(new FileReader(_queuef));
+                String line = null;
+                try {
+                    while ((line = in.readLine()) != null) {
+                        line = line.trim();
+                        if (line.length() > 0)
+                            _queue.add(line);
+                    }
+                }
+                finally {
+                    try { in.close(); }
+                    catch (IOException ex) {
+                        log.warn("Trouble closing cache request queue file after restore: "+ex.getMessage());
+                    }
                 }
             }
-            finally {
-                try { in.close(); }
-                catch (IOException ex) {
-                    log.warn("Trouble closing cache request queue file after restore: "+ex.getMessage());
-                }
-            }
+            return _queue;
         }
 
-        public void queue(String aipid, boolean recache) {
+        public synchronized void queue(String aipid, boolean recache) throws CacheManagementException {
             aipid += "\t"+((recache) ? "1" : "0");
-            _queue.add(aipid);
             try {
-                saveQueue();
+                BufferedWriter out = new BufferedWriter(new FileWriter(_queuef, true));
+                try {
+                    out.write(aipid);
+                    out.newLine();
+                }
+                finally {
+                    try { out.close(); }
+                    catch (IOException ex) {
+                        log.warn("Trouble closing cache request queue file after addition: "+ex.getMessage());
+                    }
+                }
             } catch (IOException ex) {
-                log.error("Failed to persist cache queue: "+ ex.getMessage());
+                log.error("Can't queue: Trouble writing to persistent cache: "+ ex.getMessage());
+                throw new CacheManagementException("Cache queue IO failure: "+ ex.getMessage());
             }
         }
 
         public boolean hasPending() {
-            return _queue.size() > 0;
+            return _queuef.length() > 0;
         }
 
         public boolean isQueued(String aipid) {
-            return _queue.contains(aipid);
+            try {
+                Queue<String> _queue = loadQueue();
+                return _queue.contains(aipid+"\t0") || _queue.contains(aipid+"\t1");
+            } catch (IOException ex) {
+                log.error("isQueued: status of "+aipid+" unknown; "+
+                          "Can't access queue's persistent cache: "+ ex.getMessage());
+                return false;
+            }
+        }
+
+        public synchronized String popQueue() throws CacheManagementException {
+            String out = null;
+            try {
+                Queue<String> _queue = loadQueue();
+                out = _queue.poll();
+                saveQueue(_queue);
+            } catch (IOException ex) {
+                log.error("Can't pop: trouble reading/writing queue's persistent cache: "+ex.getMessage());
+            }
+            return out;
         }
 
         public String cacheNext() throws CacheManagementException {
-            boolean recache = true;
-            String nextid = _queue.peek();
+            String nextid = popQueue();
             if (nextid == null)
                 return null;
-            String[] parts = nextid.split("\\s*\\t\\s*");
-            nextid = parts[0];
+            return cacheQueueItem(nextid);
+        }
+
+        protected String cacheQueueItem(String qitem) throws CacheManagementException {
+            boolean recache = true;
+            String[] parts = qitem.split("\\s*\\t\\s*");
+            String nextid = parts[0];
             if (parts.length > 1 && "0".equals(parts[1]))
                 recache = false;
             
@@ -860,23 +897,19 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                 throw new CacheManagementException("Storage trouble while caching "+nextid+": "+
                                                    ex.getMessage(), ex);
             }
-            finally {
-                _queue.remove();
-                try { saveQueue(); }
-                catch (IOException ex) {
-                    log.error("Failed to update persisted queue: "+ex.getMessage());
-                }
-            }
 
             return nextid;
         }
 
         public void run() {
             try {
-                while (_queue.peek() != null) {
+                if (hasPending())
+                    log.info("Beginning queued cache request processing");
+                String item = null;
+                while ((item = popQueue()) != null) {
                     if (interrupted()) throw new InterruptedException();
                     try {
-                        cacheNext();
+                        item = cacheQueueItem(item);
                     }
                     catch (CacheManagementException ex) {
                         log.error(ex.getMessage());
@@ -885,22 +918,37 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                         log.error("Unexpected caching error: "+ex.getMessage()+" (moving on)");
                     }
                 }
+                log.info("Cache request queue is empty");
             }
             catch (InterruptedException ex) {
                 log.info("Interruption of caching thread requested; exiting.");
+            }
+            catch (CacheManagementException ex) {
+                log.error("Trouble reading cache queue: "+ex.getMessage());
             }
             catch (RuntimeException ex) {
                 log.error("Unexpected caching error: "+ex.getMessage());
             }
             finally {
                 try {
-                    cath = cloneMe();
-                    if (_queue.peek() != null) {
+                    synchronized (cath) {
+                        cath = cloneMe();
+                    }
+                    /*
+                     * if catch an error at this level, it's too big to restart
+                     *
+                    if (! this.isInterrupted() && hasPending()) {
                         log.warn("Resuming cache queue processing");
                         cath.start();
                     }
+                    */
+                    if (hasPending())
+                        log.warn("Caching thread is exiting with requests unprocessed");
+                        
                 } catch (IOException ex) {
                     log.error("Failed to refresh caching thread: queue persistence error: "+ex.getMessage());
+                } catch (RuntimeException ex) {
+                    log.error("Failed to refresh caching thread: "+ex.getMessage());
                 }
             }
         }

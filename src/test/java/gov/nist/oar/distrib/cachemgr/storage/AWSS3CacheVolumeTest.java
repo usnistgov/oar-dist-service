@@ -56,6 +56,7 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 
 // import io.findify.s3mock.S3Mock;
@@ -73,12 +74,13 @@ public class AWSS3CacheVolumeTest {
     static final String bucket = "oar-cv-test";
     static final String folder = "cach";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static AmazonS3 s3client = null;
+    static AWSS3ClientProvider s3 = null;
     AWSS3CacheVolume s3cv = null;
   
     @BeforeClass
     public static void setUpClass() throws IOException {
-        s3client = createS3Client();
+        s3 = createS3Provider();
+        AmazonS3 s3client = s3.client();
         
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
@@ -95,19 +97,13 @@ public class AWSS3CacheVolumeTest {
         }
     }
 
-    public static AmazonS3 createS3Client() {
+    public static AWSS3ClientProvider createS3Provider() {
         // import credentials from the EC2 machine we are running on
         final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
         final String endpoint = "http://localhost:9090/";
         final String region = "us-east-1";
-        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                                        .withEndpointConfiguration(epconfig)
-                                        .enablePathStyleAccess()
-                                        .build();
-        return client;
+        return new AWSS3ClientProvider(new AWSStaticCredentialsProvider(credentials), region, 3, endpoint);
     }
 
     @Before
@@ -119,12 +115,12 @@ public class AWSS3CacheVolumeTest {
         // name matches the prefix.
         // 
         String prefix = folder;
-        for (S3ObjectSummary os : s3client.listObjectsV2(bucket, prefix).getObjectSummaries())
+        for (S3ObjectSummary os : s3.client().listObjectsV2(bucket, prefix).getObjectSummaries())
             if (os.getKey().equals(prefix+"/"))
                 prefix = null;   // we found the folder
         assertNull(prefix);
         
-        s3cv = new AWSS3CacheVolume(bucket, "cach", s3client);
+        s3cv = new AWSS3CacheVolume(bucket, "cach", s3);
     }
 
     @After
@@ -141,6 +137,8 @@ public class AWSS3CacheVolumeTest {
     }
 
     public static void destroyBucket() {
+        AmazonS3 s3client = s3.client();
+
         List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
         for (S3ObjectSummary f : files) 
             s3client.deleteObject(bucket, f.getKey());
@@ -148,6 +146,8 @@ public class AWSS3CacheVolumeTest {
     }
 
     public void depopulateFolder() throws AmazonServiceException {
+        AmazonS3 s3client = s3.client();
+
         List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<DeleteObjectsRequest.KeyVersion>();
         String prefix = folder+"/";
         for (S3ObjectSummary os : s3client.listObjectsV2(bucket, prefix).getObjectSummaries()) {
@@ -166,7 +166,7 @@ public class AWSS3CacheVolumeTest {
         assertEquals(s3cv.name, "s3:/oar-cv-test/cach/");
         assertEquals(s3cv.getName(), "s3:/oar-cv-test/cach/");
 
-        s3cv = new AWSS3CacheVolume(bucket, "cach", "goober", s3client);
+        s3cv = new AWSS3CacheVolume(bucket, "cach", "goober", s3);
         assertEquals(s3cv.bucket, bucket);
         assertEquals(s3cv.folder, "cach");
         assertEquals(s3cv.name, "goober");
@@ -177,6 +177,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testEnsureFolder() throws AmazonServiceException {
+        AmazonS3 s3client = s3.client();
+
         String subdir = folder+"/goob";
         assertTrue(! s3client.doesObjectExist(bucket, subdir+"/"));
         assertTrue(AWSS3CacheVolume.ensureBucketFolder(s3client, bucket, subdir));
@@ -201,6 +203,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testExists() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname = String.format("%s/goob", folder);
         assertTrue(! s3cv.exists("goob"));
         
@@ -223,6 +227,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testSaveAs() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
         assertTrue(! s3cv.exists("test.txt"));
@@ -261,6 +267,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testSaveAsWithMD5() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
         assertTrue(! s3cv.exists("test.txt"));
@@ -290,6 +298,8 @@ public class AWSS3CacheVolumeTest {
      *
     @Test
     public void testSaveAsWithBadSize() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
         assertTrue(! s3cv.exists("test.txt"));
@@ -323,6 +333,8 @@ public class AWSS3CacheVolumeTest {
      */
     @Test
     public void testSaveAsWithBadMD5() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
         assertTrue(! s3cv.exists("test.txt"));
@@ -352,6 +364,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testGetStream() throws StorageVolumeException, IOException {
+        AmazonS3 s3client = s3.client();
+
         String objname = folder + "/test.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname));
 
@@ -379,6 +393,8 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void getSaveObject() throws StorageVolumeException {
+        AmazonS3 s3client = s3.client();
+
         String objname1 = folder + "/test.txt";
         String objname2 = folder + "/gurn.txt";
         assertTrue(! s3client.doesObjectExist(bucket, objname1));

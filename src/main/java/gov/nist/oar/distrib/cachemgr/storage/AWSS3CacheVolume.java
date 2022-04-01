@@ -15,6 +15,7 @@ package gov.nist.oar.distrib.cachemgr.storage;
 
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
@@ -55,7 +56,7 @@ public class AWSS3CacheVolume implements CacheVolume {
     public final String bucket;
     public final String folder;
     public final String name;
-    protected AmazonS3 s3client = null;
+    protected AWSS3ClientProvider s3 = null;
     protected String baseurl = null;
 
     /**
@@ -64,7 +65,7 @@ public class AWSS3CacheVolume implements CacheVolume {
      * @param folder        the name of the folder within the bucket where objects will be stored.  If null
      *                      or an empty string, it will be assumed that the objects should reside at the 
      *                      root of the bucket.  
-     * @param s3            the AmazonS3 client instance to use to access the bucket
+     * @param s3            the AmazonS3 client provider instance to use to access the bucket
      * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
      *                            when {@link #getRedirectFor(String)} is called.  This 
      *                            implementation will form the URL by appending the object 
@@ -79,7 +80,7 @@ public class AWSS3CacheVolume implements CacheVolume {
      * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
      *                            legal URLs
      */
-    public AWSS3CacheVolume(String bucketname, String folder, AmazonS3 s3, String redirectBaseURL)
+    public AWSS3CacheVolume(String bucketname, String folder, AWSS3ClientProvider s3, String redirectBaseURL)
         throws FileNotFoundException, AmazonServiceException, MalformedURLException
     {
         this(bucketname, folder, null, s3, redirectBaseURL);
@@ -92,7 +93,7 @@ public class AWSS3CacheVolume implements CacheVolume {
      *                      or an empty string, it will be assumed that the objects should reside at the 
      *                      root of the bucket.  
      * @param name          a name to refer to this volume by
-     * @param s3            the AmazonS3 client instance to use to access the bucket
+     * @param s3            the AmazonS3 client provider instance to use to access the bucket
      * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
      *                            when {@link #getRedirectFor(String)} is called.  This 
      *                            implementation will form the URL by appending the object 
@@ -107,7 +108,8 @@ public class AWSS3CacheVolume implements CacheVolume {
      * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
      *                            legal URLs
      */
-    public AWSS3CacheVolume(String bucketname, String folder, String name, AmazonS3 s3, String redirectBaseURL)
+    public AWSS3CacheVolume(String bucketname, String folder, String name,
+                            AWSS3ClientProvider s3, String redirectBaseURL)
         throws FileNotFoundException, AmazonServiceException, MalformedURLException
     {
         this(bucketname, folder, name, s3);
@@ -125,14 +127,14 @@ public class AWSS3CacheVolume implements CacheVolume {
      * @param folder        the name of the folder within the bucket where objects will be stored.  If null
      *                      or an empty string, it will be assumed that the objects should reside at the 
      *                      root of the bucket.  
-     * @param s3            the AmazonS3 client instance to use to access the bucket
+     * @param s3            the AmazonS3 client provider instance to use to access the bucket
      * @throws FileNotFoundException    if the specified bucket does not exist
      * @throws AmazonServiceException   if there is a problem accessing the S3 service.  While 
      *                                  this is a runtime exception that does not have to be caught 
      *                                  by the caller, catching it is recommended to address 
      *                                  connection problems early.
      */
-    public AWSS3CacheVolume(String bucketname, String folder, AmazonS3 s3)
+    public AWSS3CacheVolume(String bucketname, String folder, AWSS3ClientProvider s3)
         throws FileNotFoundException, AmazonServiceException
     {
         this(bucketname, folder, null, s3);
@@ -146,21 +148,23 @@ public class AWSS3CacheVolume implements CacheVolume {
      *                      or an empty string, it will be assumed that the objects should reside at the 
      *                      root of the bucket.  
      * @param name          a name to refer to this volume by
-     * @param s3            the AmazonS3 client instance to use to access the bucket
+     * @param s3prov        the AmazonS3 client provider instance to use to access the bucket
      * @throws FileNotFoundException    if the specified bucket does not exist
      * @throws AmazonServiceException   if there is a problem accessing the S3 service.  While 
      *                                  this is a runtime exception that does not have to be caught 
      *                                  by the caller, catching it is recommended to address 
      *                                  connection problems early.
      */
-    public AWSS3CacheVolume(String bucketname, String folder, String name, AmazonS3 s3)
+    public AWSS3CacheVolume(String bucketname, String folder, String name, AWSS3ClientProvider s3prov)
         throws FileNotFoundException, AmazonServiceException
     {
         bucket = bucketname;
         if (folder != null && folder.length() == 0)
             folder = null;
         this.folder = folder;
-        s3client = s3;
+        s3 = s3prov;
+
+        AmazonS3 s3client = s3.client();
 
         // does bucket exist?
         try {
@@ -203,7 +207,7 @@ public class AWSS3CacheVolume implements CacheVolume {
      */
     public boolean exists(String name) throws StorageVolumeException {
         try {
-            return s3client.doesObjectExist(bucket, s3name(name));
+            return s3.client().doesObjectExist(bucket, s3name(name));
         } catch (AmazonServiceException ex) {
             throw new StorageVolumeException("Trouble accessing bucket "+bucket+": "+ex.getMessage(), ex);
         }
@@ -271,7 +275,7 @@ public class AWSS3CacheVolume implements CacheVolume {
 
         Upload uplstat = null;
         try {
-            TransferManager trxmgr = TransferManagerBuilder.standard().withS3Client(s3client)
+            TransferManager trxmgr = TransferManagerBuilder.standard().withS3Client(s3.client())
                                                            .withMultipartUploadThreshold(200000000L) 
                                                            .withMinimumUploadPartSize(100000000L)
                                                            .build();
@@ -363,7 +367,7 @@ public class AWSS3CacheVolume implements CacheVolume {
         String use = s3name(name);
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, use);
-            S3Object s3Object = s3client.getObject(getObjectRequest);
+            S3Object s3Object = s3.client().getObject(getObjectRequest);
             return s3Object.getObjectContent();
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
@@ -383,7 +387,7 @@ public class AWSS3CacheVolume implements CacheVolume {
         ObjectMetadata omd = null;
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, use);
-            S3Object s3Object = s3client.getObject(getObjectRequest);
+            S3Object s3Object = s3.client().getObject(getObjectRequest);
             omd = s3Object.getObjectMetadata();
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
@@ -411,7 +415,7 @@ public class AWSS3CacheVolume implements CacheVolume {
     public boolean remove(String name) throws StorageVolumeException {
         String use = s3name(name);
         try {
-            s3client.deleteObject(bucket, use);
+            s3.client().deleteObject(bucket, use);
             return true;
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)

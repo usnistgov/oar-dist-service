@@ -40,6 +40,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.PDRBagStorageBase;
+import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.StorageStateException;
@@ -56,7 +57,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     public static long defaultChecksumSizeLimit = 50000000L;  // 50 MB
 
     public final String bucket;
-    protected AmazonS3 s3client = null;
+    protected AWSS3ClientProvider s3 = null;
     protected Integer pagesz = null;  // null means use default page size (1000)
     private long checksumSizeLim = defaultChecksumSizeLimit;
 
@@ -76,16 +77,16 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      *                                  by the caller, catching it is recommended to address 
      *                                  connection problems early.
      */
-    public AWSS3LongTermStorage(String bucketname, AmazonS3 s3)
+    public AWSS3LongTermStorage(String bucketname, AWSS3ClientProvider s3provider)
         throws FileNotFoundException, AmazonServiceException
     {
         super(bucketname);
         bucket = bucketname;
-        s3client = s3;
+        s3 = s3provider;
 
         // does bucket exist?
         try {
-            s3client.headBucket(new HeadBucketRequest(bucket));
+            s3.client().headBucket(new HeadBucketRequest(bucket));
         }
         catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
@@ -95,6 +96,12 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         }
         logger.info("Creating AWSS3LongTermStorage for the bucket, " + bucket);
     }
+
+    /**
+     * force a refresh of the S3 client instance; this will release any resources currently 
+     * held by the client.
+     */
+    public void refreshS3Client() { s3.refresh(); }
     
     /**
      * return true if a file with the given name exists in the storage 
@@ -104,7 +111,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     @Override
     public boolean exists(String filename) throws StorageVolumeException {
         try {
-            return s3client.doesObjectExist(bucket, filename);
+            return s3.client().doesObjectExist(bucket, filename);
         } catch (AmazonServiceException ex) {
             throw new StorageStateException("Trouble accessing bucket "+bucket+": "+ex.getMessage(), ex);
         }
@@ -121,7 +128,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     public InputStream openFile(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
-            S3Object s3Object = s3client.getObject(getObjectRequest);
+            S3Object s3Object = s3.client().getObject(getObjectRequest);
             return new DrainingInputStream(s3Object.getObjectContent(), logger);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
@@ -143,7 +150,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         GetObjectRequest getObjectRequest = null;
         try {
             getObjectRequest = new GetObjectRequest(bucket, filename+".sha256");
-            s3Object = s3client.getObject(getObjectRequest);
+            s3Object = s3.client().getObject(getObjectRequest);
         }
         catch (AmazonServiceException ex) {
             if (ex.getStatusCode() != 404)
@@ -186,7 +193,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     @Override
     public long getSize(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
-            return s3client.getObjectMetadata(bucket, filename).getContentLength();
+            return s3.client().getObjectMetadata(bucket, filename).getContentLength();
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new FileNotFoundException("File not found in S3 bucket: "+filename);
@@ -220,7 +227,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         ListObjectsV2Request req = createListRequest(identifier+".", pagesz);
         do {
             try {
-                objectListing = s3client.listObjectsV2(req);
+                objectListing = s3.client().listObjectsV2(req);
                 files = objectListing.getObjectSummaries();
             } catch (AmazonServiceException ex) {
                 throw new StorageStateException("Trouble accessing bucket, "+bucket+": "+ex.getMessage(),ex);
@@ -286,7 +293,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         ListObjectsV2Request req = createListRequest(prefix, pagesz);
         do {
             try {
-                objectListing = s3client.listObjectsV2(req);
+                objectListing = s3.client().listObjectsV2(req);
                 files = objectListing.getObjectSummaries();
             } catch (AmazonServiceException ex) {
                 throw new StorageStateException("Trouble accessing bucket, "+bucket+": "+ex.getMessage(),ex);

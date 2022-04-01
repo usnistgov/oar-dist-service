@@ -34,6 +34,7 @@ import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 
 import java.util.Collection;
 import java.util.Map;
@@ -304,7 +305,7 @@ public class NISTCacheManagerConfig {
         /**
          * create a CacheVolume as prescribed by this configuration
          */
-        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg, AmazonS3 s3client)
+        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg, AWSS3ClientProvider s3prov)
             throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
         {
             if (location == null || location.length() == 0)
@@ -316,7 +317,7 @@ public class NISTCacheManagerConfig {
             if (! m.find())
                 throw new ConfigurationException("Bad cache volume location URL: "+location);
             if (m.group(1).equals("s3")) {
-                if (s3client == null)
+                if (s3prov == null)
                     throw new ConfigurationException("S3 client instance not availabe for AWS volume, "
                                                      +location);
 
@@ -325,7 +326,7 @@ public class NISTCacheManagerConfig {
                     Path bucketfolder = Paths.get(location.substring(m.end()));
                     return new AWSS3CacheVolume(bucketfolder.subpath(0,1).toString(),
                                                 bucketfolder.subpath(1, bucketfolder.getNameCount()).toString(), 
-                                                getName(), s3client, getRedirectBase());
+                                                getName(), s3prov, getRedirectBase());
                 } catch (InvalidPathException ex) {
                     throw new ConfigurationException("Invalid s3 location URL: " + location);
                 }
@@ -362,7 +363,7 @@ public class NISTCacheManagerConfig {
         }
     }
 
-    public BasicCache createDefaultCache(AmazonS3 s3)
+    public BasicCache createDefaultCache(AWSS3ClientProvider s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         // establish the base directory

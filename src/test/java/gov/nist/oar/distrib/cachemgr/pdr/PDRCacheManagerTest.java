@@ -415,4 +415,9 @@ public class PDRCacheManagerTest {
         assertTrue(0 < info.optLong("since"));
         assertTrue(0 < info.optLong("checked"));
     }
+
+    @Test
+    public void testCacheQueue() {
+        assertNotNull(mgr.cath);
+    }
 }
