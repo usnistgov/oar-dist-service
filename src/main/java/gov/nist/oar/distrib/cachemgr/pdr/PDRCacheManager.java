@@ -195,6 +195,52 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
     }
 
     /**
+     * start a separate thread to cache all items currently found in the queue.
+     * @return boolean -- True if caching thread was not running but was started; false if the 
+     *                    thread was already running.
+     */
+    public boolean startCaching() {
+        if (cath.isAlive()) return false;
+        cath.start();
+        return true;
+    }
+
+    /**
+     * return True if data is currently being added to the cache via the Caching thread.
+     */
+    public boolean isCaching() { return cath.isAlive(); }
+
+    /**
+     * return a name for the item currently being cached or null if the cacher is between items 
+     * (or the caching thread is not running).
+     */
+    public String getCachingItemName() {
+        return (cath == null) ? null : cath.inprocess;
+    }
+
+    /**
+     * return the status of the caching queue as JSONObject
+     */
+    public JSONObject getCachingQueueStatus() throws CacheManagementException {
+        JSONObject out = new JSONObject();
+        out.put("status", ((isCaching()) ? "" : "not ") + "running");
+        String current = getCachingItemName();
+        out.put("current", (current == null) ? JSONObject.NULL : current);
+
+        try {
+            Queue<String> inq = cath.loadQueue();
+            JSONArray waiting = new JSONArray();
+            for(String id : inq) 
+                waiting.put(id);
+            out.put("waiting", waiting);
+            return out;
+        }
+        catch (IOException ex) {
+            throw new CacheManagementException("Trouble reading the current queue: "+ex.getMessage());
+        }
+    }
+
+    /**
      * send the results of the integrity monitor's work to interested consumers.  This includes 
      * record information into the log (via {@link #recordMonitorResults(int,List)}. 
      * @param checked    the number of files checked
@@ -878,14 +924,17 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             boolean recache = true;
             String[] parts = qitem.split("\\s*\\t\\s*");
             String nextid = parts[0];
+            inprocess = nextid;
             if (parts.length > 1 && "0".equals(parts[1]))
                 recache = false;
+            String version = null;
+            if (parts.length > 2) version = parts[2];
             
             parts = ((PDRDatasetRestorer) restorer).parseId(nextid);
             try {
                 if (parts[1].length() == 0) 
                     // dataset identifier
-                    cacheDataset(parts[0], parts[2], recache);
+                    cacheDataset(parts[0], version, recache);
                 else if (recache || ! isCached(nextid))
                     // data file identifier
                     cache(nextid, true);
@@ -896,6 +945,9 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             catch (StorageVolumeException ex) {
                 throw new CacheManagementException("Storage trouble while caching "+nextid+": "+
                                                    ex.getMessage(), ex);
+            }
+            finally {
+                inprocess = null;
             }
 
             return nextid;

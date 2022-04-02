@@ -444,4 +444,15 @@ public class PDRCacheManagerTest {
         assertTrue(!mgr.cath.isQueued("mds2-2222"));
         assertTrue(!mgr.cath.isQueued("mds2-3333"));
     }
+
+    @Test
+    public void testCachingStatus() throws CacheManagementException {
+        assertFalse("Unexpectedly says cacher is running", mgr.isCaching());
+        assertNull("Unexepectedly found caching item in progress", mgr.getCachingItemName());
+        JSONObject status = mgr.getCachingQueueStatus();
+        assertEquals("not running", status.getString("status"));
+        assertEquals(JSONObject.NULL, status.get("current"));
+        JSONArray waiting = status.getJSONArray("waiting");
+        assertEquals(0, waiting.length());
+    }
 }
