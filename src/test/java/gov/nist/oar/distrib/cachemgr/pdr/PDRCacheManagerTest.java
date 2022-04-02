@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Queue;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -417,7 +418,30 @@ public class PDRCacheManagerTest {
     }
 
     @Test
-    public void testCacheQueue() {
+    public void testCacheQueue() throws CacheManagementException, IOException {
         assertNotNull(mgr.cath);
+        assertFalse(mgr.cath.hasPending());
+        Queue<String> q = mgr.cath.loadQueue();
+        assertEquals(0, q.size());
+        assertTrue(! mgr.cath.isQueued("mds2-1111"));
+        q.add("mds2-1111\t0");
+        mgr.cath.saveQueue(q);
+        assertTrue(mgr.cath.hasPending());
+        assertTrue(mgr.cath.isQueued("mds2-1111"));
+        mgr.cath.queue("mds2-2222", false);
+        mgr.cath.queue("mds2-3333", true);
+        assertTrue(mgr.cath.hasPending());
+        assertTrue(mgr.cath.isQueued("mds2-1111"));
+        assertTrue(mgr.cath.isQueued("mds2-2222"));
+        assertTrue(mgr.cath.isQueued("mds2-3333"));
+        q = mgr.cath.loadQueue();
+        assertEquals(3, q.size());
+        assertEquals("mds2-1111\t0", mgr.cath.popQueue());
+        assertEquals("mds2-2222\t0", mgr.cath.popQueue());
+        assertEquals("mds2-3333\t1", mgr.cath.popQueue());
+        assertTrue(! mgr.cath.hasPending());
+        assertTrue(!mgr.cath.isQueued("mds2-1111"));
+        assertTrue(!mgr.cath.isQueued("mds2-2222"));
+        assertTrue(!mgr.cath.isQueued("mds2-3333"));
     }
 }
