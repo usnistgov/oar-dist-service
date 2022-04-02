@@ -129,7 +129,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
             S3Object s3Object = s3.client().getObject(getObjectRequest);
-            return new DrainingInputStream(s3Object.getObjectContent(), logger);
+            return new DrainingInputStream(s3Object.getObjectContent(), logger, filename);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new FileNotFoundException("File not found in S3 bucket: "+filename);
@@ -330,10 +330,15 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      */
     static class DrainingInputStream extends FilterInputStream implements Runnable {
         private Logger logger = null;
+        private String name = null;
 
-        public DrainingInputStream(InputStream is, Logger log) {
+        public DrainingInputStream(InputStream is, Logger log, String name) {
             super(is);
             logger = log;
+            this.name = name;
+        }
+        public DrainingInputStream(InputStream is, Logger log) {
+            this(is, log, null);
         }
 
         public void close() {
@@ -350,24 +355,29 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
 
         void runClose() {
             long start = System.currentTimeMillis();
+            String what = (name == null) ? "" : name+" ";
             try {
                 byte[] buf = new byte[100000];
                 int len = 0;
-                logger.debug("Draining S3 Object stream ({})", in.toString());
+                logger.debug("Draining {}S3 Object stream ({})", what, in.toString());
                 while ((len = read(buf)) != -1) { /* fugetaboutit */ }
                 if (logger.isInfoEnabled()) {
                     String[] flds = in.toString().split("\\.");
-                    logger.info("Drained S3 object stream ({}) in {} millseconds",
+                    logger.info("Drained {}S3 object stream ({}) in {} millseconds", what,
                                 flds[flds.length-1], (System.currentTimeMillis() - start));
                 }
             }
             catch (IOException ex) {
-                logger.warn("Trouble draining S3 object stream ({}): {}", in.toString(), ex.getMessage());
+                logger.warn("Trouble draining {}S3 object stream ({}): {}",
+                            what, in.toString(), ex.getMessage());
             }
-            try {
-                super.close();
-            } catch (IOException ex) {
-                logger.warn("Trouble closing S3 object stream ({}): {}", in.toString(), ex.getMessage());
+            finally {
+                try {
+                    super.close();
+                } catch (IOException ex) {
+                    logger.warn("Trouble closing {}S3 object stream ({}): {}",
+                                what, in.toString(), ex.getMessage());
+                }
             }
         }
     }

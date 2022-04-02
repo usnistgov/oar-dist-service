@@ -902,10 +902,10 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
         }
 
         public void run() {
+            String item = null;
             try {
                 if (hasPending())
                     log.info("Beginning queued cache request processing");
-                String item = null;
                 while ((item = popQueue()) != null) {
                     if (interrupted()) throw new InterruptedException();
                     try {
@@ -927,7 +927,13 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                 log.error("Trouble reading cache queue: "+ex.getMessage());
             }
             catch (RuntimeException ex) {
-                log.error("Unexpected caching error: "+ex.getMessage());
+                log.error("Unexpected caching exception while/after processing {}: {}",
+                          item, ex.getMessage());
+            }
+            catch (Throwable ex) {
+                log.error("Unexpected caching error while/after processing {}: {}",
+                          item, ex.getMessage());
+                throw ex;
             }
             finally {
                 try {
