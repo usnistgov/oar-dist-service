@@ -385,24 +385,13 @@ public class AWSS3CacheVolume implements CacheVolume {
      */
     public CacheObject get(String name) throws StorageVolumeException {
         String use = s3name(name);
-        S3Object s3Object = null;
         ObjectMetadata omd = null;
         try {
-            GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, use);
-            s3Object = s3.client().getObject(getObjectRequest);
-            omd = s3Object.getObjectMetadata();
+            omd = s3.client().getObjectMetadata(bucket, use);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new ObjectNotFoundException("Object not found: s3:/"+bucket+"/"+use, this.getName());
             throw new StorageStateException("Trouble accessing "+name+": "+ex.getMessage(), ex);
-        }
-        finally {
-            if (s3Object != null) {
-                try { s3Object.close(); }
-                catch (IOException ex) {
-                    LoggerFactory.getLogger(getClass()).error("Trouble closing S3Object for "+name);
-                }
-            }
         }
 
         JSONObject md = new JSONObject();
