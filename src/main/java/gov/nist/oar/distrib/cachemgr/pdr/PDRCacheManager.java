@@ -983,8 +983,8 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
                           item, ex.getMessage());
             }
             catch (Throwable ex) {
-                log.error("Unexpected caching error while/after processing {}: {}",
-                          item, ex.getMessage());
+                log.error("Unexpected caching error while/after processing {}: {}: {}",
+                          item, ex.getClass().getName(), ex.getMessage());
                 throw ex;
             }
             finally {
