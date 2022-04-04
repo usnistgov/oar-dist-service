@@ -129,7 +129,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
             S3Object s3Object = s3.client().getObject(getObjectRequest);
-            return new DrainingInputStream(s3Object.getObjectContent(), logger, filename);
+            return new DrainingInputStream(s3Object, logger, filename);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new FileNotFoundException("File not found in S3 bucket: "+filename);
@@ -180,6 +180,12 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         catch (IOException ex) {
             throw new StorageStateException("Failed to read cached checksum value from "+ filename+".sha256" +
                                             ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { s3Object.close(); }
+            catch (IOException ex) {
+                logger.warn("Trouble closing S3Object (double close?): "+ex.getMessage());
+            }
         }
     }
 
@@ -331,14 +337,16 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
     static class DrainingInputStream extends FilterInputStream implements Runnable {
         private Logger logger = null;
         private String name = null;
+        private S3Object s3o = null;
 
-        public DrainingInputStream(InputStream is, Logger log, String name) {
-            super(is);
+        public DrainingInputStream(S3Object s3object, Logger log, String name) {
+            super(s3object.getObjectContent());
+            s3o = s3object;
             logger = log;
             this.name = name;
         }
-        public DrainingInputStream(InputStream is, Logger log) {
-            this(is, log, null);
+        public DrainingInputStream(S3Object s3object, Logger log) {
+            this(s3object, log, null);
         }
 
         public void close() {
@@ -372,11 +380,14 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
                             what, in.toString(), ex.getMessage());
             }
             finally {
-                try {
-                    super.close();
-                } catch (IOException ex) {
+                try { super.close(); }
+                catch (IOException ex) {
                     logger.warn("Trouble closing {}S3 object stream ({}): {}",
                                 what, in.toString(), ex.getMessage());
+                }
+                try { s3o.close(); }
+                catch (IOException ex) {
+                    logger.warn("Trouble closing S3Object {}(double close?): "+ex.getMessage());
                 }
             }
         }
