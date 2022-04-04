@@ -103,7 +103,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         find_sql_base + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
 
     static final String check_Select =
-        find_sql_base + "AND d.checked<? AND d.cached=1 AND d.name NOT LIKE '<reserve#' "
+        find_sql_base + "AND d.checked<? AND d.cached=1 AND d.name NOT LIKE '<reserve#%' "
                       + "ORDER BY d.checked ASC";
 
     protected String _dburl = null;
