@@ -216,7 +216,7 @@ public class NISTDistribServiceConfig {
         // import credentials from the EC2 machine we are running on
         InstanceProfileCredentialsProvider provider = InstanceProfileCredentialsProvider.getInstance();
 
-        return new AWSS3ClientProvider(provider, region, 50);
+        return new AWSS3ClientProvider(provider, region, 10000);
     }
 
     /**
