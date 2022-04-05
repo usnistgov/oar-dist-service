@@ -28,6 +28,8 @@ import org.slf4j.Logger;
  * can get used over time in a long-lived application.  This wrapper class limits the number of uses 
  * of an AmazonS3Client can be used before it is shutdown (cleaning up its resources) and recreated.
  * Users of this class access the client via the {@link #client()} method.  
+ *
+ * @deprecated not currently used
  */
 public class AWSS3ClientProvider implements Cloneable {
 

@@ -12,7 +12,6 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.storage.AWSS3ClientProvider;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -178,10 +177,10 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired AWSS3ClientProvider s3provider;    // set via getter below
-    @Autowired BagStorage                 lts;    // set via getter below
-    @Autowired MimetypesFileTypeMap   mimemap;    // set via getter below
-    @Autowired CacheManagerProvider  cmgrprov;    // set via getter below
+    @Autowired AmazonS3             s3client;    // set via getter below
+    @Autowired BagStorage                lts;    // set via getter below
+    @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
+    @Autowired CacheManagerProvider cmgrprov;    // set via getter below
 
     /**
      * the storage service to use to access the bags
@@ -190,7 +189,7 @@ public class NISTDistribServiceConfig {
     public BagStorage getLongTermStorage() throws ConfigurationException {
         try {
             if (mode.equals("aws") || mode.equals("remote")) 
-                return new AWSS3LongTermStorage(bagstore, s3provider);
+                return new AWSS3LongTermStorage(bagstore, s3client);
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
             else
@@ -207,7 +206,7 @@ public class NISTDistribServiceConfig {
      * the client for access S3 storage
      */
     @Bean
-    public AWSS3ClientProvider getAWSS3ClientProvider() throws ConfigurationException {
+    public AmazonS3 getAmazonS3() throws ConfigurationException {
         logger.info("Creating S3 client");
 
         if (mode.equals("remote"))
@@ -216,7 +215,12 @@ public class NISTDistribServiceConfig {
         // import credentials from the EC2 machine we are running on
         InstanceProfileCredentialsProvider provider = InstanceProfileCredentialsProvider.getInstance();
 
-        return new AWSS3ClientProvider(provider, region, 10000);
+        AmazonS3 client = AmazonS3Client.builder()
+                                        .standard()                 
+                                        .withCredentials(provider)
+                                        .withRegion(region)
+                                        .build();
+        return client;
     }
 
     /**
@@ -274,9 +278,9 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config,
-                                                        BagStorage bagstor, AWSS3ClientProvider s3prov)
+                                                        BagStorage bagstor, AmazonS3 s3client)
     {
-        return new CacheManagerProvider(config, bagstor, s3prov);
+        return new CacheManagerProvider(config, bagstor, s3client);
     }
 
     /**
