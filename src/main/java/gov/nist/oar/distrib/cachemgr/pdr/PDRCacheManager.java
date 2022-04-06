@@ -181,6 +181,75 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
     }
 
     /**
+     * conditionally cache an object or objects associated with the given identifier in an 
+     * implementation-specific way.  The given identifier is not required to exist or otherwsie be 
+     * recognized, and the implementation may oar may not actually cache any data as a result of a 
+     * call to this method.
+     * <p>
+     * This method is intended to automate the strategicly cache data additional based on user requests.
+     * This particular implementation will accept an AIP identifier that refers either dataset or a file 
+     * within a dataset (in the form of <i>dsid</i><tt>/</tt><i>filepath[</i><tt>#</tt><i>version]</i>).
+     * In either case, the implementation looks to see if any data files from the identified dataset are 
+     * currently in the cache.  If there are none, this method will queue the dataset to be added to the 
+     * cache.  If the some files are found and the given ID refers to an individual file, then just that 
+     * file is queued to be added.  Otherwise, no additional data is queue.  If any of the targeted data 
+     * already exists in the cache, it is not recached. 
+     * @param id       an identifier for data to be cached.  This does not have to be specifically an
+     *                 object identifier; its interpretation is kindly implementation-specific.
+     * @param prefs    an AND-ed set of preferences for determining where (or how) to 
+     *                 cache the object.  Generally, the values are implementation-specific 
+     *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
+     *                 example set).  Zero indicates no preferences.  
+     * @throws CacheManagementException   if the implementation has chosen to cache something but was 
+     *                 unable to due to an internal cache failure.
+     */
+    public void optimallyCache(String id, int prefs) throws CacheManagementException {
+        String[] parts = ((PDRDatasetRestorer) restorer).parseId(id);
+        String dsid = parts[0];
+        String file = parts[1];
+        String version = parts[2];
+
+        try {
+            // see if we should queue the full dataset associated with the given ID
+            PDRStorageInventoryDB sidb = (PDRStorageInventoryDB) ((BasicCache) theCache).getInventoryDB();
+
+            JSONObject summ = sidb.summarizeDataset(dsid);
+            if (summ == null || summ.optInt("filecount", 0) == 0) {
+                // There's nothing in the cache from this dataset; go ahead and cache the whole thing
+                log.info("cache-queuing {} {}triggered by user demand", dsid,
+                          (version == null) ? "" : "("+version+") ");
+                if (version != null)
+                    dsid += "#" + version;
+                queueCache(dsid, false);
+                return;
+            }
+        }
+        catch (ClassCastException ex) { /* oh well */ }
+        catch (ResourceNotFoundException ex) {
+            log.debug("FYI: requested dataset, {}, not found; ignoring...", dsid);
+            return;
+        }
+        catch (StorageVolumeException ex) {
+            throw new CacheManagementException("cache-queuing failed due to storage issue: "+ex.getMessage(), ex);
+        }
+
+        if (file != null) {
+            // the file is presumed to be not in the cache, so queue it.
+            try {
+                log.info("cache-queueing {}", id);
+                queueCache(id, false);
+            }
+            catch (ResourceNotFoundException ex) {
+                log.warn("Requested dataset for caching, {}, not found", id);
+            }
+            catch (StorageVolumeException ex) {
+                throw new CacheManagementException("cache-queuing failed due to storage issue: "+
+                                                   ex.getMessage(), ex);
+            }
+        }
+    }
+
+    /**
      * queue up a dataset or file object to be cached asynchronously via a separate thread
      * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH][#VERSION])
      */

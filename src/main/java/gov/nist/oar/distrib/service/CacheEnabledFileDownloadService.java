@@ -380,7 +380,16 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         }
 
         // last resort: straight from long-term storage
-        return srcsvc.getDataFile(dsid, filepath, version);
+        StreamHandle out = srcsvc.getDataFile(dsid, filepath, version);  // may throw an exception
+        try {
+            // possibly cache the requested dataset for the next request
+            cmgr.optimallyCache(cacheid(dsid, filepath, version));
+        }
+        catch (Throwable ex) {
+            logger.warn("Failed to cache-queue dataset {}: {}: {}",
+                        dsid, ex.getClass().getName(), ex.getMessage());
+        }
+        return out;
     }
 
     /**
