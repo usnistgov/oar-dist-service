@@ -154,7 +154,7 @@ public class CacheEnabledFileDownloadServiceTest {
 
         DefaultPreservationBagService pres = new DefaultPreservationBagService(ltstore);
         FileDownloadService srcsvc = new FromBagFileDownloadService(pres);
-        svc = new CacheEnabledFileDownloadService(srcsvc, pres, mgr, hbcm);
+        svc = new CacheEnabledFileDownloadService(srcsvc, pres, mgr, hbcm, false);
     }
 
     @Before

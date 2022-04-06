@@ -148,8 +148,6 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.cachemgr.admindir:@null}")
     String cacheadmin;
 
-    
-
     /**
      * the maximum allowed size of a data package.  A package will only exceed this size if it contains
      * a single file (that would not fit otherwise).

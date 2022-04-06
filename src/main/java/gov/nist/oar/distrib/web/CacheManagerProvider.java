@@ -188,7 +188,7 @@ public class CacheManagerProvider {
     {
         if (canProvideManager()) 
             return new CacheEnabledFileDownloadService(bagService, getPDRCacheManager(),
-                                                       getHeadBagManager(), mimemap);
+                                                       getHeadBagManager(), cfg.getTriggerCache(), mimemap);
 
         return new NerdmDrivenFromBagFileDownloadService(bagService, mimemap);
     }
