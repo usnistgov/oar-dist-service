@@ -18,10 +18,11 @@ import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 
 import java.util.List;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.Deque;
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -118,7 +119,7 @@ public abstract class BasicCache extends Cache {
         super(name);
         db = idb;
         volumes = new HashMap<String, CacheVolume>(volcount);
-        recent = new LinkedList<String>();
+        recent = (Deque<String>) new ConcurrentLinkedDeque<String>();
         if (log == null) log = LoggerFactory.getLogger("BasicCache:"+name);
         this.log = log;
     }

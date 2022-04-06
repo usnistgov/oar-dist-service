@@ -119,7 +119,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (smallsizelim >= 0L)
             smszlim = smallsizelim;
         if (logger == null)
-            logger = LoggerFactory.getLogger(getClass());
+            logger = LoggerFactory.getLogger(getClass().getName());
         log = logger;
     }
 
@@ -277,6 +277,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             bstrm = ltstore.openFile(srcbag);
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openDataFile(bstrm, bagname, idparts[1]);
             resv.saveAs(ntry.stream, id, name, cachemd);
+            log.info("Cached "+id);
         }
         catch (FileNotFoundException ex) {
             throw new RestorationException(id+": Data file missing from source bag: "+ex.getMessage(), ex);

@@ -230,8 +230,9 @@ public class DeletionPlan {
      */
     private long _execute() throws DeletionFailureException, InventoryException {
         long removed = 0L;
-        log.info("Removing {} bytes via deletion plan on {}", getByteCountToBeRemoved(),
-                 getVolumeName());
+        if (getByteCountToBeRemoved() > 0)
+            log.info("Removing {} bytes via deletion plan on {}", getByteCountToBeRemoved(),
+                     getVolumeName());
 
         // remove doomed objects:  go through list until enough space freed or until
         // exhausted.

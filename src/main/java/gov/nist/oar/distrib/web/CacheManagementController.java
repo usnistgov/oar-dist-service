@@ -332,6 +332,66 @@ public class CacheManagementController {
     }
 
     /**
+     * return status information about the caching queue.  The caching queue is a queue of data items 
+     * waiting to be cached
+     */
+    @Operation(summary="Return status information about the cache queue",
+               description="The caching queue is a queue of data items waiting to be cached")
+    @GetMapping(value="/queue/")
+    public ResponseEntity<Map<String,Object>> getCacheQueueStatus() throws CacheManagementException {
+        return new ResponseEntity<Map<String,Object>>(mgr.getCachingQueueStatus().toMap(), HttpStatus.OK);
+    }
+
+    /**
+     * trigger the start of the caching process.  The caching thread will start to process any items 
+     * found in the queue
+     */
+    @Operation(summary="Start caching",
+               description="The caching process will start to process the data items found in the queue.")
+    @PutMapping(value="/queue/")
+    public ResponseEntity<Map<String,Object>> startCaching() throws CacheManagementException {
+        boolean started = mgr.startCaching();
+        JSONObject out = mgr.getCachingQueueStatus();
+        out.put("message", (started) ? "Cacher started" : "Cacher is already running");
+        return new ResponseEntity<Map<String,Object>>(out.toMap(), HttpStatus.OK);
+    }
+
+    /**
+     * request that a data item be cached.  The item is added to the current queue and the caching 
+     * process is started, if necessary.  The provided data item identifier can either be a dataset
+     * identiifer or a file identifier.
+     */
+    @Operation(summary="Cache a data item",
+               description="The caching process will start to process the data items found in the queue.")
+    @PutMapping(value="/queue/**")
+    public ResponseEntity<Map<String,Object>> queueCache(@Parameter(hidden=true) HttpServletRequest request)
+        throws CacheManagementException, StorageVolumeException
+    {
+	String id=(String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        id = id.substring("/cache/queue/".length());
+
+        String recachep = request.getParameter("recache");
+        boolean recache = ! ("0".equals(recachep) || "false".equals(recachep));
+        String version = request.getParameter("version");
+        String message = null;
+        
+        if (version != null)
+            id += "#"+version;
+
+        try {
+            mgr.queueCache(id, recache);
+            message = "Requested resource has been queued";
+        }
+        catch (ResourceNotFoundException ex) {
+            message = "Resource not found";
+        }
+        
+        JSONObject out = mgr.getCachingQueueStatus();
+        out.put("message", message);
+        return new ResponseEntity<Map<String,Object>>(out.toMap(), HttpStatus.OK);
+    }
+
+    /**
      * return status information about integrity monitoring 
      */
     @Operation(summary="Return status information about cache file integrity checking",
