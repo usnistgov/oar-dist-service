@@ -76,7 +76,7 @@ import com.amazonaws.services.s3.AmazonS3;
  *        the "small file" volume.  Default is 10 MB.</dd>
  *   <dt> <b><code>headbagDbrootdir</code></b> (string)  </dt>
  *   <dd> the directory containing the inventory database data specifically for the headbag cache.  
- *         Default is <code>admindir/headbags</code>. </dd>
+ *        Default is <code>admindir/headbags</code>. </dd>
  *   <dt> <b><code>headbagCacheSize</code></b> (long integer)  </dt>
  *   <dd> The total size limit for the headbag cache.  Note that this size will be split between two 
  *        volumes </dd>
@@ -87,6 +87,9 @@ import com.amazonaws.services.s3.AmazonS3;
  *   <dd> a list where each element configures a cache volume within the cache.  See 
  *        {@link NISTCacheManagerConfig.CacheVolumeConfig} for the subproperties that can be 
  *        included in each element. </dd>
+ *   <dt> <b><code>triggerCache</code></b> (long integer)  </dt>
+ *   <dd> if True, requests for files not in the cache will trigger automatic caching of that and 
+ *        related files (the other files in the dataset). </dd>
  * </ul>
  */
 public class NISTCacheManagerConfig {
@@ -103,6 +106,7 @@ public class NISTCacheManagerConfig {
     String arknaan = NIST_ARK_NAAN;
     String dbroot = null;
     String hbdbroot = null;
+    boolean triggercache = false;
 
     public String getAdmindir() { return admindir; }
     public void setAdmindir(String dirpath) { admindir = dirpath; }
@@ -124,6 +128,8 @@ public class NISTCacheManagerConfig {
     public void   setDbrootdir(String dir) { dbroot = dir; }
     public String getHeadbagDbrootdir() { return hbdbroot; }
     public void   setHeadbagDbrootdir(String dir) { hbdbroot = dir; }
+    public boolean getTriggerCache() { return triggercache; }
+    public void setTriggerCache(boolean trigger) { triggercache = trigger; }
 
     /**
      * the configuration of a volume within the cache.  It is expected to be part of a list of 

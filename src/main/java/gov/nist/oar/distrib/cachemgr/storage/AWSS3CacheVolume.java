@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 
 import org.json.JSONObject;
 import org.json.JSONException;
+import org.slf4j.LoggerFactory;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonClientException;
@@ -382,9 +383,7 @@ public class AWSS3CacheVolume implements CacheVolume {
         String use = s3name(name);
         ObjectMetadata omd = null;
         try {
-            GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, use);
-            S3Object s3Object = s3client.getObject(getObjectRequest);
-            omd = s3Object.getObjectMetadata();
+            omd = s3client.getObjectMetadata(bucket, use);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new ObjectNotFoundException("Object not found: s3:/"+bucket+"/"+use, this.getName());

@@ -95,7 +95,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         }
         logger.info("Creating AWSS3LongTermStorage for the bucket, " + bucket);
     }
-    
+
     /**
      * return true if a file with the given name exists in the storage 
      * @param filename   The name of the desired file.  Note that this does not refer to files that 
@@ -122,7 +122,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         try {
             GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, filename);
             S3Object s3Object = s3client.getObject(getObjectRequest);
-            return new DrainingInputStream(s3Object.getObjectContent(), logger);
+            return new DrainingInputStream(s3Object, logger, filename);
         } catch (AmazonServiceException ex) {
             if (ex.getStatusCode() == 404)
                 throw new FileNotFoundException("File not found in S3 bucket: "+filename);
@@ -173,6 +173,12 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         catch (IOException ex) {
             throw new StorageStateException("Failed to read cached checksum value from "+ filename+".sha256" +
                                             ": " + ex.getMessage(), ex);
+        }
+        finally {
+            try { s3Object.close(); }
+            catch (IOException ex) {
+                logger.warn("Trouble closing S3Object (double close?): "+ex.getMessage());
+            }
         }
     }
 
@@ -323,10 +329,17 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
      */
     static class DrainingInputStream extends FilterInputStream implements Runnable {
         private Logger logger = null;
+        private String name = null;
+        private S3Object s3o = null;
 
-        public DrainingInputStream(InputStream is, Logger log) {
-            super(is);
+        public DrainingInputStream(S3Object s3object, Logger log, String name) {
+            super(s3object.getObjectContent());
+            s3o = s3object;
             logger = log;
+            this.name = name;
+        }
+        public DrainingInputStream(S3Object s3object, Logger log) {
+            this(s3object, log, null);
         }
 
         public void close() {
@@ -343,24 +356,32 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
 
         void runClose() {
             long start = System.currentTimeMillis();
+            String what = (name == null) ? "" : name+" ";
             try {
                 byte[] buf = new byte[100000];
                 int len = 0;
-                logger.debug("Draining S3 Object stream ({})", in.toString());
+                logger.debug("Draining {}S3 Object stream ({})", what, in.toString());
                 while ((len = read(buf)) != -1) { /* fugetaboutit */ }
                 if (logger.isInfoEnabled()) {
                     String[] flds = in.toString().split("\\.");
-                    logger.info("Drained S3 object stream ({}) in {} millseconds",
+                    logger.info("Drained {}S3 object stream ({}) in {} millseconds", what,
                                 flds[flds.length-1], (System.currentTimeMillis() - start));
                 }
             }
             catch (IOException ex) {
-                logger.warn("Trouble draining S3 object stream ({}): {}", in.toString(), ex.getMessage());
+                logger.warn("Trouble draining {}S3 object stream ({}): {}",
+                            what, in.toString(), ex.getMessage());
             }
-            try {
-                super.close();
-            } catch (IOException ex) {
-                logger.warn("Trouble closing S3 object stream ({}): {}", in.toString(), ex.getMessage());
+            finally {
+                try { super.close(); }
+                catch (IOException ex) {
+                    logger.warn("Trouble closing {}S3 object stream ({}): {}",
+                                what, in.toString(), ex.getMessage());
+                }
+                try { s3o.close(); }
+                catch (IOException ex) {
+                    logger.warn("Trouble closing S3Object {}(double close?): "+ex.getMessage());
+                }
             }
         }
     }

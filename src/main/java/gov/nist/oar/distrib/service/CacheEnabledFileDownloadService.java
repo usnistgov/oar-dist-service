@@ -64,6 +64,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
     MimetypesFileTypeMap typemap = null;
 
     ComponentInfoCache compcache = null;
+    boolean autocache = false;
 
     static final private int defMDCSzLim  = 1000;    // # of components cached
     static final private long defMDCTmLim = 300;     // time limit of 5 minutes
@@ -83,13 +84,17 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
      *                           downloadSvc will always be used.  
      * @param headbagcachemgr  the HeadBagCacheManager used for managing head bags and the metadata 
      *                            they contain.  This must always be provided. 
+     * @param triggercache     if True, requests for files not in the cache will trigger automatic caching 
+     *                           of that and related files (the other files in the dataset).
      * @param typemap          the map to use for determining content types from filename extensions; 
      *                           if null, a default will be used.  
      */
     public CacheEnabledFileDownloadService(PreservationBagService bagService, CacheManager cachemgr,
-                                           HeadBagCacheManager headbagcachemgr, MimetypesFileTypeMap mimemap)
+                                           HeadBagCacheManager headbagcachemgr, boolean triggercache,
+                                           MimetypesFileTypeMap mimemap)
     {
-        this(new FromBagFileDownloadService(bagService, mimemap), bagService, cachemgr, headbagcachemgr, mimemap);
+        this(new FromBagFileDownloadService(bagService, mimemap), bagService, cachemgr,
+             headbagcachemgr, triggercache, mimemap);
     }
 
     /**
@@ -101,12 +106,14 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
      * @param headbagcachemgr  the HeadBagCacheManager used for managing head bags and the metadata 
      *                           they contain.  This must always be provided (otherwise, just use 
      *                           the downloadSvc instance instead).
+     * @param triggercache     if True, requests for files not in the cache will trigger automatic caching 
+     *                           of that and related files (the other files in the dataset).
      * @param mimemap          the map to use for determining content types from filename extensions; 
      *                           if null, a default will be used.  
      */
     public CacheEnabledFileDownloadService(FileDownloadService srcService, PreservationBagService bagService, 
                                            CacheManager cachemgr, HeadBagCacheManager headbagcachemgr,
-                                           MimetypesFileTypeMap mimemap)
+                                           boolean triggercache, MimetypesFileTypeMap mimemap)
     {
         pres = bagService;
         srcsvc = srcService;
@@ -122,6 +129,7 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         }
         typemap = mimemap;
         setComponentCache(defMDCSzLim, defMDCTmLim);
+        autocache = triggercache;
     }
 
     /**
@@ -133,13 +141,14 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
      * @param headbagcachemgr  the HeadBagCacheManager used for managing head bags and the metadata 
      *                           they contain.  This must always be provided (otherwise, just use 
      *                           the downloadSvc instance instead).
-     * @param typemap          the map to use for determining content types from filename extensions; 
-     *                           if null, a default will be used.  
+     * @param triggercache     if True, requests for files not in the cache will trigger automatic caching 
+     *                           of that and related files (the other files in the dataset).
      */
     public CacheEnabledFileDownloadService(FileDownloadService srcService, PreservationBagService bagService, 
-                                           CacheManager cachemgr, HeadBagCacheManager headbagcachemgr)
+                                           CacheManager cachemgr, HeadBagCacheManager headbagcachemgr,
+                                           boolean triggercache)
     {
-        this(srcService, bagService, cachemgr, headbagcachemgr, null);
+        this(srcService, bagService, cachemgr, headbagcachemgr, triggercache, null);
     }
 
     private String cacheid(String dsid, String filepath, String version) {
@@ -380,7 +389,18 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         }
 
         // last resort: straight from long-term storage
-        return srcsvc.getDataFile(dsid, filepath, version);
+        StreamHandle out = srcsvc.getDataFile(dsid, filepath, version);  // may throw an exception
+        if (autocache) {
+            try {
+                // possibly cache the requested dataset for the next request
+                cmgr.optimallyCache(cacheid(dsid, filepath, version));
+            }
+            catch (Throwable ex) {
+                logger.warn("Failed to cache-queue dataset {}: {}: {}",
+                            dsid, ex.getClass().getName(), ex.getMessage());
+            }
+        }
+        return out;
     }
 
     /**

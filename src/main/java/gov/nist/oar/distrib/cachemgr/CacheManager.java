@@ -46,7 +46,7 @@ public abstract class CacheManager {
      * restore the data object with the given identifier into the cache.  This method is 
      * expected to operate synchronously.  
      * @param id       the identifier for the data object of interest.
-     * @param prefs    an AND-ed set of preferences for determine where (or how) to 
+     * @param prefs    an AND-ed set of preferences for determining where (or how) to 
      *                 cache the object.  Generally, the values are implementation-specific 
      *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
      *                 example set).  A non-positive number indicates that default preferences
@@ -88,7 +88,7 @@ public abstract class CacheManager {
      * cache.
      *
      * @param id       the identifier for the data object of interest.
-     * @param prefs    an AND-ed set of preferences for determine where (or how) to 
+     * @param prefs    an AND-ed set of preferences for determining where (or how) to 
      *                 cache the object.  Generally, the values are implementation-specific 
      *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
      *                 example set).  Zero indicates no preferences.  
@@ -118,6 +118,53 @@ public abstract class CacheManager {
     public boolean cache(String id) throws CacheManagementException {
         return this.cache(id, false);
     }
+
+    /**
+     * conditionally cache an object or objects associated with the given identifier in an 
+     * implementation-specific way.  The given identifier is not required to exist; the implementation 
+     * is free to interpret it as it chooses; however, it should not raise an exception if the identifier 
+     * does not exist or is otherwise unrecognizable.  The implementation may choose <i>not</i> to cache any 
+     * data at all, or it may choose to defer the caching; it is not possible to determine with this function
+     * what the implementation ultimately chose to handle the request.
+     * <p>
+     * This method allows a CacheManager to strategically cache some user-requested data as well as other 
+     * related data--e.g. other files in the same dataset collection.  This implementation simply interprets
+     * the identifier as an object identifier, and attempts to cache it; if it already exists in the cache,
+     * it is not recached.  
+     * @param id       an identifier for data to be cached.  This does not have to be specifically an
+     *                 object identifier; its interpretation is kindly implementation-specific.
+     * @param prefs    an AND-ed set of preferences for determining where (or how) to 
+     *                 cache the object.  Generally, the values are implementation-specific 
+     *                 (see {@link gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles} as an
+     *                 example set).  Zero indicates no preferences.  
+     * @throws CacheManagementException   if the implementation has chosen to cache something but was 
+     *                 unable to due to an internal cache failure.
+     */
+    public void optimallyCache(String id, int prefs) throws CacheManagementException {
+        try {
+            cache(id, prefs, false);
+        }
+        catch (RestorationTargetNotFoundException ex) { /* don't care */ }
+    }
+
+    /**
+     * conditionally cache an object or objects associated with the given identifier in an 
+     * implementation-specific way.  The given identifier is not required to exist; the implementation 
+     * is free to interpret it as it chooses; however, it should not raise an exception if the identifier 
+     * does not exist or is otherwise unrecognizable.  The implementation may choose <i>not</i> to cache any 
+     * data at all, or it may choose to defer the caching; it is not possible to determine with this function
+     * what the implementation ultimately chose to handle the request.
+     * <p>
+     * This method allows a CacheManager to strategically cache some user-requested data as well as other 
+     * related data--e.g. other files in the same dataset collection.  This implementation simply interprets
+     * the identifier as an object identifier, and attempts to cache it; if it already exists in the cache,
+     * it is not recached.  
+     * @param id       an identifier for data to be cached.  This does not have to be specifically an
+     *                 object identifier; its interpretation is kindly implementation-specific.
+     * @throws CacheManagementException   if the implementation has chosen to cache something but was 
+     *                 unable to due to an internal cache failure.
+     */
+    public void optimallyCache(String id) throws CacheManagementException {  optimallyCache(id, 0);  }
 
     /**
      * return a set of caching preferences for an object with the given identifier and size
