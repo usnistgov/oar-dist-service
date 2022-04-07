@@ -95,11 +95,16 @@ public class ValidationHelper {
 	    String location = conn.getHeaderField("Location");
 	    
 	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects == 0) {
+                conn.disconnect();
+                conn = null;
 	    	return new URLStatusLocation(responseCode, location, url, 0, true);  	
 	    }
 
-	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects > 0)
+	    if ((responseCode >= 300 && responseCode < 400) && allowedRedirects > 0) {
+                conn.disconnect();
+                conn = null;
 		return checkURLStatusLocationSize(location, allowedRedirects);
+            }
             if (responseCode >= 400)
                 // avoids leaving open socket?
                 quietClose(conn.getErrorStream(), url+" (error stream)");
