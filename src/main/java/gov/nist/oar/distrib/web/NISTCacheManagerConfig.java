@@ -459,7 +459,7 @@ public class NISTCacheManagerConfig {
     /**
      * create a cache manager built from this configuration.  
      * @param cache      the cache to manage; typically, this is the instance returned by 
-     *                   {@link #createDefaultCache()} but it need not be.
+     *                   {@link #createDefaultCache(AmazonS3)} but it need not be.
      * @param rstr       the {@link gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer Restorer} to use
      *                   to restore datasets to the cache; typically, this is the instance returned by
      *                   {@link #createDefaultRestorer(BagStorage,HeadBagCacheManager)} but it need not be.
