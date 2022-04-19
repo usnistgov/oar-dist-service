@@ -406,6 +406,7 @@ public class NISTCacheManagerConfig {
                 if (rolenms.contains("small")) roles |= PDRCacheRoles.ROLE_SMALL_OBJECTS;
                 if (rolenms.contains("large")) roles |= PDRCacheRoles.ROLE_LARGE_OBJECTS;
                 if (rolenms.contains("old")) roles |= PDRCacheRoles.ROLE_OLD_VERSIONS;
+                if (rolenms.contains("restricted")) roles |= PDRCacheRoles.ROLE_RESTRICTED_DATA;
             }
 
             vc = (new VolumeConfig(cfg.getStatusCode())).withDeletionStrategy(cfg.createDeletionStrategy())
