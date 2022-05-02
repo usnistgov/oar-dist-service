@@ -521,6 +521,7 @@ public class DefaultDataPackager implements DataPackager {
      */
     public String updateURL(String url) throws MalformedURLException {
 	
+    	System.out.println("***** Original URL ***** "+url);
     	URL obj = new URL(url);
 	    String host = obj.getHost();
 	    String[] domainList = this.domains.split("\\|");
@@ -531,9 +532,11 @@ public class DefaultDataPackager implements DataPackager {
 		    		urlReq= url+"&requestedFrom="+this.requestedFrom;
 		    	else
 		    		urlReq= url+"?requestedFrom="+this.requestedFrom;
+		    	System.out.println("###### Requested URL ##### "+urlReq);
 		    	return urlReq;
 	       }
 	    }
+	    System.out.println("***** Original URL ***** "+url);
 	    return url;
     }
     
