@@ -524,8 +524,10 @@ public class DefaultDataPackager implements DataPackager {
     	System.out.println("***** Original URL ***** "+url);
     	URL obj = new URL(url);
 	    String host = obj.getHost();
+	    System.out.println("***** Host ***** "+host);
 	    String[] domainList = this.domains.split("\\|");
 	    for (int i = 0; i < domainList.length; i++) {
+	       System.out.println("***** Host ***** "+domainList[i]);
 	       if(domainList[i].contains(host)) {
 		    	String urlReq ="";	
 		    	if(url.contains("?requestId=") || url.contains("?"))
