@@ -509,7 +509,6 @@ public class DefaultDataPackager implements DataPackager {
 
 	@Override
 	public void setRequestedAddr(String requestedFrom) {
-		System.out.println("Requested From::"+requestedFrom);
 		this.requestedFrom = requestedFrom.replace(".", "-");
 	}
 
@@ -520,25 +519,20 @@ public class DefaultDataPackager implements DataPackager {
      */
     public String updateURL(String url) throws MalformedURLException {
 	
-    	System.out.println("***** Original URL ***** "+url);
     	URL obj = new URL(url);
 	    String host = obj.getHost();
 	 
 	    String[] domainList = this.domains.split("\\|");
 	    for (int i = 0; i < domainList.length; i++) {
-	    
-	    	System.out.println("Requested From::"+this.requestedFrom);
 	       if(host.contains(domainList[i])) {
 		    	String urlReq ="";	
 		    	if(url.contains("?requestId=") || url.contains("?"))
 		    		urlReq= url+"&requestedFrom="+this.requestedFrom;
 		    	else
 		    		urlReq= url+"?requestedFrom="+this.requestedFrom;
-		    	System.out.println("###### Requested URL ##### "+urlReq);
 		    	return urlReq;
 	       }
 	    }
-	    System.out.println("***** Original URL ***** "+url);
 	    return url;
     }
     
