@@ -78,7 +78,8 @@ public class DataBundleAccessController {
     @PostMapping(value = "/ds/_bundle", consumes = "application/json")
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest,
                           @Parameter(hidden = true) HttpServletResponse response,
-                          @Parameter(hidden = true) Errors errors) throws DistributionException
+                          @Parameter(hidden = true) Errors errors,
+                          @Parameter(hidden = true) HttpServletRequest request) throws DistributionException
     {
         ZipOutputStream zout = null;
         try {
@@ -88,6 +89,10 @@ public class DataBundleAccessController {
             zout = new ZipOutputStream(response.getOutputStream());
             response.setHeader("Content-Type", "application/zip");
             response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
+            String requestedFrom = request.getHeader("X-Real-IP");
+            if(requestedFrom == null)
+            	requestedFrom = request.getRemoteAddr();
+            dataPackager.setRequestedAddr(requestedFrom);
             dataPackager.getData(zout);
             response.flushBuffer();
             zout.close();
