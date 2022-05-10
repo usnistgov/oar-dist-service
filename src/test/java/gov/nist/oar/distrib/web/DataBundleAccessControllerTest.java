@@ -90,8 +90,8 @@ public class DataBundleAccessControllerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList,0,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
-
+	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).header("X-Real-IP", "test").body(bFL);
+   
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders():"
 		+ response.getHeaders() + "\n response.getBody().length():" + response.getBody().length());
