@@ -128,8 +128,8 @@ public class DownloadBundlePlannerTest {
 	        throws JsonParseException, JsonMappingException, IOException, DistributionException, InvalidInputException
     {
 	FileRequest[] ifileList = new FileRequest[2];
-	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
-	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-001.json\"}";
+	String file1 = "{\"filePath\":\"someid/srd13_Al-001.json\",\"downloadUrl\":\"http://www.nist.gov/srd/srd_data/srd13_Al-00123.json\"}";
+	String file2 = "{\"filePath\":\"someid/srd13_Al-002.json\",\"downloadUrl\":\"<html>This is test</html>http://www.nist.gov/srd/srd_data/srd13_Al-00123.json\"}";
 	
 		    
 	ObjectMapper mapper = new ObjectMapper();
@@ -143,8 +143,7 @@ public class DownloadBundlePlannerTest {
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200, 2, "s3.amazonaws.com|nist.gov|httpstat.us",
 		"testdownload",7);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
-	System.out.println("Bundle Plan:"+ bundlePlan.getStatus()+"\n"+bundlePlan.getNotIncluded()[0].getDownloadUrl());
-//	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
-//	assertEquals(bundlePlan.getStatus(), "Error");
+	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
+	assertEquals(bundlePlan.getStatus(), "Error");
     }
 }
