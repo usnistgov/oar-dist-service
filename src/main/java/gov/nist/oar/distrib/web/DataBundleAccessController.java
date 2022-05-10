@@ -89,7 +89,10 @@ public class DataBundleAccessController {
             zout = new ZipOutputStream(response.getOutputStream());
             response.setHeader("Content-Type", "application/zip");
             response.setHeader("Content-Disposition", "attachment;filename=\"" + dataPackager.getBundleName() + " \"");
-            dataPackager.setRequestedAddr(request.getHeader("X-Real-IP"));
+            String requestedFrom = request.getHeader("X-Real-IP");
+            if(requestedFrom == null)
+            	requestedFrom = request.getRemoteAddr();
+            dataPackager.setRequestedAddr(requestedFrom);
             dataPackager.getData(zout);
             response.flushBuffer();
             zout.close();
