@@ -357,10 +357,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      * @param version  the version of the AIP to cache.  If null, the latest is cached. 
      * @param into     the Cache to save the files to 
      * @param recache  if false and a file is already in the cache, the file will not be rewritten;
-     *                    otherwise, it will be.  
+     *                    otherwise, it will be.
+     * @param prefs    the cache roles to decide on the volume where the data should be cached
+     * @param target   the base directory where restricted public data will be stored
      * @return Set<String> -- a list of the filepaths for files that were cached
      */
-    public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache)
+    // todo@omar: update/add tests
+    public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache, int prefs, String target)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
         // find the head bag in the bag store
@@ -369,7 +372,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);
         String mbagver = BagUtils.multibagVersionOf(bagname);
-        int prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+        prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+        if (version != null && (prefs & ROLE_RESTRICTED_DATA) > 0)
+            prefs = ROLE_OLD_RESTRICTED_DATA;
 
         // pull out the NERDm resource metadata record
         JSONObject resmd = null;
@@ -417,7 +422,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 bagfile += ".zip";
             log.info("Caching files from bag, "+bagfile);
             try {
-                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache);
+                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache, target);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
@@ -468,6 +473,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      *                    otherwise, it will be replaced with fresh copy
      * @return Set<String>   a listing of data files that were cached to disk.  
      */
+    // todo@omar: will this be needed by restricted data?
     public Set<String> cacheFromBag(String bagfile, Collection<String> files, String forVersion, Cache into,
                                     boolean recache)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
@@ -490,9 +496,11 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             if (files != null)
                 cap = files.size();
             HashSet<String> cached = new HashSet<String>(cap);
+
+            // todo@omar: consider new roles if this is used by rpd?
             int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
 
-            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into, recache);
+            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into, recache, null);
             return cached;
         }
         catch (ResourceNotFoundException ex) {
@@ -503,7 +511,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,
                                 JSONObject resmd, int defprefs, String forVersion, Cache into,
-                                boolean recache)
+                                boolean recache, String target)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         if (! bagfile.endsWith(".zip"))
@@ -599,7 +607,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
                 // find space in the cache, and copy the data file into it
                 resv = into.reserveSpace(ze.getSize(), prefs);
-                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs), md);
+                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs, target), md);
                 log.info("Cached "+id);
                 if (co.getMetadatumString("checksum", null) != null &&
                     co.getMetadatumString("checksumAlgorithm", null) != null)
@@ -768,7 +776,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      */
     public String nameForObject(String id, int prefs) {
         String[] idparts = parseId(id);
-        return nameForObject(idparts[0], idparts[1], idparts[2], prefs);
+        return nameForObject(idparts[0], idparts[1], idparts[2], prefs, null);
     }
     
     /**
@@ -777,13 +785,19 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
      * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
      */
-    public String nameForObject(String aipid, String filepath, String version, int prefs) {
-        if ((prefs & ROLE_OLD_VERSIONS) > 0)
-            return getNameForOldVerCache(aipid, filepath, version);
-        return aipid + "/" + filepath;
+    public String nameForObject(String aipid, String filepath, String version, int prefs, String target) {
+        if ((prefs & ROLE_OLD_VERSIONS) > 0 || (prefs & ROLE_OLD_RESTRICTED_DATA) > 0)
+            return getNameForOldVerCache(aipid, filepath, version, target);
+
+        StringBuilder sb = new StringBuilder();
+        if (target != null && target.length() > 0)
+            sb.append(target).append("/");
+        sb.append(aipid).append("/").append(filepath);
+
+        return sb.toString();
     }
     
-    final String getNameForOldVerCache(String aipid, String filepath, String version) {
+    final String getNameForOldVerCache(String aipid, String filepath, String version, String target) {
         String ext = FilenameUtils.getExtension(filepath);
         String base = filepath.substring(0, filepath.length()-ext.length()-1);
         String exttp = ext.toLowerCase();
@@ -795,7 +809,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             }
         }
         filepath = base + "-v" + version + "." + ext;
-        return nameForObject(aipid, filepath, version, 0);
+        return nameForObject(aipid, filepath, version, 0, target);
     }
 
     /**

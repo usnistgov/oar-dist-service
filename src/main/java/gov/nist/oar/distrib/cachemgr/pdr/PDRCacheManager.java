@@ -79,8 +79,8 @@ import org.slf4j.LoggerFactory;
  * and run the checks on them.  
  * <p>
  * One can also request specific data objects or all objects from a specific dataset to be checked on-demand
- * via {@link #queueCheck(String) check()}.  Such requests will be queued up and checked asynchronously in yet 
- * another thread.  To run targeted checks synchronously, one can call {@link #checkDataset(String)} or 
+ * via {@link #queueCheck(String) check()}.  Such requests will be queued up and checked asynchronously in yet
+ * another thread.  To run targeted checks synchronously, one can call {@link #checkDataset(String, boolean)} or
  * {@link #checkObject(String)}.  
  * 
  * <h3> Restoring data to the cache </h3>
@@ -173,11 +173,15 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      *                    otherwise, all current cached files from the dataset will be replaced with a 
      *                    fresh copy.
      * @param version  the desired version of the dataset or null for the latest version
+     * @param prefs    the cache roles to decide on the volume where the data should be cached
+     * @param target   the base directory under which the restricted public data will be stored
+     *
+     * @return the set of temporary URLs of the cached files
      */
-    public void cacheDataset(String dsid, String version, boolean recache)
+    public Set<String> cacheDataset(String dsid, String version, boolean recache, int prefs, String target)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, recache);
+        return ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, recache, prefs, target);
     }
 
     /**
@@ -880,7 +884,7 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
 
     /**
      * a thread that will cache data in order of their IDs in an internal queue.  Objects can be added 
-     * to the queue via {@link #queue(String)}.
+     * to the queue via {@link #queue(String, boolean)}.
      * <p>
      * The internal is persisted to a local file as IDs are added or removed from it.  
      */
@@ -1003,7 +1007,8 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
             try {
                 if (parts[1].length() == 0) 
                     // dataset identifier
-                    cacheDataset(parts[0], version, recache);
+                    // todo@omar: is this correct?
+                    cacheDataset(parts[0], version, recache, 0, null);
                 else if (recache || ! isCached(nextid))
                     // data file identifier
                     cache(nextid, true);
