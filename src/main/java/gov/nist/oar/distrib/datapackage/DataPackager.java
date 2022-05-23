@@ -86,4 +86,10 @@ public interface DataPackager {
      *                    regarding data sources (such as whether it is from an allowed location).  
      */
     public boolean validateUrl(String url);
+    /**
+     * This is to collect the unique requests by storing requested ids.
+     * @param requestedFrom
+     * @return
+     */
+    public void setRequestedAddr(String requestedFrom);
 }
