@@ -84,7 +84,6 @@ public class ValidationHelper {
 
 	    URL obj = new URL(url);
 	    conn = (HttpURLConnection) obj.openConnection();
-	    HttpURLConnection.setFollowRedirects(false);
 	    conn.setInstanceFollowRedirects(false);
 	    conn.setConnectTimeout(10000); //  10 seconds
 	    conn.setReadTimeout(100000);   // 100 seconds
