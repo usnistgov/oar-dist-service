@@ -137,6 +137,7 @@ public class DefaultDataPackager implements DataPackager {
 					try {
 						URL obj = new URL(this.updateURL(uLoc.getRequestedURL()));
 						con = (HttpURLConnection) obj.openConnection();
+                                                con.setInstanceFollowRedirects(true);
 						fstream = con.getInputStream();
 						int len;
 						byte[] buf = new byte[100000];
