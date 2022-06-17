@@ -25,8 +25,18 @@ public class RestrictedDataController {
     @PutMapping(value = "/{dsid}")
     public Set<String> getURLs(
             @PathVariable("dsid") String dsid,
-            @RequestParam(name = "version", defaultValue = "") String version
-    )
+            @RequestParam(name = "version", defaultValue = "") String version)
+            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+
+        Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
+        logUrls(dsid, urls);
+        return restrictedSrvc.cacheDataset(dsid, version);
+    }
+
+    @GetMapping(value = "/{dsid}")
+    public Set<String> testWithGet(
+            @PathVariable("dsid") String dsid,
+            @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
         Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
