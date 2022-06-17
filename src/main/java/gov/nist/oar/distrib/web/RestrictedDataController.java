@@ -35,6 +35,7 @@ public class RestrictedDataController {
     }
 
     @GetMapping(value = "/{dsid}")
+    @ResponseBody
     public String echo(
             @PathVariable("dsid") String dsid,
             @RequestParam(name = "version", defaultValue = "") String version)
