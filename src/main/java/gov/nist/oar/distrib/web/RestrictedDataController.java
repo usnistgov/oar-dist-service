@@ -15,7 +15,7 @@ import java.util.Set;
 
 @RestController
 @Tag(name = "", description = "") // todo@omar: add docs
-@RequestMapping(value = "/ds/restricted")
+@RequestMapping(value = "/restricted")
 public class RestrictedDataController {
 
     Logger logger = LoggerFactory.getLogger(RestrictedDataController.class);
