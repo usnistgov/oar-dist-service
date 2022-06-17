@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @RestController
@@ -39,9 +40,14 @@ public class RestrictedDataController {
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
-        Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
-        logUrls(dsid, urls);
-        return restrictedSrvc.cacheDataset(dsid, version);
+//        Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
+//        logUrls(dsid, urls);
+//        return restrictedSrvc.cacheDataset(dsid, version);
+        Set<String> urls = new HashSet<>();
+        urls.add("url1");
+        urls.add("url2");
+        urls.add("url3");
+        return urls;
     }
 
 
