@@ -20,6 +20,7 @@ public class RestrictedDataController {
 
     Logger logger = LoggerFactory.getLogger(RestrictedDataController.class);
 
+    @Autowired
     RestrictedDataCachingService restrictedSrvc;
 
     @PutMapping(value = "/{dsid}")
