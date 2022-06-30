@@ -29,6 +29,7 @@ public class RestrictedDataController {
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        logger.info("version=" + version);
         Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
         logUrls(dsid, urls);
         return restrictedSrvc.cacheDataset(dsid, version);
