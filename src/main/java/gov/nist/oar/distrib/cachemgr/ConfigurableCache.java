@@ -356,6 +356,7 @@ public class ConfigurableCache extends BasicCache {
             }
             catch (VolumeNotFoundException ex) { continue; }
 
+            log.info("preferences=",preferences);
             if (preferences > 0) {
                 JSONObject vmd = db.getVolumeInfo(volnm);
                 int roles = 0;

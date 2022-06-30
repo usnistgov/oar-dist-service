@@ -372,7 +372,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);
         String mbagver = BagUtils.multibagVersionOf(bagname);
-        prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+//        prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+        log.info("prefs=",prefs);
         if (version != null && (prefs & ROLE_RESTRICTED_DATA) > 0)
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
