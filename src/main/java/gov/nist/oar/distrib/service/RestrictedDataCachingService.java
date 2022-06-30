@@ -47,7 +47,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
-        if (version != null)
+        if (version != null && version != "")
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
         return this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
