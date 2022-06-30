@@ -794,7 +794,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (target != null && target.length() > 0)
             sb.append(target).append("/");
         sb.append(aipid).append("/").append(filepath);
-
+        log.info("FILE_URL=" + sb.toString());
         return sb.toString();
     }
     
