@@ -345,7 +345,7 @@ public class ConfigurableCache extends BasicCache {
     protected Collection<CacheVolume> selectVolumes(int preferences) throws InventoryException {
         ArrayList<CacheVolume> out = new ArrayList<CacheVolume>(recent.size());
         Collection<String> volnames = db.volumes();
-
+        log.info("preferences="+preferences);
         // Note: recent sets the order that the volumes are analyzed. 
         for (String volnm : recent) {
             try {
@@ -356,7 +356,7 @@ public class ConfigurableCache extends BasicCache {
             }
             catch (VolumeNotFoundException ex) { continue; }
 
-            log.info("preferences=",preferences);
+
             if (preferences > 0) {
                 JSONObject vmd = db.getVolumeInfo(volnm);
                 int roles = 0;
@@ -369,6 +369,7 @@ public class ConfigurableCache extends BasicCache {
 
             if (volumes.containsKey(volnm))
                 out.add(volumes.get(volnm));
+                log.info("volnm="+volnm);
         }
 
         return out;
