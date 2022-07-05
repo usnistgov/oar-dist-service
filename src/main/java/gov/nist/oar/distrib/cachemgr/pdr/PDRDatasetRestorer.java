@@ -559,6 +559,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 prefs = defprefs;
                 if ((prefs & ROLE_OLD_VERSIONS) == 0 && ze.getSize() <= smszlim)
                     prefs = ROLE_SMALL_OBJECTS;
+                    if (target != null && !target.isEmpty())
+                        prefs = ROLE_RESTRICTED_DATA;
+
 
                 // cache the manifest file, just in case
                 if (fname.equals("manifest-sha256.txt")) {
