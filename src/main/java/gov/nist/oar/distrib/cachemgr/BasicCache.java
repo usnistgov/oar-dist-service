@@ -375,6 +375,7 @@ public abstract class BasicCache extends Cache {
                 }
 
                 // notifiy reservation listeners
+                log.info("out.getSize()=" + out.getSize());
                 notifyReservationMade(vol, out.getSize());
                 out.cache = this;
 
