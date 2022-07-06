@@ -260,6 +260,7 @@ public class ConfigurableCache extends BasicCache {
             DeletionPlan dp = null;
             for (CacheVolume cvn: vols) {
                 try {
+                    log.info("the amount of space desired (in bytes) = " + size);
                     dp = createDeletionPlanFor(cvn, size);
                     if (dp != null) out.add(dp);
                 }

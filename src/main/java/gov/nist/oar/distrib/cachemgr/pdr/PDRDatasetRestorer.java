@@ -610,6 +610,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 md.put("cachePrefs", prefs);
 
                 // find space in the cache, and copy the data file into it
+                log.info("The zip entry size = " + ze.getSize());
                 resv = into.reserveSpace(ze.getSize(), prefs);
                 co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs, target), md);
                 log.info("Cached "+id);
