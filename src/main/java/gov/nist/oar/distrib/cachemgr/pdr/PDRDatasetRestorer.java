@@ -557,10 +557,10 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     continue;
                 fname = Paths.get(ze.getName()).normalize();
                 prefs = defprefs;
-                if ((prefs & ROLE_OLD_VERSIONS) == 0 && ze.getSize() <= smszlim)
+                // we check if prefs have either ROLE_OLD_VERSIONS or ROLE_RESTRICTED_DATA flags
+                // if they do, we override the prefs logic, if not, we keep the defprefs
+                if ((prefs & (ROLE_OLD_VERSIONS|ROLE_RESTRICTED_DATA)) == 0 && ze.getSize() <= smszlim)
                     prefs = ROLE_SMALL_OBJECTS;
-                    if (target != null && !target.isEmpty())
-                        prefs = ROLE_RESTRICTED_DATA;
 
 
                 // cache the manifest file, just in case
@@ -611,16 +611,22 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
                 // find space in the cache, and copy the data file into it
                 log.info("The zip entry size = " + ze.getSize());
-                resv = into.reserveSpace(ze.getSize(), prefs);
-                co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs, target), md);
-                log.info("Cached "+id);
-                if (co.getMetadatumString("checksum", null) != null &&
-                    co.getMetadatumString("checksumAlgorithm", null) != null)
-                {
-                    String nm = co.volname+":"+co.name;
-                    log.debug("Object {} is missing its checksum (will try to fix)", nm);
-                    fix.add(nm);
+
+                try {
+                    resv = into.reserveSpace(ze.getSize(), prefs);
+                    co = resv.saveAs(zipstrm, id, nameForObject(aipid, filepath, forVersion, prefs, target), md);
+                    log.info("Cached "+id);
+                    if (co.getMetadatumString("checksum", null) != null &&
+                            co.getMetadatumString("checksumAlgorithm", null) != null)
+                    {
+                        String nm = co.volname+":"+co.name;
+                        log.debug("Object {} is missing its checksum (will try to fix)", nm);
+                        fix.add(nm);
+                    }
+                } catch (CacheManagementException ex) {
+                    log.error("Problem caching {}: {}; skipping...", filepath, ex.getMessage());
                 }
+
 
                 if (need != null)
                     need.remove(filepath);
