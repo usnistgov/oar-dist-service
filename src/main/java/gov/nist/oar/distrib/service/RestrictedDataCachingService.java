@@ -9,6 +9,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -50,7 +51,13 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
         if (!version.isEmpty())
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
-        return this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+        Set<String> urls = new HashSet<>();
+        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID).forEach(name ->
+                {
+                    urls.add(randomID + "/" + name);
+                }
+        );
+        return urls;
     }
 
     /**
