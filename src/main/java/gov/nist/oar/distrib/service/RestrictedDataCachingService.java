@@ -45,19 +45,20 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
     // todo@omar: test me
     public Set<String> cacheDataset(String datasetID, String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
         if (!version.isEmpty())
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
-        Set<String> urls = new HashSet<>();
+        Set<String> temporaryUrls = new HashSet<>();
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID).forEach(name ->
-                {
-                    urls.add(randomID + "/" + name);
-                }
+            {
+                temporaryUrls.add("/" + randomID + "/" + name);
+            }
         );
-        return urls;
+        return temporaryUrls;
     }
 
     /**
