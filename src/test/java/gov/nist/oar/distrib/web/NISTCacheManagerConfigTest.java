@@ -102,6 +102,38 @@ public class NISTCacheManagerConfigTest {
         vcfg.setDeletionStrategy(strat);
         vols.add(vcfg);
 
+        vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
+        vcfg.setCapacity(5000L);
+        vdir = new File(rootdir, "vols/topsecret");
+        vdir.mkdirs();
+        vcfg.setLocation("file://" + vdir.toString());
+        vcfg.setStatus("update");
+        roles = new ArrayList<>();
+        roles.add("restricted");
+        vcfg.setRoles(roles);
+        vcfg.setRedirectBase("http://data.nist.gov/cache/topsecret");
+        vcfg.setName("topsecret");
+        strat = new HashMap<>();
+        strat.put("type", "bigoldest");
+        vcfg.setDeletionStrategy(strat);
+        vols.add(vcfg);
+
+        vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
+        vcfg.setCapacity(5000L);
+        vdir = new File(rootdir, "vols/oldtopsecret");
+        vdir.mkdirs();
+        vcfg.setLocation("file://" + vdir.toString());
+        vcfg.setStatus("update");
+        roles = new ArrayList<>();
+        roles.add("old-restricted");
+        vcfg.setRoles(roles);
+        vcfg.setRedirectBase("http://data.nist.gov/cache/oldtopsecret");
+        vcfg.setName("oldtopsecret");
+        strat = new HashMap<>();
+        strat.put("type", "bigoldest");
+        vcfg.setDeletionStrategy(strat);
+        vols.add(vcfg);
+
         cfg.setVolumes(vols);
     }
 
@@ -178,6 +210,14 @@ public class NISTCacheManagerConfigTest {
         cvi = db.getVolumeInfo("pratt");
         assertEquals(3000L, cvi.getLong("capacity"));
         assertEquals(PDRCacheRoles.ROLE_OLD_VERSIONS|PDRCacheRoles.ROLE_SMALL_OBJECTS, cvi.getInt("roles"));
+
+        cvi = db.getVolumeInfo("topsecret");
+        assertEquals(5000L, cvi.getLong("capacity"));
+        assertEquals(PDRCacheRoles.ROLE_RESTRICTED_DATA, cvi.getInt("roles"));
+
+        cvi = db.getVolumeInfo("oldtopsecret");
+        assertEquals(5000L, cvi.getLong("capacity"));
+        assertEquals(PDRCacheRoles.ROLE_OLD_RESTRICTED_DATA, cvi.getInt("roles"));
     }
 
     @Test
