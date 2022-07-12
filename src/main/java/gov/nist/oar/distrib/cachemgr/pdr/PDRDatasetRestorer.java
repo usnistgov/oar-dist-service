@@ -568,9 +568,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 String filepath = fname.subpath(2, fname.getNameCount()).toString();
                 if (need != null && ! need.contains(filepath))
                     continue;
-                id = aipid+"/"+filepath;
-                if (forVersion != null)
-                    id += "#"+forVersion;
+
+//                id = aipid+"/"+filepath;
+//                if (forVersion != null)
+//                    id += "#"+forVersion;
+
+                id = idForObject(aipid, filepath, forVersion, target);
 
                 if (into.isCached(id)) {
                     if (recache)
@@ -752,6 +755,17 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new RestorationException(headbag+": Trouble reading file metadata for "+filepath+
                                            ex.getMessage(), ex);
         }
+    }
+
+
+    public String idForObject(String aipid, String filepath, String forVersion, String target) {
+        String id;
+        id = aipid + "/" + filepath;
+        if (target != null && !target.isEmpty())
+            id = target + "/" + id;
+        if (forVersion != null)
+            id += "#" + forVersion;
+        return id;
     }
 
     /**
