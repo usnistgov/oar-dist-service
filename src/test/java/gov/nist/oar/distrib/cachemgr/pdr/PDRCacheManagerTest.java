@@ -138,7 +138,7 @@ public class PDRCacheManagerTest {
         assertTrue(! mgr.isCached("mds1491/trial1.json"));
         assertTrue(! mgr.isCached("mds1491/trial2.json"));
         assertTrue(! mgr.isCached("mds1491/trial3/trial3a.json"));
-        mgr.cacheDataset("mds1491", null, true);
+        mgr.cacheDataset("mds1491", null, true, 0 , null);
         assertTrue(mgr.isCached("mds1491/trial1.json"));
         assertTrue(mgr.isCached("mds1491/trial2.json"));
         assertTrue(mgr.isCached("mds1491/trial3/trial3a.json"));
@@ -151,7 +151,7 @@ public class PDRCacheManagerTest {
         mgr.uncache("mds1491/trial1.json");
         assertTrue(! mgr.isCached("mds1491/trial1.json"));
         assertTrue(mgr.isCached("mds1491/trial2.json"));
-        mgr.cacheDataset("mds1491", null, false);
+        mgr.cacheDataset("mds1491", null, false, 0 , null);
         assertTrue(mgr.isCached("mds1491/trial1.json"));
         assertTrue(mgr.isCached("mds1491/trial2.json"));
         co = mgr.findObject("mds1491/trial2.json");
@@ -162,10 +162,10 @@ public class PDRCacheManagerTest {
     public void cacheAllTestData()
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        mgr.cacheDataset("mds1491", null, true);
-        mgr.cacheDataset("mds1491", "1", true);
-        mgr.cacheDataset("mds1491", "1.1.0", true);
-        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, true);
+        mgr.cacheDataset("mds1491", null, true, 0, null);
+        mgr.cacheDataset("mds1491", "1", true, 0, null);
+        mgr.cacheDataset("mds1491", "1.1.0", true, 0, null);
+        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, true, 0, null);
     }
 
     @Test
