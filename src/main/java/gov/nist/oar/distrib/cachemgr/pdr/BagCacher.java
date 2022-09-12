@@ -250,6 +250,7 @@ public class BagCacher implements PDRCacheRoles {
             try {
                 JSONObject md = mdcache.getMetadataForCache(aipid, filepath, version);
                 if (md != null) {
+                    // TODO: get toplevel md except filepath, then update md
                     String objid = getIdForCache(aipid, filepath, version);
                     List<CacheObject> copies = db.findObject(objid);
                     if (copies.size() > 0) {
@@ -509,7 +510,12 @@ public class BagCacher implements PDRCacheRoles {
             save.put("version", version);
             
             mdcache.cacheFileMetadata(aipid, version, save);
+
+        } else if (isTopLevelType(nerd)){
+            // TODO: check if top level file, and then call save
         }
+
+
     }
 
     boolean isDataFileType(JSONObject cmp) {
@@ -519,6 +525,21 @@ public class BagCacher implements PDRCacheRoles {
         for(Object el : types) {
             try {
                 if (((String) el).endsWith(":DataFile"))
+                    return true;
+            } catch (ClassCastException ex) { }
+        }
+        return false;
+    }
+
+    // TODO: implement isTopLevel check
+
+    boolean isTopLevelType(JSONObject cmp) {
+        JSONArray types = cmp.optJSONArray("@type");
+        if (types == null) return false;
+
+        for (Object el: types) {
+            try {
+                if (((String) el).endsWith(":Resource") || ((String) el).endsWith(":PublicDataResource"))
                     return true;
             } catch (ClassCastException ex) { }
         }
