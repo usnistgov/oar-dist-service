@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -18,21 +19,35 @@ import java.util.Set;
 @RequestMapping(value = "/ds/restricted")
 public class RestrictedDataController {
 
+    @Value("${distrib.baseurl}")
+    String baseURL;
+
     Logger logger = LoggerFactory.getLogger(RestrictedDataController.class);
 
     @Autowired
     RestrictedDataCachingService restrictedSrvc;
 
-    @PutMapping(value = "/{dsid}")
-    public Set<String> getURLs(
+//    @PutMapping(value = "/{dsid}")
+//    public Set<String> cacheDataset(
+//            @PathVariable("dsid") String dsid,
+//            @RequestParam(name = "version", defaultValue = "") String version)
+//            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+//
+//        logger.info("version=" + version);
+//        Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
+//        logUrls(dsid, urls);
+//        return urls;
+//    }
+
+    @GetMapping(value = "/{dsid}")
+    public String cacheDataset(
             @PathVariable("dsid") String dsid,
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
-        logger.info("version=" + version);
-        Set<String> urls = restrictedSrvc.cacheDataset(dsid, version);
-        logUrls(dsid, urls);
-        return restrictedSrvc.cacheDataset(dsid, version);
+        logger.info("dsid=" + dsid);
+        String temporaryURL = restrictedSrvc.cacheAndGenerateTemporaryUrl(dsid, version);
+        return temporaryURL;
     }
 
     // utility function to log urls
