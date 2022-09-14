@@ -93,11 +93,14 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
     public Set<JSONObject> retrieveMetadata(String randomID) throws CacheManagementException {
         String dsid = this.url2dsid.get(randomID);
-        Set<JSONObject> objects = new HashSet<>();
-        this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_GET).forEach(dsObj -> {
-            objects.add(dsObj.exportMetadata());
-        });
-        return objects;
+        Set<JSONObject> metadata = new HashSet<>();
+        List<CacheObject> files = this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_INFO);
+        if (files.size() > 0) {
+            for (CacheObject obj: files) {
+                metadata.add(obj.exportMetadata());
+            }
+        }
+        return metadata;
     }
     /**
      * Generate a random alphanumeric string for the dataset to store
