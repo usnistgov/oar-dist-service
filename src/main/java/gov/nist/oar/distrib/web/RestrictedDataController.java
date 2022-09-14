@@ -5,6 +5,8 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.RestrictedDataCachingService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import netscape.javascript.JSObject;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,7 @@ public class RestrictedDataController {
 //        return urls;
 //    }
 
-    @GetMapping(value = "/{dsid}")
+    @PutMapping(value = "/{dsid}")
     public String cacheDataset(
             @PathVariable("dsid") String dsid,
             @RequestParam(name = "version", defaultValue = "") String version)
@@ -48,6 +50,15 @@ public class RestrictedDataController {
         logger.info("dsid=" + dsid);
         String temporaryURL = restrictedSrvc.cacheAndGenerateTemporaryUrl(dsid, version);
         return temporaryURL;
+    }
+
+    @GetMapping(value = "/{randomId}")
+    public Set<JSONObject> retrieveMetadata(@PathVariable("randomId") String randomId)
+            throws CacheManagementException {
+
+        logger.info("randomId=" + randomId);
+        Set<JSONObject> metadata = restrictedSrvc.retrieveMetadata(randomId);
+        return metadata;
     }
 
     // utility function to log urls

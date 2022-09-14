@@ -3,13 +3,17 @@ package gov.nist.oar.distrib.service;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -25,6 +29,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
     protected static Logger logger = LoggerFactory.getLogger(RestrictedDataCachingService.class);
 
+    HashMap<String, String> url2dsid;
 
     /**
      * Create an instance of the service that wraps a {@link PDRCacheManager}
@@ -33,6 +38,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
      **/
     public RestrictedDataCachingService(PDRCacheManager pdrCacheManager) {
         this.pdrCacheManager = pdrCacheManager;
+        this.url2dsid = new HashMap<>();
     }
 
     /**
@@ -80,10 +86,19 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
         // cache dataset
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-
+        this.url2dsid.put(randomID, datasetID);
         return baseURL + "/" + randomID;
     }
 
+
+    public Set<JSONObject> retrieveMetadata(String randomID) throws CacheManagementException {
+        String dsid = this.url2dsid.get(randomID);
+        Set<JSONObject> objects = new HashSet<>();
+        this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_GET).forEach(dsObj -> {
+            objects.add(dsObj.exportMetadata());
+        });
+        return objects;
+    }
     /**
      * Generate a random alphanumeric string for the dataset to store
      * This function uses the {@link RandomStringUtils} from Apache Commons.
