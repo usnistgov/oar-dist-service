@@ -7,14 +7,12 @@ import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A DataCachingService implementation that leverages the {@link PDRCacheManager} to cache a dataset.
@@ -91,19 +89,21 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
     }
 
 
-    public Set<JSONObject> retrieveMetadata(String randomID) throws CacheManagementException {
+    public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException {
         String dsid = this.url2dsid.get(randomID);
         logger.info("id mapping: " + randomID + " -> " + dsid);
-        Set<JSONObject> metadata = new HashSet<>();
+        JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
             for (CacheObject obj: objects) {
                 JSONObject objMd = obj.exportMetadata();
                 logger.info("object metadata = " + objMd);
-                metadata.add(objMd);
+                metadata.put(objMd);
             }
         }
-        return metadata;
+        JSONObject result = new JSONObject();
+        result.put("metadata", metadata);
+        return result.toMap();
     }
     /**
      * Generate a random alphanumeric string for the dataset to store

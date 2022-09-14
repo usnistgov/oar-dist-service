@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -51,11 +52,11 @@ public class RestrictedDataController {
     }
 
     @GetMapping(value = "/{randomId}")
-    public Set<JSONObject> retrieveMetadata(@PathVariable("randomId") String randomId)
+    public Map<String, Object> retrieveMetadata(@PathVariable("randomId") String randomId)
             throws CacheManagementException {
 
         logger.info("randomId=" + randomId);
-        Set<JSONObject> metadata = restrictedSrvc.retrieveMetadata(randomId);
+        Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(randomId);
         return metadata;
     }
 
