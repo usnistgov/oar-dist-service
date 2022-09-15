@@ -91,13 +91,12 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException {
         String dsid = this.url2dsid.get(randomID);
-        logger.info("id mapping: " + randomID + " -> " + dsid);
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
             for (CacheObject obj: objects) {
                 JSONObject objMd = obj.exportMetadata();
-                logger.info("object metadata = " + objMd);
+//                logger.info("object metadata = " + objMd);
                 metadata.put(objMd);
             }
         }
