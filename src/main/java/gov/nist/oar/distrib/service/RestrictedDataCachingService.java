@@ -102,6 +102,8 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
             }
         }
         JSONObject result = new JSONObject();
+        result.put("randomId", randomID);
+        result.put("dsid", dsid);
         result.put("metadata", metadata);
         return result.toMap();
     }
