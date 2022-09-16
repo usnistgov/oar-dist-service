@@ -604,7 +604,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("ediid", resmd.get("ediid"));
                 md.put("cachePrefs", prefs);
                 // add resource title
-                log.info("resmd === " + resmd);
+                log.info("resmd === {}", resmd);
                 if (resmd.has("title"))
                     md.put("resTitle", resmd.get("title"));
 
