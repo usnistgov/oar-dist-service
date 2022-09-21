@@ -36,7 +36,6 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
      **/
     public RestrictedDataCachingService(PDRCacheManager pdrCacheManager) {
         this.pdrCacheManager = pdrCacheManager;
-        this.url2dsid = new HashMap<>();
     }
 
     /**
@@ -84,25 +83,21 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
         // cache dataset
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-        this.url2dsid.put(randomID, datasetID);
         return baseURL + "/" + randomID;
     }
 
 
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException {
-        String dsid = this.url2dsid.get(randomID);
         JSONArray metadata = new JSONArray();
-        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(dsid, this.pdrCacheManager.VOL_FOR_INFO);
+        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
             for (CacheObject obj: objects) {
                 JSONObject objMd = obj.exportMetadata();
-//                logger.info("object metadata = " + objMd);
                 metadata.put(objMd);
             }
         }
         JSONObject result = new JSONObject();
         result.put("randomId", randomID);
-        result.put("dsid", dsid);
         result.put("metadata", metadata);
         return result.toMap();
     }
