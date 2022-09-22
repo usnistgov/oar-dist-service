@@ -107,9 +107,10 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
         JSONObject outMd = new JSONObject();
         if (inMd.has("filepath")) {
-            String downloadURL = baseDownloadURL + randomID + "/" + inMd.get("filepath");
-            outMd.put("downloadURL", downloadURL);
             outMd.put("filePath", inMd.get("filepath"));
+        }
+        if (inMd.has("downloadURL")) {
+            outMd.put("downloadURL", inMd.get("downloadURL"));
         }
         if (inMd.has("contentType")) {
             outMd.put("mediaType", inMd.get("contentType"));
