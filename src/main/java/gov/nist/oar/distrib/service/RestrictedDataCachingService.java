@@ -74,7 +74,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
     public String cacheAndGenerateTemporaryUrl(String datasetID, String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
-        String baseURL = "https://data.nist.gov/pdr/datacart/restricted_datacart";
+        String baseDataCartURL = "https://data.nist.gov/pdr/datacart/restricted_datacart";
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
@@ -83,7 +83,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
         // cache dataset
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-        return baseURL + "/" + randomID;
+        return baseDataCartURL + "/" + randomID;
     }
 
 
@@ -92,7 +92,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
             for (CacheObject obj: objects) {
-                JSONObject objMd = obj.exportMetadata();
+                JSONObject objMd = formatMetadata(obj.exportMetadata(), randomID);
                 metadata.put(objMd);
             }
         }
@@ -101,6 +101,49 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
         result.put("metadata", metadata);
         return result.toMap();
     }
+
+    private JSONObject formatMetadata(JSONObject inMd, String randomID) {
+        String baseDownloadURL = "https://data.nist.gov/od/ds/restricted/";
+
+        JSONObject outMd = new JSONObject();
+        if (inMd.has("filepath")) {
+            String downloadURL = baseDownloadURL + randomID + "/" + inMd.get("filepath");
+            outMd.put("downloadURL", downloadURL);
+            outMd.put("filePath", inMd.get("filepath"));
+        }
+        if (inMd.has("contentType")) {
+            outMd.put("mediaType", inMd.get("contentType"));
+        }
+        if (inMd.has("size")) {
+            outMd.put("size", inMd.get("size"));
+        }
+        if (inMd.has("resTitle")) {
+            outMd.put("resTitle", inMd.get("resTitle"));
+        }
+        if (inMd.has("pdrid")) {
+            outMd.put("resId", inMd.get("pdrid"));
+        }
+        if (inMd.has("checksumAlgorithm")) {
+            outMd.put("checksumAlgorithm", inMd.get("checksumAlgorithm"));
+        }
+        if (inMd.has("checksum")) {
+            outMd.put("checksum", inMd.get("checksum"));
+        }
+        if (inMd.has("version")) {
+            outMd.put("version", inMd.get("version"));
+        }
+        if (inMd.has("ediid")) {
+            outMd.put("ediid", inMd.get("ediid"));
+        }
+        if (inMd.has("aipid")) {
+            outMd.put("aipid", inMd.get("aipid"));
+        }
+        if (inMd.has("sinceDate")) {
+            outMd.put("sinceDate", inMd.get("sinceDate"));
+        }
+        return outMd;
+    }
+
     /**
      * Generate a random alphanumeric string for the dataset to store
      * This function uses the {@link RandomStringUtils} from Apache Commons.
