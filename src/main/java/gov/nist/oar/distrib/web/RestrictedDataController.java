@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@Tag(name = "", description = "") // todo@omar: add docs
+@Tag(name = "Cache and retrieve restricted public data", description = "Allow to cache restricted public datatsets " +
+        "and to retrieve metadata for the files belonging to the datatsets.")
 @RequestMapping(value = "/ds/restricted")
 public class RestrictedDataController {
-
 
     @Value("${distrib.baseurl}")
     String baseURL;
@@ -27,7 +27,18 @@ public class RestrictedDataController {
     @Autowired
     RestrictedDataCachingService restrictedSrvc;
 
-
+    /**
+     * The controller api endpoint to cache the files in the dataset specified using the give ID,
+     * and return a temporary url that points to the data cart that will display metadata about the cached files.
+     *
+     * @param dsid the id of the dataset
+     * @param version the version of the dataset
+     *
+     * @return String the temporary url
+     * @throws CacheManagementException
+     * @throws ResourceNotFoundException
+     * @throws StorageVolumeException
+     */
     @PutMapping(value = "/{dsid}")
     public String cacheDataset(
             @PathVariable("dsid") String dsid,
@@ -39,6 +50,14 @@ public class RestrictedDataController {
         return temporaryURL;
     }
 
+    /**
+     * The controller api endpoint to retrieve metadata about the cached files.
+     *
+     * @param randomId the temporary id of the dataset that was generated using {@link #cacheDataset(String, String)}
+     *
+     * @return a map representation of the json object containing the files metadata
+     * @throws CacheManagementException
+     */
     @GetMapping(value = "/{randomId}")
     public Map<String, Object> retrieveMetadata(@PathVariable("randomId") String randomId)
             throws CacheManagementException {
