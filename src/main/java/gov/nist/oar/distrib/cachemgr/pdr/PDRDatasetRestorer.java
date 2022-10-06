@@ -811,7 +811,6 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         }
         filepath = base + "-v" + version + "." + ext;
         return nameForObject(aipid, filepath, version, 0, target);
-        return nameForObject(aipid, filepath, version, 0, target);
     }
 
     /**
