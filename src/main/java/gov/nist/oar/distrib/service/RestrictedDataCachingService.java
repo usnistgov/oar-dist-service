@@ -103,14 +103,13 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
     }
 
     private JSONObject formatMetadata(JSONObject inMd, String randomID) {
-        String baseDownloadURL = "https://data.nist.gov/od/ds/restricted/";
+        String baseDownloadURL = "http://localhost:8083/od/ds/restricted/";
 
         JSONObject outMd = new JSONObject();
         if (inMd.has("filepath")) {
+            String downloadURL = baseDownloadURL + randomID + "/" + inMd.get("filepath");
+            outMd.put("downloadURL", downloadURL);
             outMd.put("filePath", inMd.get("filepath"));
-        }
-        if (inMd.has("downloadURL")) {
-            outMd.put("downloadURL", inMd.get("downloadURL"));
         }
         if (inMd.has("contentType")) {
             outMd.put("mediaType", inMd.get("contentType"));
