@@ -18,5 +18,5 @@ public interface DataCachingService {
      *
      * @return Set<String> -- a list of the URLs for files that were cached
      */
-    Set<String> cacheDataset(String datasetID, String version) throws CacheManagementException, ResourceNotFoundException, StorageVolumeException;
+    String cacheDataset(String datasetID, String version) throws CacheManagementException, ResourceNotFoundException, StorageVolumeException;
 }

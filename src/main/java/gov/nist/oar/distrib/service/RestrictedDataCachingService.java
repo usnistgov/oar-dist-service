@@ -41,25 +41,24 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
      *
      * @param datasetID the identifier for the dataset.
      * @param version   the version of the dataset to cache.  If null, the latest is cached.
-     * @return Set<String> -- a list of the URLs for files that were cached
+     * @return String -- a url pointing to the data cart that will temporarily hold the restricted public data.
      */
     // todo@omar: test me
-    public Set<String> cacheDataset(String datasetID, String version)
+    public String cacheDataset(String datasetID, String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        // @todo: get this baseUrl from configuration file
+        String baseURL = "https://data.nist.gov/pdr/datacart/restricted_datacart";
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
         if (!version.isEmpty())
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
-        Set<String> temporaryUrls = new HashSet<>();
-        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID).forEach(name ->
-                {
-                    temporaryUrls.add("/" + randomID + "/" + name);
-                }
-        );
-        return temporaryUrls;
+        // cache dataset
+        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+
+        return baseURL + "/" + randomID;
     }
 
     /**
