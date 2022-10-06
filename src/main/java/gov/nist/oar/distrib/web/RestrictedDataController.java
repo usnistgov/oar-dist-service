@@ -11,8 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 @RestController
 @Tag(name = "", description = "") // todo@omar: add docs
@@ -38,5 +37,14 @@ public class RestrictedDataController {
         logger.info("dsid=" + dsid);
         String temporaryURL = restrictedSrvc.cacheDataset(dsid, version);
         return temporaryURL;
+    }
+
+    @GetMapping(value = "/{randomId}")
+    public Map<String, Object> retrieveMetadata(@PathVariable("randomId") String randomId)
+            throws CacheManagementException {
+
+        logger.info("randomId=" + randomId);
+        Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(randomId);
+        return metadata;
     }
 }
