@@ -19,8 +19,8 @@ import java.util.Map;
 @RequestMapping(value = "/ds/restricted")
 public class RestrictedDataController {
 
-    @Value("${distrib.baseurl}")
-    String baseURL;
+//    @Value("${distrib.baseurl}")
+//    String baseURL;
 
     Logger logger = LoggerFactory.getLogger(RestrictedDataController.class);
 
@@ -40,7 +40,7 @@ public class RestrictedDataController {
      * @throws StorageVolumeException
      */
     @PutMapping(value = "/{dsid}")
-    public String cacheDataset(
+    public String cacheDatasetAndGenerateUrl(
             @PathVariable("dsid") String dsid,
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
