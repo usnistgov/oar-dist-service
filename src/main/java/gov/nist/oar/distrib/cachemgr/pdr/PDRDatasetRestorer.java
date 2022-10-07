@@ -646,7 +646,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         id = aipid + "/" + filepath;
         if (target != null && !target.isEmpty())
             id = target + "/" + id;
-        if (forVersion != null)
+        if (forVersion != null || !forVersion.isEmpty())
             id += "#" + forVersion;
         return id;
     }
