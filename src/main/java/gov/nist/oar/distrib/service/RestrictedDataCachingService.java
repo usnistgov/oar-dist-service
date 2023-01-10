@@ -83,7 +83,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
 
         // cache dataset
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-        return baseDataCartURL + "/" + randomID;
+        return baseDataCartURL + "?id=" + randomID;
     }
 
 
