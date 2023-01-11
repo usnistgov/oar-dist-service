@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Map;

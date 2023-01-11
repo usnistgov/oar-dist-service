@@ -12,6 +12,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -23,13 +25,16 @@ import java.time.ZoneId;
 import java.util.Date;
 
 @Component
-@RequiredArgsConstructor
+@EnableConfigurationProperties(RPAConfiguration.class)
 public class DefaultRPARequestHandlerService implements RPARequestHandlerService {
 
     private final RestTemplate restTemplate;
     private final RestTemplate patchRestTemplate;
-    private final RPAConfiguration rpaConfiguration;
+
     private final KeyRetriever keyRetriever;
+
+    @Autowired
+    private RPAConfiguration rpaConfiguration;
     private final static Logger LOGGER = LoggerFactory.getLogger(DefaultRPARequestHandlerService.class);
 
     private final static String API_TEST_ENDPOINT_KEY = "api-test-endpoint";
@@ -39,6 +44,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     private final static String SEND_EMAIL_ENDPOINT_KEY = "send-email-endpoint";
 
     public RPAConfiguration getConfig() { return this.rpaConfiguration; }
+
+    public DefaultRPARequestHandlerService() {
+        this.restTemplate = new RestTemplate();
+        this.patchRestTemplate = new RestTemplate();
+        this.keyRetriever = new JKSKeyRetriever();
+    }
 
     @Override
     public RecordWrapper getRecord(String recordId) {

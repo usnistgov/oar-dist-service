@@ -13,6 +13,8 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.service.*;
+import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -35,6 +37,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -261,6 +264,15 @@ public class NISTDistribServiceConfig {
     public RestrictedDataCachingService getRestrictedDataCachingService(CacheManagerProvider cacheManagerProvider)
             throws ConfigurationException {
         return new RestrictedDataCachingService(cacheManagerProvider.getPDRCacheManager());
+    }
+
+    /**
+     * the service implementation to use for RPA request handler service
+     */
+    @Bean
+    public RPARequestHandlerService getPARequestHandlerService()
+            throws ConfigurationException {
+        return new DefaultRPARequestHandlerService();
     }
 
     /**
