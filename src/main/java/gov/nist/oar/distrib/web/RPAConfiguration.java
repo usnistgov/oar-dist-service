@@ -6,6 +6,7 @@ import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Map;
 @Value
 @NonFinal
 @Validated
+@Component
 @ConfigurationProperties(prefix = "rpa")
 public class RPAConfiguration {
 
