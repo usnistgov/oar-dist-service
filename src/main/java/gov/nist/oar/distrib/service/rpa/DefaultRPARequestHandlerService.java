@@ -6,14 +6,12 @@ import gov.nist.oar.distrib.service.rpa.model.*;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.RequiredArgsConstructor;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -25,7 +23,6 @@ import java.time.ZoneId;
 import java.util.Date;
 
 @Component
-@EnableConfigurationProperties(RPAConfiguration.class)
 public class DefaultRPARequestHandlerService implements RPARequestHandlerService {
 
     private final RestTemplate restTemplate;
