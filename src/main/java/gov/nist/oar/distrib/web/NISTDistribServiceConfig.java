@@ -270,7 +270,7 @@ public class NISTDistribServiceConfig {
      * the service implementation to use for RPA request handler service
      */
     @Bean
-    public RPARequestHandlerService getPARequestHandlerService()
+    public DefaultRPARequestHandlerService getPARequestHandlerService()
             throws ConfigurationException {
         return new DefaultRPARequestHandlerService();
     }
