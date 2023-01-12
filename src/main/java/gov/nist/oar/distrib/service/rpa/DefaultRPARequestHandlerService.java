@@ -25,7 +25,6 @@ import java.time.ZoneId;
 import java.util.Date;
 
 @Component
-@EnableConfigurationProperties(RPAConfiguration.class)
 public class DefaultRPARequestHandlerService implements RPARequestHandlerService {
 
     private final RestTemplate restTemplate;
