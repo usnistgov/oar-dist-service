@@ -15,7 +15,7 @@ import java.util.Map;
 @NonFinal
 @Validated
 @Component
-@ConfigurationProperties(prefix = "rpa")
+@ConfigurationProperties(prefix = "distrib.rpa")
 public class RPAConfiguration {
 
     private SalesforceJwt salesforceJwt;
