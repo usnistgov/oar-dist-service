@@ -103,7 +103,7 @@ public class RestrictedDataCachingService implements DataCachingService, PDRCach
     }
 
     private JSONObject formatMetadata(JSONObject inMd, String randomID) {
-        String baseDownloadURL = "http://localhost:8083/od/ds/restricted/";
+        String baseDownloadURL = "http://localhost:8083/od/ds/";
 
         JSONObject outMd = new JSONObject();
         if (inMd.has("filepath")) {
