@@ -810,8 +810,12 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             return getNameForOldVerCache(aipid, filepath, version, target);
 
         StringBuilder sb = new StringBuilder();
-        if (target != null && target.length() > 0)
-            sb.append(target).append("/");
+        if (target != null && target.length() > 0) {
+            // if restricted access
+            sb.append(target).append("/").append(filepath);
+            log.info("FILE_URL=" + sb.toString());
+            return sb.toString();
+        }
         sb.append(aipid).append("/").append(filepath);
         log.info("FILE_URL=" + sb.toString());
         return sb.toString();
