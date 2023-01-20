@@ -19,8 +19,8 @@ public class RPARequestHandlerController {
 
     @GetMapping("test")
     String testConnectionToSalesforceAPIs() {
-        LOGGER.info("Testing connection to Salesforce APIs...");
-        return "Salesforce API is available.";
+        LOGGER.info("Testing connection to Salesforce APIs, instance URL = " + rpaConfiguration.getSalesforceInstanceUrl());
+        return "Salesforce API is available. Instance URL = " + rpaConfiguration.getSalesforceInstanceUrl();
     }
 
 }
