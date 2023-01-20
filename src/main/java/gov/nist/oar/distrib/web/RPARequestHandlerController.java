@@ -5,12 +5,14 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Restricted Public Access Request Handler API", description = "These endpoints will handle end user request to download data under restricted public access.")
 @RequestMapping(value = "/ds/rpa")
+@EnableConfigurationProperties(RPAConfiguration.class)
 public class RPARequestHandlerController {
 
     @Autowired
