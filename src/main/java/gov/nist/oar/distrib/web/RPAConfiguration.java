@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.web;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Value;
 import lombok.experimental.NonFinal;
@@ -8,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Value
@@ -17,16 +19,17 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "distrib.rpa")
 public class RPAConfiguration {
 
-    private SalesforceJwt salesforceJwt;
-    private Map<String, EmailTemplate> emailTemplates;
-    private Map<String, Approver> approvers;
+    private SalesforceJwt salesforceJwt = new SalesforceJwt();
+    private Map<String, EmailTemplate> emailTemplates = new HashMap<>();
+    private Map<String, Approver> approvers = new HashMap<>();
     private String salesforceInstanceUrl;
     private String pdrCachingUrl;
-    private Map<String, String> salesforceEndpoints;
-    private JksConfig jksConfig;
+    private Map<String, String> salesforceEndpoints = new HashMap<>();
+    private JksConfig jksConfig = new JksConfig();
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class SalesforceJwt {
         String clientId;
         String subject;
@@ -37,6 +40,7 @@ public class RPAConfiguration {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class JksConfig {
         String keyStoreType;
         String keyStorePath;
@@ -47,6 +51,7 @@ public class RPAConfiguration {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class EmailTemplate {
         private String subject;
         private String content;
@@ -54,6 +59,7 @@ public class RPAConfiguration {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class Approver {
         private String name;
         private String email;
