@@ -10,14 +10,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Restricted Public Access Request Handler API", description = "These endpoints will handle end user request to download data under restricted public access.")
-@RequestMapping("/rpa")
+@RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
 
     @Autowired
     private RPAConfiguration rpaConfiguration;
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
-    @GetMapping("test")
+    @GetMapping(value = "/test")
     String testConnectionToSalesforceAPIs() {
         LOGGER.info("Testing connection to Salesforce APIs, instance URL = " + rpaConfiguration.getSalesforceInstanceUrl());
         return "Salesforce API is available. Instance URL = " + rpaConfiguration.getSalesforceInstanceUrl();
