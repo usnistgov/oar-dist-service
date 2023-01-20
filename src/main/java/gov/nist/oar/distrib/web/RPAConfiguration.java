@@ -22,8 +22,8 @@ public class RPAConfiguration {
     private SalesforceJwt salesforceJwt = new SalesforceJwt();
     private Map<String, EmailTemplate> emailTemplates = new HashMap<>();
     private Map<String, Approver> approvers = new HashMap<>();
-    private String salesforceInstanceUrl;
-    private String pdrCachingUrl;
+    private String salesforceInstanceUrl = "";
+    private String pdrCachingUrl = "";
     private Map<String, String> salesforceEndpoints = new HashMap<>();
     private JksConfig jksConfig = new JksConfig();
 
