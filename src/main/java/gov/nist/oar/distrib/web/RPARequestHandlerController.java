@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.service.RPAService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -15,13 +16,13 @@ import org.springframework.web.bind.annotation.*;
 public class RPARequestHandlerController {
 
     @Autowired
-    private RPAConfiguration rpaConfiguration;
+    private RPAService rpaService;
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
     @GetMapping(value = "/test")
     String testConnectionToSalesforceAPIs() {
-        LOGGER.info("Testing connection to Salesforce APIs, instance URL = " + rpaConfiguration.getSalesforceInstanceUrl());
-        return "Salesforce API is available. Instance URL = " + rpaConfiguration.getSalesforceInstanceUrl();
+        LOGGER.info("Testing connection to Salesforce APIs, instance URL = " + rpaService.getRpaConfiguration().getSalesforceInstanceUrl());
+        return "Salesforce API is available. Instance URL = " + rpaService.getRpaConfiguration().getSalesforceInstanceUrl();
     }
 
 }

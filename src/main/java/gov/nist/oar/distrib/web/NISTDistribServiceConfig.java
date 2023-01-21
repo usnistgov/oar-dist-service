@@ -269,6 +269,11 @@ public class NISTDistribServiceConfig {
         return new RPAConfiguration();
     }
 
+    @Bean
+    public  RPAService getRPAService(RPAConfiguration rpaConfiguration) {
+        return new RPAService(rpaConfiguration);
+    }
+
     /**
      * create a configuration object for the cache manager
      */
