@@ -18,18 +18,15 @@ import java.util.Map;
 @NonFinal
 @Validated
 @Component
-@Configuration
-@EnableConfigurationProperties
-@ConfigurationProperties(prefix = "distrib.rpa")
 public class RPAConfiguration {
 
-    private SalesforceJwt salesforceJwt;
-    private Map<String, EmailTemplate> emailTemplates;
-    private Map<String, Approver> approvers;
-    private String salesforceInstanceUrl;
-    private String pdrCachingUrl;
-    private Map<String, String> salesforceEndpoints;
-    private JksConfig jksConfig;
+    private SalesforceJwt salesforceJwt = null;
+    private Map<String, EmailTemplate> emailTemplates = null;
+    private Map<String, Approver> approvers = null;
+    private String salesforceInstanceUrl = null;
+    private String pdrCachingUrl = null;
+    private Map<String, String> salesforceEndpoints = null;
+    private JksConfig jksConfig = null;
 
     @Getter
     @Setter

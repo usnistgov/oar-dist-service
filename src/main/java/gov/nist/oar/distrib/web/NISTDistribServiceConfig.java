@@ -263,6 +263,13 @@ public class NISTDistribServiceConfig {
         return new RestrictedDataCachingService(cacheManagerProvider.getPDRCacheManager());
     }
 
+    @Bean
+    @ConfigurationProperties("distrib.rpa")
+    public RPAConfiguration getRPAConcfiguration() throws ConfigurationException {
+        // this will have config properties injected into it
+        return new RPAConfiguration();
+    }
+
     /**
      * create a configuration object for the cache manager
      */
