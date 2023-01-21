@@ -8,16 +8,25 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 
-@Value
-@NonFinal
-@Validated
-@ConfigurationProperties("distrib.rpa")
 public class RPAConfiguration {
 
-    @Getter
-    @Setter
     private String salesforceInstanceUrl = null;
-    @Getter
-    @Setter
+
     private String pdrCachingUrl = null;
+
+    public String getSalesforceInstanceUrl() {
+        return salesforceInstanceUrl;
+    }
+
+    public void setSalesforceInstanceUrl(String salesforceInstanceUrl) {
+        this.salesforceInstanceUrl = salesforceInstanceUrl;
+    }
+
+    public String getPdrCachingUrl() {
+        return pdrCachingUrl;
+    }
+
+    public void setPdrCachingUrl(String pdrCachingUrl) {
+        this.pdrCachingUrl = pdrCachingUrl;
+    }
 }
