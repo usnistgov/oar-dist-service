@@ -264,7 +264,6 @@ public class NISTDistribServiceConfig {
     }
 
     @Bean
-    @ConfigurationProperties("distrib.rpa")
     public RPAConfiguration getRPAConfiguration() throws ConfigurationException {
         // this will have config properties injected into it
         return new RPAConfiguration();

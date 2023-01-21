@@ -17,6 +17,7 @@ import java.util.Map;
 @Value
 @NonFinal
 @Validated
+@ConfigurationProperties("distrib.rpa")
 public class RPAConfiguration {
 
     private SalesforceJwt salesforceJwt = null;
