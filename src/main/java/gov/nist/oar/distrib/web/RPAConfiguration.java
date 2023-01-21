@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -16,16 +18,18 @@ import java.util.Map;
 @NonFinal
 @Validated
 @Component
+@Configuration
+@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "distrib.rpa")
 public class RPAConfiguration {
 
-    private SalesforceJwt salesforceJwt = new SalesforceJwt();
-    private Map<String, EmailTemplate> emailTemplates = new HashMap<>();
-    private Map<String, Approver> approvers = new HashMap<>();
-    private String salesforceInstanceUrl = "";
-    private String pdrCachingUrl = "";
-    private Map<String, String> salesforceEndpoints = new HashMap<>();
-    private JksConfig jksConfig = new JksConfig();
+    private SalesforceJwt salesforceJwt;
+    private Map<String, EmailTemplate> emailTemplates;
+    private Map<String, Approver> approvers;
+    private String salesforceInstanceUrl;
+    private String pdrCachingUrl;
+    private Map<String, String> salesforceEndpoints;
+    private JksConfig jksConfig;
 
     @Getter
     @Setter

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "Restricted Public Access Request Handler API", description = "These endpoints will handle end user request to download data under restricted public access.")
 @RequestMapping(value = "/ds/rpa")
-@EnableConfigurationProperties(RPAConfiguration.class)
 public class RPARequestHandlerController {
 
     @Autowired
