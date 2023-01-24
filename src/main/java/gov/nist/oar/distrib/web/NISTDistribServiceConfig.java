@@ -13,6 +13,10 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.service.*;
+import gov.nist.oar.distrib.service.rpa.DefaultKeyRetriever;
+import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.KeyRetriever;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -277,13 +281,37 @@ public class NISTDistribServiceConfig {
     }
 
     /**
-     * the service implementation to use for restricted data access
+     * the service implementation to use for restricted data access caching service
      */
     @Bean
     public RPACachingService getRestrictedDataCachingService(CacheManagerProvider cacheManagerProvider)
             throws ConfigurationException {
         return new RPACachingService(cacheManagerProvider.getPDRCacheManager());
     }
+
+    @Bean
+    @ConfigurationProperties("distrib.rpa")
+    public RPAConfiguration getRPAConfiguration() throws ConfigurationException {
+        // this will have config properties injected into it
+        return new RPAConfiguration();
+    }
+
+    /**
+     * the implementation to use for the private key retriever
+     */
+    @Bean
+    public KeyRetriever getKeyRetriever() {
+        return new DefaultKeyRetriever();
+    }
+
+    /**
+     * the service implementation to use for RPARequestHandlerService
+     */
+    @Bean
+    public RPARequestHandlerService getRPARequestHandlerService(RPAConfiguration rpaConfiguration, KeyRetriever keyRetriever) {
+        return new DefaultRPARequestHandlerService(rpaConfiguration, keyRetriever);
+    }
+
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.
      * <p>
