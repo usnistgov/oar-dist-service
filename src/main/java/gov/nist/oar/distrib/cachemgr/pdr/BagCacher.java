@@ -485,7 +485,7 @@ public class BagCacher implements PDRCacheRoles {
             String file = nerd.optString("filepath");
             if (file == null) {
                 log.warn("NERDm DataFile record for id={}#{} ({}) is missing filepath property (skipping)",
-                         aipid, version, filename);
+                        aipid, version, filename);
                 return;
             }
 
@@ -497,18 +497,21 @@ public class BagCacher implements PDRCacheRoles {
             // if (nerd.has("size"))
             //     save.put("size", nerd.get("size"));
             if (nerd.has("checksum") && nerd.opt("checksum") != null &&
-                nerd.getJSONObject("checksum").has("hash") && nerd.getJSONObject("checksum").has("algorithm") &&
-                Checksum.SHA256.equals(nerd.getJSONObject("checksum")
-                                           .getJSONObject("algorithm").optString("tag")))
+                    nerd.getJSONObject("checksum").has("hash") && nerd.getJSONObject("checksum").has("algorithm") &&
+                    Checksum.SHA256.equals(nerd.getJSONObject("checksum")
+                            .getJSONObject("algorithm").optString("tag")))
             {
                 save.put("checksum", nerd.getJSONObject("checksum").getString("hash"));
                 save.put("checksumAlgorithm", nerd.getJSONObject("checksum")
-                                                  .getJSONObject("algorithm").optString("tag"));
+                        .getJSONObject("algorithm").optString("tag"));
             }
             save.put("aipid", aipid);
             save.put("version", version);
-            
+
             mdcache.cacheFileMetadata(aipid, version, save);
+
+        } else if (isTopLevelType(nerd)){
+            // TODO: check if top level file, and then call save
         }
     }
 
@@ -519,6 +522,20 @@ public class BagCacher implements PDRCacheRoles {
         for(Object el : types) {
             try {
                 if (((String) el).endsWith(":DataFile"))
+                    return true;
+            } catch (ClassCastException ex) { }
+        }
+        return false;
+    }
+
+    // check if resource type
+    boolean isTopLevelType(JSONObject cmp) {
+        JSONArray types = cmp.optJSONArray("@type");
+        if (types == null) return false;
+
+        for (Object el: types) {
+            try {
+                if (((String) el).endsWith(":Resource") || ((String) el).endsWith(":PublicDataResource"))
                     return true;
             } catch (ClassCastException ex) { }
         }
