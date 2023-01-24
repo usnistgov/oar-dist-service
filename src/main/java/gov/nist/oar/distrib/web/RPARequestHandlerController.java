@@ -38,7 +38,7 @@ public class RPARequestHandlerController {
         return record;
     }
 
-    @PostMapping(value = "new/{id}", consumes = {"application/json"})
+    @PostMapping(consumes = {"application/json"})
     RecordWrapper createRecord(@RequestBody UserInfoWrapper userInfoWrapper) {
         LOGGER.info("Creating a new record...");
         RecordWrapper newRecord = service.createRecord(userInfoWrapper);
