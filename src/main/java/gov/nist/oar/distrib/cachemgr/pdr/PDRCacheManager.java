@@ -174,10 +174,10 @@ public class PDRCacheManager extends BasicCacheManager implements PDRConstants, 
      *                    fresh copy.
      * @param version  the desired version of the dataset or null for the latest version
      */
-    public void cacheDataset(String dsid, String version, boolean recache, int prefs, String target)
+    public Set<String> cacheDataset(String dsid, String version, boolean recache, int prefs, String target)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, recache, prefs, target);
+        return ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, recache, prefs, target);
     }
 
     /**
