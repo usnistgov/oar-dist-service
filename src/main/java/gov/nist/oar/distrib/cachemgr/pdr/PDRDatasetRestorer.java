@@ -567,9 +567,10 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 String filepath = fname.subpath(2, fname.getNameCount()).toString();
                 if (need != null && ! need.contains(filepath))
                     continue;
-                id = aipid+"/"+filepath;
-                if (forVersion != null)
-                    id += "#"+forVersion;
+//                id = aipid+"/"+filepath;
+//                if (forVersion != null)
+//                    id += "#"+forVersion;
+                id = idForObject(aipid, filepath, forVersion, target);
 
                 if (into.isCached(id)) {
                     if (recache)
@@ -636,6 +637,20 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         if (fix.size() > 0 && manifest != null)
             fixMissingChecksums(into, fix, manifest);
     }
+
+    /**
+     * helper method to generate an ID for the object to be cached
+     */
+    public String idForObject(String aipid, String filepath, String forVersion, String target) {
+        String id;
+        id = aipid + "/" + filepath;
+        if (target != null && !target.isEmpty())
+            id = target + "/" + filepath;
+        if (forVersion != null && forVersion.length() > 0)
+            id += "#" + forVersion;
+        return id;
+    }
+
 
     private Map<String,String> extractFromManifest(InputStream manifest, Collection<String> need)
         throws IOException
