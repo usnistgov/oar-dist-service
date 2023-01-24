@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-})
+        "distrib.baseurl=http://localhost/od/ds" })
 public class RPADataCachingControllerTest {
 
     Logger logger = LoggerFactory.getLogger(RPADataCachingControllerTest.class);
