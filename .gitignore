@@ -20,6 +20,3 @@ hs_err_pid*
 # IDEs
 # - Intellij
 .idea/
-
-# Logs
-*.log
