@@ -72,7 +72,7 @@ public class RPADataCachingControllerTest {
         ResponseEntity<Map<String, Object>> response = websvc.exchange(getBaseURL() + "/ds/restricted/" + randomId,
                 HttpMethod.GET, req, responseType);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
-        String metadata = resp.getBody();
-        assertEquals(metadata.length(),3 );
+        Map<String, Object> metadata = response.getBody();
+        assertEquals(metadata.size(),3 );
     }
 }
