@@ -1,6 +1,6 @@
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,7 +20,8 @@ import org.springframework.web.bind.annotation.*;
 )
 @RequestMapping(value = "/rpa")
 public class RPARequestHandlerController {
-    private final DefaultRPARequestHandlerService service;
+    @Autowired
+    RPARequestHandlerService service;
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
     @GetMapping("test")
