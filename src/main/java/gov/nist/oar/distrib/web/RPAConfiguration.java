@@ -1,32 +1,79 @@
 package gov.nist.oar.distrib.web;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+import java.util.Map;
 
-
+@Value
+@NonFinal
+@Validated
+@ConfigurationProperties("distrib.rpa")
 public class RPAConfiguration {
 
+    private SalesforceJwt salesforceJwt = null;
+    private Map<String, EmailTemplate> emailTemplates = null;
+    private Map<String, Approver> approvers = null;
     private String salesforceInstanceUrl = null;
-
     private String pdrCachingUrl = null;
+    private Map<String, String> salesforceEndpoints = null;
+    private JksConfig jksConfig = null;
 
-    public String getSalesforceInstanceUrl() {
-        return salesforceInstanceUrl;
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class SalesforceJwt {
+        String clientId;
+        String subject;
+        String audience;
+        Integer expirationInMinutes;
+        String grantType;
     }
 
-    public void setSalesforceInstanceUrl(String salesforceInstanceUrl) {
-        this.salesforceInstanceUrl = salesforceInstanceUrl;
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class JksConfig {
+        String keyStoreType;
+        String keyStorePath;
+        String keyStorePassword;
+        String keyAlias;
+        String keyPassword;
     }
 
-    public String getPdrCachingUrl() {
-        return pdrCachingUrl;
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class EmailTemplate {
+        private String subject;
+        private String content;
     }
 
-    public void setPdrCachingUrl(String pdrCachingUrl) {
-        this.pdrCachingUrl = pdrCachingUrl;
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class Approver {
+        private String name;
+        private String email;
+    }
+
+    public EmailTemplate getEndUserConfirmationEmail() {
+        return this.getEmailTemplates().get("ack-user");
+    }
+
+    public EmailTemplate getSMEApprovalEmail() {
+        return this.getEmailTemplates().get("to-sme");
+    }
+
+    public EmailTemplate getEndUserApprovedEmail() {
+        return this.getEmailTemplates().get("approved-user");
+    }
+
+    public EmailTemplate getEndUserDeclinedEmail() {
+        return this.getEmailTemplates().get("declined-user");
     }
 }
