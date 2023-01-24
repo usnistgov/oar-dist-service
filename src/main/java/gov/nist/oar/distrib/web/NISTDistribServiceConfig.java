@@ -12,6 +12,7 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.service.*;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -19,12 +20,6 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
-import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.DefaultPreservationBagService;
-import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 
 import java.io.InputStream;
@@ -281,6 +276,14 @@ public class NISTDistribServiceConfig {
         return new CacheManagerProvider(config, bagstor, s3client);
     }
 
+    /**
+     * the service implementation to use for restricted data access
+     */
+    @Bean
+    public RPACachingService getRestrictedDataCachingService(CacheManagerProvider cacheManagerProvider)
+            throws ConfigurationException {
+        return new RPACachingService(cacheManagerProvider.getPDRCacheManager());
+    }
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.
      * <p>
