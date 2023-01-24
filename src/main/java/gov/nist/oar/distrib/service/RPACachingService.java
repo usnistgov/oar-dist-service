@@ -83,7 +83,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
         // cache dataset
         this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-        return baseDataCartURL + "/" + randomID;
+        return baseDataCartURL + "?id=" + randomID;
     }
 
 
