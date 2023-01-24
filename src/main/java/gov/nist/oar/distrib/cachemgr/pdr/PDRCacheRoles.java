@@ -49,4 +49,14 @@ public interface PDRCacheRoles {
      */
     int ROLE_OLD_VERSIONS = 16;
 
+    /**
+     * a preference code assigned to cache volumes intended to hold Restricted Public Data (RPD)
+     */
+    int ROLE_RESTRICTED_DATA = 32;
+
+    /**
+     * a preference code assigned to cache volumes intended to hold deprecated versions of Restricted Public Data (RPD)
+     */
+    int ROLE_OLD_RESTRICTED_DATA = 64;
+
 }
