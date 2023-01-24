@@ -15,6 +15,7 @@ import java.util.Map;
 @ConfigurationProperties("distrib.rpa")
 public class RPAConfiguration {
 
+
     private SalesforceJwt salesforceJwt = null;
     private Map<String, EmailTemplate> emailTemplates = null;
     private Map<String, Approver> approvers = null;
@@ -22,6 +23,34 @@ public class RPAConfiguration {
     private String pdrCachingUrl = null;
     private Map<String, String> salesforceEndpoints = null;
     private JksConfig jksConfig = null;
+
+    public SalesforceJwt getSalesforceJwt() {
+        return salesforceJwt;
+    }
+
+    public Map<String, EmailTemplate> getEmailTemplates() {
+        return emailTemplates;
+    }
+
+    public Map<String, Approver> getApprovers() {
+        return approvers;
+    }
+
+    public String getSalesforceInstanceUrl() {
+        return salesforceInstanceUrl;
+    }
+
+    public String getPdrCachingUrl() {
+        return pdrCachingUrl;
+    }
+
+    public Map<String, String> getSalesforceEndpoints() {
+        return salesforceEndpoints;
+    }
+
+    public JksConfig getJksConfig() {
+        return jksConfig;
+    }
 
     @Getter
     @Setter
