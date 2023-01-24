@@ -3,13 +3,11 @@ package gov.nist.oar.distrib.web;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 import java.util.Map;
 
-@Value
 @NonFinal
 @Validated
 @ConfigurationProperties("distrib.rpa")
@@ -24,32 +22,61 @@ public class RPAConfiguration {
     private Map<String, String> salesforceEndpoints = null;
     private JksConfig jksConfig = null;
 
+
     public SalesforceJwt getSalesforceJwt() {
         return salesforceJwt;
+    }
+
+    public void setSalesforceJwt(SalesforceJwt salesforceJwt) {
+        this.salesforceJwt = salesforceJwt;
     }
 
     public Map<String, EmailTemplate> getEmailTemplates() {
         return emailTemplates;
     }
 
+    public void setEmailTemplates(Map<String, EmailTemplate> emailTemplates) {
+        this.emailTemplates = emailTemplates;
+    }
+
     public Map<String, Approver> getApprovers() {
         return approvers;
+    }
+
+    public void setApprovers(Map<String, Approver> approvers) {
+        this.approvers = approvers;
     }
 
     public String getSalesforceInstanceUrl() {
         return salesforceInstanceUrl;
     }
 
+    public void setSalesforceInstanceUrl(String salesforceInstanceUrl) {
+        this.salesforceInstanceUrl = salesforceInstanceUrl;
+    }
+
     public String getPdrCachingUrl() {
         return pdrCachingUrl;
+    }
+
+    public void setPdrCachingUrl(String pdrCachingUrl) {
+        this.pdrCachingUrl = pdrCachingUrl;
     }
 
     public Map<String, String> getSalesforceEndpoints() {
         return salesforceEndpoints;
     }
 
+    public void setSalesforceEndpoints(Map<String, String> salesforceEndpoints) {
+        this.salesforceEndpoints = salesforceEndpoints;
+    }
+
     public JksConfig getJksConfig() {
         return jksConfig;
+    }
+
+    public void setJksConfig(JksConfig jksConfig) {
+        this.jksConfig = jksConfig;
     }
 
     @Getter
