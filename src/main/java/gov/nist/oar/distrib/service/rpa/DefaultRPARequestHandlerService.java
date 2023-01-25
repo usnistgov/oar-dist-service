@@ -16,6 +16,8 @@ import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -249,7 +251,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         LOGGER.info("Token request URL = " + url);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        return restTemplate.postForObject(url, new HttpEntity<>(null, headers), SalesforceToken.class);
+        String tokenStr = restTemplate.postForObject(url, new HttpEntity<>(null, headers), String.class);
+        LOGGER.info("tokenStr = " + tokenStr);
+        ObjectMapper objectMapper = new ObjectMapper();
+        SalesforceToken token = null;
+        try {
+            token = objectMapper.readValue(tokenStr, SalesforceToken.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return token;
     }
 
 
