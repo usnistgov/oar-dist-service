@@ -162,30 +162,30 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
     private HttpStatus sendApprovalEmailToSME(Record record) {
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
-                EmailHelper.getSMEApprovalEmailInfo(record, getConfig())
-        );
+        EmailInfo emailInfo = EmailHelper.getSMEApprovalEmailInfo(record, getConfig());
+        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendConfirmationEmailToEndUser(Record record) {
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
-                EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig())
-        );
+        EmailInfo emailInfo = EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig());
+        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendDownloadEmailToEndUser(Record record, String downloadUrl) {
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
-                EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), downloadUrl)
-        );
+        EmailInfo emailInfo = EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), downloadUrl);
+        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendDeclinedEmailToEndUser(Record record) {
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
-                EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig())
-        );
+        EmailInfo emailInfo = EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig());
+        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
