@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -251,7 +252,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         LOGGER.info("Token request URL = " + url);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        String tokenStr = restTemplate.postForObject(url, new HttpEntity<>(null, headers), String.class);
+        String tokenStr = null;
+        try {
+            tokenStr = restTemplate.postForObject(url, new HttpEntity<>(null, headers), String.class);
+        } catch (HttpStatusCodeException e) {
+            throw new RuntimeException(e);
+        }
         LOGGER.info("tokenStr = " + tokenStr);
         ObjectMapper objectMapper = new ObjectMapper();
         SalesforceToken token = null;
