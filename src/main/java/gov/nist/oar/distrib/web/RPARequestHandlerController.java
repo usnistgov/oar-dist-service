@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
         name = "Restricted Public Access Request Handler API",
         description = "These endpoints will handle end user request to download data under restricted public access."
 )
-@RequestMapping(value = "/rpa")
+@RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
     @Autowired
     RPARequestHandlerService service;
