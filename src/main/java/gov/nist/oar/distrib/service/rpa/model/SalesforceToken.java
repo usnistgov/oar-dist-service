@@ -3,13 +3,9 @@ package gov.nist.oar.distrib.service.rpa.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class SalesforceToken {
@@ -17,4 +13,20 @@ public class SalesforceToken {
     String accessToken;
     @JsonProperty("instance_url")
     String instanceUrl;
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getInstanceUrl() {
+        return instanceUrl;
+    }
+
+    public void setInstanceUrl(String instanceUrl) {
+        this.instanceUrl = instanceUrl;
+    }
 }
