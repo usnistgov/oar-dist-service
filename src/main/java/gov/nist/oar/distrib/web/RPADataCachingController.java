@@ -34,8 +34,8 @@ public class RPADataCachingController {
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
         logger.info("dsid=" + dsid);
-        String temporaryURL = restrictedSrvc.cacheAndGenerateTemporaryUrl(dsid, version);
-        return temporaryURL;
+        String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
+        return randomId;
     }
 
     @GetMapping(value = "/{randomId}")
