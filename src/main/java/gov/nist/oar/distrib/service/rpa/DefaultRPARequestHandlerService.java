@@ -246,6 +246,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .queryParam("grant_type", getConfig().getSalesforceJwt().getGrantType())
                 .queryParam("assertion", assertion)
                 .toUriString();
+        LOGGER.info("Token request URL = " + url);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         return restTemplate.postForObject(url, new HttpEntity<>(null, headers), SalesforceToken.class);
