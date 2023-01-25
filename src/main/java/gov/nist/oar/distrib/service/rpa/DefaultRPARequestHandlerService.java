@@ -42,6 +42,8 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     public DefaultRPARequestHandlerService(RPAConfiguration rpaConfiguration, KeyRetriever keyRetriever) {
         this.rpaConfiguration = rpaConfiguration;
         this.keyRetriever = keyRetriever;
+        this.restTemplate = new RestTemplate();
+        this.patchRestTemplate = new RestTemplate();
     }
 
     public RPAConfiguration getConfig() { return this.rpaConfiguration; }
