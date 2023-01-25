@@ -13,10 +13,7 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.service.*;
-import gov.nist.oar.distrib.service.rpa.DefaultKeyRetriever;
-import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
-import gov.nist.oar.distrib.service.rpa.KeyRetriever;
-import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.*;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -301,7 +298,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public KeyRetriever getKeyRetriever() {
-        return new DefaultKeyRetriever();
+        return new JKSKeyRetriever();
     }
 
     /**
