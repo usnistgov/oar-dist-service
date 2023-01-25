@@ -86,7 +86,35 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         return baseDataCartURL + "?id=" + randomID;
     }
 
+    /**
+     * Cache all data that is part of the given version of a dataset, and generate a temporary random id.
+     *
+     * @param datasetID the identifier for the dataset.
+     * @param version   the version of the dataset to cache.  If null, the latest is cached.
+     * @return String -- the temporary random that will be used to fetch metadata.
+     */
+    public String cacheAndGenerateRandomId(String datasetID, String version)
+            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        String randomID = generateRandomID(20, true, true);
+
+        int prefs = ROLE_RESTRICTED_DATA;
+        if (!version.isEmpty())
+            prefs = ROLE_OLD_RESTRICTED_DATA;
+
+        // cache dataset
+        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+        return randomID;
+    }
+
+
+    /**
+     * Retrieve metadata given the random id that was previously generated and used to cache the dataset.
+     *
+     * @param randomID the random ID used to cache the dataset.
+     *
+     * @return Map<String, Object> -- metadata about files in dataset
+     */
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException {
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
