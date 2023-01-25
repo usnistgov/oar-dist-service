@@ -1,5 +1,9 @@
 package gov.nist.oar.distrib.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,12 +18,19 @@ import java.util.Map;
 public class RPAConfiguration {
 
 
+    @JsonProperty("salesforceJwt")
     private SalesforceJwt salesforceJwt = null;
+    @JsonProperty("emailTemplates")
     private Map<String, EmailTemplate> emailTemplates = null;
+    @JsonProperty("approvers")
     private Map<String, Approver> approvers = null;
+    @JsonProperty("salesforceInstanceUrl")
     private String salesforceInstanceUrl = null;
+    @JsonProperty("pdrCachingUrl")
     private String pdrCachingUrl = null;
+    @JsonProperty("salesforceEndpoints")
     private Map<String, String> salesforceEndpoints = null;
+    @JsonProperty("jksConfig")
     private JksConfig jksConfig = null;
 
 
@@ -79,42 +90,163 @@ public class RPAConfiguration {
         this.jksConfig = jksConfig;
     }
 
-    @Getter
-    @Setter
     @NoArgsConstructor
     public static class SalesforceJwt {
+        @JsonProperty("clientId")
+        @JsonIgnore
         String clientId;
+        @JsonProperty("subject")
         String subject;
+        @JsonProperty("audience")
         String audience;
+        @JsonProperty("expirationInMinutes")
         Integer expirationInMinutes;
+        @JsonProperty("grantType")
         String grantType;
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public void setSubject(String subject) {
+            this.subject = subject;
+        }
+
+        public String getAudience() {
+            return audience;
+        }
+
+        public void setAudience(String audience) {
+            this.audience = audience;
+        }
+
+        public Integer getExpirationInMinutes() {
+            return expirationInMinutes;
+        }
+
+        public void setExpirationInMinutes(Integer expirationInMinutes) {
+            this.expirationInMinutes = expirationInMinutes;
+        }
+
+        public String getGrantType() {
+            return grantType;
+        }
+
+        public void setGrantType(String grantType) {
+            this.grantType = grantType;
+        }
     }
 
-    @Getter
-    @Setter
     @NoArgsConstructor
     public static class JksConfig {
+        @JsonProperty("keyStoreType")
         String keyStoreType;
+        @JsonProperty("keyStorePath")
         String keyStorePath;
+        @JsonProperty("keyStorePassword")
+        @JsonIgnore
         String keyStorePassword;
+        @JsonProperty("keyAlias")
         String keyAlias;
+        @JsonProperty("keyPassword")
+        @JsonIgnore
         String keyPassword;
+
+        public String getKeyStoreType() {
+            return keyStoreType;
+        }
+
+        public void setKeyStoreType(String keyStoreType) {
+            this.keyStoreType = keyStoreType;
+        }
+
+        public String getKeyStorePath() {
+            return keyStorePath;
+        }
+
+        public void setKeyStorePath(String keyStorePath) {
+            this.keyStorePath = keyStorePath;
+        }
+
+        public String getKeyStorePassword() {
+            return keyStorePassword;
+        }
+
+        public void setKeyStorePassword(String keyStorePassword) {
+            this.keyStorePassword = keyStorePassword;
+        }
+
+        public String getKeyAlias() {
+            return keyAlias;
+        }
+
+        public void setKeyAlias(String keyAlias) {
+            this.keyAlias = keyAlias;
+        }
+
+        public String getKeyPassword() {
+            return keyPassword;
+        }
+
+        public void setKeyPassword(String keyPassword) {
+            this.keyPassword = keyPassword;
+        }
     }
 
-    @Getter
-    @Setter
     @NoArgsConstructor
     public static class EmailTemplate {
+        @JsonProperty("subject")
         private String subject;
+        @JsonProperty("content")
         private String content;
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public void setSubject(String subject) {
+            this.subject = subject;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public void setContent(String content) {
+            this.content = content;
+        }
     }
 
-    @Getter
-    @Setter
     @NoArgsConstructor
     public static class Approver {
+        @JsonProperty("name")
         private String name;
+        @JsonProperty("email")
         private String email;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
     }
 
     public EmailTemplate getEndUserConfirmationEmail() {
@@ -131,5 +263,18 @@ public class RPAConfiguration {
 
     public EmailTemplate getEndUserDeclinedEmail() {
         return this.getEmailTemplates().get("declined-user");
+    }
+
+    @Override
+    public String toString() {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonStr;
+        try {
+            jsonStr = mapper.writeValueAsString(this);
+        } catch (
+                JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return jsonStr;
     }
 }
