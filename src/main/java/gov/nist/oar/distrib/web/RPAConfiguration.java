@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -28,6 +26,8 @@ public class RPAConfiguration {
     private String salesforceInstanceUrl = null;
     @JsonProperty("pdrCachingUrl")
     private String pdrCachingUrl = null;
+    @JsonProperty("datacartUrl")
+    private String datacartUrl = null;
     @JsonProperty("salesforceEndpoints")
     private Map<String, String> salesforceEndpoints = null;
     @JsonProperty("jksConfig")
@@ -72,6 +72,14 @@ public class RPAConfiguration {
 
     public void setPdrCachingUrl(String pdrCachingUrl) {
         this.pdrCachingUrl = pdrCachingUrl;
+    }
+
+    public String getDatacartUrl() {
+        return datacartUrl;
+    }
+
+    public void setDatacartUrl(String datacartUrl) {
+        this.datacartUrl = datacartUrl;
     }
 
     public Map<String, String> getSalesforceEndpoints() {
