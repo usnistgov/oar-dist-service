@@ -54,17 +54,17 @@ public class EmailHelper {
      * Get email to be sent to the End User notifying them that the request has been approved.
      * @param record - the record this email is related to
      * @param rpaConfiguration - the RPA configuration
-     * @param datacartUrl - the URL where the End User will download their data
+     * @param downloadUrl - the URL where the End User will download their data
      *
      * @return EmailInfo - email information (recipient, content, subject)
      */
-    public static EmailInfo getEndUserDownloadEmailInfo(Record record, RPAConfiguration rpaConfiguration, String datacartUrl) {
+    public static EmailInfo getEndUserDownloadEmailInfo(Record record, RPAConfiguration rpaConfiguration, String downloadUrl) {
         String recordId = record.getId();
         String endUserEmailAddress = record.getUserInfo().getEmail();
         String subject = rpaConfiguration.getEndUserApprovedEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.getEndUserApprovedEmail().getContent(),
-                getNamedPlaceholders(record, datacartUrl),
+                getNamedPlaceholders(record, downloadUrl),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -90,7 +90,7 @@ public class EmailHelper {
     /**
      * Helper method to load named placeholders used with email content templates.
      */
-    private static Map<String ,Object> getNamedPlaceholders(Record record, String datacartUrl) {
+    private static Map<String ,Object> getNamedPlaceholders(Record record, String downloadUrl) {
         Map<String, Object> map = new HashMap<>();
         map.put("RECORD_ID", record.getId());
         map.put("CASE_NUMBER", record.getCaseNum());
@@ -101,8 +101,8 @@ public class EmailHelper {
         map.put("APPROVAL_STATUS", record.getUserInfo().getApprovalStatus());
         map.put("DATASET_ID", record.getUserInfo().getSubject().replace("RPA: ", ""));
         map.put("DATASET_NAME", record.getUserInfo().getProductTitle());
-        if (datacartUrl != null)
-            map.put("DATA_CART_URL", datacartUrl);
+        if (downloadUrl != null)
+            map.put("DOWNLOAD_URL", downloadUrl);
         return map;
     }
 }
