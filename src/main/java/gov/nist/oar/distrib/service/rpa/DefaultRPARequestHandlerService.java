@@ -42,7 +42,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         this.restTemplate = new RestTemplate();
         this.patchRestTemplate = new RestTemplate();
 
-        LOGGER.info("Using configuration: " + this.rpaConfiguration.toString());
+        LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
     }
 
     public RPAConfiguration getConfig() { return this.rpaConfiguration; }
@@ -127,7 +127,8 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         }
         // check if status is declined and send email notification to user
         if (responseEntity.getBody().getApprovalStatus().equalsIgnoreCase("declined")) {
-            onEndUserDeclined(recordId);
+            // Don't do anything if User is declined
+            // onEndUserDeclined(recordId);
         }
         return responseEntity.getBody();
     }
@@ -137,9 +138,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         Record record = getRecord(recordId).getRecord();
         // ID/subject starts with 'RPA: ', so we need to remove to extract the ID
         String datasetId = record.getUserInfo().getSubject().replace("RPA: ", "");
-        String dataCartUrl = startCaching(datasetId);
+        String randomId = startCaching(datasetId);
+        String downloadUrl = UriComponentsBuilder.fromUriString(getConfig().getDatacartUrl())
+                .queryParam("id", randomId)
+                .toUriString();
         LOGGER.info("Dataset was cached successfully. Sending email to user...");
-        return sendDownloadEmailToEndUser(record, dataCartUrl);
+        return sendDownloadEmailToEndUser(record, downloadUrl);
     }
 
     private HttpStatus onEndUserDeclined(String recordId) {
@@ -165,29 +169,20 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
     private HttpStatus sendConfirmationEmailToEndUser(Record record) {
-        if (record.getUserInfo().getReceiveEmails().equalsIgnoreCase("no")) {
-            return HttpStatus.CONTINUE;
-        }
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
                 EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig())
         );
         return responseEntity.getStatusCode();
     }
 
-    private HttpStatus sendDownloadEmailToEndUser(Record record, String datacartUrl) {
-        if (record.getUserInfo().getReceiveEmails().equalsIgnoreCase("no")) {
-            return HttpStatus.CONTINUE;
-        }
+    private HttpStatus sendDownloadEmailToEndUser(Record record, String downloadUrl) {
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
-                EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), datacartUrl)
+                EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), downloadUrl)
         );
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendDeclinedEmailToEndUser(Record record) {
-        if (record.getUserInfo().getReceiveEmails().equalsIgnoreCase("no")) {
-            return HttpStatus.CONTINUE;
-        }
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(
                 EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig())
         );
