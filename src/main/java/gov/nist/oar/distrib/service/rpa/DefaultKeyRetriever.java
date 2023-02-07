@@ -1,7 +1,6 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.security.KeyFactory;
