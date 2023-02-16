@@ -32,6 +32,14 @@ public class RPADataCachingController {
     @Autowired
     RPACachingService restrictedSrvc;
 
+    /**
+     * Cache a dataset in a temporary repository.
+     *
+     * @param dsid - the dataset id.
+     * @param version - version of the dataset.
+     *
+     * @return String - a random ID representing the temporary cache object of the dataset.
+     */
     @PutMapping(value = "/{dsid}")
     public String cacheDataset(
             @PathVariable("dsid") String dsid,
@@ -43,6 +51,13 @@ public class RPADataCachingController {
         return randomId;
     }
 
+    /**
+     * Retrieve metadata of a cached dataset.
+     *
+     * @param randomId - the random ID representing the cached dataset.
+     *
+     * @return Map<String, Object>  - a map representing the metadata of the cached dataset files.
+     */
     @GetMapping(value = "/{randomId}")
     public Map<String, Object> retrieveMetadata(@PathVariable("randomId") String randomId)
             throws CacheManagementException {

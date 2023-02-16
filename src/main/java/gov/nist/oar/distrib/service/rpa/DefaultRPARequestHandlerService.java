@@ -31,6 +31,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
+/**
+ * Default implementation of the RPARequestHandlerService.
+ */
 @RequiredArgsConstructor
 public class DefaultRPARequestHandlerService implements RPARequestHandlerService {
 
@@ -59,6 +62,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     public RPAConfiguration getConfig() { return this.rpaConfiguration; }
 
 
+    /**
+     * Get information about a specific record.
+     *
+     * This asks for an access token, then uses it to add the bearer auth http header.
+     * Constructs the URL, and sends a GET request to fetch information about the record.
+     *
+     * @param recordId  the identifier for the record.
+     *
+     * @return RecordWrapper -- the requested record wrapped within a "record" envelope.
+     */
     @Override
     public RecordWrapper getRecord(String recordId) {
         String getRecordUri = getConfig().getSalesforceEndpoints().get(GET_RECORD_ENDPOINT_KEY);
@@ -72,6 +85,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return response.getBody();
     }
 
+    /**
+     * Create a new record.
+     *
+     * This asks for an access token, then uses it to add the bearer auth http header.
+     * Constructs the URL, and sends a POST request to create a new record.
+     *
+     * @param userInfoWrapper  the information provided by the user.
+     *
+     * @return RecordWrapper -- the newly created record wrapped within a "record" envelope.
+     */
     @Override
     public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) {
         String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
@@ -98,6 +121,10 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
 
+    /**
+     * On successful creation of a record, send a confirmation email to the user, and another email to the approver.
+     * Check if sending of emails was successful.
+     */
     private void onSuccessfulRecordCreation(Record record) {
         LOGGER.info("Record created successfully! Now sending emails...");
         if (sendConfirmationEmailToEndUser(record).equals(HttpStatus.OK)) {
@@ -108,11 +135,29 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         }
     }
 
+    /**
+     * On failed creation of a record
+     * TODO: add logic when creation fails
+     */
     private void onFailedRecordCreation(HttpStatus statusCode) {
         // handle failed record creation
     }
 
 
+    /**
+     * Update the status of a specific record.
+     *
+     * This asks for an access token, then uses it to add the bearer auth http header.
+     * Constructs the URL, and sends a PATCH request to update a record.
+     *
+     * We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
+     * does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
+     *
+     * @param recordId  the identifier for the record.
+     * @param status  the new status.
+     *
+     * @return RecordStatus -- the updated status of the record.
+     */
     @Override
     public RecordStatus updateRecord(String recordId, String status) {
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);

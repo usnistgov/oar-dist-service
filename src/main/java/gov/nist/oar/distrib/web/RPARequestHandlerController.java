@@ -30,12 +30,22 @@ public class RPARequestHandlerController {
     RPARequestHandlerService service;
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
+    /**
+     * Test connection to Salesforce.
+     */
     @GetMapping("test")
     String testConnectionToSalesforceAPIs() {
         LOGGER.info("Testing connection to Salesforce APIs...");
         return "Salesforce API is available.";
     }
 
+    /**
+     * Get information about record.
+     *
+     * @param id - the record id.
+     *
+     * @return RecordWrapper - the requested record wrapped within a "record" envelope.
+     */
     @GetMapping(value = "{id}")
     RecordWrapper getRecord(@PathVariable String id) {
         LOGGER.info("Getting information about record with ID = " + id);
@@ -44,6 +54,13 @@ public class RPARequestHandlerController {
         return record;
     }
 
+    /**
+     * Create a new record.
+     *
+     * @param userInfoWrapper - user information, serves as payload to create a new record.
+     *
+     * @return RecordWrapper - the created record.
+     */
     @PostMapping(consumes = {"application/json"})
     RecordWrapper createRecord(@RequestBody UserInfoWrapper userInfoWrapper) {
         LOGGER.info("Creating a new record...");
@@ -52,6 +69,14 @@ public class RPARequestHandlerController {
         return newRecord;
     }
 
+    /**
+     * Update a record, specifically the status of the record.
+     *
+     * @param id - the id of the record to update
+     * @param patch - the object containing the changes to update
+     *
+     * @return RecordStatus - the new status of the record
+     */
     @PatchMapping(value = "{id}", consumes = "application/json")
     public RecordStatus updateRecord(@PathVariable String id, @RequestBody RecordPatch patch) {
         LOGGER.info("Updating approval status of record with ID = " + id);

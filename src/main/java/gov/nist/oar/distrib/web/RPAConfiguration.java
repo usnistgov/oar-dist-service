@@ -10,6 +10,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 import java.util.Map;
 
+/**
+ * Configuration model for Restricted Public Access
+ */
 @NonFinal
 @Validated
 @ConfigurationProperties("distrib.rpa")

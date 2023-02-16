@@ -6,9 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+/** A wrapper around the record.
+ * This acts as an envelope for the record.
+ * This is used for parsing the record to a JSON with "record" as the key.
+ */
 @AllArgsConstructor
 @NoArgsConstructor
 public class RecordWrapper {
+
+    /** Contains the record.
+     */
     @JsonProperty("record")
     Record record;
 

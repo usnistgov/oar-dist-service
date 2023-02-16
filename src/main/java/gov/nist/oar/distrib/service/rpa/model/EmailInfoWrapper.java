@@ -4,12 +4,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+/** A wrapper around the email info.
+ * Adds a timestamp to the email info.
+ */
 @AllArgsConstructor
 @NoArgsConstructor
 public class EmailInfoWrapper {
+    /** Represents the timestamp the email was sent.
+     */
     @JsonProperty("timestamp")
     String timestamp;
 
+    /** Contains the email info.
+     */
     @JsonProperty("email")
     EmailInfo emailInfo;
 

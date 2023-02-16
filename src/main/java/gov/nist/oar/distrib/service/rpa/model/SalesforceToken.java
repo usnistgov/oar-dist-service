@@ -5,12 +5,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+
+/** Represents the JWT Token.
+ * This is a container for the access token.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 @NoArgsConstructor
 public class SalesforceToken {
+
+    /** Represents access token.
+     */
     @JsonProperty("access_token")
     String accessToken;
+    /** Represents the instance URL, the base URL used for sending request to the records service.
+     */
     @JsonProperty("instance_url")
     String instanceUrl;
 

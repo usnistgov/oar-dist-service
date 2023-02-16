@@ -9,9 +9,17 @@ import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 
+/**
+ * Java Keystore implementation of the KeyRetriever interface.
+ * This loads a private key from the Java Keystore.
+ */
 public class JKSKeyRetriever implements KeyRetriever {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(JKSKeyRetriever.class);
+
+    /**
+     * Loads the private key from the Java Keystore given the RPA configuration.
+     */
     @Override
     public Key getKey(RPAConfiguration rpaConfiguration)  {
         try {

@@ -7,14 +7,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+/** Represents a salesforce case record.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 @NoArgsConstructor
 public class Record {
+
+    /** Represents the record ID.
+     */
     @JsonProperty("id")
     private String id;
+
+    /** Represents the record case number.
+     */
     @JsonProperty("caseNum")
     private String caseNum;
+
+    /** Contains the user information that was submitted through the request form.
+     */
     @JsonProperty("userInfo")
     private UserInfo userInfo;
 
