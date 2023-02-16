@@ -126,12 +126,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * Check if sending of emails was successful.
      */
     private void onSuccessfulRecordCreation(Record record) {
-        LOGGER.info("Record created successfully! Now sending emails...");
+        LOGGER.debug("Record created successfully! Now sending emails...");
         if (sendConfirmationEmailToEndUser(record).equals(HttpStatus.OK)) {
-            LOGGER.info("Confirmation email sent to end user successfully!");
+            LOGGER.debug("Confirmation email sent to end user successfully!");
         }
         if (sendApprovalEmailToSME(record).equals(HttpStatus.OK)) {
-            LOGGER.info("Request approval email sent to subject matter expert successfully!");
+            LOGGER.debug("Request approval email sent to subject matter expert successfully!");
         }
     }
 
@@ -284,6 +284,9 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return sendTokenRequest(createAssertion());
     }
 
+    /**
+     * Create the jwt assertion.
+     */
     private String createAssertion() {
         LocalDateTime localDateTime = LocalDateTime.now().plusMinutes(getConfig().getSalesforceJwt().getExpirationInMinutes());
         return Jwts.builder()
@@ -295,6 +298,13 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .compact();
     }
 
+    /**
+     * Send token request as per <a href="https://www.rfc-editor.org/rfc/rfc7523">rfc7523</a>.
+     *
+     * @param assertion - the assertion token containing a JWT token
+     *
+     * @return AccessToken - the access token
+     */
     private SalesforceToken sendTokenRequest(String assertion) {
         String url = UriComponentsBuilder.fromUriString(getConfig().getSalesforceInstanceUrl())
                 .path("/services/oauth2/token")
