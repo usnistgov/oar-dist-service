@@ -2,8 +2,8 @@ package gov.nist.oar.distrib.service.rpa;
 
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
+import org.springframework.web.util.HtmlUtils;
 
-import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 public class HTMLCleaner {
 
@@ -26,6 +26,6 @@ public class HTMLCleaner {
     }
 
     private static String replaceHTMLTags(String input) {
-        return escapeHtml4(input);
+        return HtmlUtils.htmlEscape(input);
     }
 }
