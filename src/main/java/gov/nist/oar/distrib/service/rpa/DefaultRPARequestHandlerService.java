@@ -7,7 +7,7 @@ import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
-import gov.nist.oar.distrib.service.rpa.model.AccessToken;
+import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import io.jsonwebtoken.Jwts;
@@ -75,7 +75,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     @Override
     public RecordWrapper getRecord(String recordId) {
         String getRecordUri = getConfig().getSalesforceEndpoints().get(GET_RECORD_ENDPOINT_KEY);
-        AccessToken token = getToken();
+        JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, null);
         String url = UriComponentsBuilder.fromUriString(token.getInstanceUrl())
                 .path(getRecordUri + "/" + recordId)
@@ -98,7 +98,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     @Override
     public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) {
         String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
-        AccessToken token = getToken();
+        JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
         HttpEntity<String> request;
         ObjectMapper mapper = new ObjectMapper();
@@ -167,7 +167,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         patchRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
         JSONObject updateBody = new JSONObject();
         updateBody.put("Approval_Status__c", status);
-        AccessToken token = getToken();
+        JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
         String patch = updateBody.toString();
         LOGGER.debug("PATCH_DATA=" + patch);
@@ -250,7 +250,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
 
     private ResponseEntity<EmailInfoWrapper> sendEmail(EmailInfo emailInfo) {
         String sendEmailUri = getConfig().getSalesforceEndpoints().get(SEND_EMAIL_ENDPOINT_KEY);
-        AccessToken token = getToken();
+        JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
         ObjectMapper mapper = new ObjectMapper();
         HttpEntity<String> request;
@@ -266,14 +266,14 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
 
     public String testSalesforceAPIConnection() {
         String testUri = getConfig().getSalesforceEndpoints().get(API_TEST_ENDPOINT_KEY);
-        AccessToken token = getToken();
+        JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, null);
         ResponseEntity<String> response = restTemplate.exchange(token.getInstanceUrl() + testUri,
                 HttpMethod.GET, new HttpEntity<>(headers), String.class);
         return response.getBody();
     }
 
-    private HttpHeaders getHttpHeaders(AccessToken token, MediaType mediaType) {
+    private HttpHeaders getHttpHeaders(JWTToken token, MediaType mediaType) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token.getAccessToken());
         if (mediaType != null)
@@ -282,7 +282,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
     // JWT methods
-    private AccessToken getToken() {
+    private JWTToken getToken() {
         return sendTokenRequest(createAssertion());
     }
 
@@ -305,9 +305,9 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      *
      * @param assertion - the assertion token containing a JWT token
      *
-     * @return AccessToken - the access token
+     * @return JWTToken - the access token
      */
-    private AccessToken sendTokenRequest(String assertion) {
+    private JWTToken sendTokenRequest(String assertion) {
         String url = UriComponentsBuilder.fromUriString(getConfig().getSalesforceInstanceUrl())
                 .path("/services/oauth2/token")
                 .queryParam("grant_type", getConfig().getSalesforceJwt().getGrantType())
@@ -315,7 +315,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .toUriString();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        return restTemplate.postForObject(url, new HttpEntity<>(null, headers), AccessToken.class);
+        return restTemplate.postForObject(url, new HttpEntity<>(null, headers), JWTToken.class);
     }
 
 
