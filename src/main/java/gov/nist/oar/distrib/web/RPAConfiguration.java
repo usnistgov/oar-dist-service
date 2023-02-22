@@ -260,19 +260,19 @@ public class RPAConfiguration {
         }
     }
 
-    public EmailTemplate getEndUserConfirmationEmail() {
+    public EmailTemplate endUserConfirmationEmail() {
         return this.getEmailTemplates().get("ack-user");
     }
 
-    public EmailTemplate getSMEApprovalEmail() {
+    public EmailTemplate SMEApprovalEmail() {
         return this.getEmailTemplates().get("to-sme");
     }
 
-    public EmailTemplate getEndUserApprovedEmail() {
+    public EmailTemplate endUserApprovedEmail() {
         return this.getEmailTemplates().get("approved-user");
     }
 
-    public EmailTemplate getEndUserDeclinedEmail() {
+    public EmailTemplate endUserDeclinedEmail() {
         return this.getEmailTemplates().get("declined-user");
     }
 

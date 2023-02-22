@@ -24,9 +24,9 @@ public class EmailHelper {
         String recordId = record.getId();
         String datasetId = record.getUserInfo().getSubject().replace("RPA: ", "");
         String smeEmailAddress = rpaConfiguration.getApprovers().get(datasetId).getEmail();
-        String subject = rpaConfiguration.getSMEApprovalEmail().getSubject() + record.getCaseNum();
+        String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = StringSubstitutor.replace(
-                rpaConfiguration.getSMEApprovalEmail().getContent(),
+                rpaConfiguration.SMEApprovalEmail().getContent(),
                 getNamedPlaceholders(record, null),
                 "${", "}");
         return new EmailInfo(recordId, smeEmailAddress, subject, content);
@@ -42,9 +42,9 @@ public class EmailHelper {
     public static EmailInfo getEndUserConfirmationEmailInfo(Record record, RPAConfiguration rpaConfiguration) {
         String recordId = record.getId();
         String endUserEmailAddress = record.getUserInfo().getEmail();
-        String subject = rpaConfiguration.getEndUserConfirmationEmail().getSubject();
+        String subject = rpaConfiguration.endUserConfirmationEmail().getSubject();
         String content = StringSubstitutor.replace(
-                rpaConfiguration.getEndUserConfirmationEmail().getContent(),
+                rpaConfiguration.endUserConfirmationEmail().getContent(),
                 getNamedPlaceholders(record, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
@@ -61,9 +61,9 @@ public class EmailHelper {
     public static EmailInfo getEndUserDownloadEmailInfo(Record record, RPAConfiguration rpaConfiguration, String downloadUrl) {
         String recordId = record.getId();
         String endUserEmailAddress = record.getUserInfo().getEmail();
-        String subject = rpaConfiguration.getEndUserApprovedEmail().getSubject();
+        String subject = rpaConfiguration.endUserApprovedEmail().getSubject();
         String content = StringSubstitutor.replace(
-                rpaConfiguration.getEndUserApprovedEmail().getContent(),
+                rpaConfiguration.endUserApprovedEmail().getContent(),
                 getNamedPlaceholders(record, downloadUrl),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
@@ -79,9 +79,9 @@ public class EmailHelper {
     public static EmailInfo getEndUserDeclinedEmailInfo(Record record, RPAConfiguration rpaConfiguration) {
         String recordId = record.getId();
         String endUserEmailAddress = record.getUserInfo().getEmail();
-        String subject = rpaConfiguration.getEndUserDeclinedEmail().getSubject();
+        String subject = rpaConfiguration.endUserDeclinedEmail().getSubject();
         String content = StringSubstitutor.replace(
-                rpaConfiguration.getEndUserApprovedEmail().getContent(),
+                rpaConfiguration.endUserApprovedEmail().getContent(),
                 getNamedPlaceholders(record, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
