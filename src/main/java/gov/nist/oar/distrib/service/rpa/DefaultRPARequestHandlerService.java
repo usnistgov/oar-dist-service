@@ -104,8 +104,8 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         ObjectMapper mapper = new ObjectMapper();
         try {
             // cleaning form input from any HTML
-            UserInfoWrapper cleanUserInfoWrapper = HTMLCleaner.clean(userInfoWrapper);
-            String payload = mapper.writeValueAsString(cleanUserInfoWrapper);
+//            UserInfoWrapper cleanUserInfoWrapper = HTMLCleaner.clean(userInfoWrapper);
+            String payload = mapper.writeValueAsString(userInfoWrapper);
             LOGGER.debug("PAYLOAD=" + payload);
             request = new HttpEntity<>(payload, headers);
         } catch (JsonProcessingException e) {
