@@ -175,6 +175,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         String url = UriComponentsBuilder.fromUriString(token.getInstanceUrl())
                 .path(updateRecordUri + "/" + recordId)
                 .toUriString();
+        LOGGER.debug("UPDATE_URL=" + url);
         ResponseEntity<RecordStatus> responseEntity = patchRestTemplate.exchange(
                 url, HttpMethod.PATCH, request, RecordStatus.class
         );
