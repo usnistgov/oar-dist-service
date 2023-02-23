@@ -5,6 +5,10 @@ import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.commons.text.StringSubstitutor;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +31,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.SMEApprovalEmail().getContent(),
-                getNamedPlaceholders(record, null),
+                getNamedPlaceholders(record, null, null),
                 "${", "}");
         return new EmailInfo(recordId, smeEmailAddress, subject, content);
     }
@@ -45,7 +49,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserConfirmationEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserConfirmationEmail().getContent(),
-                getNamedPlaceholders(record, null),
+                getNamedPlaceholders(record, null, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -64,9 +68,18 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserApprovedEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserApprovedEmail().getContent(),
-                getNamedPlaceholders(record, downloadUrl),
+                getNamedPlaceholders(record, downloadUrl, getDateInXDays(14)),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
+    }
+
+    public static String getDateInXDays(int days) {
+        String datePattern = "EEEE, MM/dd/yyyy 'at' hh:mm aa z";
+        DateFormat dateFormat = new SimpleDateFormat(datePattern);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.add(Calendar.DATE, days);
+        return dateFormat.format(calendar.getTime());
     }
 
     /**
@@ -82,7 +95,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserDeclinedEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserApprovedEmail().getContent(),
-                getNamedPlaceholders(record, null),
+                getNamedPlaceholders(record, null, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -90,7 +103,7 @@ public class EmailHelper {
     /**
      * Helper method to load named placeholders used with email content templates.
      */
-    private static Map<String ,Object> getNamedPlaceholders(Record record, String downloadUrl) {
+    private static Map<String ,Object> getNamedPlaceholders(Record record, String downloadUrl, String expirationDate) {
         Map<String, Object> map = new HashMap<>();
         map.put("RECORD_ID", record.getId());
         map.put("CASE_NUMBER", record.getCaseNum());
@@ -103,6 +116,8 @@ public class EmailHelper {
         map.put("DATASET_NAME", record.getUserInfo().getProductTitle());
         if (downloadUrl != null)
             map.put("DOWNLOAD_URL", downloadUrl);
+        if (expirationDate != null)
+            map.put("EXPIRATION_DATE", expirationDate);
         return map;
     }
 }
