@@ -48,7 +48,7 @@ public class RPARequestHandlerController {
      *
      * @return RecordWrapper - the requested record wrapped within a "record" envelope.
      */
-    @GetMapping(value = "{id}")
+    @GetMapping(value = "/request/accepted/{id}")
     RecordWrapper getRecord(@PathVariable String id) {
         LOGGER.info("Getting information about record with ID = " + id);
         RecordWrapper record = service.getRecord(id);
@@ -63,7 +63,7 @@ public class RPARequestHandlerController {
      *
      * @return RecordWrapper - the created record.
      */
-    @PostMapping(consumes = {"application/json"})
+    @PostMapping(value = "/request/form" , consumes = {"application/json"})
     RecordWrapper createRecord(@RequestBody UserInfoWrapper userInfoWrapper) {
         LOGGER.info("Creating a new record...");
         RecordWrapper newRecord = service.createRecord(userInfoWrapper);
@@ -79,7 +79,7 @@ public class RPARequestHandlerController {
      *
      * @return RecordStatus - the new status of the record
      */
-    @PatchMapping(value = "{id}", consumes = "application/json")
+    @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json")
     public RecordStatus updateRecord(@PathVariable String id, @RequestBody RecordPatch patch) {
         LOGGER.info("Updating approval status of record with ID = " + id);
         return service.updateRecord(patch.getApprovalStatus(), id);
