@@ -82,6 +82,6 @@ public class RPARequestHandlerController {
     @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json")
     public RecordStatus updateRecord(@PathVariable String id, @RequestBody RecordPatch patch) {
         LOGGER.info("Updating approval status of record with ID = " + id);
-        return service.updateRecord(patch.getApprovalStatus(), id);
+        return service.updateRecord(id, patch.getApprovalStatus());
     }
 }
