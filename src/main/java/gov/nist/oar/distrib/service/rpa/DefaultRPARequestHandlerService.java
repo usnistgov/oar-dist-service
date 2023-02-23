@@ -181,11 +181,11 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         );
         // check if status is approved and trigger the caching process
         LOGGER.debug("APPROVAL_STATUS=" + responseEntity.getBody().getApprovalStatus());
-        if (responseEntity.getBody().getApprovalStatus().equalsIgnoreCase("approved")) {
+        if (responseEntity.getBody().getApprovalStatus().toLowerCase().contains("approved")) {
             onEndUserApproved(recordId);
         }
         // check if status is declined and send email notification to user
-        if (responseEntity.getBody().getApprovalStatus().equalsIgnoreCase("declined")) {
+        if (responseEntity.getBody().getApprovalStatus().toLowerCase().contains("declined")) {
             // Don't do anything if User is declined
             // onEndUserDeclined(recordId);
         }
