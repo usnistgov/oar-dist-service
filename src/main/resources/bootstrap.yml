@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: local
+    active: prod
   cloud:
     config:
       uri: http://localhost:8087
