@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,15 +16,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @Tag(name = "Cache RPA Datasets", description = "Cache Restricted Public Access data in a dedicated cache space and generate temporary URL for the cached data.")
-@RequestMapping(value = "/ds/restricted")
+@RequestMapping(value = "/ds/rpa")
 public class RPADataCachingController {
-
-    @Value("${distrib.baseurl}")
-    String baseURL;
 
     Logger logger = LoggerFactory.getLogger(RPADataCachingController.class);
 
@@ -40,13 +35,13 @@ public class RPADataCachingController {
      *
      * @return String - a random ID representing the temporary cache object of the dataset.
      */
-    @PutMapping(value = "/{dsid}")
+    @PutMapping(value = "/cache/{dsid}")
     public String cacheDataset(
             @PathVariable("dsid") String dsid,
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
-        logger.info("dsid=" + dsid);
+        logger.debug("dsid=" + dsid);
         String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
         return randomId;
     }
@@ -58,22 +53,12 @@ public class RPADataCachingController {
      *
      * @return Map<String, Object>  - a map representing the metadata of the cached dataset files.
      */
-    @GetMapping(value = "/{randomId}")
-    public Map<String, Object> retrieveMetadata(@PathVariable("randomId") String randomId)
+    @GetMapping(value = "/dlset/{cacheid}")
+    public Map<String, Object> retrieveMetadata(@PathVariable("cacheid") String cacheId)
             throws CacheManagementException {
 
-        logger.info("randomId=" + randomId);
-        Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(randomId);
+        logger.debug("cacheId=" + cacheId);
+        Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(cacheId);
         return metadata;
-    }
-
-    // utility function to log urls
-    private void logUrls(String dsid, Set<String> urls) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("List of temporary URLs for dataset_id=").append(dsid + "\n");
-        urls.forEach(url -> {
-            sb.append(url + "\n");
-        });
-        logger.info(sb.toString());
     }
 }
