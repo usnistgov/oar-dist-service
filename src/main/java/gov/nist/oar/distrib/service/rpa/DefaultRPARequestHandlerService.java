@@ -214,7 +214,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     // Function to call the caching the service to start the caching process
     // This function returns a temporary URL to the datacart that contains the cached dataset
     private String startCaching(String datasetId) {
-        String url = getConfig().getPdrCachingUrl() + datasetId;
+        String url = getConfig().getPdrCachingUrl() + "/cache/" + datasetId;
         HttpEntity<String> request = new HttpEntity<>(null, new HttpHeaders());
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, request, String.class);
         return responseEntity.getBody();
