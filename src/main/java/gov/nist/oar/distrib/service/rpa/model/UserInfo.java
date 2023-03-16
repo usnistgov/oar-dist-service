@@ -61,8 +61,6 @@ public class UserInfo {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("recaptcha")
-    private String recaptcha;
 
     public String getFullName() {
         return fullName;
@@ -136,11 +134,4 @@ public class UserInfo {
         this.description = description;
     }
 
-    public String getRecaptcha() {
-        return recaptcha;
-    }
-
-    public void setRecaptcha(String recaptcha) {
-        this.recaptcha = recaptcha;
-    }
 }

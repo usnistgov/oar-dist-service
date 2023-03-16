@@ -15,11 +15,22 @@ public class UserInfoWrapper {
     @JsonProperty("userInfo")
     UserInfo userInfo;
 
+    @JsonProperty("recaptcha")
+    String recaptcha;
+
     public UserInfo getUserInfo() {
         return userInfo;
     }
 
     public void setUserInfo(UserInfo userInfo) {
         this.userInfo = userInfo;
+    }
+
+    public String getRecaptcha() {
+        return recaptcha;
+    }
+
+    public void setRecaptcha(String recaptcha) {
+        this.recaptcha = recaptcha;
     }
 }

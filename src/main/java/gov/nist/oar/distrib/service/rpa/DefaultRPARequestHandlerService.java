@@ -116,7 +116,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         ObjectMapper mapper = new ObjectMapper();
 
         // first check if recaptcha is valid
-        RecaptchaResponse recaptchaResponse = verifyRecaptcha(userInfoWrapper.getUserInfo().getRecaptcha());
+        RecaptchaResponse recaptchaResponse = verifyRecaptcha(userInfoWrapper.getRecaptcha());
         if (!recaptchaResponse.isSuccess()) {
             throw new RuntimeException("reCaptcha was not successfully validated");
         }
@@ -228,8 +228,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     private HttpStatus onEndUserApproved(String recordId) {
         LOGGER.info("User was approved by SME. Starting caching...");
         Record record = getRecord(recordId).getRecord();
-        // ID/subject starts with 'RPA: ', so we need to remove to extract the ID
-        String datasetId = record.getUserInfo().getSubject().replace("RPA: ", "");
+        String datasetId = record.getUserInfo().getSubject();
         String randomId = startCaching(datasetId);
         String downloadUrl = UriComponentsBuilder.fromUriString(getConfig().getDatacartUrl())
                 .queryParam("id", randomId)
