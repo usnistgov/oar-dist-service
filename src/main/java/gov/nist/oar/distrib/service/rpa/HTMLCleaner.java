@@ -4,7 +4,10 @@ import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import org.springframework.web.util.HtmlUtils;
 
-
+/**
+ * Class responsible for cleaning user input.
+ * This escapes any HTML tags that are inside the user inputs.
+ */
 public class HTMLCleaner {
 
     public static UserInfoWrapper clean(UserInfoWrapper userInfoWrapper) {
