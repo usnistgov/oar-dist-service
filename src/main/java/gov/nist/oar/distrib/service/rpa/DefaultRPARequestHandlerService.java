@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
+import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
@@ -50,6 +51,11 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     private RestTemplate restTemplate;
     private RestTemplate patchRestTemplate;
 
+    /**
+     * Constructs a new DefaultRPARequestHandlerService object with the given rpaConfiguration and keyRetriever.
+     * @param rpaConfiguration The Restricted Public Access (RPA) configuration object
+     * @param keyRetriever The private key retriever object
+     */
     public DefaultRPARequestHandlerService(RPAConfiguration rpaConfiguration, KeyRetriever keyRetriever) {
         this.rpaConfiguration = rpaConfiguration;
         this.keyRetriever = keyRetriever;
@@ -59,6 +65,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
     }
 
+    /**
+     * Returns the RPA configuration. This is a bean that is injected into the service.
+     * The RPA configuration is loaded from the config server.
+     *
+     * @return The RPA configuration
+     */
     public RPAConfiguration getConfig() { return this.rpaConfiguration; }
 
 
@@ -102,6 +114,12 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
         HttpEntity<String> request;
         ObjectMapper mapper = new ObjectMapper();
+
+        // first check if recaptcha is valid
+        RecaptchaResponse recaptchaResponse = verifyRecaptcha(userInfoWrapper.getUserInfo().getRecaptcha());
+        if (!recaptchaResponse.isSuccess()) {
+            throw new RuntimeException("reCaptcha was not successfully validated");
+        }
         try {
             // cleaning form input from any HTML
             UserInfoWrapper cleanUserInfoWrapper = HTMLCleaner.clean(userInfoWrapper);
@@ -113,13 +131,28 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         }
         String url = token.getInstanceUrl() + createRecordUri;
         ResponseEntity<RecordWrapper> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, RecordWrapper.class);
-
         if (responseEntity.getStatusCode().equals(HttpStatus.OK)) {
             onSuccessfulRecordCreation(responseEntity.getBody().getRecord());
         } else {
             onFailedRecordCreation(responseEntity.getStatusCode());
         }
         return responseEntity.getBody();
+    }
+
+
+    /**
+     * Function to verify the recaptcha token.
+     */
+    private RecaptchaResponse verifyRecaptcha(String token) {
+        String url = UriComponentsBuilder.fromUriString("https://www.google.com")
+                .path("/recaptcha/api/siteverify")
+                .queryParam("secret", getConfig().getRecaptchaSecret())
+                .queryParam("response", token)
+                .toUriString();
+
+        LOGGER.debug("RECAPTCHA_URL=" + url);
+        HttpHeaders headers = new HttpHeaders();
+        return restTemplate.postForObject(url, new HttpEntity<>(null, headers), RecaptchaResponse.class);
     }
 
 
@@ -222,14 +255,14 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
 
     private HttpStatus sendApprovalEmailToSME(Record record) {
         EmailInfo emailInfo = EmailHelper.getSMEApprovalEmailInfo(record, getConfig());
-        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        LOGGER.debug("EMAIL_INFO=" + emailInfo);
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendConfirmationEmailToEndUser(Record record) {
         EmailInfo emailInfo = EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig());
-        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        LOGGER.debug("EMAIL_INFO=" + emailInfo);
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
@@ -243,7 +276,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
 
     private HttpStatus sendDeclinedEmailToEndUser(Record record) {
         EmailInfo emailInfo = EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig());
-        LOGGER.info("EMAIL_INFO=" + emailInfo);
+        LOGGER.debug("EMAIL_INFO=" + emailInfo);
         ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
@@ -265,6 +298,20 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
 
+    /**
+     * Update the status of a specific record.
+     *
+     * This asks for an access token, then uses it to add the bearer auth http header.
+     * Constructs the URL, and sends a PATCH request to update a record.
+     *
+     * We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
+     * does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
+     *
+     * @param recordId  the identifier for the record.
+     * @param status  the new status.
+     *
+     * @return RecordStatus -- the updated status of the record.
+     */
     public String testSalesforceAPIConnection() {
         String testUri = getConfig().getSalesforceEndpoints().get(API_TEST_ENDPOINT_KEY);
         JWTToken token = getToken();
@@ -283,13 +330,13 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     }
 
     // JWT methods
+
+    // Retrieve the JWT Access Token
     private JWTToken getToken() {
         return sendTokenRequest(createAssertion());
     }
 
-    /**
-     * Create the jwt assertion.
-     */
+    // Create the jwt assertion.
     private String createAssertion() {
         LocalDateTime localDateTime = LocalDateTime.now().plusMinutes(getConfig().getSalesforceJwt().getExpirationInMinutes());
         return Jwts.builder()

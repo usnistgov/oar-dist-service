@@ -35,7 +35,8 @@ public class RPAConfiguration {
     private Map<String, String> salesforceEndpoints = null;
     @JsonProperty("jksConfig")
     private JksConfig jksConfig = null;
-
+    @JsonProperty("recaptchaSecret")
+    String recaptchaSecret;
 
     public SalesforceJwt getSalesforceJwt() {
         return salesforceJwt;
@@ -99,6 +100,14 @@ public class RPAConfiguration {
 
     public void setJksConfig(JksConfig jksConfig) {
         this.jksConfig = jksConfig;
+    }
+
+    public String getRecaptchaSecret() {
+        return recaptchaSecret;
+    }
+
+    public void setRecaptchaSecret(String recaptchaSecret) {
+        this.recaptchaSecret = recaptchaSecret;
     }
 
     @NoArgsConstructor
@@ -170,6 +179,7 @@ public class RPAConfiguration {
         @JsonProperty("keyPassword")
         @JsonIgnore
         String keyPassword;
+
 
         public String getKeyStoreType() {
             return keyStoreType;
