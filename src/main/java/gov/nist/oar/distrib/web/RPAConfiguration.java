@@ -31,6 +31,8 @@ public class RPAConfiguration {
     private String pdrCachingUrl = null;
     @JsonProperty("datacartUrl")
     private String datacartUrl = null;
+    @JsonProperty("smeAppUrl")
+    private String smeAppUrl = null;
     @JsonProperty("salesforceEndpoints")
     private Map<String, String> salesforceEndpoints = null;
     @JsonProperty("jksConfig")
@@ -84,6 +86,14 @@ public class RPAConfiguration {
 
     public void setDatacartUrl(String datacartUrl) {
         this.datacartUrl = datacartUrl;
+    }
+
+    public String getSmeAppUrl() {
+        return smeAppUrl;
+    }
+
+    public void setSmeAppUrl(String smeAppUrl) {
+        this.smeAppUrl = smeAppUrl;
     }
 
     public Map<String, String> getSalesforceEndpoints() {

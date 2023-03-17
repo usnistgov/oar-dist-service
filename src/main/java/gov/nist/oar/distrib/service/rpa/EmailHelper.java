@@ -26,12 +26,12 @@ public class EmailHelper {
      */
     public static EmailInfo getSMEApprovalEmailInfo(Record record, RPAConfiguration rpaConfiguration) {
         String recordId = record.getId();
-        String datasetId = record.getUserInfo().getSubject().replace("RPA: ", "");
+        String datasetId = record.getUserInfo().getSubject();
         String smeEmailAddress = rpaConfiguration.getApprovers().get(datasetId).getEmail();
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.SMEApprovalEmail().getContent(),
-                getNamedPlaceholders(record, null, null),
+                getNamedPlaceholders(record, null, null, rpaConfiguration.getSmeAppUrl()),
                 "${", "}");
         return new EmailInfo(recordId, smeEmailAddress, subject, content);
     }
@@ -49,7 +49,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserConfirmationEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserConfirmationEmail().getContent(),
-                getNamedPlaceholders(record, null, null),
+                getNamedPlaceholders(record, null, null, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -68,7 +68,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserApprovedEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserApprovedEmail().getContent(),
-                getNamedPlaceholders(record, downloadUrl, getDateInXDays(14)),
+                getNamedPlaceholders(record, downloadUrl, getDateInXDays(14), null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -95,7 +95,7 @@ public class EmailHelper {
         String subject = rpaConfiguration.endUserDeclinedEmail().getSubject();
         String content = StringSubstitutor.replace(
                 rpaConfiguration.endUserApprovedEmail().getContent(),
-                getNamedPlaceholders(record, null, null),
+                getNamedPlaceholders(record, null, null, null),
                 "${", "}");
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
@@ -103,7 +103,7 @@ public class EmailHelper {
     /**
      * Helper method to load named placeholders used with email content templates.
      */
-    private static Map<String ,Object> getNamedPlaceholders(Record record, String downloadUrl, String expirationDate) {
+    private static Map<String ,Object> getNamedPlaceholders(Record record, String downloadUrl, String expirationDate, String smeAppUrl) {
         Map<String, Object> map = new HashMap<>();
         map.put("RECORD_ID", record.getId());
         map.put("CASE_NUMBER", record.getCaseNum());
@@ -112,12 +112,14 @@ public class EmailHelper {
         map.put("COUNTRY", record.getUserInfo().getCountry());
         map.put("EMAIL", record.getUserInfo().getEmail());
         map.put("APPROVAL_STATUS", record.getUserInfo().getApprovalStatus());
-        map.put("DATASET_ID", record.getUserInfo().getSubject().replace("RPA: ", ""));
+        map.put("DATASET_ID", record.getUserInfo().getSubject());
         map.put("DATASET_NAME", record.getUserInfo().getProductTitle());
         if (downloadUrl != null)
             map.put("DOWNLOAD_URL", downloadUrl);
         if (expirationDate != null)
             map.put("EXPIRATION_DATE", expirationDate);
+        if (smeAppUrl != null)
+            map.put("SME_APP_URL", smeAppUrl);
         return map;
     }
 }
