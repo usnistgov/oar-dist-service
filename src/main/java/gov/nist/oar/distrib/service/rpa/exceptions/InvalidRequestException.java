@@ -1,5 +1,8 @@
 package gov.nist.oar.distrib.service.rpa.exceptions;
 
+/**
+ * an exception indicating that a http request in invalid.
+ */
 public class InvalidRequestException extends RPAException {
     private static final long serialVersionUID = 1L;
 

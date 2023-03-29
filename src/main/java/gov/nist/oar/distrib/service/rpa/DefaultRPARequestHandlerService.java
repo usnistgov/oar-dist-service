@@ -2,6 +2,7 @@ package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.exceptions.FailedRecordUpdateException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
@@ -87,6 +88,9 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      *
      * @param recordId  the identifier for the record.
      *
+     * @exception UnauthorizedException if there is an issue with the access token.
+     * @exception RecordNotFoundException if record is not found.
+     *
      * @return RecordWrapper -- the requested record wrapped within a "record" envelope.
      */
     @Override
@@ -113,10 +117,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      *
      * @param userInfoWrapper  the information provided by the user.
      *
+     * @exception UnauthorizedException if there is an issue with the access token.
+     * @exception InvalidRecaptchaException if there is an issue processing the recaptcha.
+     * @exception InvalidRequestException if there is an issue with the request fields.
+     *
      * @return RecordWrapper -- the newly created record wrapped within a "record" envelope.
      */
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRecaptchaException, InvalidRequestException, UnauthorizedException {
+    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper)
+            throws InvalidRecaptchaException, InvalidRequestException, UnauthorizedException {
+
         String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
         JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
@@ -147,7 +157,6 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return responseEntity.getBody();
     }
 
-
     /**
      * Function to verify the recaptcha token.
      */
@@ -168,7 +177,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * On successful creation of a record, send a confirmation email to the user, and another email to the approver.
      * Check if sending of emails was successful.
      */
-    private void onSuccessfulRecordCreation(Record record) {
+    private void onSuccessfulRecordCreation(Record record) throws UnauthorizedException {
         LOGGER.debug("Record created successfully! Now sending emails...");
         if (sendConfirmationEmailToEndUser(record).equals(HttpStatus.OK)) {
             LOGGER.debug("Confirmation email sent to end user successfully!");
@@ -199,10 +208,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * @param recordId  the identifier for the record.
      * @param status  the new status.
      *
+     * @exception UnauthorizedException if there is an issue with the access token.
+     * @exception RecordNotFoundException if record is not found.
+     * @exception FailedRecordUpdateException if the record update failed.
+     *
      * @return RecordStatus -- the updated status of the record.
      */
     @Override
-    public RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException, UnauthorizedException {
+    public RecordStatus updateRecord(String recordId, String status)
+            throws RecordNotFoundException, UnauthorizedException, FailedRecordUpdateException {
+
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
         HttpClient httpClient = HttpClientBuilder.create().build();
         patchRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
@@ -217,9 +232,16 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .path(updateRecordUri + "/" + recordId)
                 .toUriString();
         LOGGER.debug("UPDATE_URL=" + url);
-        ResponseEntity<RecordStatus> responseEntity = patchRestTemplate.exchange(
-                url, HttpMethod.PATCH, request, RecordStatus.class
-        );
+        ResponseEntity<RecordStatus> responseEntity = null;
+        try {
+            responseEntity= patchRestTemplate.exchange(
+                    url, HttpMethod.PATCH, request, RecordStatus.class
+            );
+        } catch (HttpStatusCodeException e) {
+            LOGGER.debug("failed to update record: " + e.getResponseBodyAsString());
+            throw FailedRecordUpdateException.forID(recordId);
+        }
+
         // check if status is approved and trigger the caching process
         LOGGER.debug("APPROVAL_STATUS=" + responseEntity.getBody().getApprovalStatus());
         if (responseEntity.getBody().getApprovalStatus().toLowerCase().contains("approved")) {
@@ -260,51 +282,31 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return responseEntity.getBody();
     }
 
-    private HttpStatus sendApprovalEmailToSME(Record record) {
+    private HttpStatus sendApprovalEmailToSME(Record record) throws UnauthorizedException {
         EmailInfo emailInfo = EmailHelper.getSMEApprovalEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = null;
-        try {
-            responseEntity = this.sendEmail(emailInfo);
-        } catch (UnauthorizedException e) {
-            throw new RuntimeException(e);
-        }
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
-    private HttpStatus sendConfirmationEmailToEndUser(Record record) {
+    private HttpStatus sendConfirmationEmailToEndUser(Record record) throws UnauthorizedException {
         EmailInfo emailInfo = EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = null;
-        try {
-            responseEntity = this.sendEmail(emailInfo);
-        } catch (UnauthorizedException e) {
-            throw new RuntimeException(e);
-        }
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
-    private HttpStatus sendDownloadEmailToEndUser(Record record, String downloadUrl) {
+    private HttpStatus sendDownloadEmailToEndUser(Record record, String downloadUrl) throws UnauthorizedException {
         EmailInfo emailInfo = EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), downloadUrl);
         LOGGER.info("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = null;
-        try {
-            responseEntity = this.sendEmail(emailInfo);
-        } catch (UnauthorizedException e) {
-            throw new RuntimeException(e);
-        }
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 
-    private HttpStatus sendDeclinedEmailToEndUser(Record record) {
+    private HttpStatus sendDeclinedEmailToEndUser(Record record) throws UnauthorizedException {
         EmailInfo emailInfo = EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = null;
-        try {
-            responseEntity = this.sendEmail(emailInfo);
-        } catch (UnauthorizedException e) {
-            throw new RuntimeException(e);
-        }
+        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
         return responseEntity.getStatusCode();
     }
 

@@ -1,5 +1,8 @@
 package gov.nist.oar.distrib.service.rpa.exceptions;
 
+/**
+ * a base exception for problems related to restricted public access.
+ */
 public class RPAException extends Exception {
 
     /**

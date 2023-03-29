@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import gov.nist.oar.distrib.service.rpa.exceptions.FailedRecordUpdateException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
@@ -38,6 +39,6 @@ public interface RPARequestHandlerService {
      *
      * @return RecordStatus -- the updated status of the record.
      */
-    RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException, UnauthorizedException;
+    RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException, UnauthorizedException, FailedRecordUpdateException;
 
 }

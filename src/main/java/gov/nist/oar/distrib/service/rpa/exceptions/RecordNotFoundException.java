@@ -1,16 +1,19 @@
 package gov.nist.oar.distrib.service.rpa.exceptions;
 
+/**
+ * an exception indicating that the record was not found.
+ */
 public class RecordNotFoundException extends RPAException {
 
     private static final long serialVersionUID = 1L;
 
     /**
-     * the identifer for the resource
+     * the record identifier
      */
     public String id = null;
 
     /**
-     * indicate that a particular version of the resource cannot be found
+     * indicate that a particular the record with given ID could not be found
      * @param message   the description of the problem
      * @param id        the identifier used to find the record (can be null)
      */

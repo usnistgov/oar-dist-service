@@ -4,6 +4,7 @@ import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.exceptions.FailedRecordUpdateException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
@@ -91,7 +92,7 @@ public class RPARequestHandlerController {
      */
     @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json")
     public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch)
-            throws RecordNotFoundException, UnauthorizedException {
+            throws RecordNotFoundException, UnauthorizedException, FailedRecordUpdateException {
         LOGGER.info("Updating approval status of record with ID = " + id);
         return new ResponseEntity<>(service.updateRecord(id, patch.getApprovalStatus()), HttpStatus.OK);
     }
@@ -117,6 +118,12 @@ public class RPARequestHandlerController {
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleUnauthorizedException(UnauthorizedException ex) {
+        return new ErrorInfo(500, "internal server error: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(FailedRecordUpdateException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleUnauthorizedException(FailedRecordUpdateException ex) {
         return new ErrorInfo(500, "internal server error: " + ex.getMessage());
     }
 }
