@@ -6,6 +6,7 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
+import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -115,7 +116,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      *
      * @return Map<String, Object> -- metadata about files in dataset
      */
-    public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException {
+    public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException, MetadataNotFoundException {
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
@@ -123,6 +124,9 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
                 JSONObject objMd = formatMetadata(obj.exportMetadata(), randomID);
                 metadata.put(objMd);
             }
+        }
+        if (metadata.isEmpty()) {
+            throw new MetadataNotFoundException("metadata list is empty");
         }
         JSONObject result = new JSONObject();
         result.put("randomId", randomID);
