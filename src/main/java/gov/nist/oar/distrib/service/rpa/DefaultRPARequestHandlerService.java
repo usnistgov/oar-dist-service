@@ -2,6 +2,10 @@ package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.UnauthorizedException;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
@@ -26,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDateTime;
@@ -85,7 +90,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * @return RecordWrapper -- the requested record wrapped within a "record" envelope.
      */
     @Override
-    public RecordWrapper getRecord(String recordId) {
+    public RecordWrapper getRecord(String recordId) throws RecordNotFoundException, UnauthorizedException {
         String getRecordUri = getConfig().getSalesforceEndpoints().get(GET_RECORD_ENDPOINT_KEY);
         JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, null);
@@ -94,6 +99,9 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .toUriString();
         ResponseEntity<RecordWrapper> response = restTemplate.exchange(url, HttpMethod.GET,
                 new HttpEntity<>(headers), RecordWrapper.class);
+        if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+            throw RecordNotFoundException.forID(recordId);
+        }
         return response.getBody();
     }
 
@@ -108,7 +116,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * @return RecordWrapper -- the newly created record wrapped within a "record" envelope.
      */
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) {
+    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRecaptchaException, InvalidRequestException, UnauthorizedException {
         String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
         JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
@@ -118,7 +126,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         // first check if recaptcha is valid
         RecaptchaResponse recaptchaResponse = verifyRecaptcha(userInfoWrapper.getRecaptcha());
         if (!recaptchaResponse.isSuccess()) {
-            throw new RuntimeException("reCaptcha was not successfully validated");
+            throw new InvalidRecaptchaException("failed to verify the reCaptcha: " + recaptchaResponse.getErrorCodes());
         }
         try {
             // cleaning form input from any HTML
@@ -127,7 +135,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
             LOGGER.debug("PAYLOAD=" + payload);
             request = new HttpEntity<>(payload, headers);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new InvalidRequestException("could not clean form fields: " + e.getMessage());
         }
         String url = token.getInstanceUrl() + createRecordUri;
         ResponseEntity<RecordWrapper> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, RecordWrapper.class);
@@ -194,7 +202,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * @return RecordStatus -- the updated status of the record.
      */
     @Override
-    public RecordStatus updateRecord(String recordId, String status) {
+    public RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException, UnauthorizedException {
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
         HttpClient httpClient = HttpClientBuilder.create().build();
         patchRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
@@ -225,7 +233,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return responseEntity.getBody();
     }
 
-    private HttpStatus onEndUserApproved(String recordId) {
+    private HttpStatus onEndUserApproved(String recordId) throws RecordNotFoundException, UnauthorizedException {
         LOGGER.info("User was approved by SME. Starting caching...");
         Record record = getRecord(recordId).getRecord();
         String datasetId = record.getUserInfo().getSubject();
@@ -237,7 +245,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         return sendDownloadEmailToEndUser(record, downloadUrl);
     }
 
-    private HttpStatus onEndUserDeclined(String recordId) {
+    private HttpStatus onEndUserDeclined(String recordId) throws RecordNotFoundException, UnauthorizedException {
         LOGGER.info("User was declined by SME. Sending declined email to user...");
         Record record = getRecord(recordId).getRecord();
         return sendDeclinedEmailToEndUser(record);
@@ -255,33 +263,53 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     private HttpStatus sendApprovalEmailToSME(Record record) {
         EmailInfo emailInfo = EmailHelper.getSMEApprovalEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = null;
+        try {
+            responseEntity = this.sendEmail(emailInfo);
+        } catch (UnauthorizedException e) {
+            throw new RuntimeException(e);
+        }
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendConfirmationEmailToEndUser(Record record) {
         EmailInfo emailInfo = EmailHelper.getEndUserConfirmationEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = null;
+        try {
+            responseEntity = this.sendEmail(emailInfo);
+        } catch (UnauthorizedException e) {
+            throw new RuntimeException(e);
+        }
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendDownloadEmailToEndUser(Record record, String downloadUrl) {
         EmailInfo emailInfo = EmailHelper.getEndUserDownloadEmailInfo(record, getConfig(), downloadUrl);
         LOGGER.info("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = null;
+        try {
+            responseEntity = this.sendEmail(emailInfo);
+        } catch (UnauthorizedException e) {
+            throw new RuntimeException(e);
+        }
         return responseEntity.getStatusCode();
     }
 
     private HttpStatus sendDeclinedEmailToEndUser(Record record) {
         EmailInfo emailInfo = EmailHelper.getEndUserDeclinedEmailInfo(record, getConfig());
         LOGGER.debug("EMAIL_INFO=" + emailInfo);
-        ResponseEntity<EmailInfoWrapper> responseEntity = this.sendEmail(emailInfo);
+        ResponseEntity<EmailInfoWrapper> responseEntity = null;
+        try {
+            responseEntity = this.sendEmail(emailInfo);
+        } catch (UnauthorizedException e) {
+            throw new RuntimeException(e);
+        }
         return responseEntity.getStatusCode();
     }
 
 
-    private ResponseEntity<EmailInfoWrapper> sendEmail(EmailInfo emailInfo) {
+    private ResponseEntity<EmailInfoWrapper> sendEmail(EmailInfo emailInfo) throws UnauthorizedException {
         String sendEmailUri = getConfig().getSalesforceEndpoints().get(SEND_EMAIL_ENDPOINT_KEY);
         JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, MediaType.APPLICATION_JSON);
@@ -298,20 +326,9 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
 
 
     /**
-     * Update the status of a specific record.
-     *
-     * This asks for an access token, then uses it to add the bearer auth http header.
-     * Constructs the URL, and sends a PATCH request to update a record.
-     *
-     * We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
-     * does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
-     *
-     * @param recordId  the identifier for the record.
-     * @param status  the new status.
-     *
-     * @return RecordStatus -- the updated status of the record.
+     * Test connection to Salesforce service to make sure the Connected App is working.
      */
-    public String testSalesforceAPIConnection() {
+    public String testSalesforceAPIConnection() throws UnauthorizedException {
         String testUri = getConfig().getSalesforceEndpoints().get(API_TEST_ENDPOINT_KEY);
         JWTToken token = getToken();
         HttpHeaders headers = getHttpHeaders(token, null);
@@ -331,7 +348,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     // JWT methods
 
     // Retrieve the JWT Access Token
-    private JWTToken getToken() {
+    private JWTToken getToken() throws UnauthorizedException {
         return sendTokenRequest(createAssertion());
     }
 
@@ -354,7 +371,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      *
      * @return JWTToken - the access token
      */
-    private JWTToken sendTokenRequest(String assertion) {
+    private JWTToken sendTokenRequest(String assertion) throws UnauthorizedException {
         String url = UriComponentsBuilder.fromUriString(getConfig().getSalesforceInstanceUrl())
                 .path("/services/oauth2/token")
                 .queryParam("grant_type", getConfig().getSalesforceJwt().getGrantType())
@@ -362,7 +379,19 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
                 .toUriString();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        return restTemplate.postForObject(url, new HttpEntity<>(null, headers), JWTToken.class);
+        ResponseEntity<JWTToken> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(null, headers),
+                    JWTToken.class
+            );
+        } catch (HttpStatusCodeException e) {
+            LOGGER.debug("access token request is invalid: " + e.getResponseBodyAsString());
+            throw new UnauthorizedException("access token request is invalid: " + e.getResponseBodyAsString());
+        }
+        return response.getBody();
     }
 
 
