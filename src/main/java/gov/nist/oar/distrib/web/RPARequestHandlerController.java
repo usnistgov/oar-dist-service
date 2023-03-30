@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 
 @RestController
@@ -38,13 +39,16 @@ import org.springframework.web.bind.annotation.RestController;
         name = "Restricted Public Access Request Handler API",
         description = "These endpoints will handle end user request to download data under restricted public access."
 )
-@CrossOrigin(origins = {"*"})
 @RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
-    @Autowired
     RPARequestHandlerService service;
+
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
+    @Autowired
+    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider) {
+        this.service = rpaServiceProvider.getRPARequestHandlerService(new RestTemplate());
+    }
     /**
      * Test connection to Salesforce.
      */

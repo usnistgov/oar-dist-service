@@ -44,6 +44,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -292,6 +293,9 @@ public class NISTDistribServiceConfig {
         return new RPACachingService(cacheManagerProvider.getPDRCacheManager());
     }
 
+    /**
+     * create a configuration object for Restricted Public Access (RPA)
+     */
     @Bean
     @ConfigurationProperties("distrib.rpa")
     public RPAConfiguration getRPAConfiguration() throws ConfigurationException {
@@ -300,20 +304,13 @@ public class NISTDistribServiceConfig {
     }
 
     /**
-     * the implementation to use for the private key retriever
+     * the configured RPAServiceProvider to use
      */
     @Bean
-    public KeyRetriever getKeyRetriever() {
-        return new JKSKeyRetriever();
+    public RPAServiceProvider getRPAServiceProvider(RPAConfiguration rpaConfiguration) {
+        return new RPAServiceProvider(rpaConfiguration);
     }
 
-    /**
-     * the service implementation to use for RPARequestHandlerService
-     */
-    @Bean
-    public RPARequestHandlerService getRPARequestHandlerService(RPAConfiguration rpaConfiguration, KeyRetriever keyRetriever) {
-        return new DefaultRPARequestHandlerService(rpaConfiguration, keyRetriever);
-    }
 
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.

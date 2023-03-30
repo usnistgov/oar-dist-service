@@ -55,18 +55,20 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
     private RPAConfiguration rpaConfiguration = null;
     private KeyRetriever keyRetriever = null;
     private RestTemplate restTemplate;
-    private RestTemplate patchRestTemplate;
 
     /**
      * Constructs a new DefaultRPARequestHandlerService object with the given rpaConfiguration and keyRetriever.
      * @param rpaConfiguration The Restricted Public Access (RPA) configuration object
      * @param keyRetriever The private key retriever object
      */
-    public DefaultRPARequestHandlerService(RPAConfiguration rpaConfiguration, KeyRetriever keyRetriever) {
+    public DefaultRPARequestHandlerService(RPAConfiguration rpaConfiguration, RestTemplate restTemplate) {
         this.rpaConfiguration = rpaConfiguration;
-        this.keyRetriever = keyRetriever;
+        this.keyRetriever = new JKSKeyRetriever();
         this.restTemplate = new RestTemplate();
-        this.patchRestTemplate = new RestTemplate();
+        // We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
+        // does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
+        HttpClient httpClient = HttpClientBuilder.create().build();
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
     }
@@ -202,9 +204,6 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
      * This asks for an access token, then uses it to add the bearer auth http header.
      * Constructs the URL, and sends a PATCH request to update a record.
      *
-     * We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
-     * does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
-     *
      * @param recordId  the identifier for the record.
      * @param status  the new status.
      *
@@ -219,8 +218,6 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
             throws RecordNotFoundException, UnauthorizedException, FailedRecordUpdateException {
 
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
-        HttpClient httpClient = HttpClientBuilder.create().build();
-        patchRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
         JSONObject updateBody = new JSONObject();
         updateBody.put("Approval_Status__c", status);
         JWTToken token = getToken();
@@ -234,7 +231,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         LOGGER.debug("UPDATE_URL=" + url);
         ResponseEntity<RecordStatus> responseEntity = null;
         try {
-            responseEntity= patchRestTemplate.exchange(
+            responseEntity= restTemplate.exchange(
                     url, HttpMethod.PATCH, request, RecordStatus.class
             );
         } catch (HttpStatusCodeException e) {
