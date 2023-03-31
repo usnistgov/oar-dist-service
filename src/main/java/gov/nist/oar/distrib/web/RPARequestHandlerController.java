@@ -39,6 +39,7 @@ import org.springframework.web.client.RestTemplate;
         name = "Restricted Public Access Request Handler API",
         description = "These endpoints will handle end user request to download data under restricted public access."
 )
+@CrossOrigin
 @RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
     RPARequestHandlerService service;
