@@ -44,7 +44,6 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class DefaultRPARequestHandlerService implements RPARequestHandlerService {
 
-
     private final static Logger LOGGER = LoggerFactory.getLogger(DefaultRPARequestHandlerService.class);
     private final static String API_TEST_ENDPOINT_KEY = "api-test-endpoint";
     private final static String GET_RECORD_ENDPOINT_KEY = "get-record-endpoint";
@@ -68,7 +67,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         // We need to include HttpComponentsClientHttpRequestFactory because The standard JDK HTTP library
         // does not support HTTP PATCH. We need to use the Apache HttpComponents or OkHttp request factory.
         HttpClient httpClient = HttpClientBuilder.create().build();
-        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+        this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
     }
