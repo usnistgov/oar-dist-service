@@ -65,11 +65,13 @@
             <artifactId>aws-java-sdk-s3</artifactId>
             <version>1.12.100</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.13</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>
@@ -117,7 +119,7 @@
         <dependency>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-lang3</artifactId>
-          <version>3.8.1</version>
+          <version>3.12.0</version>
         </dependency>
         <dependency>
           <groupId>org.apache.commons</groupId>
@@ -185,6 +187,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
             <version>1.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.14.3</version>
         </dependency>
     </dependencies>
     <build>
