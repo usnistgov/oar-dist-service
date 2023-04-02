@@ -8,12 +8,12 @@ public class RecordNotFoundException extends RPAException {
     private static final long serialVersionUID = 1L;
 
     /**
-     * the record identifier
+     * The record identifier
      */
     public String id = null;
 
     /**
-     * indicate that a particular the record with given ID could not be found
+     * Indicate that a particular the record with given ID could not be found
      * @param message   the description of the problem
      * @param id        the identifier used to find the record (can be null)
      */
@@ -23,9 +23,9 @@ public class RecordNotFoundException extends RPAException {
     }
 
     /**
-     * * create an instance for a given identifier
+     * * Create an instance for a given identifier
      */
     public static RecordNotFoundException forID(String id) {
-        return new RecordNotFoundException("record with ID=" + id + " could not be found", id);
+        return new RecordNotFoundException("Record with ID=" + id + " could not be found", id);
     }
 }
