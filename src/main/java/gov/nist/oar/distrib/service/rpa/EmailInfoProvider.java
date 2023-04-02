@@ -5,38 +5,60 @@ import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.commons.text.StringSubstitutor;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.AbstractMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A helper class to help construct {@EmailInfo} objects for different use cases.
  */
-public class EmailInfoHelper {
+public class EmailInfoProvider {
 
     private static final String DATE_PATTERN = "EEEE, MM/dd/yyyy 'at' hh:mm a z";
-
+    private static final int EXPIRATION_DAYS = 14;
     private final RPAConfiguration rpaConfiguration;
 
     /**
-     * Constructs an instance of EmailHelper with the given RPA configuration, or a default configuration if none is provided.
+     * Constructs an instance of {@link EmailInfoProvider} with the given RPA configuration, or a default configuration if none is provided.
      *
-     * @param rpaConfiguration the RPA configuration (optional)
+     * @param rpaConfiguration the RPA configuration
      */
-    public EmailInfoHelper(RPAConfiguration rpaConfiguration) {
+    public EmailInfoProvider(RPAConfiguration rpaConfiguration) {
         if (rpaConfiguration != null) {
             this.rpaConfiguration = rpaConfiguration;
         } else {
-            this.rpaConfiguration = new RPAConfiguration();
+            throw new NullPointerException("RPAConfiguration cannot be null");
         }
     }
 
     /**
-     * Generates an email to be sent to the SME for approving a request.
+     * Generates an email to be sent to the Subject-Matter Expert (SME) for approving a request.
      *
      * @param record the record this email is related to
      * @return the email information (recipient, content, subject)
      */
     public EmailInfo getSMEApprovalEmailInfo(Record record) {
-        // Implementation
+        String recordId = record.getId();
+        String datasetId = record.getUserInfo().getSubject();
+        String smeEmailAddress = rpaConfiguration.getApprovers().get(datasetId).getEmail();
+        String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
+        String content = createEmailContent(record);
+
+        return new EmailInfo(recordId, smeEmailAddress, subject, content);
+    }
+
+    private String createEmailContent(Record record) {
+        Map<String, String> namedPlaceholders = getNamedPlaceholders(
+                record, null, null, rpaConfiguration.getSmeAppUrl());
+        return StringSubstitutor.replace(
+                rpaConfiguration.SMEApprovalEmail().getContent(),
+                namedPlaceholders,
+                "${", "}");
     }
 
     /**
@@ -46,18 +68,46 @@ public class EmailInfoHelper {
      * @return the email information (recipient, content, subject)
      */
     public EmailInfo getEndUserConfirmationEmailInfo(Record record) {
-        // Implementation
+        String recordId = record.getId();
+        String endUserEmailAddress = record.getUserInfo().getEmail();
+        String subject = rpaConfiguration.endUserConfirmationEmail().getSubject();
+        String content = createEndUserEmailContent(record);
+
+        return new EmailInfo(recordId, endUserEmailAddress, subject, content);
+    }
+
+    private String createEndUserEmailContent(Record record) {
+        Map<String, String> namedPlaceholders = getNamedPlaceholders(
+                record, null, null, null);
+        return StringSubstitutor.replace(
+                rpaConfiguration.endUserConfirmationEmail().getContent(),
+                namedPlaceholders,
+                "${", "}");
     }
 
     /**
      * Generates an email to be sent to the end user notifying them that the request has been approved.
      *
-     * @param record the record this email is related to
+     * @param record      the record this email is related to
      * @param downloadUrl the URL where the end user will download their data
      * @return the email information (recipient, content, subject)
      */
-    public EmailInfo getEndUserDownloadEmailInfo(Record record, String downloadUrl) {
-        // Implementation
+    public EmailInfo getEndUserApprovedEmailInfo(Record record, String downloadUrl) {
+        String recordId = record.getId();
+        String endUserEmailAddress = record.getUserInfo().getEmail();
+        String subject = rpaConfiguration.endUserApprovedEmail().getSubject();
+        String content = createEndUserApprovedEmailContent(record, downloadUrl);
+
+        return new EmailInfo(recordId, endUserEmailAddress, subject, content);
+    }
+
+    private String createEndUserApprovedEmailContent(Record record, String downloadUrl) {
+        String expirationDate = getExpirationDate();
+        Map<String, String> namedPlaceholders = getNamedPlaceholders(record, downloadUrl, expirationDate, null);
+        return StringSubstitutor.replace(
+                rpaConfiguration.endUserApprovedEmail().getContent(),
+                namedPlaceholders,
+                "${", "}");
     }
 
     /**
@@ -66,38 +116,64 @@ public class EmailInfoHelper {
      * @param record the record this email is related to
      * @return the email information (recipient, content, subject)
      */
-    public EmailInfo getEndUserDeclinedEmailInfo(Record record) {
+    public EmailInfo getEndUserDeclinedEmailInfo(Record record, RPAConfiguration rpaConfiguration) {
         String recordId = record.getId();
-        String datasetId = record.getUserInfo().getSubject();
-        String smeEmailAddress = rpaConfiguration.getApprovers().get(datasetId).getEmail();
-        String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
-        String content = StringSubstitutor.replace(
-                rpaConfiguration.SMEApprovalEmail().getContent(),
-                getNamedPlaceholders(record, null, null, rpaConfiguration.getSmeAppUrl()),
+        String endUserEmailAddress = record.getUserInfo().getEmail();
+        String subject = rpaConfiguration.endUserDeclinedEmail().getSubject();
+        String content = createEndUserDeclinedEmailContent(record);
+
+        return new EmailInfo(recordId, endUserEmailAddress, subject, content);
+    }
+
+    private String createEndUserDeclinedEmailContent(Record record) {
+        Map<String, String> namedPlaceholders = getNamedPlaceholders(
+                record, null, null, null);
+        return StringSubstitutor.replace(
+                rpaConfiguration.endUserDeclinedEmail().getContent(),
+                namedPlaceholders,
                 "${", "}");
-        return new EmailInfo(recordId, smeEmailAddress, subject, content);
     }
 
     /**
      * Helper method to load named placeholders used with email content templates.
      *
-     * @param record the record this email is related to
-     * @param downloadUrl the URL where the end user will download their data
+     * This uses  {@link Stream#of(Object)} to create a stream of {@link AbstractMap.SimpleEntry}.  It filters out any entries with null value,
+     * and collects the remaining entries into a map using the {@link Collectors#toMap(Function, Function)} method.
+     *
+     * @param record         the record this email is related to
+     * @param downloadUrl    the URL where the end user will download their data, this will point to the rpa datacart.
      * @param expirationDate the expiration date of the data
-     * @param smeAppUrl the URL of the SME approval application
+     * @param smeAppUrl      the URL of the SME approval application
+     *
      * @return a map of named placeholders and their values
      */
     private Map<String, String> getNamedPlaceholders(Record record, String downloadUrl, String expirationDate, String smeAppUrl) {
-        // Implementation
+        return Stream.of(
+                new AbstractMap.SimpleEntry<>("RECORD_ID", record.getId()),
+                new AbstractMap.SimpleEntry<>("CASE_NUMBER", record.getCaseNum()),
+                new AbstractMap.SimpleEntry<>("FULL_NAME", record.getUserInfo().getFullName()),
+                new AbstractMap.SimpleEntry<>("ORGANIZATION", record.getUserInfo().getOrganization()),
+                new AbstractMap.SimpleEntry<>("COUNTRY", record.getUserInfo().getCountry()),
+                new AbstractMap.SimpleEntry<>("EMAIL", record.getUserInfo().getEmail()),
+                new AbstractMap.SimpleEntry<>("APPROVAL_STATUS", record.getUserInfo().getApprovalStatus()),
+                new AbstractMap.SimpleEntry<>("DATASET_ID", record.getUserInfo().getSubject()),
+                new AbstractMap.SimpleEntry<>("DATASET_NAME", record.getUserInfo().getProductTitle()),
+                new AbstractMap.SimpleEntry<>("DOWNLOAD_URL", downloadUrl),
+                new AbstractMap.SimpleEntry<>("EXPIRATION_DATE", expirationDate),
+                new AbstractMap.SimpleEntry<>("SME_APP_URL", smeAppUrl)
+        )
+        .filter(e -> e.getValue() != null)
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**
-     * Returns a string representation of the date that is {@code days} days in the future.
+     * Returns a string representation of the expiration date.
      *
-     * @param days the number of days to add to the current date
      * @return a string representing the date that is {@code days} days in the future
      */
-    private String getDateInXDays(int days) {
-        // Implementation
+    private String getExpirationDate() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_PATTERN, Locale.ENGLISH);
+        ZonedDateTime date = ZonedDateTime.now().plusDays(EXPIRATION_DAYS);
+        return formatter.format(date);
     }
 }
