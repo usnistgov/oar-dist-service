@@ -3,17 +3,36 @@ package gov.nist.oar.distrib.service.rpa.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A class that encapsulates the Google service response for the reCaptcha validation request.
+ * Success property with a true value means the user has been validated.
+ * Otherwise, the user was not validated and the errorCodes property will contain the reason.
+ *
+ * The hostname property refers to the host that redirected the user to the reCAPTCHA.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonPropertyOrder({
+        "success",
+        "challenge_ts",
+        "hostname",
+        "error-codes"
+})
 public class RecaptchaResponse {
     @JsonProperty("success")
     boolean success;
@@ -52,6 +71,16 @@ public class RecaptchaResponse {
         return errorCodes;
     }
 
+    public String[] getErrorCodesAsStrings() {
+        ErrorCode[] codes = getErrorCodes();
+        if (codes == null) {
+            return new String[0];
+        }
+        return Arrays.stream(codes)
+                .map(ErrorCode::name)
+                .toArray(String[]::new);
+    }
+
     public void setErrorCodes(ErrorCode[] errorCodes) {
         this.errorCodes = errorCodes;
     }
@@ -72,7 +101,7 @@ public class RecaptchaResponse {
         return false;
     }
 
-    static enum ErrorCode {
+    public enum ErrorCode {
         MissingSecret,     InvalidSecret,
         MissingResponse,   InvalidResponse;
 
@@ -89,5 +118,18 @@ public class RecaptchaResponse {
         public static ErrorCode forValue(String value) {
             return errorsMap.get(value.toLowerCase());
         }
+    }
+
+    @Override
+    public String toString() {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonStr;
+        try {
+            jsonStr = mapper.writeValueAsString(this);
+        } catch (
+                JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return jsonStr;
     }
 }

@@ -2,6 +2,8 @@ package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -34,5 +36,18 @@ public class UserInfoWrapper {
 
     public void setRecaptcha(String recaptcha) {
         this.recaptcha = recaptcha;
+    }
+
+    @Override
+    public String toString() {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonStr;
+        try {
+            jsonStr = mapper.writeValueAsString(this);
+        } catch (
+                JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return jsonStr;
     }
 }
