@@ -1,11 +1,13 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.exceptions.ClientRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.ServerRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -14,11 +16,16 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
 
+import static gov.nist.oar.distrib.service.rpa.RecaptchaHelper.RECAPTCHA_VERIFY_URL;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class RecaptchaVerifierTest {
+public class RecaptchaHelperTest {
 
     private String MOCK_RECAPTCHA_RESPONSE = "03AGdBq24RJhXnXW1j8MvTtJQwL3qDdWVEiv8vZBaz0M4dkD4znXmC_2-uJjgSx0SdSEHkCP8W7Pl" +
             "jJb89--TlTsz9Xj8AeTt_NvEqIsNQDd3qJ8-KjNzDrhjrJjE3e9qRGcB7yIdYv_7JqaCnCFxZ8IwpZu45GRZXf-NnH9XDWoU6etpww6" +
@@ -31,33 +38,54 @@ public class RecaptchaVerifierTest {
     private static final String RECAPTCHA_RESPONSE = "response";
 
     @Mock
-    URIBuilder uriBuilder;
-
-    @Mock
     private HttpURLConnection mockConnection;
 
     @Mock
-    private ObjectMapper objectMapper;
+    private HttpURLConnectionFactory mockConnectionFactory;
 
-    @InjectMocks
-    private RecaptchaVerifier recaptchaVerifier;
+
+    private RecaptchaHelper recaptchaHelper;
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
+        recaptchaHelper = new RecaptchaHelper();
+        recaptchaHelper.setHttpURLConnectionFactory(mockConnectionFactory);
     }
 
+    private String createTestUri() {
+        // Build the URI
+        String uri = null;
+        try {
+            uri = new URIBuilder(RECAPTCHA_VERIFY_URL)
+                    .setParameter("secret", RECAPTCHA_SECRET)
+                    .setParameter("response", RECAPTCHA_RESPONSE)
+                    .build()
+                    .toString();;
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        return uri;
+    }
     @Test
     public void testVerifyRecaptcha_validResponse_success() throws Exception {
-        // Arrange
-        // Dummy recaptchaResponse
-        String expectedResponseData = "{\"success\":true}";
-
-        InputStream inputStream = new ByteArrayInputStream(
-                new ObjectMapper().writeValueAsString(expectedResponseData).getBytes());
+        String expectedUri = createTestUri();
+        // Mock the response from the Google reCAPTCHA service
+        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUri))).thenReturn(mockConnection);
+        // Set expected dummy response
+        String expectedResponseData = "{" +
+                "  \"success\": true," +
+                "  \"challenge_ts\": \"2022-04-07T10:42:41Z\"," +
+                "  \"hostname\": \"example.com\"" +
+                "}";
+        // Create an input stream with the dummy data
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
         // When getInputStream() is called on the mockConnection, return the dummy input stream
         when(mockConnection.getInputStream()).thenReturn(inputStream);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+
+        // Call the method under test
+        RecaptchaResponse actualResponse = recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
 
         // Read from the input stream and check if response is correct
         try (BufferedReader in = new BufferedReader(new InputStreamReader(mockConnection.getInputStream()))) {
@@ -68,49 +96,110 @@ public class RecaptchaVerifierTest {
                 response.append(line);
             }
             ObjectMapper mapper = new ObjectMapper();
-            RecaptchaResponse expectedToken = mapper.readValue(expectedResponseData, RecaptchaResponse.class);
-            assertEquals(expectedToken.getAccessToken(), actualToken.getAccessToken());
-            assertEquals(expectedToken.getInstanceUrl(), actualToken.getInstanceUrl());
+            RecaptchaResponse expectedResponse = mapper.readValue(expectedResponseData, RecaptchaResponse.class);
+            assertEquals(expectedResponse.isSuccess(), actualResponse.isSuccess());
         }
-        // Act
-        recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
 
-        // Assert
-        // Verify that no exception is thrown and the verifyRecaptcha() method returns successfully
+        // Verify that the connection was closed
+        verify(mockConnection).disconnect();
     }
 
-//    @Test
-//    public void testVerifyRecaptcha_unsuccessfulValidation_failure() throws Exception {
-//
-//        // Build the URI
-//        String uri = new URIBuilder(RECAPTCHA_VERIFY_URL)
-//                .setParameter("secret", RECAPTCHA_SECRET)
-//                .setParameter("response", RECAPTCHA_RESPONSE)
-//                .build()
-//                .toString();
-//
-//        // Create the mock response from Google reCAPTCHA service
-//        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-//
-//        // Set the response from Google reCAPTCHA service
-//        String errorResponse = "{\"success\": false, \"error-codes\": [\"invalid-input-response\"]}";
-//        InputStream errorStream = new ByteArrayInputStream(errorResponse.getBytes());
-//        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-//        when(mockConnection.getInputStream()).thenReturn(errorStream);
-//        when(mockConnection.getResponseMessage()).thenReturn("Error response from Google reCAPTCHA service");
-//
-//        // Call the method to be tested
-//        RecaptchaResponse mockResponse = new RecaptchaResponse();
-//        mockResponse.setSuccess(false);
-//        mockResponse.setErrorCodes(new RecaptchaResponse.ErrorCode[]{RecaptchaResponse.ErrorCode.InvalidResponse});
-//        RecaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
-//        //
-//        try {
-//            recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
-//            fail();
-//        } catch (InvalidRecaptchaException e) {
-//            assertEquals("reCAPTCHA validation failed due to client error: [invalid-input-response]", e.getMessage());
-//        }
-//    }
+    @Test
+    public void testVerifyRecaptcha_failure_invalidResponse() throws Exception {
+
+        String expectedUri = createTestUri();
+        // Mock the response from the Google reCAPTCHA service
+        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUri))).thenReturn(mockConnection);
+
+        // Set the response from Google reCAPTCHA service
+        String errorResponse = "{\"success\": false, \"error-codes\": [\"invalid-input-response\"]}";
+        InputStream errorStream = new ByteArrayInputStream(errorResponse.getBytes());
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(mockConnection.getInputStream()).thenReturn(errorStream);
+
+         //
+        try {
+            recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
+            fail("Expected InvalidRecaptchaException to be thrown");
+        } catch (ClientRecaptchaException e) {
+            assertEquals("reCAPTCHA validation failed due to client error: [InvalidResponse]", e.getMessage());
+        }
+        // Verify that the connection was closed
+        verify(mockConnection).disconnect();
+    }
+
+    @Test
+    public void testVerifyRecaptcha_failure_missingResponse() throws Exception {
+
+        String expectedUri = createTestUri();
+        // Mock the response from the Google reCAPTCHA service
+        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUri))).thenReturn(mockConnection);
+
+        // Set the response from Google reCAPTCHA service
+        String errorResponse = "{\"success\": false, \"error-codes\": [\"missing-input-response\"]}";
+        InputStream errorStream = new ByteArrayInputStream(errorResponse.getBytes());
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(mockConnection.getInputStream()).thenReturn(errorStream);
+
+        //
+        try {
+            recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
+            fail("Expected InvalidRecaptchaException to be thrown");
+        } catch (ClientRecaptchaException e) {
+            assertEquals("reCAPTCHA validation failed due to client error: [MissingResponse]", e.getMessage());
+        }
+        // Verify that the connection was closed
+        verify(mockConnection).disconnect();
+    }
+
+    @Test
+    public void testVerifyRecaptcha_failure_unknownError() throws Exception {
+
+        String expectedUri = createTestUri();
+        // Mock the response from the Google reCAPTCHA service
+        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUri))).thenReturn(mockConnection);
+
+        // Set the response from Google reCAPTCHA service
+        String errorResponse = "{\"success\": false, \"error-codes\": []}";
+        InputStream errorStream = new ByteArrayInputStream(errorResponse.getBytes());
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(mockConnection.getInputStream()).thenReturn(errorStream);
+
+        //
+        try {
+            recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
+            fail("Expected InvalidRecaptchaException to be thrown");
+        } catch (ServerRecaptchaException e) {
+            assertEquals("reCAPTCHA validation failed due to unknown error", e.getMessage());
+        }
+        // Verify that the connection was closed
+        verify(mockConnection).disconnect();
+    }
+
+    @Test
+    public void testVerifyRecaptcha_failure_badRequest() throws Exception {
+
+        String expectedUri = createTestUri();
+        // Mock the response from the Google reCAPTCHA service
+        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUri))).thenReturn(mockConnection);
+
+        // Set the response from Google reCAPTCHA service
+        String errorResponse = "{\"success\": false, \"error-codes\": []}";
+        InputStream errorStream = new ByteArrayInputStream(errorResponse.getBytes());
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
+        when(mockConnection.getInputStream()).thenReturn(errorStream);
+        when(mockConnection.getResponseMessage()).thenReturn("Bad Request");
+
+        //
+        try {
+            recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
+            fail("Expected InvalidRecaptchaException to be thrown");
+        } catch (ServerRecaptchaException e) {
+            assertEquals("Error response from Google reCAPTCHA service: Bad Request", e.getMessage());
+        }
+        // Verify that the connection was closed
+        verify(mockConnection).disconnect();
+    }
+
 
 }
