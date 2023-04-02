@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -257,6 +258,7 @@ public class RPAConfiguration {
     }
 
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class Approver {
         @JsonProperty("name")
         private String name;
