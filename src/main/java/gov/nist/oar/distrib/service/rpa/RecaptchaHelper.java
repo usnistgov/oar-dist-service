@@ -1,9 +1,8 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.rpa.exceptions.ClientRecaptchaException;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
-import gov.nist.oar.distrib.service.rpa.exceptions.ServerRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -44,6 +43,7 @@ public class RecaptchaHelper {
     public void setHttpURLConnectionFactory(HttpURLConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
     }
+
     // Check if recaptcha response is valid
     public boolean responseSanityCheck(String response) {
         return response != null && !response.isEmpty() && RECAPTCHA_RESPONSE_PATTERN.matcher(response).matches();
@@ -52,16 +52,19 @@ public class RecaptchaHelper {
     /**
      * Verify the Google reCaptcha using the given response string that was returned by the "I am not a Robot" widget.
      *
-     * @param secret the secret used to authenticate requests sent to the Google reCAPTCHA verification service.
+     * @param secret   the secret used to authenticate requests sent to the Google reCAPTCHA verification service.
      * @param response The response string from the Google reCAPTCHA widget.
      * @return RecaptchaResponse the Google response for the validation request.
-     * @throws ClientRecaptchaException If the response contains invalid characters, or validation failed due to client error.
-     * @throws ServerRecaptchaException If there was an error sending the HTTP request or receiving the response from the Google reCAPTCHA service.
+     * @throws ClientRecaptchaException If the response contains invalid characters, or validation failed due to
+     * client error.
+     * @throws ServerRecaptchaException If there was an error sending the HTTP request or receiving the response from
+     * the Google reCAPTCHA service.
      */
-    public RecaptchaResponse verifyRecaptcha(String secret, String response) throws ServerRecaptchaException, ClientRecaptchaException {
+    public RecaptchaResponse verifyRecaptcha(String secret, String response) throws RecaptchaServerException,
+            RecaptchaClientException {
         // Response sanity check
         if (!responseSanityCheck(response)) {
-            throw new ClientRecaptchaException("Response contains invalid characters");
+            throw new RecaptchaClientException("Response contains invalid characters");
         }
 
         // Build the URI
@@ -71,7 +74,8 @@ public class RecaptchaHelper {
                     .setParameter("secret", secret)
                     .setParameter("response", response)
                     .build()
-                    .toString();;
+                    .toString();
+            ;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -93,20 +97,21 @@ public class RecaptchaHelper {
                         responseBuilder.append(line);
                     }
                     // Parse the response and check if the reCAPTCHA was successfully validated
-                    recaptchaResponse = new ObjectMapper().readValue(responseBuilder.toString(), RecaptchaResponse.class);
+                    recaptchaResponse = new ObjectMapper().readValue(responseBuilder.toString(),
+                            RecaptchaResponse.class);
                     if (!recaptchaResponse.isSuccess()) {
                         if (recaptchaResponse.hasClientError())
-                            throw new ClientRecaptchaException("reCAPTCHA validation failed due to client error: " +
+                            throw new RecaptchaClientException("reCAPTCHA validation failed due to client error: " +
                                     Arrays.toString(recaptchaResponse.getErrorCodes()));
-                        throw new ServerRecaptchaException("reCAPTCHA validation failed due to unknown error");
+                        throw new RecaptchaServerException("reCAPTCHA validation failed due to unknown error");
                     }
                 }
             } else {
                 // Handle any other error response
-                throw new ServerRecaptchaException("Error response from Google reCAPTCHA service: " + connection.getResponseMessage());
+                throw new RecaptchaServerException("Error response from Google reCAPTCHA service: " + connection.getResponseMessage());
             }
         } catch (IOException e) {
-            throw new ServerRecaptchaException("Error processing Google reCAPTCHA response: " + e.getMessage());
+            throw new RecaptchaServerException("Error processing Google reCAPTCHA response: " + e.getMessage());
         } finally {
             if (connection != null) {
                 connection.disconnect();

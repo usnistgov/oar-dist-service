@@ -1,9 +1,8 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.rpa.exceptions.ClientRecaptchaException;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
-import gov.nist.oar.distrib.service.rpa.exceptions.ServerRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.Before;
@@ -25,6 +24,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * This class tests the functionality of the {@link RecaptchaHelper} class.
+ */
 public class RecaptchaHelperTest {
 
     private String MOCK_RECAPTCHA_RESPONSE = "03AGdBq24RJhXnXW1j8MvTtJQwL3qDdWVEiv8vZBaz0M4dkD4znXmC_2-uJjgSx0SdSEHkCP8W7Pl" +
@@ -121,7 +123,7 @@ public class RecaptchaHelperTest {
         try {
             recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
             fail("Expected InvalidRecaptchaException to be thrown");
-        } catch (ClientRecaptchaException e) {
+        } catch (RecaptchaClientException e) {
             assertEquals("reCAPTCHA validation failed due to client error: [InvalidResponse]", e.getMessage());
         }
         // Verify that the connection was closed
@@ -145,7 +147,7 @@ public class RecaptchaHelperTest {
         try {
             recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
             fail("Expected InvalidRecaptchaException to be thrown");
-        } catch (ClientRecaptchaException e) {
+        } catch (RecaptchaClientException e) {
             assertEquals("reCAPTCHA validation failed due to client error: [MissingResponse]", e.getMessage());
         }
         // Verify that the connection was closed
@@ -169,7 +171,7 @@ public class RecaptchaHelperTest {
         try {
             recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
             fail("Expected InvalidRecaptchaException to be thrown");
-        } catch (ServerRecaptchaException e) {
+        } catch (RecaptchaServerException e) {
             assertEquals("reCAPTCHA validation failed due to unknown error", e.getMessage());
         }
         // Verify that the connection was closed
@@ -194,12 +196,11 @@ public class RecaptchaHelperTest {
         try {
             recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
             fail("Expected InvalidRecaptchaException to be thrown");
-        } catch (ServerRecaptchaException e) {
+        } catch (RecaptchaServerException e) {
             assertEquals("Error response from Google reCAPTCHA service: Bad Request", e.getMessage());
         }
         // Verify that the connection was closed
         verify(mockConnection).disconnect();
     }
-
 
 }

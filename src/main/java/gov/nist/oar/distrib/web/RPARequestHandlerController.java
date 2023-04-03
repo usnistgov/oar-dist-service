@@ -1,16 +1,14 @@
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.exceptions.FailedRecordUpdateException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.UnauthorizedException;
 import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
-import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -80,7 +78,7 @@ public class RPARequestHandlerController {
      */
     @PostMapping(value = "/request/form" , consumes = {"application/json"})
     RecordWrapper createRecord(@RequestBody UserInfoWrapper userInfoWrapper)
-            throws InvalidRecaptchaException, InvalidRequestException, UnauthorizedException {
+            throws InvalidRecaptchaException, InvalidRequestException, UnauthorizedException, RecaptchaVerificationFailedException, RecaptchaClientException {
         LOGGER.info("Creating a new record...");
         RecordWrapper newRecord = service.createRecord(userInfoWrapper);
         LOGGER.debug("RECORD=" + newRecord.toString());
