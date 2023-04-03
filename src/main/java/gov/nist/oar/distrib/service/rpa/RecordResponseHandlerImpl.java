@@ -294,7 +294,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             } catch (URISyntaxException e) {
                 throw new RequestProcessingException("Error building URI: " + e.getMessage());
             }
-
+            LOGGER.debug("SEND_EMAIL_URL=" + url);
             // Sanitize user input
             EmailInfo cleanEmailInfo = HTMLSanitizer.sanitize(emailInfo);
             // Create payload
@@ -321,7 +321,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                 os.write(payloadBytes);
                 os.flush();
                 os.close();
-
+                LOGGER.debug("SEND_EMAIL_PAYLOAD=" + postPayload);
                 responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) { // If created
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
@@ -331,6 +331,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                         while ((line = in.readLine()) != null) {
                             response.append(line);
                         }
+                        LOGGER.debug("SEND_EMAIL_RESPONSE=" + response);
                         // Handle the response
                         emailInfoWrapper = new ObjectMapper().readValue(response.toString(), EmailInfoWrapper.class);
                     }

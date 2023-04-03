@@ -120,6 +120,8 @@ public class JWTHelper {
                     "The URI may contain invalid characters or is not properly formatted.");
         }
 
+        LOGGER.debug("SEND_TOKEN_REQUEST_URL=" + url);
+
         HttpURLConnection connection = null;
         try {
             URL requestUrl = new URL(url);
@@ -137,7 +139,7 @@ public class JWTHelper {
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
-
+                    LOGGER.debug("SEND_TOKEN_REQUEST_RESPONSE=" + response);
                     // Unmarshall response
                     ObjectMapper mapper = new ObjectMapper();
                     return mapper.readValue(response.toString(), JWTToken.class);
