@@ -1,16 +1,19 @@
 package gov.nist.oar.distrib.service.rpa.exceptions;
 
+import org.apache.http.HttpStatus;
+
 /**
- * an exception indicating that a http request in invalid.
+ * Custom exception to indicate that the request payload is invalid.
  */
-public class InvalidRequestException extends RPAException {
+public class InvalidRequestException extends SalesforceAPIException {
+
     private static final long serialVersionUID = 1L;
 
     /**
-     * initialize the exception
-     * @param message   the description of the problem
+     * Constructor to create an InvalidRequestException with a specific error message.
+     * @param message the error message for the exception
      */
     public InvalidRequestException(String message) {
-        super(message);
+        super(HttpStatus.SC_BAD_REQUEST, message);
     }
 }

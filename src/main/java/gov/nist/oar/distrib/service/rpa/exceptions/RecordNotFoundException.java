@@ -1,31 +1,33 @@
 package gov.nist.oar.distrib.service.rpa.exceptions;
 
+import org.apache.http.HttpStatus;
+
 /**
  * an exception indicating that the record was not found.
  */
-public class RecordNotFoundException extends RPAException {
+public class RecordNotFoundException extends SalesforceAPIException {
 
     private static final long serialVersionUID = 1L;
 
     /**
-     * The record identifier
-     */
-    public String id = null;
-
-    /**
      * Indicate that a particular the record with given ID could not be found
-     * @param message   the description of the problem
-     * @param id        the identifier used to find the record (can be null)
+     *
+     * @param message the description of the problem
+     * @param id      the identifier used to find the record (can be null)
      */
-    public RecordNotFoundException(String message, String id) {
-        super(message);
-        this.id = id;
+    public RecordNotFoundException(String message, int status) {
+        super(HttpStatus.SC_NOT_FOUND, message);
     }
 
     /**
-     * * Create an instance for a given identifier
+     * Helper method to create a new RecordNotFoundException with a default message and HTTP status.
+     *
+     * @param recordId the ID of the record that was not found
+     * @return a new instance of RecordNotFoundException
      */
-    public static RecordNotFoundException forID(String id) {
-        return new RecordNotFoundException("Record with ID=" + id + " could not be found", id);
+    public static RecordNotFoundException fromRecordId(String recordId) {
+        String message = String.format("Record with ID=%s could not be found", recordId);
+        return new RecordNotFoundException("Record with ID=" + recordId + " could not be found",
+                HttpStatus.SC_NOT_FOUND);
     }
 }
