@@ -172,7 +172,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-
+        LOGGER.debug("GET_RECORD_URL=" + url);
         // Create the HttpURLConnection and send the GET request
         RecordWrapper recordWrapper;
         HttpURLConnection connection = null;
@@ -194,6 +194,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
+                    LOGGER.debug("GET_RECORD_RESPONSE=" + response);
                     // Handle the response
                     recordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                 }
@@ -265,9 +266,11 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             } catch (URISyntaxException e) {
                 throw new RequestProcessingException("Error building URI: " + e.getMessage());
             }
-
+            LOGGER.debug("CREATE_RECORD_URL=" + url);
             // Sanitize user input
             UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
+            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
+
             String postPayload;
             try {
                 postPayload = new ObjectMapper().writeValueAsString(cleanUserInfoWrapper);
@@ -302,6 +305,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                         while ((line = in.readLine()) != null) {
                             response.append(line);
                         }
+                        LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
                         // Handle the response
                         newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                     }
@@ -359,7 +363,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                 getConfig().getRecaptchaSecret(),
                 recaptchaToken
         );
-        LOGGER.debug("reCAPTCHA Google Response: " + recaptchaResponse.toString());
+        LOGGER.debug("RECAPTCHA_GOOGLE_RESPONSE=" + recaptchaResponse.toString());
         return recaptchaResponse;
     }
 
@@ -387,7 +391,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // PATCH request payload
         // Approval_Status__c is how SF service expect the key
         String patchPayload = new JSONObject().put("Approval_Status__c", status).toString();
-        LOGGER.debug("PATCH_PAYLOAD=" + patchPayload);
+        LOGGER.debug("UPDATE_RECORD_PAYLOAD=" + patchPayload);
 
         // Get token
         JWTToken token = jwtHelper.getToken();
@@ -402,7 +406,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-
+        LOGGER.debug("UPDATE_RECORD_URL=" + url);
         // Send PATCH request
         HttpURLConnection connection = null;
         try {
@@ -427,6 +431,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
+                    LOGGER.debug("UPDATE_RECORD_RESPONSE=" + response);
                     // Handle the response
                     recordStatus = new ObjectMapper().readValue(response.toString(), RecordStatus.class);
                 }
