@@ -116,10 +116,10 @@ public class EmailInfoProvider {
      * @param record the record this email is related to
      * @return the email information (recipient, content, subject)
      */
-    public EmailInfo getEndUserDeclinedEmailInfo(Record record, RPAConfiguration rpaConfiguration) {
+    public EmailInfo getEndUserDeclinedEmailInfo(Record record) {
         String recordId = record.getId();
         String endUserEmailAddress = record.getUserInfo().getEmail();
-        String subject = rpaConfiguration.endUserDeclinedEmail().getSubject();
+        String subject = this.rpaConfiguration.endUserDeclinedEmail().getSubject();
         String content = createEndUserDeclinedEmailContent(record);
 
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);

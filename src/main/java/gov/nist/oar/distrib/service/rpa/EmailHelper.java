@@ -36,6 +36,7 @@ public class EmailHelper {
         return new EmailInfo(recordId, smeEmailAddress, subject, content);
     }
 
+
     /**
      * Get email to be sent to the End User to confirm receiving their request.
      * @param record - the record this email is related to
@@ -84,9 +85,10 @@ public class EmailHelper {
 
     /**
      * Get email to be sent to the End User notifying them that the request has been declined.
+     *
      * @param record - the record this email is related to
      * @param rpaConfiguration - the RPA configuration
-     *
+     *Z
      * @return EmailInfo - email information (recipient, content, subject)
      */
     public static EmailInfo getEndUserDeclinedEmailInfo(Record record, RPAConfiguration rpaConfiguration) {

@@ -9,11 +9,11 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.UnauthorizedException;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
+import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
-import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import io.jsonwebtoken.Jwts;
@@ -34,6 +34,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -105,7 +106,7 @@ public class DefaultRPARequestHandlerService implements RPARequestHandlerService
         ResponseEntity<RecordWrapper> response = restTemplate.exchange(url, HttpMethod.GET,
                 new HttpEntity<>(headers), RecordWrapper.class);
         if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
-            throw RecordNotFoundException.forID(recordId);
+            throw RecordNotFoundException.fromRecordId(recordId);
         }
         return response.getBody();
     }
