@@ -1,8 +1,23 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.http.client.utils.URIBuilder;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.rpa.exceptions.InternalServerErrorException;
+
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
@@ -18,20 +33,8 @@ import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.apache.http.client.utils.URIBuilder;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+
 
 /**
  * An implementation of the RPARequestHandlerService that uses HttpURLConnection to send HTTP requests and
@@ -270,12 +273,14 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             LOGGER.debug("CREATE_RECORD_URL=" + url);
 
             // Sanitize user input
-            UserInfo cleanUserInfo = HTMLSanitizer.sanitize(userInfoWrapper).getUserInfo();
-            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfo);
+            UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
+            // set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
+            userInfoWrapper.setRecaptcha(null);
+            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
 
             String postPayload;
             try {
-                postPayload = new ObjectMapper().writeValueAsString(cleanUserInfo);
+                postPayload = new ObjectMapper().writeValueAsString(cleanUserInfoWrapper);
             } catch (JsonProcessingException e) {
                 LOGGER.debug("Error while serializing user input: " + e.getMessage());
                 throw new RequestProcessingException("Error while serializing user input: " + e.getMessage());
@@ -472,71 +477,4 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
         return recordStatus;
     }
-
-
-    /**
-     * Sends an HTTP request to the specified URL with the given payload using the specified request method,
-     * and returns the response as an instance of the given response type.
-     *
-     * TODO: refactor this class to use this method
-     *
-     * @param url          The URL to send the request to.
-     * @param method       The HTTP request method to use (e.g. GET, POST, PUT, DELETE, etc.).
-     * @param payload      The payload to send with the request (can be null if no payload is required).
-     * @param responseType The class representing the expected response type.
-     * @param <T>          The type of the expected response.
-     * @return The response as an instance of the specified response type.
-     *
-     * @throws InvalidRequestException      If the request is invalid (e.g. missing required parameters).
-     * @throws InternalServerErrorException If the server returns an error response that is not covered by
-     *                                      any of the above exceptions.
-     */
-    @SuppressWarnings("unused")
-    private <T> T sendHttpRequest(String url, String method, String payload, Class<T> responseType)
-            throws InvalidRequestException, InternalServerErrorException {
-        HttpURLConnection connection = null;
-        try {
-            URL requestUrl = new URL(url);
-            connection = connectionFactory.createHttpURLConnection(requestUrl);
-            connection.setRequestMethod(method);
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Authorization", "Bearer " + jwtHelper.getToken().getAccessToken());
-
-            if (payload != null) {
-                connection.setDoOutput(true);
-                OutputStream os = connection.getOutputStream();
-                os.write(payload.getBytes(StandardCharsets.UTF_8));
-                os.flush();
-                os.close();
-            }
-
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    StringBuilder response = new StringBuilder();
-                    String line;
-
-                    while ((line = in.readLine()) != null) {
-                        response.append(line);
-                    }
-
-                    return new ObjectMapper().readValue(response.toString(), responseType);
-                }
-            } else if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-                throw new InvalidRequestException("Invalid request: " + connection.getResponseMessage());
-            } else {
-                throw new InternalServerErrorException("Error response from service: " + connection.getResponseMessage());
-            }
-        } catch (MalformedURLException e) {
-            throw new InternalServerErrorException("Invalid URL: " + e.getMessage());
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Error sending request: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-    }
-
 }
