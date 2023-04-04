@@ -2,23 +2,27 @@ package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 
-/** Represents the JWT Token.
+/**
+ * Represents the JWT Token.
  * This is a container for the access token.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class JWTToken {
+public class JWTToken extends JsonSerializable {
 
-    /** Represents access token.
+    /**
+     * Represents access token.
      */
     @JsonProperty("access_token")
     String accessToken;
-    /** Represents the instance URL, the base URL used for sending request to the records service.
+    /**
+     * Represents the instance URL, the base URL used for sending request to the records service.
      */
     @JsonProperty("instance_url")
     String instanceUrl;

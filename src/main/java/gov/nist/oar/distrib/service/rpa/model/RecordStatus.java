@@ -1,23 +1,25 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
-/** Represents the status of a record.
+/**
+ * Represents the status of a record.
  */
 @AllArgsConstructor
 @NoArgsConstructor
-public class RecordStatus {
+public class RecordStatus extends JsonSerializable {
 
-    /** Represents the record ID.
+    /**
+     * Represents the record ID.
      */
     @JsonProperty("recordId")
     String recordId;
 
-    /** Represents the approval status the record.
+    /**
+     * Represents the approval status the record.
      */
     @JsonProperty("approvalStatus")
     String approvalStatus;
@@ -38,16 +40,4 @@ public class RecordStatus {
         this.approvalStatus = approvalStatus;
     }
 
-    @Override
-    public String toString() {
-        ObjectMapper mapper = new ObjectMapper();
-        String jsonStr;
-        try {
-            jsonStr = mapper.writeValueAsString(this);
-        } catch (
-                JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return jsonStr;
-    }
 }

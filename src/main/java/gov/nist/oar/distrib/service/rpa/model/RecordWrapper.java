@@ -1,20 +1,21 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
-/** A wrapper around the record.
+/**
+ * A wrapper around the record.
  * This acts as an envelope for the record.
  * This is used for parsing the record to a JSON with "record" as the key.
  */
 @AllArgsConstructor
 @NoArgsConstructor
-public class RecordWrapper {
+public class RecordWrapper extends JsonSerializable {
 
-    /** Contains the record.
+    /**
+     * Contains the record.
      */
     @JsonProperty("record")
     Record record;
@@ -27,16 +28,4 @@ public class RecordWrapper {
         this.record = record;
     }
 
-    @Override
-    public String toString() {
-        ObjectMapper mapper = new ObjectMapper();
-        String jsonStr;
-        try {
-            jsonStr = mapper.writeValueAsString(this);
-        } catch (
-                JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return jsonStr;
-    }
 }

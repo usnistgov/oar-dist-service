@@ -6,10 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.Arrays;
@@ -20,7 +18,7 @@ import java.util.Map;
  * A class that encapsulates the Google service response for the reCaptcha validation request.
  * Success property with a true value means the user has been validated.
  * Otherwise, the user was not validated and the errorCodes property will contain the reason.
- *
+ * <p>
  * The hostname property refers to the host that redirected the user to the reCAPTCHA.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -33,7 +31,7 @@ import java.util.Map;
         "hostname",
         "error-codes"
 })
-public class RecaptchaResponse {
+public class RecaptchaResponse extends JsonSerializable {
     @JsonProperty("success")
     boolean success;
     @JsonProperty("challenge_ts")
@@ -88,11 +86,11 @@ public class RecaptchaResponse {
     @JsonIgnore
     public boolean hasClientError() {
         ErrorCode[] errors = getErrorCodes();
-        if(errors == null) {
+        if (errors == null) {
             return false;
         }
-        for(ErrorCode error : errors) {
-            switch(error) {
+        for (ErrorCode error : errors) {
+            switch (error) {
                 case InvalidResponse:
                 case MissingResponse:
                     return true;
@@ -102,14 +100,14 @@ public class RecaptchaResponse {
     }
 
     public enum ErrorCode {
-        MissingSecret,     InvalidSecret,
-        MissingResponse,   InvalidResponse;
+        MissingSecret, InvalidSecret,
+        MissingResponse, InvalidResponse;
 
         private static Map<String, ErrorCode> errorsMap = new HashMap<>(4);
 
         static {
-            errorsMap.put("missing-input-secret",   MissingSecret);
-            errorsMap.put("invalid-input-secret",   InvalidSecret);
+            errorsMap.put("missing-input-secret", MissingSecret);
+            errorsMap.put("invalid-input-secret", InvalidSecret);
             errorsMap.put("missing-input-response", MissingResponse);
             errorsMap.put("invalid-input-response", InvalidResponse);
         }
@@ -120,16 +118,4 @@ public class RecaptchaResponse {
         }
     }
 
-    @Override
-    public String toString() {
-        ObjectMapper mapper = new ObjectMapper();
-        String jsonStr;
-        try {
-            jsonStr = mapper.writeValueAsString(this);
-        } catch (
-                JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return jsonStr;
-    }
 }
