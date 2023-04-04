@@ -295,12 +295,10 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                 throw new RequestProcessingException("Error building URI: " + e.getMessage());
             }
             LOGGER.debug("SEND_EMAIL_URL=" + url);
-            // Sanitize user input
-            EmailInfo cleanEmailInfo = HTMLSanitizer.sanitize(emailInfo);
             // Create payload
             String postPayload;
             try {
-                postPayload = new ObjectMapper().writeValueAsString(cleanEmailInfo);
+                postPayload = new ObjectMapper().writeValueAsString(emailInfo);
             } catch (JsonProcessingException e) {
                 LOGGER.debug("Error while serializing user info: " + e.getMessage());
                 throw new RequestProcessingException("Error while serializing user info: " + e.getMessage());
