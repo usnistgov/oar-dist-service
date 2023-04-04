@@ -15,6 +15,7 @@ import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.http.client.utils.URIBuilder;
@@ -267,13 +268,14 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                 throw new RequestProcessingException("Error building URI: " + e.getMessage());
             }
             LOGGER.debug("CREATE_RECORD_URL=" + url);
+
             // Sanitize user input
-            UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
-            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
+            UserInfo cleanUserInfo = HTMLSanitizer.sanitize(userInfoWrapper).getUserInfo();
+            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfo);
 
             String postPayload;
             try {
-                postPayload = new ObjectMapper().writeValueAsString(cleanUserInfoWrapper);
+                postPayload = new ObjectMapper().writeValueAsString(cleanUserInfo);
             } catch (JsonProcessingException e) {
                 LOGGER.debug("Error while serializing user input: " + e.getMessage());
                 throw new RequestProcessingException("Error while serializing user input: " + e.getMessage());
@@ -400,7 +402,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         String url;
         try {
             url = new URIBuilder(token.getInstanceUrl())
-                    .setPath(updateRecordUri)
+                    .setPath(updateRecordUri + "/" + recordId)
                     .build()
                     .toString();
         } catch (URISyntaxException e) {

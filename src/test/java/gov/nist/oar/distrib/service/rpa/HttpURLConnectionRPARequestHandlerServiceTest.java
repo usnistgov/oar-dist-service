@@ -10,6 +10,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
+import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -182,15 +184,17 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Set up the mock to return the mock output stream when getOutputStream is called
         when(mockConnection.getOutputStream()).thenReturn(osMock);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+
+        // Call method under test
+        UserInfo userInfo = getTestRecordWrapper("Pending").getRecord().getUserInfo();
+        RecordWrapper actualRecord = service.createRecord(new UserInfoWrapper(userInfo, RECAPTCHA_RESPONSE));
+
         // Assert
-        RecordWrapper actualRecord = service.createRecord(
-                new UserInfoWrapper(
-                        getTestRecordWrapper("Pending").getRecord().getUserInfo(),
-                        RECAPTCHA_RESPONSE
-                ));
         assertEquals(actualRecord.getRecord().getId(), getTestRecordWrapper("Pending").getRecord().getId());
+
         // Verify that the mock output stream was written to as expected
-        verify(osMock).write(any(byte[].class));
+        byte[] expectedPayloadBytes = userInfo.toString().getBytes(StandardCharsets.UTF_8);
+        verify(osMock).write(expectedPayloadBytes);
         verify(osMock).flush();
         verify(osMock).close();
         // Verify connection was closed
@@ -303,6 +307,15 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         verify(mockConnection).setRequestProperty("Authorization", "Bearer " + mockJwtHelper.getToken().getAccessToken());
         verify(recordResponseHandler).onRecordUpdateApproved(any(Record.class));
 
+        // Verify that the mock output stream was written to as expected
+        RecordPatch patchData = new RecordPatch("Approved");
+        byte[] expectedPayloadBytes = patchData.toString().getBytes(StandardCharsets.UTF_8);
+        verify(osMock).write(expectedPayloadBytes);
+        verify(osMock).flush();
+        verify(osMock).close();
+
+        // Verify connection was closed
+        verify(mockConnection).disconnect();
     }
 
     @Test
