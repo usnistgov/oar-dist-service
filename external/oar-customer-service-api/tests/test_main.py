@@ -3,6 +3,7 @@ from tinydb import TinyDB, table
 from app.main import app, get_db
 from app.models import RecordUpdate
 import os
+from datetime import datetime
 import pytest
 from app.endpoints import (
     PDRCASE_GET_ENDPOINT,
@@ -259,3 +260,46 @@ def test_update_record_success():
     # Check that the record has been updated in the database
     updated_record = records_table.get(doc_id=test_record["id"])
     assert updated_record["userInfo"]["approvalStatus"] == "Approved"
+
+
+def test_send_email_success():
+    email_info = {
+        "recordId": "bca9a7508cda11eda5b42a58cc9fff89",
+        "recipient": "jane.doe@test.com",
+        "subject": "Test Email",
+        "content": "This is a test email.",
+    }
+
+    from unittest import mock
+
+    with mock.patch(
+        "app.main.EmailSenderFactory.get_email_sender"
+    ) as mock_email_sender:
+        mock_email_sender.return_value.send_email = lambda *args: None
+
+        response = client.post(
+            PDRCASE_EMAIL_ENDPOINT,
+            json=email_info,
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+
+        assert response.status_code == 200
+
+        email_status = response.json()
+        assert email_status["email_info"] == email_info
+        assert isinstance(email_status["timestamp"], str)
+
+    # Check if the timestamp is a valid ISO datetime string
+    try:
+        datetime.fromisoformat(email_status["timestamp"])
+    except ValueError:
+        assert False, "Invalid timestamp format"
+
+
+def test_test_endpoint_success():
+    response = client.get(
+        PDRCASE_TEST_ENDPOINT,
+        headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+    )
+    assert response.status_code == 200
+    assert response.text == '"Service is up and running."'
