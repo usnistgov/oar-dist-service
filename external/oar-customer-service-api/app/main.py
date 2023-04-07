@@ -11,11 +11,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from tinydb import TinyDB, Query, table
+from tinydb import TinyDB, table
 from tinydb.table import Table
 
 from app.email_sender import EmailSenderFactory
 from app.models import CreateRecord, EmailInfo, EmailStatus, Record, RecordUpdate
+from datetime import datetime
 
 from app.endpoints import (
     PDRCASE_GET_ENDPOINT,
@@ -236,8 +237,8 @@ async def update_record(
         token (str): A bearer token for authentication.
 
     Returns:
-        dict: A dictionary containing a single key-value pair, where the key is "record"
-            and the value is a Record object.
+        dict: A dictionary containing two key-value pair, one pair for recordId,
+        the second for approvalStatus.
 
     Raises:
         HTTPException: If the token is missing or invalid, if the record is not found,
@@ -287,7 +288,7 @@ async def update_record(
 )
 async def send_email(
     email_info: EmailInfo,
-    token: str = Header(...),
+    Authorization: str = Header(...),
     db: TinyDB = Depends(get_db),
 ):
     """
@@ -298,14 +299,18 @@ async def send_email(
         token (str): A bearer token for authentication.
 
     Returns:
-        EmailStatus: An EmailStatus object containing the email information and the status code.
+        EmailStatus: An EmailStatus object containing the email information and a timestamp.
 
     Raises:
         HTTPException: If the token is missing or invalid.
     """
     # Check if token is missing in the header
-    if not is_oauth2_token(token):
+    token = get_oauth2_token(Authorization)
+    if not token:
         raise HTTPException(status_code=401, detail="Bearer token is missing in header")
+
+    if not is_oauth2_token(token):
+        raise HTTPException(status_code=401, detail="Bearer token is invalid")
 
     # Read the sender email and password from the .env file
     sender_email = os.getenv("SENDER_EMAIL")
@@ -324,12 +329,13 @@ async def send_email(
         sender_email, sender_password, recipient_email, subject, content
     )
 
-    # Return an EmailStatus object with the email information and status code
-    return EmailStatus(email_info=email_info, status_code=200)
+    # Return an EmailStatus object with the email information and timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return EmailStatus(email_info=email_info, timestamp=timestamp)
 
 
-@app.get(PDRCASE_TEST_ENDPOINT, tags=["Test"])
-async def test_endpoint(Authorization: str = Header(...), status_code=200):
+@app.get(PDRCASE_TEST_ENDPOINT, status_code=200, tags=["Test"])
+async def test_endpoint(Authorization: str = Header(...)):
     """
     Check if the service is running.
     """
