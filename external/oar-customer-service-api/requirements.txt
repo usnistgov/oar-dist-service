@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+jinja2
+tinydb
+pydantic
+pydantic[email]
+pytest
+python-dotenv

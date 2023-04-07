@@ -1,0 +1,19 @@
+{
+    "records": {
+        "123": {
+            "id": "123",
+            "caseNum": "456",
+            "userInfo": {
+                "fullName": "John Doe",
+                "organization": "NASA",
+                "email": "jane.doe@test.gov",
+                "receiveEmails": "True",
+                "country": "United States",
+                "approvalStatus": "Approved",
+                "productTitle": "Data from: Collaborative Guarded-Hot-Plate Tests between the National Institute of Standards and Technology and the National Physical Laboratory",
+                "subject": "RPA: ark:\\88434\\mds2\\2106",
+                "description": "Product Title:\n  Data from: Collaborative Guarded-Hot-Plate Tests between the National Institute of Standards and Technology and the National Physical Laboratory \n\n Purpose of Use: \nLearning and Research"
+            }
+        }
+    }
+}
