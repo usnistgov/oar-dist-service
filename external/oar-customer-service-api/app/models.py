@@ -51,4 +51,4 @@ class EmailInfo(BaseModel):
 
 class EmailStatus(BaseModel):
     email_info: EmailInfo
-    status_code: int
+    timestamp: str
