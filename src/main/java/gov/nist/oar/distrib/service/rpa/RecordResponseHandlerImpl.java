@@ -131,7 +131,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         String url;
         try {
             url = new URIBuilder(this.rpaConfiguration.getPdrCachingUrl())
-                    .setPath("/cache/" + datasetId)
+                    .setPath("/od/ds/rpa/cache/" + datasetId)
                     .build()
                     .toString();
         } catch (URISyntaxException e) {
