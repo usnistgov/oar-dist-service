@@ -92,6 +92,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         LOGGER.info("User was approved by SME. Starting caching...");
         String datasetId = record.getUserInfo().getSubject();
         String randomId = startCaching(datasetId);
+        LOGGER.info("Dataset was cached successfully. Sending email to user...");
         // Build Download URL
         String downloadUrl;
         try {
@@ -102,7 +103,6 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.info("Dataset was cached successfully. Sending email to user...");
         this.emailSender.sendDownloadEmailToEndUser(record, downloadUrl);
     }
 
@@ -137,6 +137,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
+        LOGGER.debug("Sending 'PUT' request to URL:=" + url);
         HttpURLConnection connection = null;
         try {
             URL requestUrl = new URL(url);
