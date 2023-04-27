@@ -2,6 +2,7 @@ package gov.nist.oar.distrib.service.rpa;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -10,7 +11,16 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -386,9 +396,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      */
     @Override
     public RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException,
-            InvalidRequestException
-            , RequestProcessingException {
-
+            InvalidRequestException, RequestProcessingException {
         // Initialize return object
         RecordStatus recordStatus;
 
@@ -414,55 +422,37 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
         LOGGER.debug("UPDATE_RECORD_URL=" + url);
-        // Send PATCH request
-        HttpURLConnection connection = null;
-        try {
-            URL requestUrl = new URL(url);
-            connection = connectionFactory.createHttpURLConnection(requestUrl);
-            connection.setRequestMethod("PATCH");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Authorization", "Bearer " + token.getAccessToken());
-            // Set payload
-            byte[] payloadBytes = patchPayload.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true); // tell connection we are writing data to the output stream
-            OutputStream os = connection.getOutputStream();
-            os.write(payloadBytes);
-            os.flush();
-            os.close();
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) { // If success
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        response.append(line);
-                    }
-                    LOGGER.debug("UPDATE_RECORD_RESPONSE=" + response);
+        // Send PATCH request
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPatch httpPatch = new HttpPatch(url);
+            httpPatch.setHeader("Authorization", "Bearer " + token.getAccessToken());
+            httpPatch.setHeader("Content-Type", "application/json");
+            HttpEntity httpEntity = new StringEntity(patchPayload, ContentType.APPLICATION_JSON);
+            httpPatch.setEntity(httpEntity);
+
+            CloseableHttpResponse response = httpClient.execute(httpPatch);
+            int statusCode = response.getStatusLine().getStatusCode();
+
+            if (statusCode == HttpStatus.SC_OK) { // If success
+                try (InputStream inputStream = response.getEntity().getContent()) {
+                    String responseString = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+                    LOGGER.debug("UPDATE_RECORD_RESPONSE=" + responseString);
                     // Handle the response
-                    recordStatus = new ObjectMapper().readValue(response.toString(), RecordStatus.class);
+                    recordStatus = new ObjectMapper().readValue(responseString, RecordStatus.class);
                 }
-            } else if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) { // If bad request
-                LOGGER.debug("Invalid request: " + connection.getResponseMessage());
-                throw new InvalidRequestException("Invalid request: " + connection.getResponseMessage());
+            } else if (statusCode == HttpStatus.SC_BAD_REQUEST) { // If bad request
+                LOGGER.debug("Invalid request: " + response.getStatusLine().getReasonPhrase());
+                throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
             } else {
                 // Handle any other error response
-                LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
-                throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
+                LOGGER.debug("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
+                throw new RequestProcessingException("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
             }
-        } catch (MalformedURLException e) {
-            // Handle the URL Malformed error
-            LOGGER.debug("Invalid URL: " + e.getMessage());
-            throw new RequestProcessingException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
             // Handle the I/O error
             LOGGER.debug("Error sending GET request: " + e.getMessage());
             throw new RequestProcessingException("I/O error: " + e.getMessage());
-        } finally {
-            // Close the connection
-            if (connection != null) {
-                connection.disconnect();
-            }
         }
 
         // Retrieve updated record from SF service
@@ -474,7 +464,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         } else {
             this.recordResponseHandler.onRecordUpdateDeclined(record);
         }
-
         return recordStatus;
     }
+
 }
