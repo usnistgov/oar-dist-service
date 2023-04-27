@@ -130,7 +130,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     private String startCaching(String datasetId) throws RequestProcessingException {
         String url;
         try {
-            url = new URIBuilder(this.rpaConfiguration.getDatacartUrl())
+            url = new URIBuilder(this.rpaConfiguration.getPdrCachingUrl())
                     .setPath("/cache/" + datasetId)
                     .build()
                     .toString();
