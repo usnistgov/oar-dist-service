@@ -22,6 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * The {@link RPARequestHandlerController} class serves as the REST controller for handling requests to cache
+ * restricted public access data.
+ * The @CrossOrigin annotation enables Cross-Origin Resource Sharing (CORS) on this controller, allowing requests
+ * from other domains.
+ */
 @RestController
 @Tag(name = "Cache RPA Datasets", description = "Cache Restricted Public Access data in a dedicated cache space and generate temporary URL for the cached data.")
 @RequestMapping(value = "/ds/rpa")
@@ -33,12 +39,16 @@ public class RPADataCachingController {
     RPACachingService restrictedSrvc;
 
     /**
-     * Cache a dataset in a temporary repository.
+     * This endpoint handles caching of a dataset under restricted public access.
      *
-     * @param dsid - the dataset id.
-     * @param version - version of the dataset.
+     * @param dsid The ID of the dataset to cache.
+     * @param version The version of the dataset to cache, if applicable. Defaults to an empty string if not specified.
      *
-     * @return String - a random ID representing the temporary cache object of the dataset.
+     * @return A randomly generated ID that can be used to access the cached dataset.
+     *
+     * @throws CacheManagementException If there is an issue with caching the dataset.
+     * @throws ResourceNotFoundException If the requested dataset is not found.
+     * @throws StorageVolumeException If there is an issue with the storage volume.
      */
     @PutMapping(value = "/cache/{dsid}")
     public String cacheDataset(
@@ -71,5 +81,23 @@ public class RPADataCachingController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorInfo handleMetadataNotFoundException(MetadataNotFoundException ex) {
         return new ErrorInfo(404, "metadata not found: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return new ErrorInfo(404, "resource not found: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(CacheManagementException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleCacheManagementException(CacheManagementException ex) {
+        return new ErrorInfo(500, "cache management error: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(StorageVolumeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleStorageVolumeException(StorageVolumeException ex) {
+        return new ErrorInfo(500, "storage volume error: " + ex.getMessage());
     }
 }
