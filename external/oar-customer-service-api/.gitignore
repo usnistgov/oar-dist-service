@@ -28,3 +28,6 @@ archive.zip
 .*.sw?
 keys/public_key*
 !keys/public_key*.sample*
+
+# ignore dbs
+app/db.json
