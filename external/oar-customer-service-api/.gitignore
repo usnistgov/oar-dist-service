@@ -17,7 +17,8 @@ log.txt
 Pipfile.lock
 env3.*
 env
-.env
+.*env
+!.sample.env
 docs_build
 venv
 docs.zip
