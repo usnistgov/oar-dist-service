@@ -6,3 +6,4 @@ pydantic
 pydantic[email]
 pytest
 python-dotenv
+pyjwt[crypto]
