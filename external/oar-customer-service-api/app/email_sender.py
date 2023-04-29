@@ -9,8 +9,16 @@ class EmailSender(ABC):
     """
     An abstract base class for email senders.
     """
+
     @abstractmethod
-    def send_email(self, sender_email: str, sender_password: str, recipient_email: str, subject: str, content: str) -> Tuple[str, str]:
+    def send_email(
+        self,
+        sender_email: str,
+        sender_password: str,
+        recipient_email: str,
+        subject: str,
+        content: str,
+    ) -> Tuple[int, str]:
         """
         Send an email.
 
@@ -22,7 +30,7 @@ class EmailSender(ABC):
             content (str): The content of the email.
 
         Returns:
-            Tuple[str, str]: A tuple containing the status code and message of the email sent.
+            Tuple[int, str]: A tuple containing the status code and message of the email sent.
 
         """
         pass
@@ -32,7 +40,15 @@ class SmtpEmailSender(EmailSender):
     """
     An implementation of EmailSender that sends email using SMTP protocol.
     """
-    def send_email(self, sender_email: str, sender_password: str, recipient_email: str, subject: str, content: str) -> Tuple[str, str]:
+
+    def send_email(
+        self,
+        sender_email: str,
+        sender_password: str,
+        recipient_email: str,
+        subject: str,
+        content: str,
+    ) -> Tuple[int, str]:
         """
         Sends an email using SMTP protocol.
 
@@ -44,29 +60,34 @@ class SmtpEmailSender(EmailSender):
         - content (str): The content of the email.
 
         Returns:
-        - Tuple[str, str]: A tuple containing the status code and message of the email sent.
+        - Tuple[int, str]: A tuple containing the status code and message of the email sent.
 
         """
 
-        message = MIMEMultipart()
-        message["From"] = sender_email
-        message["To"] = recipient_email
-        message["Subject"] = subject
-        message.attach(MIMEText(content, "html"))
+        try:
+            message = MIMEMultipart()
+            message["From"] = sender_email
+            message["To"] = recipient_email
+            message["Subject"] = subject
+            message.attach(MIMEText(content, "html"))
 
-        # Send the email using SMTP
-        with smtplib.SMTP("smtp.gmail.com", port=587) as smtp_server:
-            smtp_server.starttls()
-            smtp_server.login(sender_email, sender_password)
-            smtp_server.sendmail(sender_email, recipient_email, message.as_string())
+            # Send the email using SMTP
+            with smtplib.SMTP("smtp.gmail.com", port=587) as smtp_server:
+                smtp_server.starttls()
+                smtp_server.login(sender_email, sender_password)
+                smtp_server.sendmail(sender_email, recipient_email, message.as_string())
 
-        return ("200", "Email sent successfully")
+            return (200, "Email sent successfully")
+
+        except Exception as e:
+            return (500, str(e))
 
 
 class EmailSenderFactory:
     """
     A factory class for creating EmailSender objects.
     """
+
     @staticmethod
     def get_email_sender(sender_type: str) -> EmailSender:
         """
