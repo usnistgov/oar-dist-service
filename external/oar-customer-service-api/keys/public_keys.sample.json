@@ -1,0 +1,8 @@
+{
+    "public_keys": {
+        "xxxx": {
+            "client_id": "xxxx",
+            "public_key": "-----BEGIN PUBLIC KEY-----PUBLIC_KEY_CONTENT_HERE-----END PUBLIC KEY-----"
+        }
+    }
+}
