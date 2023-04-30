@@ -75,10 +75,10 @@ Change the port number based on available ports.
 
 The following endpoints are provided by the app:
 
-`GET /services/apexrest/system/V1.0/pdrcaseget/{id}`: Returns a record with the specified ID.
-`POST /services/apexrest/system/V1.0/pdrcasecreate`: Creates a new record with the provided data.
-`PATCH /services/apexrest/system/V1.0/pdrcaseupdate/{id}`: Updates the status of a record with the specified ID.
-`POST /services/apexrest/system/V1.0/pdremail`: Sends an email using the provided data.
+- `GET /services/apexrest/system/V1.0/pdrcaseget/{id}`: Returns a record with the specified ID.
+- `POST /services/apexrest/system/V1.0/pdrcasecreate`: Creates a new record with the provided data.
+- `PATCH /services/apexrest/system/V1.0/pdrcaseupdate/{id}`: Updates the status of a record with the specified ID.
+- `POST /services/apexrest/system/V1.0/pdremail`: Sends an email using the provided data.
 
 All endpoints require a bearer token in the Authorization header. This only checks if token exists and if it matches this regex pattern:
 
@@ -110,6 +110,30 @@ A successful response would the message `"Service is up and running."`
 ```sh
 r"^[A-Za-z0-9-_]+?\.[A-Za-z0-9-_]+?\.([A-Za-z0-9-_]+)?$"
 ```
+
+## Environment Variables
+
+The application uses a configuration file called `.env` to load environment variables. This file should be located in the root directory of the application. The following environment variables are defined in the file:
+
+- `VERSION`: A string representing the current version of the application.
+- `SENDER_EMAIL`: A string representing the email address of the sender for outgoing emails.
+- `SENDER_PASSWORD`: A string representing the password for the email account of the sender for outgoing emails.
+- `SECRET_KEY`: A string representing the secret key used for encoding JWT tokens.
+- `INSTANCE_URL`: A string representing the URL of the service instance used for the application.
+- `AUDIENCE`: A string representing the audience used for the authentication and authorization of the application.
+- `PDRCASE_OAUTH2_ENDPOINT`: A string representing the endpoint for the OAuth 2.0 authentication
+- `PDRCASE_GET_ENDPOINT`: A string representing the endpoint for retrieving records.
+- `PDRCASE_CREATE_ENDPOINT`: A string representing the endpoint for creating records.
+- `PDRCASE_UPDATE_ENDPOINT`: A string representing the endpoint for updating records.
+- `PDRCASE_EMAIL_ENDPOINT`: A string representing the endpoint for sending emails.
+- `PDRCASE_TEST_ENDPOINT`: A string representing the endpoint for testing the API connection.
+
+You should modify these environment variables based on your application's configuration.
+
+A sample `.env` is provided in [`.sample.env`](./.sample.env).
+
+To load the environment variables defined in the `.env` file, we use the package `python-dotenv`. Once installed, you can load the environment variables in your application by calling the `load_dotenv()`. This function is called in the `__init__` module in our case.
+
 
 ## About TinyDB
 
