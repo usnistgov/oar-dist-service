@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from tinydb import TinyDB, table
 
 from app.main import app, get_db, get_public_keys_db
-from app.models import RecordUpdate
+from app.models import RecordUpdate, RecordWrapper
 
 # Define path for different endpoints
 PDRCASE_OAUTH2_ENDPOINT = os.environ["PDRCASE_OAUTH2_ENDPOINT"]
@@ -161,7 +161,7 @@ def test_get_record():
     # Check that the response status code is 200 OK
     assert response.status_code == 200
     # Check that the response body contains the expected record information
-    assert response.json() == {"record": test_record}
+    assert response.json() == RecordWrapper(record=test_record)
 
     # Test case 2: Invalid record ID
     # Send a GET request to the get_record endpoint with an invalid record ID and bearer token
@@ -219,7 +219,7 @@ def test_get_record_success(mock_record):
         headers={"Authorization": f"Bearer {TEST_TOKEN}"},
     )
     assert response.status_code == 200
-    assert response.json() == {"record": mock_record}
+    assert response.json() == RecordWrapper(record=mock_record)
 
 
 def test_get_record_missing_token(mock_record):
