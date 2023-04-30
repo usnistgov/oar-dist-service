@@ -135,6 +135,20 @@ A sample `.env` is provided in [`.sample.env`](./.sample.env).
 To load the environment variables defined in the `.env` file, we use the package `python-dotenv`. Once installed, you can load the environment variables in your application by calling the `load_dotenv()`. This function is called in the `__init__` module in our case.
 
 
+## Generate Client IDs
+
+The Python script [gen_client_id](./keys/gen_client_id.py) is used to generate a new client ID for a given public key, and store the client ID and public key in a TinyDB database file.
+
+To run the script, open a terminal, and in the root directory, run the following command:
+
+```sh
+python gen_client_id.py --key <path_to_public_key_file>
+```
+
+Replace <path_to_public_key_file> with the path to the PEM file containing the public key. The script will then generate a new client ID for the public key, and store the client ID and public key in the TinyDB database file located at [`keys/public_keys.json`](./keys/public_keys.json). If the public key is already in the database, the script will retrieve the existing client ID instead.
+
+Provided are samples for [`public_key.sample.pem`](keys/public_key.sample.pem) and [`public_keys.sample.json`](keys/public_keys.sample.json).
+
 ## About TinyDB
 
 [TinyDB](https://tinydb.readthedocs.io/en/latest/) is a lightweight, open-source document-oriented database that is designed to be simple and easy to use. It's built in Python and provides a simple JSON-based syntax for storing and querying data.
