@@ -1,0 +1,8 @@
+{
+    "public_keys": {
+        "123": {
+            "client_id": "123",
+            "public_key": "-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAINgZdl8+8PLYgN1Q2jSFDXpYz5z+KbG\n5DDhwokaV5xEDq9U4s1Mu2cZQDw+O/vJCcHkCkByKAxs/JDrnwgGzosCAwEAAQ==\n-----END PUBLIC KEY-----"
+        }
+    }
+}

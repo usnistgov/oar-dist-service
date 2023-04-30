@@ -1,17 +1,23 @@
+import os
+from datetime import datetime, timedelta
+from unittest import mock
+
+import jwt
+import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from tinydb import TinyDB, table
-from app.main import app, get_db
+
+from app.main import app, get_db, get_public_keys_db
 from app.models import RecordUpdate
-import os
-from datetime import datetime
-import pytest
-from app.endpoints import (
-    PDRCASE_GET_ENDPOINT,
-    PDRCASE_CREATE_ENDPOINT,
-    PDRCASE_UPDATE_ENDPOINT,
-    PDRCASE_EMAIL_ENDPOINT,
-    PDRCASE_TEST_ENDPOINT,
-)
+
+# Define path for different endpoints
+PDRCASE_OAUTH2_ENDPOINT = os.environ["PDRCASE_OAUTH2_ENDPOINT"]
+PDRCASE_GET_ENDPOINT = os.environ["PDRCASE_GET_ENDPOINT"]
+PDRCASE_CREATE_ENDPOINT = os.environ["PDRCASE_CREATE_ENDPOINT"]
+PDRCASE_UPDATE_ENDPOINT = os.environ["PDRCASE_UPDATE_ENDPOINT"]
+PDRCASE_EMAIL_ENDPOINT = os.environ["PDRCASE_EMAIL_ENDPOINT"]
+PDRCASE_TEST_ENDPOINT = os.environ["PDRCASE_TEST_ENDPOINT"]
 
 # Define test db
 test_db = TinyDB(
@@ -26,18 +32,96 @@ def mock_get_db() -> TinyDB:
     return test_db
 
 
-# Inject the test database into the production code to test
+# Define test db for public keys
+test_pks_db = TinyDB(
+    "tests/test_public_keys.json", sort_keys=False, indent=4, separators=(",", ": ")
+)
+# Change default table name (_default) to public_keys
+test_pks_db.default_table_name = "public_keys"
+
+
+# Define a mock version of `get_public_keys_db` that returns the test database instance
+def mock_get_pks_db() -> TinyDB:
+    return test_pks_db
+
+
+# Inject the test databases into the production code to test
 app.dependency_overrides[get_db] = mock_get_db
+app.dependency_overrides[get_public_keys_db] = mock_get_pks_db
 
 # Create test client
 client = TestClient(app)
 
-# TEST_TOKEN = "00Dt0000000GzGE!ARUAQNPVPsI9uTOB2NK7GXEf1bLLcK.lDvu0EvGmQpPxLY33gcOFoCkHQmqXQ34Y3vleRuRyFcNa6VY_8YDgEdqjAXyru.3W"
-TEST_TOKEN = os.getenv("ACCESS_TOKEN")
+# Load the .env file for testing
+load_dotenv("tests/.test.env")
 
-# @pytest.fixture
-# def test_db():
-#     return TinyDB("tests/test_db.json")
+
+def generate_test_assertion():
+    # Set the payload with the necessary claims
+    payload = {
+        "sub": "test_sub",
+        "iss": "123",
+        "aud": "http://test.localhost.com",
+        "exp": datetime.utcnow() + timedelta(minutes=5),
+    }
+    private_key_path = "tests/keys/test_private_key.pem"
+    # Load the private key from the PEM file
+    with open(private_key_path, "rb") as f:
+        private_key = f.read()
+
+    # Encode the payload into a JWT token with the private key
+    assertion = jwt.encode(payload, private_key, algorithm="RS256")
+    print(assertion)
+    return assertion
+
+
+def test_get_token():
+    client = TestClient(app)
+
+    # Test with valid input
+    params = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": generate_test_assertion(),
+    }
+    response = client.post("/services/oauth2/token", params=params)
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+    # Test with invalid grant type
+    params = {
+        "grant_type": "unsupported_grant_type",
+        "assertion": generate_test_assertion(),
+    }
+    response = client.post("/services/oauth2/token", params=params)
+    assert response.status_code == 400
+    assert response.json()["detail"] == {"error": "unsupported_grant_type"}
+
+    # Test with invalid assertion
+    params = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": "invalid-jwt-assertion",
+    }
+    response = client.post("/services/oauth2/token", params=params)
+    assert response.status_code == 400
+    assert "error" in response.json()["detail"]
+
+
+def generate_test_token():
+    payload = {
+        "sub": "test_sub",
+        "iss": "123",
+        "aud": "http://test.localhost.com",
+        "exp": datetime.utcnow() + timedelta(minutes=5),
+    }
+    # Generate JWT token
+    secret_key = os.environ["SECRET_KEY"]
+    print(secret_key)
+    token = jwt.encode(payload, secret_key)
+
+    return token
+
+
+TEST_TOKEN = generate_test_token()
 
 
 def test_get_record():
@@ -270,12 +354,13 @@ def test_send_email_success():
         "content": "This is a test email.",
     }
 
-    from unittest import mock
-
     with mock.patch(
         "app.main.EmailSenderFactory.get_email_sender"
     ) as mock_email_sender:
-        mock_email_sender.return_value.send_email = lambda *args: None
+        mock_email_sender.return_value.send_email = lambda *args: (
+            200,
+            "Email sent successfully",
+        )
 
         response = client.post(
             PDRCASE_EMAIL_ENDPOINT,
@@ -286,14 +371,14 @@ def test_send_email_success():
         assert response.status_code == 200
 
         email_status = response.json()
+        assert "timestamp" in response.json()
+        # Verify the timestamp is a valid ISO datetime string
+        try:
+            datetime.fromisoformat(email_status["timestamp"])
+        except ValueError:
+            assert False, "Invalid timestamp format"
+        # Verify email_info matches
         assert email_status["email_info"] == email_info
-        assert isinstance(email_status["timestamp"], str)
-
-    # Check if the timestamp is a valid ISO datetime string
-    try:
-        datetime.fromisoformat(email_status["timestamp"])
-    except ValueError:
-        assert False, "Invalid timestamp format"
 
 
 def test_test_endpoint_success():
