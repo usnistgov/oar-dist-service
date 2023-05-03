@@ -13,7 +13,11 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A DataCachingService implementation that leverages the {@link PDRCacheManager} to cache a dataset.
@@ -95,15 +99,20 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * @return String -- the temporary random that will be used to fetch metadata.
      */
     public String cacheAndGenerateRandomId(String datasetID, String version)
-            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException,
+            IllegalArgumentException {
 
         logger.debug("Request to cache dataset with ID=" + datasetID);
 
         String dsid = datasetID;
-        if (datasetID.contains("ark:")) {
+        if (datasetID.startsWith("ark:/")) {
             // Split the dataset ID into components
             String[] parts = datasetID.split("/");
-            dsid = parts[2];
+            if (parts.length >= 3) {
+                dsid = parts[2];
+            } else {
+                throw new IllegalArgumentException("Invalid ark ID format: " + datasetID);
+            }
         }
         logger.debug("Caching dataset with dsid=" + dsid);
         String randomID = generateRandomID(20, true, true);
@@ -127,15 +136,16 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * Retrieve metadata given the random id that was previously generated and used to cache the dataset.
      *
      * @param randomID the random ID used to cache the dataset.
-     *
      * @return Map<String, Object> -- metadata about files in dataset
      */
-    public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException, MetadataNotFoundException {
+    public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException,
+            MetadataNotFoundException {
         logger.debug("Requesting metadata for temporary ID=" + randomID);
         JSONArray metadata = new JSONArray();
-        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
+        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID,
+                this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
-            for (CacheObject obj: objects) {
+            for (CacheObject obj : objects) {
                 JSONObject objMd = formatMetadata(obj.exportMetadata(), randomID);
                 metadata.put(objMd);
             }
