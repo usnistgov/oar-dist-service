@@ -137,7 +137,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.debug("Sending 'PUT' request to URL:=" + url);
+        LOGGER.debug("Sending 'PUT' request to URL:=" + url + " (" + Integer.toString(url.length()) + ")");
         HttpURLConnection connection = null;
         try {
             URL requestUrl = new URL(url);
