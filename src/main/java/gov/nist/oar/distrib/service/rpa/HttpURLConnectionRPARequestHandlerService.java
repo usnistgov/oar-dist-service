@@ -466,6 +466,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                 this.recordResponseHandler.onRecordUpdateDeclined(record);
             }
         } catch (Exception e) {
+            LOGGER.debug("Got exception: " + e.getClass().getName());
             LOGGER.debug("Error while handling record update event " + e.getMessage());
             throw new RequestProcessingException("Error while handling record update event " + e.getMessage());
         }

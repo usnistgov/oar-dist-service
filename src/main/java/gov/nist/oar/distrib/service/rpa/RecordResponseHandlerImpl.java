@@ -103,6 +103,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         try {
             randomId = startCachingViaFunction(datasetId);
         } catch (Exception e) {
+            LOGGER.debug("Got exception: " + e.getClass().getName());
             LOGGER.debug("Unable to cache dataset: " + e.getMessage());
             throw new RequestProcessingException(e.getMessage());
         }
