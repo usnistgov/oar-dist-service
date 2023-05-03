@@ -2,6 +2,10 @@ package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
@@ -33,6 +37,9 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     private EmailSender emailSender;
 
     private final RPAConfiguration rpaConfiguration;
+
+
+    private RPACachingService rpaCachingService;
 
     /**
      * Constructs a new instance of the RecordResponseHandlerImpl class with the given {@link RPAConfiguration} and
@@ -91,7 +98,14 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     public void onRecordUpdateApproved(Record record) throws InvalidRequestException, RequestProcessingException {
         LOGGER.info("User was approved by SME. Starting caching...");
         String datasetId = record.getUserInfo().getSubject();
-        String randomId = startCaching(datasetId);
+//        String randomId = startCaching(datasetId);
+        String randomId = null;
+        try {
+            randomId = startCachingViaFunction(datasetId);
+        } catch (Exception e) {
+            LOGGER.debug("Unable to cache dataset: " + e.getMessage());
+            throw new RequestProcessingException(e.getMessage());
+        }
         LOGGER.info("Dataset was cached successfully. Sending email to user...");
         // Build Download URL
         String downloadUrl;
@@ -166,6 +180,11 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                 connection.disconnect();
             }
         }
+    }
+
+    private String startCachingViaFunction(String datasetId) throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+        String randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, "");
+        return randomId;
     }
 
 
