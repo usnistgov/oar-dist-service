@@ -5,7 +5,7 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 /**
@@ -35,11 +36,16 @@ public class RPADataCachingController {
 
     Logger logger = LoggerFactory.getLogger(RPADataCachingController.class);
 
+    /**
+     * The regex used to match ARK id in the URL path.
+     */
+    private static final String ARK_REGEX = "ark:/{naan:\\d+}/{dsid}";
+
     @Autowired
     RPACachingService restrictedSrvc;
 
     /**
-     * This endpoint handles caching of a dataset under restricted public access.
+     * This endpoint handles caching of a dataset under restricted public access, and generates a random ID for it.
      *
      * @param dsid The ID of the dataset to cache.
      * @param version The version of the dataset to cache, if applicable. Defaults to an empty string if not specified.
@@ -57,6 +63,34 @@ public class RPADataCachingController {
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
         logger.debug("dsid=" + dsid);
+        String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
+        return randomId;
+    }
+
+    /**
+     * This endpoint handles caching of a dataset under restricted public access, and generates a random ID for it.
+     * This endpoint expects an ARK identifier in the path that matches the regular expression {@link #ARK_REGEX}
+     *
+     * @param dsid     the dataset identifier
+     * @param naan     the ARK ID's naming authority number (NAAN)
+     * @param version  the version of the dataset (optional, defaults to empty string)
+     * @param request  the input HTTP request object
+     *
+     * @return the randomly generated ID for the cached dataset
+     *
+     * @throws CacheManagementException if there was an error caching the dataset
+     * @throws ResourceNotFoundException if the dataset was not found
+     * @throws StorageVolumeException if there was an error accessing the storage volume
+     */
+    @PutMapping(value = "/cache/" + ARK_REGEX)
+    public String cacheDatasetViaARK(
+            @PathVariable("dsid") String dsid,
+            @PathVariable("naan") String naan,
+            @RequestParam(name = "version", defaultValue = "") String version,
+            @Parameter(hidden = true) HttpServletRequest request)
+            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
+
+        logger.debug("Matched ARK ID for caching: ark:/" + naan + "/" + dsid);
         String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
         return randomId;
     }
