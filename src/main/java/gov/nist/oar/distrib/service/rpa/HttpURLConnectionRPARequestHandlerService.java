@@ -1,33 +1,7 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
@@ -42,7 +16,30 @@ import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -457,18 +454,11 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // Retrieve updated record from SF service
         Record record = this.getRecord(recordId).getRecord();
 
-        // TODO: update try-catch block to be more specific
-        try {
-            // Check if status is approved
-            if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
-                this.recordResponseHandler.onRecordUpdateApproved(record);
-            } else {
-                this.recordResponseHandler.onRecordUpdateDeclined(record);
-            }
-        } catch (Exception e) {
-            LOGGER.debug("Got exception: " + e.getClass().getName());
-            LOGGER.debug("Error while handling record update event " + e.getMessage());
-            throw new RequestProcessingException("Error while handling record update event " + e.getMessage());
+        // Check if status is approved
+        if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
+            this.recordResponseHandler.onRecordUpdateApproved(record);
+        } else {
+            this.recordResponseHandler.onRecordUpdateDeclined(record);
         }
 
         return recordStatus;
