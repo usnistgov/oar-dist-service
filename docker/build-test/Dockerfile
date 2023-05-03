@@ -4,6 +4,8 @@ FROM openjdk:8-jdk-slim-stretch
 
 RUN mkdir -p /usr/share/man/man1
 
+RUN echo "deb http://archive.debian.org/debian stretch main contrib non-free" > /etc/apt/sources.list
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
                                             gnupg python python-pip python-virtualenv \
                                             make gcc curl maven
