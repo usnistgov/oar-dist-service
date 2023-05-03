@@ -2,9 +2,6 @@ package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
@@ -16,6 +13,7 @@ import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,7 +36,9 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
 
     private final RPAConfiguration rpaConfiguration;
 
+    private RPADatasetCacher rpaDatasetCacher;
 
+    @Autowired
     private RPACachingService rpaCachingService;
 
     /**
@@ -52,6 +52,8 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         this.rpaConfiguration = rpaConfiguration;
         // Set EmailSender
         this.emailSender = new EmailSender(rpaConfiguration, connectionFactory);
+        // Set RPADatasetCacher
+        this.rpaDatasetCacher = new DefaultRPADatasetCacher(rpaCachingService);
     }
 
     /**
@@ -85,12 +87,14 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      *                   Note: This implementation does nothing for now, other than logging.
      */
     @Override
-    public void onRecordCreationFailure(int statusCode) {
+    public void onRecordCreationFailure(int statusCode) throws RequestProcessingException {
         LOGGER.debug("Failed to create record, status_code=" + statusCode);
+        throw new RequestProcessingException("Failed to create record, status_code=" + statusCode);
     }
 
     /**
      * Called when a record status was updated to "Approved".
+     * This uses {@link RPADatasetCacher} to cache the dataset.
      *
      * @param record the record that was updated
      */
@@ -98,15 +102,10 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     public void onRecordUpdateApproved(Record record) throws InvalidRequestException, RequestProcessingException {
         LOGGER.info("User was approved by SME. Starting caching...");
         String datasetId = record.getUserInfo().getSubject();
-//        String randomId = startCaching(datasetId);
-        String randomId = null;
-        try {
-            randomId = startCachingViaFunction(datasetId);
-        } catch (Exception e) {
-            LOGGER.debug("Got exception: " + e.getClass().getName());
-            LOGGER.debug("Unable to cache dataset: " + e.getMessage());
-            throw new RequestProcessingException(e.getMessage());
-        }
+        // NEW: case dataset using the RPADatasetCacher
+        String randomId = this.rpaDatasetCacher.cache(datasetId);
+        if (randomId == null)
+            throw new RequestProcessingException("Caching process return a null randomId");
         LOGGER.info("Dataset was cached successfully. Sending email to user...");
         // Build Download URL
         String downloadUrl;
@@ -125,69 +124,13 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      * Called when a record status was updated to "Declined".
      * <p>
      * Note: This implementation does nothing for now, other than logging.
-     * @param record the record that was updated
      *
+     * @param record the record that was updated
      */
     @Override
     public void onRecordUpdateDeclined(Record record) {
         LOGGER.debug("User was declined by SME");
     }
-
-    /**
-     * Cache the specified dataset.
-     * Sends an HTTP PUT request to the caching service to cache the specified dataset using HttpUrlConnection.
-     *
-     * @param datasetId the ID of the dataset to cache
-     * @return the body of the response
-     * @throws RequestProcessingException if there is an error while processing the request or while communicating
-     * with the caching service
-     */
-    private String startCaching(String datasetId) throws RequestProcessingException {
-        String url;
-        try {
-            url = new URIBuilder(this.rpaConfiguration.getPdrCachingUrl())
-                    .setPath("/od/ds/rpa/cache/" + datasetId)
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new RequestProcessingException("Error building URI: " + e.getMessage());
-        }
-        LOGGER.debug("Sending 'PUT' request to URL:=" + url);
-        HttpURLConnection connection = null;
-        try {
-            URL requestUrl = new URL(url);
-            connection = (HttpURLConnection) requestUrl.openConnection();
-            connection.setRequestMethod("PUT");
-            connection.setDoOutput(true);
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        response.append(line);
-                    }
-                    return response.toString();
-                }
-            } else {
-                throw new RequestProcessingException("Failed to cache dataset " + datasetId + ": " + connection.getResponseMessage());
-            }
-        } catch (MalformedURLException e) {
-            throw new RequestProcessingException("Invalid URL: " + e.getMessage());
-        } catch (IOException e) {
-            throw new RequestProcessingException("Failed to cache dataset " + datasetId + ": " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-    }
-
-    private String startCachingViaFunction(String datasetId) throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
-        String randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, "");
-        return randomId;
-    }
-
 
     private class EmailSender {
         /**
