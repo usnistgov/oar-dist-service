@@ -98,6 +98,14 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
         logger.debug("Request to cache dataset with ID=" + datasetID);
+
+        String dsid = datasetID;
+        if (datasetID.contains("ark:")) {
+            // Split the dataset ID into components
+            String[] parts = datasetID.split("/");
+            dsid = parts[2];
+        }
+        logger.debug("Caching dataset with dsid=" + dsid);
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
@@ -105,7 +113,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
         // cache dataset
-        Set<String> files = this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+        Set<String> files = this.pdrCacheManager.cacheDataset(dsid, version, true, prefs, randomID);
         // Log the files
         logger.debug("Cached files:");
         for (String file : files) {
