@@ -97,6 +97,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
     public String cacheAndGenerateRandomId(String datasetID, String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        logger.debug("Request to cache dataset with ID=" + datasetID);
         String randomID = generateRandomID(20, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
@@ -104,7 +105,12 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
         // cache dataset
-        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+        Set<String> files = this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
+        // Log the files
+        logger.debug("Cached files:");
+        for (String file : files) {
+            logger.debug("- " + file);
+        }
         return randomID;
     }
 
@@ -117,6 +123,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * @return Map<String, Object> -- metadata about files in dataset
      */
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException, MetadataNotFoundException {
+        logger.debug("Requesting metadata for temporary ID=" + randomID);
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID, this.pdrCacheManager.VOL_FOR_INFO);
         if (objects.size() > 0) {
@@ -131,6 +138,9 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         JSONObject result = new JSONObject();
         result.put("randomId", randomID);
         result.put("metadata", metadata);
+        // Log the JSON object
+        logger.debug("Result:");
+        logger.debug(result.toString(4));
         return result.toMap();
     }
 
