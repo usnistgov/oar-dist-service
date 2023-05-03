@@ -40,7 +40,6 @@ import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
-import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 
@@ -458,12 +457,19 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // Retrieve updated record from SF service
         Record record = this.getRecord(recordId).getRecord();
 
-        // Check if status is approved
-        if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
-            this.recordResponseHandler.onRecordUpdateApproved(record);
-        } else {
-            this.recordResponseHandler.onRecordUpdateDeclined(record);
+        // TODO: update try-catch block to be more specific
+        try {
+            // Check if status is approved
+            if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
+                this.recordResponseHandler.onRecordUpdateApproved(record);
+            } else {
+                this.recordResponseHandler.onRecordUpdateDeclined(record);
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Error while handling record update event " + e.getMessage());
+            throw new RequestProcessingException("Error while handling record update event " + e.getMessage());
         }
+
         return recordStatus;
     }
 
