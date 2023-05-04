@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
@@ -46,6 +47,9 @@ public class RPARequestHandlerControllerTest {
     @Mock
     RPAServiceProvider mockRPAServiceProvider;
 
+    @Mock
+    RPACachingService mockRPACachingService;
+
     private RPARequestHandlerController controller;
 
     private MockMvc mockMvc;
@@ -53,9 +57,9 @@ public class RPARequestHandlerControllerTest {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        when(mockRPAServiceProvider.getIRPARequestHandler()).thenReturn(service);
+        when(mockRPAServiceProvider.getIRPARequestHandler(mockRPACachingService)).thenReturn(service);
         // create a test instance of the RPARequestHandlerController class
-        controller = new RPARequestHandlerController(mockRPAServiceProvider);
+        controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .build();
     }

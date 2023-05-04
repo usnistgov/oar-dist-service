@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import org.slf4j.Logger;
@@ -30,6 +31,9 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
         String randomId = null;
         try {
             randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, "");
+        } catch (DistributionException e) {
+            LOGGER.error("Failure while caching RPA dataset: " + e);
+            throw new RequestProcessingException(e.getMessage());
         } catch (Exception e) {
             this.logCachingException(e);
             throw new RequestProcessingException(e.getMessage());
@@ -43,10 +47,13 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
      * @param e the exception to log
      */
     private void logCachingException(Exception e) {
-        LOGGER.debug("Caught exception: " + e);
+        LOGGER.error("Unexpected failure while caching RPA dataset: " + e);
+        StringBuilder sb = new StringBuilder();
         for (StackTraceElement element : e.getStackTrace()) {
-            LOGGER.debug(element.toString());
+            sb.append(element.toString());
+            sb.append("\n");
         }
+        LOGGER.error(sb.toString());
     }
 
 }

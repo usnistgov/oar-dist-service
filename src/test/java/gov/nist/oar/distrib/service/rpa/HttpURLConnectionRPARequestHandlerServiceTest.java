@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import gov.nist.oar.distrib.service.RPACachingService;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -128,6 +129,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     RecordResponseHandler recordResponseHandler;
 
     @Mock
+    RPACachingService rpaCachingService;
+
+    @Mock
     private HttpClient mockHttpClient;
 
     @Mock
@@ -150,7 +154,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        service = spy(new HttpURLConnectionRPARequestHandlerService(rpaConfiguration));
+        service = spy(new HttpURLConnectionRPARequestHandlerService(rpaConfiguration, rpaCachingService));
         service.setJWTHelper(mockJwtHelper);
         service.setRecaptchaHelper(recaptchaHelper);
         service.setHttpURLConnectionFactory(url -> mockConnection);
