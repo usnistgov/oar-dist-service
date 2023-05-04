@@ -38,9 +38,6 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
 
     private RPADatasetCacher rpaDatasetCacher;
 
-    @Autowired
-    private RPACachingService rpaCachingService;
-
     /**
      * Constructs a new instance of the RecordResponseHandlerImpl class with the given {@link RPAConfiguration} and
      * {@link HttpURLConnection}.
@@ -48,7 +45,9 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      * @param rpaConfiguration  the {@link RPAConfiguration} to use for email notifications
      * @param connectionFactory the {@link HttpURLConnection} factory to use for email notifications
      */
-    public RecordResponseHandlerImpl(RPAConfiguration rpaConfiguration, HttpURLConnectionFactory connectionFactory) {
+    public RecordResponseHandlerImpl(RPAConfiguration rpaConfiguration,
+                                     HttpURLConnectionFactory connectionFactory,
+                                     RPACachingService rpaCachingService) {
         this.rpaConfiguration = rpaConfiguration;
         // Set EmailSender
         this.emailSender = new EmailSender(rpaConfiguration, connectionFactory);

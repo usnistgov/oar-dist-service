@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.exceptions.FailedRecordUpdateException;
@@ -47,8 +48,8 @@ public class RPARequestHandlerController {
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
     @Autowired
-    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider) {
-        this.service = rpaServiceProvider.getIRPARequestHandler();
+    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider, RPACachingService rpaCachingService) {
+        this.service = rpaServiceProvider.getIRPARequestHandler(rpaCachingService);
     }
     /**
      * Test connection to Salesforce.

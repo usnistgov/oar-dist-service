@@ -1,9 +1,11 @@
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.HttpURLConnectionRPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.client.RestTemplate;
 
 public class RPAServiceProvider {
@@ -21,11 +23,12 @@ public class RPAServiceProvider {
         return new DefaultRPARequestHandlerService(this.rpaConfiguration, restTemplate);
     }
 
-    public IRPARequestHandler getIRPARequestHandler() {
-        return this.getHttpURLConnectionRPARequestHandler();
+    @Autowired
+    public IRPARequestHandler getIRPARequestHandler(RPACachingService rpaCachingService) {
+        return this.getHttpURLConnectionRPARequestHandler(rpaCachingService);
     }
 
-    private IRPARequestHandler getHttpURLConnectionRPARequestHandler() {
-        return new HttpURLConnectionRPARequestHandlerService(this.rpaConfiguration);
+    private IRPARequestHandler getHttpURLConnectionRPARequestHandler(RPACachingService rpaCachingService) {
+        return new HttpURLConnectionRPARequestHandlerService(this.rpaConfiguration, rpaCachingService);
     }
 }

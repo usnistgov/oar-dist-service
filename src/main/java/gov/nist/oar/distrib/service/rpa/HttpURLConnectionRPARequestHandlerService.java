@@ -2,6 +2,7 @@ package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
@@ -132,7 +133,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      *
      * @param rpaConfiguration The RPA configuration to use for this service.
      */
-    public HttpURLConnectionRPARequestHandlerService(RPAConfiguration rpaConfiguration) {
+    public HttpURLConnectionRPARequestHandlerService(RPAConfiguration rpaConfiguration, RPACachingService rpaCachingService) {
         // Initialize instance variables
         this.rpaConfiguration = rpaConfiguration;
         this.connectionFactory = url -> (HttpURLConnection) url.openConnection();
@@ -148,7 +149,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         this.recaptchaHelper.setHttpURLConnectionFactory(this.connectionFactory);
 
         // Set RecordResponseHandler
-        this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory);
+        this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory, rpaCachingService);
 
         // Log RPA configuration coming from the config server
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
