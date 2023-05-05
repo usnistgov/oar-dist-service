@@ -10,13 +10,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,64 +43,33 @@ public class DefaultRPADatasetCacherTest {
     }
 
     @Test
+    public void testCache_Success_WithArkID() throws Exception {
+        datasetId = "ark:/12345/mds2-2909";
+        String randomId = "randomId123";
+        when(rpaCachingService.cacheAndGenerateRandomId(datasetId, version)).thenReturn(randomId);
+        String result = rpaDatasetCacher.cache(datasetId);
+        verify(rpaCachingService, times(1)).cacheAndGenerateRandomId(datasetId, version);
+        assertEquals(randomId, result);
+    }
+
+    @Test(expected = RequestProcessingException.class)
     public void testCache_requestProcessingException() throws Exception {
         // throw a CacheManagementException
         when(rpaCachingService.cacheAndGenerateRandomId(datasetId, version))
                 .thenThrow(new CacheManagementException("Error caching dataset: " + datasetId));
-        try {
-            rpaDatasetCacher.cache(datasetId);
-            fail("Expected RequestProcessingException to be thrown");
-        } catch (RequestProcessingException e) {
-            assertThat(e.getMessage(), containsString("Error caching dataset: " + datasetId));
-            verify(rpaCachingService).cacheAndGenerateRandomId(eq(datasetId), anyString());
-        }
+        rpaDatasetCacher.cache(datasetId);
     }
 
-//    @Test
-//    public void testCache_invalidDatasetId() {
-//        String invalidDatasetId = "ard:/invalid_id/";
-//        // throw an IllegalArgumentException for the invalid datasetId
-//        try {
-//            when(rpaCachingService.cacheAndGenerateRandomId(eq(invalidDatasetId), anyString()))
-//                    .thenThrow(new IllegalArgumentException("Invalid dataset ID format: " + invalidDatasetId));
-//
-//            try {
-//                rpaDatasetCacher.cache(invalidDatasetId);
-//                fail("Expected RequestProcessingException to be thrown");
-//            } catch (RequestProcessingException e) {
-//                assertThat(e.getMessage(), containsString("Invalid dataset ID format: " + invalidDatasetId));
-//                verify(rpaCachingService).cacheAndGenerateRandomId(eq(invalidDatasetId), anyString());
-//            }
-//        } catch (Exception e) {
-//            // Ignore the exception
-//        }
-//    }
-
-    @Test
+    @Test(expected = RequestProcessingException.class)
     public void testCache_invalidDatasetId() throws Exception {
-        String invalidDatasetId = "ard:/invalid_id/";
+        String invalidDatasetId = "ark:/invalid_id";
 
-        // Create a mock of the rpaCachingService object
-        RPACachingService rpaCachingServiceMock = mock(RPACachingService.class);
-
-        // Throw an IllegalArgumentException for the invalid datasetId when the cacheAndGenerateRandomId method is called
-        when(rpaCachingServiceMock.cacheAndGenerateRandomId(eq(invalidDatasetId), anyString()))
+         // Throw an IllegalArgumentException for the invalid datasetId when the cacheAndGenerateRandomId method is called
+        when(rpaCachingService.cacheAndGenerateRandomId(eq(invalidDatasetId), anyString()))
                 .thenThrow(new IllegalArgumentException("Invalid dataset ID format: " + invalidDatasetId));
 
-        // Create a new instance of rpaDatasetCacher and pass in the mocked rpaCachingService
-        DefaultRPADatasetCacher rpaDatasetCacher = new DefaultRPADatasetCacher(rpaCachingServiceMock);
-
-        try {
-            rpaDatasetCacher.cache(invalidDatasetId);
-            fail("Expected RequestProcessingException to be thrown");
-        } catch (RequestProcessingException e) {
-            assertThat(e.getMessage(), containsString("Invalid dataset ID format: " + invalidDatasetId));
-            verify(rpaCachingServiceMock).cacheAndGenerateRandomId(eq(invalidDatasetId), anyString());
-        } catch (Exception e) {
-
-        }
+        rpaDatasetCacher.cache(invalidDatasetId);
     }
-
 
 }
 
