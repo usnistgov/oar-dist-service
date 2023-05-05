@@ -32,6 +32,12 @@ public class HTMLSanitizerTest {
     }
 
     @Test
+    public void testSanitize_NullStringObject() {
+        String sanitizedInput = HTMLSanitizer.sanitize(null);
+        Assert.assertEquals(null, sanitizedInput);
+    }
+
+    @Test
     public void testSanitize_StringBuilderObject() {
         // input sb
         StringBuilder sb = new StringBuilder().append("<a>").append("Hello, there!").append("</a>");
@@ -79,6 +85,9 @@ public class HTMLSanitizerTest {
 
     @Test
     public void testSanitize_UserInfoWrapperObject() {
+        String testDescription = "Product Title: Example Title " +
+                "Set\n\nPurpose of Use: Research purposes for a publication\n\nAddress:\n100 Bureau " +
+                "Drive\nGaithersburg, MD, 20899";
         // Create a test object
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
         UserInfo userInfo = new UserInfo();
@@ -88,7 +97,7 @@ public class HTMLSanitizerTest {
         userInfo.setEmail("john.doe@example.com");
         userInfo.setReceiveEmails("true");
         userInfo.setSubject("Test subject");
-        userInfo.setDescription("Test description");
+        userInfo.setDescription(testDescription);
         userInfo.setProductTitle("<div>Test dataset</div>");
         userInfo.setApprovalStatus("pending");
         userInfoWrapper.setUserInfo(userInfo);
@@ -96,11 +105,12 @@ public class HTMLSanitizerTest {
         // Sanitize the test object
         HTMLSanitizer.sanitize(userInfoWrapper);
 
-
         // Verify that the HTML tags and attributes have been sanitized
         Assert.assertEquals("NIST", userInfoWrapper.getUserInfo().getOrganization());
         Assert.assertEquals("John Doe", userInfoWrapper.getUserInfo().getFullName());
         Assert.assertEquals("USA", userInfoWrapper.getUserInfo().getCountry());
         Assert.assertEquals("Test dataset", userInfoWrapper.getUserInfo().getProductTitle());
+        // This checks line breaks as well
+        Assert.assertEquals(testDescription, userInfoWrapper.getUserInfo().getDescription());
     }
 }
