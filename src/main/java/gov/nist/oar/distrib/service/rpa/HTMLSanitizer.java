@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class HTMLSanitizer {
      * Change this according to needs.
      * This will remove the `a`, and `script` tags from the list of allowed tags.
      */
-    private static final Safelist SAFELIST = Safelist.basic().removeTags("a", "script");
+    private static final Safelist BASIC_SAFELIST = Safelist.basic().removeTags("a", "script");
 
     // Define a constant to limit the recursion depth
     private static final int MAX_DEPTH = 7;
@@ -74,7 +75,7 @@ public class HTMLSanitizer {
             String sanitizedValue = sanitizeHtml(object.toString());
             StringBuilder sb = (StringBuilder) object;
             sb.replace(0, sb.length(), sanitizedValue);
-            return object;
+            return (T) sb;
         } else if (object instanceof String) {
             // If the input object is a string, sanitize it
             String sanitizedValue = sanitizeHtml((String) object);
@@ -128,8 +129,14 @@ public class HTMLSanitizer {
      * @return the sanitized input
      */
     private static String sanitizeHtml(String input) {
+
+        // Jsoup removes the newline character (\n) by default from the HTML text
+        // To prevent that, disable pretty-print
+        Document.OutputSettings outputSettings = new Document.OutputSettings();
+        outputSettings.prettyPrint(false);
+
         // Use the Jsoup.clean method to sanitize the input string
-        return Jsoup.clean(input, SAFELIST);
+        return Jsoup.clean(input, "", BASIC_SAFELIST, outputSettings);
     }
 
 }

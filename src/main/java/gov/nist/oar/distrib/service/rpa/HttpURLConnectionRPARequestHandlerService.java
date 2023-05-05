@@ -279,10 +279,10 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             }
             LOGGER.debug("CREATE_RECORD_URL=" + url);
 
-            // Sanitize user input
-            UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
             // set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
             userInfoWrapper.setRecaptcha(null);
+            // Sanitize user input
+            UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
             LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
 
             String postPayload;
