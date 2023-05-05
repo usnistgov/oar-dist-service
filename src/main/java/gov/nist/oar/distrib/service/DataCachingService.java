@@ -12,11 +12,13 @@ import java.util.Set;
 public interface DataCachingService {
 
     /**
-     * cache all data that is part of the given version of a dataset.
-     * @param datasetID    the identifier for the dataset.
-     * @param version  the version of the dataset to cache.  If null, the latest is cached.
+     * Cache all data that is part of the given version of a dataset, and generate a temporary random id.
      *
-     * @return Set<String> -- a list of the URLs for files that were cached
+     * @param datasetID the identifier for the dataset.
+     * @param version   the version of the dataset to cache.  If null, the latest is cached.
+     * @return String -- the temporary random that will be used to fetch metadata.
      */
-    Set<String> cacheDataset(String datasetID, String version) throws CacheManagementException, ResourceNotFoundException, StorageVolumeException;
+    String cacheAndGenerateRandomId(String datasetID, String version)
+            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException,
+            IllegalArgumentException;
 }

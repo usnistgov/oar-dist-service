@@ -1,6 +1,5 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import org.slf4j.Logger;
@@ -13,7 +12,7 @@ import org.slf4j.LoggerFactory;
 public class DefaultRPADatasetCacher implements RPADatasetCacher {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(DefaultRPADatasetCacher.class);
-    private RPACachingService rpaCachingService;
+    private final RPACachingService rpaCachingService;
 
     public DefaultRPADatasetCacher(RPACachingService rpaCachingService) {
         this.rpaCachingService = rpaCachingService;
@@ -27,13 +26,10 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
      * @throws RequestProcessingException if an error occurs while caching the dataset
      */
     @Override
-    public String cache(String datasetId) {
-        String randomId = null;
+    public String cache(String datasetId) throws RequestProcessingException {
+        String randomId;
         try {
             randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, "");
-        } catch (DistributionException e) {
-            LOGGER.error("Failure while caching RPA dataset: " + e);
-            throw new RequestProcessingException(e.getMessage());
         } catch (Exception e) {
             this.logCachingException(e);
             throw new RequestProcessingException(e.getMessage());

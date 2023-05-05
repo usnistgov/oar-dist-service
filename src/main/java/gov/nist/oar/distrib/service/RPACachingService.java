@@ -13,8 +13,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,11 +26,11 @@ import java.util.Set;
  */
 public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
-    private PDRCacheManager pdrCacheManager = null;
+    public static final int RANDOM_ID_LENGTH = 20;
+    private PDRCacheManager pdrCacheManager;
 
     protected static Logger logger = LoggerFactory.getLogger(RPACachingService.class);
 
-    HashMap<String, String> url2dsid;
 
     /**
      * Create an instance of the service that wraps a {@link PDRCacheManager}
@@ -41,54 +39,6 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      **/
     public RPACachingService(PDRCacheManager pdrCacheManager) {
         this.pdrCacheManager = pdrCacheManager;
-    }
-
-    /**
-     * Cache all data that is part of the given version of a dataset.
-     *
-     * @param datasetID the identifier for the dataset.
-     * @param version   the version of the dataset to cache.  If null, the latest is cached.
-     * @return Set<String> -- a list of the URLs for files that were cached
-     */
-    // todo@omar: test me
-    public Set<String> cacheDataset(String datasetID, String version)
-            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
-
-        String randomID = generateRandomID(20, true, true);
-
-        int prefs = ROLE_RESTRICTED_DATA;
-        if (!version.isEmpty())
-            prefs = ROLE_OLD_RESTRICTED_DATA;
-
-        Set<String> temporaryUrls = new HashSet<>();
-        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID).forEach(name ->
-                {
-                    temporaryUrls.add("/" + randomID + "/" + name);
-                }
-        );
-        return temporaryUrls;
-    }
-
-    /**
-     * Cache all data that is part of the given version of a dataset, and generate a temporary URL.
-     *
-     * @param datasetID the identifier for the dataset.
-     * @param version   the version of the dataset to cache.  If null, the latest is cached.
-     * @return String -- the temporary URL that will be used to fetch the files metadata.
-     */
-    public String cacheAndGenerateTemporaryUrl(String datasetID, String version)
-            throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
-
-        String baseDataCartURL = "https://data.nist.gov/pdr/datacart/restricted_datacart";
-        String randomID = generateRandomID(20, true, true);
-
-        int prefs = ROLE_RESTRICTED_DATA;
-        if (!version.isEmpty())
-            prefs = ROLE_OLD_RESTRICTED_DATA;
-
-        // cache dataset
-        this.pdrCacheManager.cacheDataset(datasetID, version, true, prefs, randomID);
-        return baseDataCartURL + "?id=" + randomID;
     }
 
     /**
@@ -108,14 +58,14 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         if (datasetID.startsWith("ark:/")) {
             // Split the dataset ID into components
             String[] parts = datasetID.split("/");
-            if (parts.length >= 3) {
-                dsid = parts[2];
-            } else {
+            if (parts.length < 3) { // should contain 3 parts
                 throw new IllegalArgumentException("Invalid ark ID format: " + datasetID);
             }
+            dsid = parts[2];
         }
+
         logger.debug("Caching dataset with dsid=" + dsid);
-        String randomID = generateRandomID(20, true, true);
+        String randomID = generateRandomID(RANDOM_ID_LENGTH, true, true);
 
         int prefs = ROLE_RESTRICTED_DATA;
         if (!version.isEmpty())
