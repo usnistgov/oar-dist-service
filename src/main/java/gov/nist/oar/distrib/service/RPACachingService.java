@@ -104,7 +104,11 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         if (objects.size() > 0) {
             for (CacheObject obj : objects) {
                 JSONObject objMd = formatMetadata(obj.exportMetadata(), randomID);
-                metadata.put(objMd);
+                if (objMd.has("filePath")) {
+                    metadata.put(objMd);
+                } else {
+                    logger.warn("Skipping object with missing file path in metadata: " + objMd);
+                }
             }
         }
         if (metadata.isEmpty()) {
@@ -118,6 +122,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         logger.debug(result.toString(4));
         return result.toMap();
     }
+
     /**
      * Formats the metadata from a cache object to a JSON object with an additional field for the download URL.
      *

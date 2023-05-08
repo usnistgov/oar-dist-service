@@ -155,6 +155,92 @@ public class RPACachingServiceTest {
         assertEquals(expected, actual);
     }
 
+    // This tests if objects with missing filepaths are skipped and not included in metadata
+    @Test
+    public void testRetrieveMetadata_withMissingFilepath() throws Exception  {
+        String randomID = "randomId123";
+        CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 1")
+                .put("pdrid", "123456")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "abc123")
+                .put("version", "v1")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        CacheObject cacheObject2 = new CacheObject("object2", new JSONObject()
+                .put("filepath", "path/to/file2.txt")
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 2")
+                .put("pdrid", "654321")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "def456")
+                .put("version", "v2")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
+
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+                .thenReturn(cacheObjects);
+
+        String testPdrCachingUrl = "https://testdata.nist.gov";
+        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("randomId", randomID);
+        expected.put("metadata", new JSONArray()
+                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file2.txt")
+                        .put("filePath", "path/to/file2.txt")
+                        .put("mediaType", "text/plain")
+                        .put("size", 100L)
+                        .put("resTitle", "Resource 2")
+                        .put("resId", "654321")
+                        .put("checksumAlgorithm", "SHA256")
+                        .put("checksum", "def456")
+                        .put("version", "v2")
+                        .put("ediid", "123")
+                        .put("aipid", "456")
+                        .put("sinceDate", "08-05-2023"))
+                .toList());
+
+        Map<String, Object> actual = rpaCachingService.retrieveMetadata(randomID);
+
+        assertEquals(expected, actual);
+    }
+
+    // This should throw MetadataNotFoundException since there is only one object but it's missing filepath
+    @Test(expected = MetadataNotFoundException.class)
+    public void testRetrieveMetadata_withOneObjectMissingFilepath() throws Exception  {
+        String randomID = "randomId123";
+        CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 1")
+                .put("pdrid", "123456")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "abc123")
+                .put("version", "v1")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+
+        List<CacheObject> cacheObjects = Arrays.asList(cacheObject1);
+
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+                .thenReturn(cacheObjects);
+
+        rpaCachingService.retrieveMetadata(randomID);
+    }
 
     @Test(expected = MetadataNotFoundException.class)
     public void testRetrieveMetadata_WithEmptyMetadataList() throws Exception  {
