@@ -5,6 +5,7 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -104,7 +105,7 @@ public class RPADataCachingController {
      */
     @GetMapping(value = "/dlset/{cacheid}")
     public Map<String, Object> retrieveMetadata(@PathVariable("cacheid") String cacheId)
-            throws CacheManagementException, MetadataNotFoundException {
+            throws CacheManagementException, MetadataNotFoundException, RequestProcessingException {
 
         logger.debug("cacheId=" + cacheId);
         Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(cacheId);
@@ -133,5 +134,11 @@ public class RPADataCachingController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleStorageVolumeException(StorageVolumeException ex) {
         return new ErrorInfo(500, "storage volume error: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(RequestProcessingException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorInfo handleRequestProcessingException(RequestProcessingException ex) {
+        return new ErrorInfo(500, "internal service error: " + ex.getMessage());
     }
 }

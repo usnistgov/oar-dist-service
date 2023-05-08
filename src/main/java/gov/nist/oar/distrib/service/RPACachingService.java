@@ -7,12 +7,16 @@ import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +32,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
     public static final int RANDOM_ID_LENGTH = 20;
     private PDRCacheManager pdrCacheManager;
+    private RPAConfiguration rpaConfiguration;
 
     protected static Logger logger = LoggerFactory.getLogger(RPACachingService.class);
 
@@ -36,9 +41,11 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * Create an instance of the service that wraps a {@link PDRCacheManager}
      *
      * @param pdrCacheManager the PDRCacheManager to use to store the restricted public data.
+     * @param rpaConfiguration the RPAConfiguration object to use with this service.
      **/
-    public RPACachingService(PDRCacheManager pdrCacheManager) {
+    public RPACachingService(PDRCacheManager pdrCacheManager, RPAConfiguration rpaConfiguration) {
         this.pdrCacheManager = pdrCacheManager;
+        this.rpaConfiguration = rpaConfiguration;
     }
 
     /**
@@ -89,7 +96,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * @return Map<String, Object> -- metadata about files in dataset
      */
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException,
-            MetadataNotFoundException {
+            MetadataNotFoundException, RequestProcessingException {
         logger.debug("Requesting metadata for temporary ID=" + randomID);
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID,
@@ -111,13 +118,19 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         logger.debug(result.toString(4));
         return result.toMap();
     }
-
-    private JSONObject formatMetadata(JSONObject inMd, String randomID) {
-        String baseDownloadURL = "http://localhost:8083/od/ds/";
+    /**
+     * Formats the metadata from a cache object to a JSON object with an additional field for the download URL.
+     *
+     * @param inMd the metadata from the cache object
+     * @param randomID the random temporary ID associated with the cache object
+     * @return a JSON object containing the formatted metadata
+     * @throws RequestProcessingException if there was an error formatting the metadata
+     */
+    private JSONObject formatMetadata(JSONObject inMd, String randomID) throws RequestProcessingException {
 
         JSONObject outMd = new JSONObject();
         if (inMd.has("filepath")) {
-            String downloadURL = baseDownloadURL + randomID + "/" + inMd.get("filepath");
+            String downloadURL = getDownloadUrl(rpaConfiguration.getPdrCachingUrl(), randomID, inMd.get("filepath").toString());
             outMd.put("downloadURL", downloadURL);
             outMd.put("filePath", inMd.get("filepath"));
         }
@@ -152,6 +165,29 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             outMd.put("sinceDate", inMd.get("sinceDate"));
         }
         return outMd;
+    }
+
+    /**
+     * Constructs a download URL using the given base download URL, random ID, and file path from the metadata.
+     *
+     * @param baseDownloadUrl the base download URL
+     * @param randomId the random temporary ID
+     * @param path the file path from the metadata
+     * @return the download URL as a string
+     * @throws RequestProcessingException if there was an error building the download URL
+     */
+    private String getDownloadUrl(String baseDownloadUrl, String randomId, String path) throws RequestProcessingException {
+        URL downloadUrl;
+        try {
+            URL url = new URL(baseDownloadUrl);
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            downloadUrl = new URL(url, randomId + "/" + path);
+        } catch (MalformedURLException e) {
+            throw new RequestProcessingException("Failed to build downloadUrl: " + e.getMessage());
+        }
+        return downloadUrl.toString();
     }
 
     /**

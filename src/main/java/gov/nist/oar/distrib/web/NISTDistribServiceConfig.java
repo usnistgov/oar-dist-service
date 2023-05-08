@@ -284,14 +284,6 @@ public class NISTDistribServiceConfig {
         return new CacheManagerProvider(config, bagstor, s3client);
     }
 
-    /**
-     * the service implementation to use for restricted data access caching service
-     */
-    @Bean
-    public RPACachingService getRestrictedDataCachingService(CacheManagerProvider cacheManagerProvider)
-            throws ConfigurationException {
-        return new RPACachingService(cacheManagerProvider.getPDRCacheManager());
-    }
 
     /**
      * create a configuration object for Restricted Public Access (RPA)
@@ -301,6 +293,18 @@ public class NISTDistribServiceConfig {
     public RPAConfiguration getRPAConfiguration() throws ConfigurationException {
         // this will have config properties injected into it
         return new RPAConfiguration();
+    }
+
+    /**
+     * the service implementation to use for restricted data access caching service
+     */
+    @Bean
+    public RPACachingService getRestrictedDataCachingService(
+            CacheManagerProvider cacheManagerProvider,
+            RPAConfiguration rpaConfiguration)
+            throws ConfigurationException
+    {
+        return new RPACachingService(cacheManagerProvider.getPDRCacheManager(), rpaConfiguration);
     }
 
     /**
