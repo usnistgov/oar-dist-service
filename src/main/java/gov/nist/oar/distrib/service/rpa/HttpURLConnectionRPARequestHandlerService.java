@@ -26,7 +26,6 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +40,9 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 
 /**
@@ -66,6 +68,12 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      */
     private final static String UPDATE_RECORD_ENDPOINT_KEY = "update-record-endpoint";
 
+    private final static String RECORD_PENDING_STATUS = "pending";
+    private final static String RECORD_APPROVED_STATUS = "approved";
+    private final static String RECORD_DECLINED_STATUS = "declined";
+
+    private final static String DATE_FORMAT_PATTERN = "yyyy-MM-dd h:mm a";
+
     /**
      * The RPA configuration.
      */
@@ -75,6 +83,8 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      * The HTTPURLConnection factory.
      */
     private HttpURLConnectionFactory connectionFactory;
+
+    private CloseableHttpClient httpClient;
 
     /**
      * The JWT helper.
@@ -98,6 +108,10 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      */
     public void setHttpURLConnectionFactory(HttpURLConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
+    }
+
+    public void setHttpClient(CloseableHttpClient httpClient) {
+        this.httpClient = httpClient;
     }
 
     /**
@@ -133,7 +147,8 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      *
      * @param rpaConfiguration The RPA configuration to use for this service.
      */
-    public HttpURLConnectionRPARequestHandlerService(RPAConfiguration rpaConfiguration, RPACachingService rpaCachingService) {
+    public HttpURLConnectionRPARequestHandlerService(RPAConfiguration rpaConfiguration,
+                                                     RPACachingService rpaCachingService) {
         // Initialize instance variables
         this.rpaConfiguration = rpaConfiguration;
         this.connectionFactory = url -> (HttpURLConnection) url.openConnection();
@@ -149,7 +164,8 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         this.recaptchaHelper.setHttpURLConnectionFactory(this.connectionFactory);
 
         // Set RecordResponseHandler
-        this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory, rpaCachingService);
+        this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory,
+                rpaCachingService);
 
         // Log RPA configuration coming from the config server
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
@@ -283,6 +299,10 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             userInfoWrapper.setRecaptcha(null);
             // Sanitize user input
             UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
+
+            // Set the pending status of the record in this service, and not based on the user's input
+            cleanUserInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
+
             LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
 
             String postPayload;
@@ -400,9 +420,12 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // Get endpoint
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
 
+        // Create a valid approval status based on input
+        String approvalStatus = generateApprovalStatus(status);
+
         // PATCH request payload
         // Approval_Status__c is how SF service expect the key
-        String patchPayload = new JSONObject().put("Approval_Status__c", status).toString();
+        String patchPayload = new JSONObject().put("Approval_Status__c", approvalStatus).toString();
         LOGGER.debug("UPDATE_RECORD_PAYLOAD=" + patchPayload);
 
         // Get token
@@ -421,7 +444,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         LOGGER.debug("UPDATE_RECORD_URL=" + url);
 
         // Send PATCH request
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try {
             HttpPatch httpPatch = new HttpPatch(url);
             httpPatch.setHeader("Authorization", "Bearer " + token.getAccessToken());
             httpPatch.setHeader("Content-Type", "application/json");
@@ -463,6 +486,31 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         }
 
         return recordStatus;
+    }
+
+    /**
+     * Generates an approval status string based on the given status and current date/time.
+     *
+     * @param status the approval status to use, either "Approved" or "Declined"
+     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd h:mm a]"
+     * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
+     */
+    private String generateApprovalStatus(String status) throws InvalidRequestException {
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN, Locale.US);
+        String formattedDate = now.format(formatter);
+        String approvalStatus;
+        switch (status.toLowerCase()) {
+            case RECORD_APPROVED_STATUS:
+                approvalStatus = "Approved_";
+                break;
+            case RECORD_DECLINED_STATUS:
+                approvalStatus = "Declined_";
+                break;
+            default:
+                throw new InvalidRequestException("Invalid approval status: " + status);
+        }
+        return approvalStatus + formattedDate;
     }
 
 }
