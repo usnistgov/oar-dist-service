@@ -1,10 +1,21 @@
 package gov.nist.oar.distrib.service;
 
+import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.web.RPAConfiguration;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -20,11 +31,13 @@ public class RPACachingServiceTest {
 
     private RPACachingService rpaCachingService;
     private PDRCacheManager pdrCacheManager;
+    private RPAConfiguration rpaConfiguration;
 
     @Before
     public void setUp() {
         pdrCacheManager = mock(PDRCacheManager.class);
-        rpaCachingService = new RPACachingService(pdrCacheManager);
+        rpaConfiguration = mock(RPAConfiguration.class);
+        rpaCachingService = new RPACachingService(pdrCacheManager, rpaConfiguration);
     }
 
     @Test
@@ -68,5 +81,134 @@ public class RPACachingServiceTest {
 
         rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
     }
+
+    @Test
+    public void testRetrieveMetadata_success() throws Exception  {
+        String randomID = "randomId123";
+        CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
+                .put("filepath", "path/to/file1.txt")
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 1")
+                .put("pdrid", "123456")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "abc123")
+                .put("version", "v1")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        CacheObject cacheObject2 = new CacheObject("object2", new JSONObject()
+                .put("filepath", "path/to/file2.txt")
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 2")
+                .put("pdrid", "654321")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "def456")
+                .put("version", "v2")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
+
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+                .thenReturn(cacheObjects);
+
+        String testPdrCachingUrl = "https://testdata.nist.gov";
+        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("randomId", randomID);
+        expected.put("metadata", new JSONArray()
+                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file1.txt")
+                        .put("filePath", "path/to/file1.txt")
+                        .put("mediaType", "text/plain")
+                        .put("size", 100L)
+                        .put("resTitle", "Resource 1")
+                        .put("resId", "123456")
+                        .put("checksumAlgorithm", "SHA256")
+                        .put("checksum", "abc123")
+                        .put("version", "v1")
+                        .put("ediid", "123")
+                        .put("aipid", "456")
+                        .put("sinceDate", "08-05-2023"))
+                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file2.txt")
+                        .put("filePath", "path/to/file2.txt")
+                        .put("mediaType", "text/plain")
+                        .put("size", 100L)
+                        .put("resTitle", "Resource 2")
+                        .put("resId", "654321")
+                        .put("checksumAlgorithm", "SHA256")
+                        .put("checksum", "def456")
+                        .put("version", "v2")
+                        .put("ediid", "123")
+                        .put("aipid", "456")
+                        .put("sinceDate", "08-05-2023"))
+                .toList());
+
+        Map<String, Object> actual = rpaCachingService.retrieveMetadata(randomID);
+
+        assertEquals(expected, actual);
+    }
+
+
+    @Test(expected = MetadataNotFoundException.class)
+    public void testRetrieveMetadata_WithEmptyMetadataList() throws Exception  {
+
+        String randomID = "randomId123";
+        List<CacheObject> objects = new ArrayList<>();
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO)).thenReturn(objects);
+
+        rpaCachingService.retrieveMetadata(randomID);
+    }
+
+    @Test(expected = RequestProcessingException.class)
+    public void testRetrieveMetadata_WithMalformedBaseUrl() throws Exception  {
+
+        String baseDownloadUrl = "htp://testdata.nist.gov/";
+        String randomID = "randomId123";
+        CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
+                .put("filepath", "path/to/file1.txt")
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 1")
+                .put("pdrid", "123456")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "abc123")
+                .put("version", "v1")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        CacheObject cacheObject2 = new CacheObject("object2", new JSONObject()
+                .put("filepath", "path/to/file2.txt")
+                .put("contentType", "text/plain")
+                .put("size", 100L)
+                .put("resTitle", "Resource 2")
+                .put("pdrid", "654321")
+                .put("checksumAlgorithm", "SHA256")
+                .put("checksum", "def456")
+                .put("version", "v2")
+                .put("ediid", "123")
+                .put("aipid", "456")
+                .put("sinceDate", "08-05-2023"),
+                "Volume1");
+
+        List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
+
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+                .thenReturn(cacheObjects);
+
+        String testPdrCachingUrl = baseDownloadUrl;
+        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+
+        rpaCachingService.retrieveMetadata(randomID);
+    }
+
 }
 
