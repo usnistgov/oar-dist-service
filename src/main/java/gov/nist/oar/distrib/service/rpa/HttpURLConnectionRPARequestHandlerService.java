@@ -40,9 +40,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.time.Instant;
 
 
 /**
@@ -490,15 +488,14 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
     /**
      * Generates an approval status string based on the given status and current date/time.
+     * The date is in ISO 8601 format.
      *
      * @param status the approval status to use, either "Approved" or "Declined"
-     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd h:mm a]"
+     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]"
      * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
      */
     private String generateApprovalStatus(String status) throws InvalidRequestException {
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_PATTERN, Locale.US);
-        String formattedDate = now.format(formatter);
+        String formattedDate = Instant.now().toString(); // ISO 8601 format: 2023-05-09T15:59:03.872Z
         String approvalStatus;
         switch (status.toLowerCase()) {
             case RECORD_APPROVED_STATUS:

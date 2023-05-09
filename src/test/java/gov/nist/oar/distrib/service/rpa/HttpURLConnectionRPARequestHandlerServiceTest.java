@@ -228,7 +228,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         verify(mockConnection).disconnect();
     }
 
-    private String getPostUrl() {
+    private String getCreateRecordUrl() {
         // Build the URL used by post request
         String url;
         try {
@@ -278,7 +278,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Set up the mock to return the mock output stream when getOutputStream is called
         when(mockConnection.getOutputStream()).thenReturn(osMock);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-        URL url = new URL(getPostUrl());
+        URL url = new URL(getCreateRecordUrl());
         when(mockConnection.getURL()).thenReturn(url);
         // Call method under test
 
@@ -305,7 +305,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         verify(mockConnection).setDoOutput(true);
         verify(mockConnection).setRequestProperty("Content-Type", "application/json");
         verify(mockConnection).setRequestProperty("Authorization", "Bearer " + testToken.getAccessToken());
-        assertEquals("https://test.salesforce.com/records/create", mockConnection.getURL().toString());
+        assertEquals(getCreateRecordUrl(), mockConnection.getURL().toString());
 
         // Verify connection was closed
         verify(mockConnection).disconnect();
@@ -415,7 +415,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Test
     public void testUpdateRecord_success() throws Exception {
         String recordId = "record12345";
-        String expectedApprovalStatus = "Approved_2023-05-08 3:14 PM";
+        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z";
 
         // Mock behavior of getRecord method
         doReturn(getTestRecordWrapper(expectedApprovalStatus)).when(service).getRecord("record12345");
@@ -424,8 +424,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
         when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
         when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
-        when(httpResponse.getEntity()).thenReturn(new StringEntity("{\"approvalStatus\":\"Approved_2023-05-08 3:14 " +
-                "PM\",\"recordId\":\"record12345\"}", ContentType.APPLICATION_JSON));
+        when(httpResponse.getEntity()).thenReturn(
+                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z\"," +
+                        "\"recordId\":\"record12345\"}",
+                        ContentType.APPLICATION_JSON)
+        );
 
         // It's tricky to mock the HttpPatch without using PowerMock
         // Instead we capture the argument passed to the execute method of the mocked HttpClient
@@ -441,15 +444,18 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
         // Capture the HttpPatch argument
         HttpPatch patchRequest = captor.getValue();
-        assertEquals("https://test.salesforce.com/records/update/record12345", patchRequest.getURI().toString());
+        assertEquals(getUpdateUrl(recordId), patchRequest.getURI().toString());
         assertEquals("Bearer " + testToken.getAccessToken(), patchRequest.getFirstHeader("Authorization").getValue());
         assertEquals("application/json", patchRequest.getFirstHeader("Content-Type").getValue());
         // Get the patch payload from the captured argument and check the format of the approval status
         // We can't test the exact time as it changes when we run the test, but we can verify the format
         String patchPayload = EntityUtils.toString(patchRequest.getEntity(), StandardCharsets.UTF_8);
         JSONObject payloadObject = new JSONObject(patchPayload);
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2} \\d{1,2}:\\d{2} (AM|PM)";
+        // Pattern to match ISO 8601 format
+        // This pattern matches a string in the format "Approved_YYYY-MM-DDTHH:MM:SS.SSSZ"
+        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z";
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
+
 
     }
 
