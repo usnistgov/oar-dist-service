@@ -12,6 +12,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.exceptions.UnauthorizedException;
 import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
+import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -100,8 +101,8 @@ public class RPARequestHandlerController {
     public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException {
         LOGGER.info("Updating approval status of record with ID = " + id);
-        service.updateRecord(id, patch.getApprovalStatus());
-        return new ResponseEntity(HttpStatus.OK);
+        RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus());
+        return new ResponseEntity(recordStatus, HttpStatus.OK);
     }
 
     /**
