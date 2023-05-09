@@ -8,6 +8,7 @@ import org.apache.commons.text.StringSubstitutor;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -45,11 +46,14 @@ public class EmailInfoProvider {
     public EmailInfo getSMEApprovalEmailInfo(Record record) {
         String recordId = record.getId();
         String datasetId = record.getUserInfo().getSubject();
-        String smeEmailAddress = rpaConfiguration.getApprovers().get(datasetId).getEmail();
+        List<RPAConfiguration.Approver.ApproverData> approvers = rpaConfiguration.getApprovers().get(datasetId);
+        // For multiple approvers, we check if there are more than one approver
+        // then join their email addresses using ';'
+        String smeEmailAddresses = approvers.stream().map(RPAConfiguration.Approver.ApproverData::getEmail).collect(Collectors.joining(";"));
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = createEmailContent(record);
 
-        return new EmailInfo(recordId, smeEmailAddress, subject, content);
+        return new EmailInfo(recordId, smeEmailAddresses, subject, content);
     }
 
     private String createEmailContent(Record record) {
