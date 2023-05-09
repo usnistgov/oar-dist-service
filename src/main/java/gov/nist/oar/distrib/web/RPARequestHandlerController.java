@@ -69,7 +69,8 @@ public class RPARequestHandlerController {
      */
     @GetMapping(value = "/request/accepted/{id}")
     public ResponseEntity getRecord(@PathVariable String id) throws RecordNotFoundException, RequestProcessingException {
-        return new ResponseEntity(service.getRecord(id), HttpStatus.OK);
+        RecordWrapper recordWrapper = service.getRecord(id);
+        return new ResponseEntity(recordWrapper, HttpStatus.OK);
     }
 
     /**
@@ -83,7 +84,8 @@ public class RPARequestHandlerController {
     public ResponseEntity createRecord(@RequestBody UserInfoWrapper userInfoWrapper)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
         LOGGER.debug("Creating a new record...");
-        return new ResponseEntity(service.createRecord(userInfoWrapper), HttpStatus.OK);
+        RecordWrapper recordWrapper = service.createRecord(userInfoWrapper);
+        return new ResponseEntity(recordWrapper, HttpStatus.OK);
     }
 
     /**
@@ -98,7 +100,8 @@ public class RPARequestHandlerController {
     public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException {
         LOGGER.info("Updating approval status of record with ID = " + id);
-        return new ResponseEntity(service.updateRecord(id, patch.getApprovalStatus()), HttpStatus.OK);
+        service.updateRecord(id, patch.getApprovalStatus());
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     /**
