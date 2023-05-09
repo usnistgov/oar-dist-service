@@ -26,6 +26,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +70,6 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     private final static String RECORD_PENDING_STATUS = "pending";
     private final static String RECORD_APPROVED_STATUS = "approved";
     private final static String RECORD_DECLINED_STATUS = "declined";
-
-    private final static String DATE_FORMAT_PATTERN = "yyyy-MM-dd h:mm a";
 
     /**
      * The RPA configuration.
@@ -164,6 +163,9 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // Set RecordResponseHandler
         this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory,
                 rpaCachingService);
+
+        // Set HttpClient
+        this.httpClient = HttpClients.createDefault();
 
         // Log RPA configuration coming from the config server
         LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
@@ -420,6 +422,8 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
         // Create a valid approval status based on input
         String approvalStatus = generateApprovalStatus(status);
+
+        // TODO: try caching here before updating the status in SF
 
         // PATCH request payload
         // Approval_Status__c is how SF service expect the key
