@@ -263,7 +263,6 @@ public class RPAConfiguration {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Approver {
-        @JsonProperty("approvers")
         private List<ApproverData> approvers;
 
         public List<ApproverData> getApprovers() {

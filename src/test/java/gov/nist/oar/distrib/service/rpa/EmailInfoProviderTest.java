@@ -10,7 +10,9 @@ import static org.junit.Assert.assertEquals;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -89,12 +91,46 @@ public class EmailInfoProviderTest {
 
     @Test
     public void testGetSMEApprovalEmailInfo() {
-        Map<String, RPAConfiguration.Approver> map = new HashMap<>();
-        map.put(record.getUserInfo().getSubject(), new RPAConfiguration.Approver("John Doe", "john.doe@test.com"));
+        // Create a list of approvers for the subject
+        List<RPAConfiguration.Approver.ApproverData> approvers = new ArrayList<>();
+        approvers.add(new RPAConfiguration.Approver.ApproverData("John Doe", "john.doe@test.com"));
+
+        // Add the list of approvers to the map using the subject as the key
+        Map<String, List<RPAConfiguration.Approver.ApproverData>> map = new HashMap<>();
+        map.put(record.getUserInfo().getSubject(), approvers);
+
+        // Stub the configuration to return the map
         when(rpaConfiguration.getApprovers()).thenReturn(map);
+
         EmailInfo emailInfo = emailInfoProvider.getSMEApprovalEmailInfo(record);
 
         String expectedSMEEmailAddress = "john.doe@test.com";
+        String expectedSubject = "SME Email - Case: 12345";
+        String expectedContent = "Download of dataset TEST_DATASET_TITLE by John Doe requires your approval.";
+
+        assertEquals("1", emailInfo.getRecordId());
+        assertEquals(expectedSMEEmailAddress, emailInfo.getRecipient());
+        assertEquals(expectedSubject, emailInfo.getSubject());
+        assertEquals(expectedContent, emailInfo.getContent());
+    }
+
+    @Test
+    public void testGetSMEApprovalEmailInfo_withMultipleApprovers() {
+        // Create a list of approvers for the subject
+        List<RPAConfiguration.Approver.ApproverData> approvers = new ArrayList<>();
+        approvers.add(new RPAConfiguration.Approver.ApproverData("John Doe", "john.doe@test.com"));
+        approvers.add(new RPAConfiguration.Approver.ApproverData("Jane Doe", "jane.doe@test.com"));
+
+        // Add the list of approvers to the map using the subject as the key
+        Map<String, List<RPAConfiguration.Approver.ApproverData>> map = new HashMap<>();
+        map.put(record.getUserInfo().getSubject(), approvers);
+
+        // Stub the configuration to return the map
+        when(rpaConfiguration.getApprovers()).thenReturn(map);
+
+        EmailInfo emailInfo = emailInfoProvider.getSMEApprovalEmailInfo(record);
+
+        String expectedSMEEmailAddress = "john.doe@test.com;jane.doe@test.com";
         String expectedSubject = "SME Email - Case: 12345";
         String expectedContent = "Download of dataset TEST_DATASET_TITLE by John Doe requires your approval.";
 
