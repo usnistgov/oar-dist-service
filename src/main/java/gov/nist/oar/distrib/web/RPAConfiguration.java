@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Configuration model for Restricted Public Access
@@ -25,7 +28,7 @@ public class RPAConfiguration {
     @JsonProperty("emailTemplates")
     private Map<String, EmailTemplate> emailTemplates = null;
     @JsonProperty("approvers")
-    private Map<String, Approver> approvers = null;
+    private Map<String, List<Approver.ApproverData>> approvers = null;
     @JsonProperty("salesforceInstanceUrl")
     private String salesforceInstanceUrl = null;
     @JsonProperty("baseDownloadUrl")
@@ -59,11 +62,11 @@ public class RPAConfiguration {
         this.emailTemplates = emailTemplates;
     }
 
-    public Map<String, Approver> getApprovers() {
+    public Map<String, List<Approver.ApproverData>> getApprovers() {
         return approvers;
     }
 
-    public void setApprovers(Map<String, Approver> approvers) {
+    public void setApprovers(Map<String, List<Approver.ApproverData>> approvers) {
         this.approvers = approvers;
     }
 
@@ -270,25 +273,39 @@ public class RPAConfiguration {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Approver {
-        @JsonProperty("name")
-        private String name;
-        @JsonProperty("email")
-        private String email;
+        private List<ApproverData> approvers;
 
-        public String getName() {
-            return name;
+        public List<ApproverData> getApprovers() {
+            return approvers;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public void setApprovers(List<ApproverData> approvers) {
+            this.approvers = approvers;
         }
 
-        public String getEmail() {
-            return email;
-        }
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class ApproverData {
+            @JsonProperty("name")
+            private String name;
+            @JsonProperty("email")
+            private String email;
 
-        public void setEmail(String email) {
-            this.email = email;
+            public String getName() {
+                return name;
+            }
+
+            public void setName(String name) {
+                this.name = name;
+            }
+
+            public String getEmail() {
+                return email;
+            }
+
+            public void setEmail(String email) {
+                this.email = email;
+            }
         }
     }
 
