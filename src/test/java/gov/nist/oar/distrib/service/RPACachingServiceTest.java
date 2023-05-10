@@ -118,13 +118,13 @@ public class RPACachingServiceTest {
         when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
                 .thenReturn(cacheObjects);
 
-        String testPdrCachingUrl = "https://testdata.nist.gov";
-        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+        String testBaseDownloadUrl = "https://testdata.nist.gov";
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn(testBaseDownloadUrl);
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("randomId", randomID);
         expected.put("metadata", new JSONArray()
-                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file1.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file1.txt")
                         .put("filePath", "path/to/file1.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -136,7 +136,7 @@ public class RPACachingServiceTest {
                         .put("ediid", "123")
                         .put("aipid", "456")
                         .put("sinceDate", "08-05-2023"))
-                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file2.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file2.txt")
                         .put("filePath", "path/to/file2.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -191,13 +191,13 @@ public class RPACachingServiceTest {
         when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
                 .thenReturn(cacheObjects);
 
-        String testPdrCachingUrl = "https://testdata.nist.gov";
-        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+        String testBaseDownloadUrl = "https://testdata.nist.gov";
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn(testBaseDownloadUrl);
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("randomId", randomID);
         expected.put("metadata", new JSONArray()
-                .put(new JSONObject().put("downloadURL", testPdrCachingUrl + "/" + randomID + "/path/to/file2.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file2.txt")
                         .put("filePath", "path/to/file2.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -255,7 +255,7 @@ public class RPACachingServiceTest {
     @Test(expected = RequestProcessingException.class)
     public void testRetrieveMetadata_WithMalformedBaseUrl() throws Exception  {
 
-        String baseDownloadUrl = "htp://testdata.nist.gov/";
+
         String randomID = "randomId123";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
                 .put("filepath", "path/to/file1.txt")
@@ -290,8 +290,8 @@ public class RPACachingServiceTest {
         when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
                 .thenReturn(cacheObjects);
 
-        String testPdrCachingUrl = baseDownloadUrl;
-        when(rpaConfiguration.getPdrCachingUrl()).thenReturn(testPdrCachingUrl);
+        String testPdrCachingUrl = "htp://testdata.nist.gov/";
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn(testPdrCachingUrl);
 
         rpaCachingService.retrieveMetadata(randomID);
     }

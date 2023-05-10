@@ -31,6 +31,8 @@ public class RPAConfiguration {
     private Map<String, List<Approver.ApproverData>> approvers = null;
     @JsonProperty("salesforceInstanceUrl")
     private String salesforceInstanceUrl = null;
+    @JsonProperty("baseDownloadUrl")
+    private String baseDownloadUrl = null;
     @JsonProperty("pdrCachingUrl")
     private String pdrCachingUrl = null;
     @JsonProperty("datacartUrl")
@@ -74,6 +76,14 @@ public class RPAConfiguration {
 
     public void setSalesforceInstanceUrl(String salesforceInstanceUrl) {
         this.salesforceInstanceUrl = salesforceInstanceUrl;
+    }
+
+    public String getBaseDownloadUrl() {
+        return baseDownloadUrl;
+    }
+
+    public void setBaseDownloadUrl(String baseDownloadUrl) {
+        this.baseDownloadUrl = baseDownloadUrl;
     }
 
     public String getPdrCachingUrl() {

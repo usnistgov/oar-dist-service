@@ -135,7 +135,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
         JSONObject outMd = new JSONObject();
         if (inMd.has("filepath")) {
-            String downloadURL = getDownloadUrl(rpaConfiguration.getPdrCachingUrl(), randomID, inMd.get("filepath").toString());
+            String downloadURL = getDownloadUrl(rpaConfiguration.getBaseDownloadUrl(), randomID, inMd.get("filepath").toString());
             outMd.put("downloadURL", downloadURL);
             outMd.put("filePath", inMd.get("filepath"));
         }
