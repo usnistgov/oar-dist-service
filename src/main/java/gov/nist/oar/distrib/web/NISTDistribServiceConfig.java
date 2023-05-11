@@ -22,6 +22,7 @@ import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.JKSKeyRetriever;
 import gov.nist.oar.distrib.service.rpa.KeyRetriever;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.RPARequestService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -313,6 +314,15 @@ public class NISTDistribServiceConfig {
     @Bean
     public RPAServiceProvider getRPAServiceProvider(RPAConfiguration rpaConfiguration) {
         return new RPAServiceProvider(rpaConfiguration);
+    }
+
+
+    /**
+     * the configured RPAServiceProvider to use
+     */
+    @Bean
+    public RPARequestService getRPARequestService(RPAConfiguration rpaConfiguration) {
+        return new RPARequestService(rpaConfiguration);
     }
 
 
