@@ -3,104 +3,89 @@ package gov.nist.oar.distrib.service.rpa.external.salesforce;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import gov.nist.oar.distrib.service.rpa.client.CreateRecordPayload;
 import gov.nist.oar.distrib.service.rpa.external.ExternalCreateRecordPayload;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public class SalesforceCreateRecordPayload implements ExternalCreateRecordPayload {
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+public class SalesforceCreateRecordPayload extends JsonSerializable implements ExternalCreateRecordPayload {
 
     @JsonProperty("userInfo")
-    private final UserInfo userInfo;
+    private UserInfo userInfo = new UserInfo();
 
-    public SalesforceCreateRecordPayload(CreateRecordPayload payload) {
-        this.userInfo = payload.getUserInfo();
+    public void setFullName(String fullName) {
+        this.userInfo.setFullName(fullName);
     }
 
-    public SalesforceCreateRecordPayload(UserInfo userInfo) {
-        this.userInfo = userInfo;
+    public void setOrganization(String organization) {
+        this.userInfo.setOrganization(organization);
     }
 
-    public UserInfo getUserInfo() {
-        return userInfo;
+    public void setEmail(String email) {
+        this.userInfo.setEmail(email);
     }
 
+    public void setReceiveEmails(String receiveEmails) {
+        this.userInfo.setReceiveEmails(receiveEmails);
+    }
+
+    public void setCountry(String country) {
+        this.userInfo.setCountry(country);
+    }
+
+    public void setApprovalStatus(String approvalStatus) {
+        this.userInfo.setApprovalStatus(approvalStatus);
+    }
+
+    public void setProductTitle(String productTitle) {
+        this.userInfo.setProductTitle(productTitle);
+    }
+
+    public void setSubject(String subject) {
+        this.userInfo.setSubject(subject);
+    }
+
+    public void setDescription(String description) {
+        this.userInfo.setDescription(description);
+    }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
     public static class UserInfo {
 
         @JsonProperty("fullName")
-        private final String fullName;
+        private String fullName;
 
         @JsonProperty("organization")
-        private final String organization;
+        private String organization;
 
         @JsonProperty("email")
-        private final String email;
+        private String email;
 
         @JsonProperty("receiveEmails")
-        private final String receiveEmails;
+        private String receiveEmails;
 
         @JsonProperty("country")
-        private final String country;
+        private String country;
 
         @JsonProperty("approvalStatus")
-        private final String approvalStatus;
+        private String approvalStatus;
 
         @JsonProperty("productTitle")
-        private final String productTitle;
+        private String productTitle;
 
         @JsonProperty("subject")
-        private final String subject;
+        private String subject;
 
         @JsonProperty("description")
-        private final String description;
-
-        public UserInfo(String fullName, String organization, String email, String receiveEmails,
-                        String country, String approvalStatus, String productTitle,
-                        String subject, String description) {
-            this.fullName = fullName;
-            this.organization = organization;
-            this.email = email;
-            this.receiveEmails = receiveEmails;
-            this.country = country;
-            this.approvalStatus = approvalStatus;
-            this.productTitle = productTitle;
-            this.subject = subject;
-            this.description = description;
-        }
-
-        public String getFullName() {
-            return fullName;
-        }
-
-        public String getOrganization() {
-            return organization;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public String getReceiveEmails() {
-            return receiveEmails;
-        }
-
-        public String getCountry() {
-            return country;
-        }
-
-        public String getApprovalStatus() {
-            return approvalStatus;
-        }
-
-        public String getProductTitle() {
-            return productTitle;
-        }
-
-        public String getSubject() {
-            return subject;
-        }
-
-        public String getDescription() {
-            return description;
-        }
+        private String description;
     }
-
 
 }

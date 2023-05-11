@@ -4,6 +4,7 @@ import gov.nist.oar.distrib.service.rpa.client.CreateRecordPayload;
 import gov.nist.oar.distrib.service.rpa.client.UpdateRecordPayload;
 import gov.nist.oar.distrib.service.rpa.external.ExternalApiClient;
 import gov.nist.oar.distrib.service.rpa.external.ExternalApiException;
+import gov.nist.oar.distrib.service.rpa.external.ExternalCreateRecordPayload;
 import gov.nist.oar.distrib.service.rpa.external.ExternalCreateRecordResponse;
 import gov.nist.oar.distrib.service.rpa.external.ExternalGetRecordResponse;
 import gov.nist.oar.distrib.service.rpa.external.ExternalUpdateRecordResponse;
@@ -23,9 +24,12 @@ public class RPARequestService {
         return externalApiClient.getRecordById(id);
     }
 
-    public ExternalCreateRecordResponse createRecord(CreateRecordPayload payload) throws ExternalApiException {
-        SalesforceCreateRecordPayload requestPayload = new SalesforceCreateRecordPayload(payload);
-        return externalApiClient.createRecord(requestPayload);
+    public ExternalCreateRecordResponse createRecord(CreateRecordPayload requestPayload) throws ExternalApiException {
+        // TODO: sanitize user input
+        // TODO: verify recaptcha
+        // Map the CreateRecordRequest to ExternalCreateRecordPayload
+        ExternalCreateRecordPayload payload = requestPayload.toExternalPayload();
+        return externalApiClient.createRecord(payload);
     }
 
     public ExternalUpdateRecordResponse updateRecord(String id, UpdateRecordPayload payload) throws ExternalApiException {

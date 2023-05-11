@@ -158,25 +158,8 @@ public class SalesforceApiClient implements ExternalApiClient, SalesforceEndpoin
 
     @Override
     public ExternalCreateRecordResponse createRecord(ExternalCreateRecordPayload requestPayload) throws ExternalApiException {
-        SalesforceCreateRecordResponse response = null;
-        // Get endpoint
-        String createRecordUri = rpaConfiguration.getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
-        // Get token
-        JWTToken token = jwtHelper.getToken();
-
-        // Build URL
-        String url;
-        try {
-            url = new URIBuilder(token.getInstanceUrl())
-                    .setPath(createRecordUri)
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new RequestProcessingException("Error building URI: " + e.getMessage());
-        }
-        LOGGER.debug("CREATE_RECORD_URL=" + url);
-
-
+        SalesforceCreateRecordResponse response = new SalesforceCreateRecordResponse();
+        LOGGER.debug("Not implemented yet.");
         return response;
     }
 

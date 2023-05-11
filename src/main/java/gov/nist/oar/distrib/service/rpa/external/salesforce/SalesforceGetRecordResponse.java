@@ -4,17 +4,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import gov.nist.oar.distrib.service.rpa.client.GetRecordResponse;
 import gov.nist.oar.distrib.service.rpa.client.impl.GetRecordResponseImpl;
 import gov.nist.oar.distrib.service.rpa.external.ExternalGetRecordResponse;
+import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
-public class SalesforceGetRecordResponse implements ExternalGetRecordResponse {
+public class SalesforceGetRecordResponse extends JsonSerializable implements ExternalGetRecordResponse {
 
     @JsonProperty("record")
-    private Record record;
-
+    private Record record = new Record();
 
     @AllArgsConstructor
     @NoArgsConstructor

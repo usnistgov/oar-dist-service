@@ -1,21 +1,15 @@
 package gov.nist.oar.distrib.service.rpa.client.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import gov.nist.oar.distrib.service.rpa.client.GetRecordResponse;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import gov.nist.oar.distrib.service.rpa.client.CreateRecordResponse;
 import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
-public class GetRecordResponseImpl extends JsonSerializable implements GetRecordResponse {
-
+public class CreateRecordResponseImpl extends JsonSerializable implements CreateRecordResponse {
     @JsonProperty("record")
     private Record record = new Record();;
 
@@ -32,7 +26,7 @@ public class GetRecordResponseImpl extends JsonSerializable implements GetRecord
         private String caseNum;
 
         @JsonProperty("userInfo")
-        private UserInfo userInfo = new UserInfo();
+        private GetRecordResponseImpl.UserInfo userInfo = new GetRecordResponseImpl.UserInfo();
 
     }
 
@@ -202,5 +196,4 @@ public class GetRecordResponseImpl extends JsonSerializable implements GetRecord
     public String getUserInfo_Description() {
         return record.getUserInfo().getDescription();
     }
-
 }
