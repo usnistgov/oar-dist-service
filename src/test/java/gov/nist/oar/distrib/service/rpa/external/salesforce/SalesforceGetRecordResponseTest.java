@@ -16,7 +16,23 @@ public class SalesforceGetRecordResponseTest {
     @Test
     public void testToGetRecordResponse() throws IOException {
         // Sample JSON input
-        String json = "{ \"record\": { \"id\": \"123\", \"caseNum\": \"abc123\", \"userInfo\": { \"fullName\": \"John Doe\", \"organization\": \"Example Org\", \"email\": \"john.doe@example.com\", \"receiveEmails\": \"true\", \"country\": \"USA\", \"approvalStatus\": \"Pending\", \"productTitle\": \"Example Product\", \"subject\": \"Example Subject\", \"description\": \"Example Description\" } } }";
+        String json = "{\n" +
+                "  \"record\": {\n" +
+                "    \"id\": \"123\",\n" +
+                "    \"caseNum\": \"abc123\",\n" +
+                "    \"userInfo\": {\n" +
+                "      \"fullName\": \"John Doe\",\n" +
+                "      \"organization\": \"Example Org\",\n" +
+                "      \"email\": \"john.doe@example.com\",\n" +
+                "      \"receiveEmails\": \"true\",\n" +
+                "      \"country\": \"USA\",\n" +
+                "      \"approvalStatus\": \"Pending\",\n" +
+                "      \"productTitle\": \"Example Product\",\n" +
+                "      \"subject\": \"Example Subject\",\n" +
+                "      \"description\": \"Example Description\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
 
         // Deserialize the JSON to SalesforceGetRecordResponse
         SalesforceGetRecordResponse response = objectMapper.readValue(json, SalesforceGetRecordResponse.class);
