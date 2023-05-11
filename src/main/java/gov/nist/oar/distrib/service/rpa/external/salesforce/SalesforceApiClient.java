@@ -81,6 +81,7 @@ public class SalesforceApiClient implements ExternalApiClient, SalesforceEndpoin
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
+        LOGGER.debug("GET_RECORD_URL " + url);
         // Create GET request object
         HttpGet request = new HttpGet(url);
         // Set Authorization header

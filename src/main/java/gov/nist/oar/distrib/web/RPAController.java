@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/od/ds/rpa/v2")
+@RequestMapping("/ds/rpa/v2")
 public class RPAController {
 
     private final RPARequestService rpaRequestService;
