@@ -3,7 +3,6 @@ package gov.nist.oar.distrib.service.rpa.client.impl;
 import gov.nist.oar.distrib.service.rpa.client.GetRecordResponse;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import gov.nist.oar.distrib.service.rpa.external.salesforce.SalesforceGetRecordResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,7 +15,7 @@ import lombok.Setter;
 public class GetRecordResponseImpl implements GetRecordResponse {
 
     @JsonProperty("record")
-    private Record record;
+    private Record record = new Record();;
 
     @AllArgsConstructor
     @NoArgsConstructor
@@ -31,7 +30,7 @@ public class GetRecordResponseImpl implements GetRecordResponse {
         private String caseNum;
 
         @JsonProperty("userInfo")
-        private SalesforceGetRecordResponse.UserInfo userInfo;
+        private UserInfo userInfo = new UserInfo();
 
     }
 
@@ -123,6 +122,61 @@ public class GetRecordResponseImpl implements GetRecordResponse {
     @Override
     public void setUserInfo_Description(String description) {
         this.record.getUserInfo().setDescription(description);
+    }
+
+    @Override
+    public String getRecordId() {
+        return record.getId();
+    }
+
+    @Override
+    public String getCaseNum() {
+        return record.getCaseNum();
+    }
+
+    @Override
+    public String getUserInfo_FullName() {
+        return record.getUserInfo().getFullName();
+    }
+
+    @Override
+    public String getUserInfo_Organization() {
+        return record.getUserInfo().getOrganization();
+    }
+
+    @Override
+    public String getUserInfo_Email() {
+        return record.getUserInfo().getEmail();
+    }
+
+    @Override
+    public String getUserInfo_ReceiveEmails() {
+        return record.getUserInfo().getReceiveEmails();
+    }
+
+    @Override
+    public String getUserInfo_Country() {
+        return record.getUserInfo().getCountry();
+    }
+
+    @Override
+    public String getUserInfo_ApprovalStatus() {
+        return record.getUserInfo().getApprovalStatus();
+    }
+
+    @Override
+    public String getUserInfo_ProductTitle() {
+        return record.getUserInfo().getProductTitle();
+    }
+
+    @Override
+    public String getUserInfo_Subject() {
+        return record.getUserInfo().getSubject();
+    }
+
+    @Override
+    public String getUserInfo_Description() {
+        return record.getUserInfo().getDescription();
     }
 
 }

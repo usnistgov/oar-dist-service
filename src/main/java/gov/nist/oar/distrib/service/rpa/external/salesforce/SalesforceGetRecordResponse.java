@@ -71,17 +71,17 @@ public class SalesforceGetRecordResponse implements ExternalGetRecordResponse {
     @Override
     public GetRecordResponse toGetRecordResponse() {
         GetRecordResponseImpl response = new GetRecordResponseImpl();
-        response.setRecordId(record.getId());
-        response.setCaseNum(record.getCaseNum());
-        response.setUserInfo_FullName(record.getUserInfo().getFullName());
-        response.setUserInfo_Organization(record.getUserInfo().getOrganization());
-        response.setUserInfo_Email(record.getUserInfo().getEmail());
-        response.setUserInfo_ReceiveEmails(record.getUserInfo().getReceiveEmails());
-        response.setUserInfo_Country(record.getUserInfo().getCountry());
-        response.setUserInfo_ApprovalStatus(record.getUserInfo().getApprovalStatus());
-        response.setUserInfo_ProductTitle(record.getUserInfo().getProductTitle());
-        response.setUserInfo_Subject(record.getUserInfo().getSubject());
-        response.setUserInfo_Description(record.getUserInfo().getDescription());
+        response.setRecordId(this.record.getId());
+        response.setCaseNum(this.record.getCaseNum());
+        response.setUserInfo_FullName(this.record.getUserInfo().getFullName());
+        response.setUserInfo_Organization(this.record.getUserInfo().getOrganization());
+        response.setUserInfo_Email(this.record.getUserInfo().getEmail());
+        response.setUserInfo_ReceiveEmails(this.record.getUserInfo().getReceiveEmails());
+        response.setUserInfo_Country(this.record.getUserInfo().getCountry());
+        response.setUserInfo_ApprovalStatus(this.record.getUserInfo().getApprovalStatus());
+        response.setUserInfo_ProductTitle(this.record.getUserInfo().getProductTitle());
+        response.setUserInfo_Subject(this.record.getUserInfo().getSubject());
+        response.setUserInfo_Description(this.record.getUserInfo().getDescription());
         return response;
     }
 
