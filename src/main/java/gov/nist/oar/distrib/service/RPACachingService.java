@@ -145,8 +145,8 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         if (inMd.has("size")) {
             outMd.put("size", inMd.get("size"));
         }
-        if (inMd.has("resTitle")) {
-            outMd.put("resTitle", inMd.get("resTitle"));
+        if (inMd.has("title")) {
+            outMd.put("resTitle", inMd.get("title"));
         }
         if (inMd.has("pdrid")) {
             outMd.put("resId", inMd.get("pdrid"));
