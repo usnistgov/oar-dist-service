@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.service.rpa.external.salesforce;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.rpa.JWTHelper;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
@@ -19,6 +20,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -28,8 +30,10 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -159,7 +163,82 @@ public class SalesforceApiClient implements ExternalApiClient, SalesforceEndpoin
     @Override
     public ExternalCreateRecordResponse createRecord(ExternalCreateRecordPayload requestPayload) throws ExternalApiException {
         SalesforceCreateRecordResponse response = new SalesforceCreateRecordResponse();
-        LOGGER.debug("Not implemented yet.");
+        // Get path
+        String createRecordUri = rpaConfiguration.getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
+        // Get token
+        JWTToken token = jwtHelper.getToken();
+
+        // Build URL
+        String url;
+        try {
+            url = new URIBuilder(token.getInstanceUrl())
+                    .setPath(createRecordUri)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
+            throw new RequestProcessingException("Error building URI: " + e.getMessage());
+        }
+        LOGGER.debug("CREATE_RECORD_URL=" + url);
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setHeader("Authorization", "Bearer " + token.getAccessToken());
+        httpPost.setHeader("Content-Type", "application/json");
+
+        // Set payload
+        String postPayload;
+        try {
+            postPayload = new ObjectMapper().writeValueAsString(requestPayload);
+        } catch (JsonProcessingException e) {
+            LOGGER.debug("Error while serializing user input: " + e.getMessage());
+            throw new RequestProcessingException("Error while serializing user input: " + e.getMessage());
+        }
+        StringEntity entity = new StringEntity(postPayload, StandardCharsets.UTF_8);
+        httpPost.setEntity(entity);
+
+        CloseableHttpResponse httpResponse = null;
+        try {
+            // Execute the request
+            httpResponse = httpClient.execute(httpPost);
+
+            int responseCode = httpResponse.getStatusLine().getStatusCode();
+
+            if (responseCode == 200) { // If OK
+                HttpEntity responseEntity = httpResponse.getEntity();
+                if (responseEntity != null) {
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(responseEntity.getContent(), StandardCharsets.UTF_8))) {
+                        StringBuilder responseStringBuilder = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            responseStringBuilder.append(line);
+                        }
+                        String responseString = responseStringBuilder.toString();
+                        LOGGER.debug("CREATE_RECORD_RESPONSE=" + responseString);
+                        // Handle the response
+                        response = new ObjectMapper().readValue(responseString, SalesforceCreateRecordResponse.class);
+                    }
+                }
+            } else if (responseCode == 400) { // If bad request
+                LOGGER.debug("Invalid request: " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new InvalidRequestException("Invalid request: " + httpResponse.getStatusLine().getReasonPhrase());
+            } else {
+                // Handle any other error response
+                LOGGER.debug("Error response from Salesforce service: " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new RequestProcessingException("Error response from Salesforce service: " + httpResponse.getStatusLine().getReasonPhrase());
+            }
+        } catch (IOException e) {
+            // Handle the I/O error
+            LOGGER.debug("Error sending POST request: " + e.getMessage());
+            throw new RequestProcessingException("I/O error: " + e.getMessage());
+        } finally {
+            // Close the http response
+            if (response != null) {
+                try {
+                    httpResponse.close();
+                } catch (IOException e) {
+                    LOGGER.debug("Error closing response: " + e.getMessage());
+                }
+            }
+        }
         return response;
     }
 

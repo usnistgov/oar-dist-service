@@ -31,7 +31,7 @@ public class SalesforceCreateRecordResponse extends JsonSerializable implements 
         private String caseNum;
 
         @JsonProperty("userInfo")
-        private UserInfo userInfo;
+        private UserInfo userInfo = new UserInfo();
 
     }
 
