@@ -57,7 +57,7 @@ import java.io.File;
         "distrib.cachemgr.volumes[1].roles[1]=general",
         "logging.path=${basedir}/logs",
         "distrib.rpa.authorized[0]=AUTHORIZED.1",
-        "distrib.rpa.authorized[0]=AUTHORIZED.2"
+        "distrib.rpa.authorized[1]=AUTHORIZED.2"
 
 })
 public class NISTDistribServiceConfigTest {
