@@ -252,31 +252,46 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     /**
      * Creates a new record in Salesforce using the information from the provided UserInfoWrapper object.
      *
-     * @param userInfoWrapper The UserInfoWrapper object containing the data to create the new record.
+     * @param userInfoWrapper     The UserInfoWrapper object containing the data to create the new record.
+     * @param authorizationHeader
      * @return The RecordWrapper object containing the newly created record.
      * @throws InvalidRecaptchaException If the reCAPTCHA verification fails.
      * @throws InvalidRequestException   If the request is invalid or incomplete.
      */
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
+    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper, String authorizationHeader) throws InvalidRequestException,
             RequestProcessingException, RecaptchaVerificationFailedException {
         int responseCode;
         // Initialize return value
         RecordWrapper newRecordWrapper;
-        // First, we verify the reCAPTCHA
-        String recaptchaToken = userInfoWrapper.getRecaptcha();
-        RecaptchaResponse recaptchaResponse;
-        try {
-            recaptchaResponse = verifyRecaptcha(recaptchaToken);
-        } catch (RecaptchaServerException e) {
-            // if error is between our service and Google reCAPTCHA service
-            throw new RequestProcessingException(e.getMessage());
-        } catch (RecaptchaClientException e) {
-            // if error is caused by end user (reCAPTCHA response invalid for example)
-            throw new InvalidRequestException(e.getMessage());
+
+        boolean shouldVerifyRecaptcha = true; // always verify
+        // unless an authorization token exists
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            // Extract token by stripping "Bearer " keyword
+            String token = authorizationHeader.substring(7);
+            if (!token.isEmpty() && getConfig().isAuthorized(token)) {
+                // if a bearer token exists and is authorized, skip verification
+                shouldVerifyRecaptcha = false;
+            }
         }
+        // verify the reCAPTCHA
+        RecaptchaResponse recaptchaResponse = new RecaptchaResponse();
+        if (shouldVerifyRecaptcha) {
+            String recaptchaToken = userInfoWrapper.getRecaptcha();
+            try {
+                recaptchaResponse = verifyRecaptcha(recaptchaToken);
+            } catch (RecaptchaServerException e) {
+                // if error is between our service and Google reCAPTCHA service
+                throw new RequestProcessingException(e.getMessage());
+            } catch (RecaptchaClientException e) {
+                // if error is caused by end user (reCAPTCHA response invalid for example)
+                throw new InvalidRequestException(e.getMessage());
+            }
+        }
+
         // We proceed only if reCAPTCHA validation was successful
-        if (recaptchaResponse.isSuccess()) {
+        if (!shouldVerifyRecaptcha || recaptchaResponse.isSuccess()) {
             // Get path
             String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
 

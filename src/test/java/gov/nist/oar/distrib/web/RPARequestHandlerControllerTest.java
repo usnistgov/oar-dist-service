@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -192,10 +194,10 @@ public class RPARequestHandlerControllerTest {
         RecordWrapper recordWrapper = new RecordWrapper();
         recordWrapper.setRecord(new Record("123", "12345", new UserInfo()));
         // mock the getRecord() method of the IRPARequestHandler object to return the test RecordWrapper object
-        when(service.createRecord(any(UserInfoWrapper.class))).thenReturn(recordWrapper);
+        when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenReturn(recordWrapper);
 
-        // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
-        ResponseEntity result = controller.createRecord(userInfoWrapper);
+        // Call the createRecord() method of the RPARequestHandlerController class with the test record ID
+        ResponseEntity result = controller.createRecord(userInfoWrapper, null);
 
         // Assert that the HTTP status code is HttpStatus.OK
         assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -219,6 +221,44 @@ public class RPARequestHandlerControllerTest {
                 .andExpect(jsonPath("$.record").exists());
     }
 
+    @Test
+    public void createRecord_withAuthorizationHeader() throws Exception {
+        // Arrange
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+        RecordWrapper recordWrapper = new RecordWrapper();
+        recordWrapper.setRecord(new Record("123", "12345", new UserInfo()));
+        // mock the getRecord() method of the IRPARequestHandler object to return the test RecordWrapper object
+        when(service.createRecord(any(UserInfoWrapper.class), any(String.class))).thenReturn(recordWrapper);
+
+        // Call the createRecord() method of the RPARequestHandlerController class with the test record ID
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
+        ResponseEntity result = controller.createRecord(userInfoWrapper, headers.getFirst(HttpHeaders.AUTHORIZATION));
+
+        // Assert that the HTTP status code is HttpStatus.OK
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+
+        // Assert that the response body is not null
+        assertNotNull(result.getBody());
+
+        // Assert that the response body is of type RecordWrapper
+        assertTrue(result.getBody() instanceof RecordWrapper);
+
+        Record actualRecord = ((RecordWrapper) result.getBody()).getRecord();
+        // Assert that the "record" key in the response body is not null
+        assertNotNull(actualRecord);
+
+        // Test using url path
+        // Assert
+        mockMvc.perform(post("/ds/rpa/request/form")
+                        .content(new ObjectMapper().writeValueAsString(userInfoWrapper))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.record").exists());
+    }
+
     /**
      * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper)} method
      * when it throws a {@link RequestProcessingException}, and verifies that the controller returns the
@@ -232,7 +272,7 @@ public class RPARequestHandlerControllerTest {
         RequestProcessingException exception = new RequestProcessingException("Test error message");
 
         // Mock the createRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
-        when(service.createRecord(any(UserInfoWrapper.class))).thenThrow(exception);
+        when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
         // Act and Assert
@@ -257,7 +297,7 @@ public class RPARequestHandlerControllerTest {
         InvalidRequestException exception = new InvalidRequestException("Test error message");
 
         // Mock the createRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
-        when(service.createRecord(any(UserInfoWrapper.class))).thenThrow(exception);
+        when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
         // Act and Assert
@@ -282,7 +322,7 @@ public class RPARequestHandlerControllerTest {
         RecaptchaVerificationFailedException exception = new RecaptchaVerificationFailedException("reCAPTCHA failed");
 
         // Mock the createRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
-        when(service.createRecord(any(UserInfoWrapper.class))).thenThrow(exception);
+        when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
         // Act and Assert

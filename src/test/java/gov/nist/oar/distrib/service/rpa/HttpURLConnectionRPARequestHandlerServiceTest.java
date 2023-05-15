@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
  * <p>
  * The tests cover the following scenarios:
  * <p>
- * * {@link HttpURLConnectionRPARequestHandlerService#createRecord(UserInfoWrapper)}
+ * * {@link IRPARequestHandler#createRecord(UserInfoWrapper, String)}
  * <ul>
  *     <li>Success case: creating a new record (200 ok)</li>
  *     <li>Failure case: invalid request (400 bad request)</li>
@@ -242,6 +242,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         return url;
     }
 
+
     @Test
     public void testCreateRecord_success()
             throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
@@ -289,7 +290,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         );
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, null);
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -311,6 +312,146 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         verify(mockConnection).disconnect();
 
     }
+
+    @Test
+    public void testCreateRecord_withAuthorizedUser_shouldSucceed()
+            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
+            InvalidRequestException, IOException {
+        // Recaptcha stubbings ar no longer needed here since we skip verification
+
+        // Set up mock behavior for mockConnection
+        // Set expected dummy response
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@test.gov\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"Pending\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"Some description goes here\""
+                + "}}}";
+        // Create an input stream with the dummy data
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        // When getInputStream() is called on the mockConnection, return the dummy input stream
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        // Create a mock output stream for the connection
+        OutputStream osMock = mock(OutputStream.class);
+        // Set up the mock to return the mock output stream when getOutputStream is called
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        URL url = new URL(getCreateRecordUrl());
+        when(mockConnection.getURL()).thenReturn(url);
+        // Call method under test
+
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE
+        );
+
+        // Set Authorized Token
+        String authorizedToken = "TOKEN_123";
+        when(rpaConfiguration.isAuthorized(authorizedToken)).thenReturn(true);
+        // Act
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, "Bearer " + authorizedToken);
+
+        // Assert
+        assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
+        // Assert that the status was set by the server and not the user's input
+        assertEquals(actualRecord.getRecord().getUserInfo().getApprovalStatus(), "Pending");
+
+        // Verify that the mock output stream was written to as expected
+        byte[] expectedPayloadBytes = userInfoWrapper.toString().getBytes(StandardCharsets.UTF_8);
+        verify(osMock).write(expectedPayloadBytes);
+        verify(osMock).flush();
+        verify(osMock).close();
+        verify(mockConnection).setRequestMethod("POST");
+        verify(mockConnection).setDoOutput(true);
+        verify(mockConnection).setRequestProperty("Content-Type", "application/json");
+        verify(mockConnection).setRequestProperty("Authorization", "Bearer " + testToken.getAccessToken());
+        assertEquals(getCreateRecordUrl(), mockConnection.getURL().toString());
+
+        // Verify connection was closed
+        verify(mockConnection).disconnect();
+
+    }
+
+    @Test
+    public void testCreateRecord_with_NON_AuthorizedUser_shouldSucceed()
+            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
+            InvalidRequestException, IOException {
+        // Arrange
+        // Mock RPA Config to return the RECAPTCHA_SECRET
+        when(rpaConfiguration.getRecaptchaSecret()).thenReturn(RECAPTCHA_SECRET);
+
+        // Mock the recaptcha response
+        when(recaptchaResponse.isSuccess()).thenReturn(true);
+        when(recaptchaResponse.toString()).thenReturn("whatever"); // this just for the debug message in the service
+        when(recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE)).thenReturn(recaptchaResponse);
+
+        // Set up mock behavior for mockConnection
+        // Set expected dummy response
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@test.gov\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"Pending\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"Some description goes here\""
+                + "}}}";
+        // Create an input stream with the dummy data
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        // When getInputStream() is called on the mockConnection, return the dummy input stream
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        // Create a mock output stream for the connection
+        OutputStream osMock = mock(OutputStream.class);
+        // Set up the mock to return the mock output stream when getOutputStream is called
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        URL url = new URL(getCreateRecordUrl());
+        when(mockConnection.getURL()).thenReturn(url);
+        // Call method under test
+
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE
+        );
+
+        // Set Authorized Token
+        String authorizedToken = "TOKEN_123";
+        when(rpaConfiguration.isAuthorized(authorizedToken)).thenReturn(false);
+        // Act
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, "Bearer " + authorizedToken);
+
+        // Assert
+        assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
+        // Assert that the status was set by the server and not the user's input
+        assertEquals(actualRecord.getRecord().getUserInfo().getApprovalStatus(), "Pending");
+
+        // Verify that the mock output stream was written to as expected
+        byte[] expectedPayloadBytes = userInfoWrapper.toString().getBytes(StandardCharsets.UTF_8);
+        verify(osMock).write(expectedPayloadBytes);
+        verify(osMock).flush();
+        verify(osMock).close();
+        verify(mockConnection).setRequestMethod("POST");
+        verify(mockConnection).setDoOutput(true);
+        verify(mockConnection).setRequestProperty("Content-Type", "application/json");
+        verify(mockConnection).setRequestProperty("Authorization", "Bearer " + testToken.getAccessToken());
+        assertEquals(getCreateRecordUrl(), mockConnection.getURL().toString());
+
+        // Verify connection was closed
+        verify(mockConnection).disconnect();
+
+    }
+
 
     private RecordWrapper getTestRecordWrapper(String status) {
         UserInfo userInfo = new UserInfo();
@@ -347,7 +488,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                     new UserInfoWrapper(
                             getTestRecordWrapper("Pending").getRecord().getUserInfo(),
                             RECAPTCHA_RESPONSE
-                    ));
+                    ), null);
             fail("Expected InvalidRequestException to be thrown");
         } catch (RecaptchaVerificationFailedException e) {
             // recaptchaResponse.getSuccess() == false, record should be null
@@ -386,7 +527,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                     new UserInfoWrapper(
                             getTestRecordWrapper("Pending").getRecord().getUserInfo(),
                             RECAPTCHA_RESPONSE
-                    ));
+                    ), null);
             fail("Expected InvalidRequestException to be thrown");
         } catch (InvalidRequestException e) {
             // Assert

@@ -36,12 +36,14 @@ public interface IRPARequestHandler {
 
     /**
      * Creates a new record for the specified user.
-     * @param userInfoWrapper the user info and record data for the new record
+     *
+     * @param userInfoWrapper     the user info and record data for the new record
+     * @param authorizationHeader
      * @return the newly created record data
-     * @throws InvalidRequestException if the request payload is invalid
+     * @throws InvalidRequestException    if the request payload is invalid
      * @throws RequestProcessingException if there is an error while processing the request
      */
-    RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
+    RecordWrapper createRecord(UserInfoWrapper userInfoWrapper, String authorizationHeader) throws InvalidRequestException,
             RequestProcessingException, RecaptchaVerificationFailedException;
 
 }
