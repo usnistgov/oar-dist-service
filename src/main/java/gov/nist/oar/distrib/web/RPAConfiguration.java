@@ -10,9 +10,9 @@ import lombok.experimental.NonFinal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Configuration model for Restricted Public Access
@@ -45,6 +45,8 @@ public class RPAConfiguration {
     private JksConfig jksConfig = null;
     @JsonProperty("recaptchaSecret")
     String recaptchaSecret;
+    @JsonProperty("authorized")
+    List<String> authorized = null;
 
     public SalesforceJwt getSalesforceJwt() {
         return salesforceJwt;
@@ -132,6 +134,23 @@ public class RPAConfiguration {
 
     public void setRecaptchaSecret(String recaptchaSecret) {
         this.recaptchaSecret = recaptchaSecret;
+    }
+
+    public List<String> getAuthorized() {
+        return authorized;
+    }
+
+    public void setAuthorized(List<String> authorized) {
+        this.authorized = authorized;
+    }
+
+    public boolean isAuthorized(String token) {
+        for (String str : authorized) {
+            if (str.equals(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NoArgsConstructor

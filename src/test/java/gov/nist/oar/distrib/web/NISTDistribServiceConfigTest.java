@@ -55,7 +55,10 @@ import java.io.File;
         "distrib.cachemgr.volumes[0].roles[1]=fast",
         "distrib.cachemgr.volumes[1].roles[0]=large",
         "distrib.cachemgr.volumes[1].roles[1]=general",
-        "logging.path=${basedir}/logs"
+        "logging.path=${basedir}/logs",
+        "distrib.rpa.authorized[0]=AUTHORIZED.1",
+        "distrib.rpa.authorized[0]=AUTHORIZED.2"
+
 })
 public class NISTDistribServiceConfigTest {
 
@@ -66,6 +69,9 @@ public class NISTDistribServiceConfigTest {
 
     @Autowired
     CacheManagerProvider provider;
+
+    @Autowired
+    RPAConfiguration rpaConfiguration;
 
     public static void cleanTestDir(File testdir) throws IOException {
         /*
@@ -122,5 +128,10 @@ public class NISTDistribServiceConfigTest {
         assertTrue(tst.isDirectory());
         tst = new File(testdir, "headbags/cv1");
         assertTrue(tst.isDirectory());
+
+        // test RPA config injection
+        assertNotNull(rpaConfiguration);
+        assertEquals("AUTHORIZED.1", rpaConfiguration.getAuthorized().get(0));
+        assertEquals("AUTHORIZED.2", rpaConfiguration.getAuthorized().get(1));
     }
 }
