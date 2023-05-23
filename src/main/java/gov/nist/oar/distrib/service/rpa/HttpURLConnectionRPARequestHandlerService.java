@@ -516,15 +516,19 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     private String generateApprovalStatus(String status) throws InvalidRequestException {
         String formattedDate = Instant.now().toString(); // ISO 8601 format: 2023-05-09T15:59:03.872Z
         String approvalStatus;
-        switch (status.toLowerCase()) {
-            case RECORD_APPROVED_STATUS:
-                approvalStatus = "Approved_";
-                break;
-            case RECORD_DECLINED_STATUS:
-                approvalStatus = "Declined_";
-                break;
-            default:
-                throw new InvalidRequestException("Invalid approval status: " + status);
+        if (status != null) {
+            switch (status.toLowerCase()) {
+                case RECORD_APPROVED_STATUS:
+                    approvalStatus = "Approved_";
+                    break;
+                case RECORD_DECLINED_STATUS:
+                    approvalStatus = "Declined_";
+                    break;
+                default:
+                    throw new InvalidRequestException("Invalid approval status: " + status);
+            }
+        } else {
+            throw new InvalidRequestException("Invalid approval status: status is null");
         }
         return approvalStatus + formattedDate;
     }
