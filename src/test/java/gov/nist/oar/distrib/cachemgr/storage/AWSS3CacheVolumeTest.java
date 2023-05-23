@@ -23,6 +23,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -402,5 +404,21 @@ public class AWSS3CacheVolumeTest {
         s3cv.saveAs(co, "gurn.txt");
         assertTrue(s3client.doesObjectExist(bucket, objname1));
         assertTrue(s3client.doesObjectExist(bucket, objname2));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRedirectForUnsupported()
+        throws StorageVolumeException, UnsupportedOperationException, IOException
+    {
+        s3cv.getRedirectFor("goober");
+    }
+
+    @Test
+    public void testRedirectFor()
+        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
+    {
+        s3cv = new AWSS3CacheVolume(bucket, "cach", s3client, "https://ex.org/");
+        assertEquals(new URL("https://ex.org/goober"), s3cv.getRedirectFor("goober"));
+        assertEquals(new URL("https://ex.org/i%20a/m%20groot"), s3cv.getRedirectFor("i a/m groot"));
     }
 }

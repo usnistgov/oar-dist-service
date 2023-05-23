@@ -437,7 +437,7 @@ public class AWSS3CacheVolume implements CacheVolume {
         if (baseurl == null)
             throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
         try {
-            return new URL(baseurl + name);
+            return new URL(baseurl + name.replace(" ", "%20"));
         }
         catch (MalformedURLException ex) {
             throw new StorageVolumeException("Failed to form legal URL: "+ex.getMessage(), ex);
