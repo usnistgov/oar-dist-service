@@ -1,28 +1,12 @@
-FROM openjdk:8-jdk-slim-stretch
+FROM ibmjava:8-sdk
 
 # a hack that gets around an installation problem with update-alternatives, openjdk-8-jdk-headless
 
 RUN mkdir -p /usr/share/man/man1
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
-                                            gnupg python python-pip python-virtualenv \
-                                            make gcc curl maven
-
-# ARG gosu_arch=
-# ENV GOSU_ARCH $gosu_arch
-# ENV GOSU_VERSION 1.10
-# RUN set -ex; [ -n "$GOSU_ARCH" ] || arch=$(uname -r | awk -F- '{print $NF}'); \
-#     wget -O /usr/local/bin/gosu \
-#    "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$GOSU_ARCH"; \
-#     wget -O /usr/local/bin/gosu.asc \
-# "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$GOSU_ARCH.asc";\
-#     export GNUPGHOME="$(mktemp -d)"; \
-#     gpg --keyserver ha.pool.sks-keyservers.net \
-#          --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
-#     gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
-#     sleep 1; rm -r /usr/local/bin/gosu.asc "$GNUPGHOME" || true; \
-#     chmod +x /usr/local/bin/gosu; \
-#     gosu nobody true
+                                            python2 curl maven
+RUN cd /usr/bin && ln -s python2 python
 
 # Create the user that build/test operations should run as.  Normally,
 # this is set to match identity information of the host user that is
