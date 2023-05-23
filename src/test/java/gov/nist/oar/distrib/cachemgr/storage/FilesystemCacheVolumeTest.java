@@ -28,6 +28,8 @@ import java.io.FileReader;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 import org.json.JSONObject;
 
@@ -203,5 +205,24 @@ public class FilesystemCacheVolumeTest {
 
         assertTrue(v.remove("goob"));
         assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRedirectForUnsupported()
+        throws StorageVolumeException, UnsupportedOperationException, IOException
+    {
+        FilesystemCacheVolume v = makevol("root");
+        v.getRedirectFor("goober");
+    }
+
+    @Test
+    public void testRedirectFor()
+        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
+    {
+        String root = "root";
+        File rootdir = tempf.newFolder(root);
+        FilesystemCacheVolume v = new FilesystemCacheVolume(rootdir.toString(), root, "https://ex.org/");
+        assertEquals(new URL("https://ex.org/goober"), v.getRedirectFor("goober"));
+        assertEquals(new URL("https://ex.org/i%20a/m%20groot"), v.getRedirectFor("i a/m groot"));
     }
 }
