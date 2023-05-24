@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
     /**
      * Create an instance of the service that wraps a {@link PDRCacheManager}
      *
-     * @param pdrCacheManager the PDRCacheManager to use to store the restricted public data.
+     * @param pdrCacheManager  the PDRCacheManager to use to store the restricted public data.
      * @param rpaConfiguration the RPAConfiguration object to use with this service.
      **/
     public RPACachingService(PDRCacheManager pdrCacheManager, RPAConfiguration rpaConfiguration) {
@@ -126,58 +127,100 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
     /**
      * Formats the metadata from a cache object to a JSON object with an additional field for the download URL.
      *
-     * @param inMd the metadata from the cache object
+     * @param inMd     the metadata from the cache object
      * @param randomID the random temporary ID associated with the cache object
      * @return a JSON object containing the formatted metadata
      * @throws RequestProcessingException if there was an error formatting the metadata
      */
     private JSONObject formatMetadata(JSONObject inMd, String randomID) throws RequestProcessingException {
-
         JSONObject outMd = new JSONObject();
+        List<String> missingFields = new ArrayList<>();
+
         if (inMd.has("filepath")) {
-            String downloadURL = getDownloadUrl(rpaConfiguration.getBaseDownloadUrl(), randomID, inMd.get("filepath").toString());
+            String downloadURL = getDownloadUrl(
+                    rpaConfiguration.getBaseDownloadUrl(),
+                    randomID,
+                    inMd.get("filepath").toString());
             outMd.put("downloadURL", downloadURL);
             outMd.put("filePath", inMd.get("filepath"));
+        } else {
+            missingFields.add("filepath");
         }
+
         if (inMd.has("contentType")) {
             outMd.put("mediaType", inMd.get("contentType"));
+        } else {
+            missingFields.add("contentType");
         }
+
         if (inMd.has("size")) {
             outMd.put("size", inMd.get("size"));
+        } else {
+            missingFields.add("size");
         }
+
         if (inMd.has("title")) {
             outMd.put("resTitle", inMd.get("title"));
+        } else {
+            missingFields.add("title");
         }
+
         if (inMd.has("pdrid")) {
             outMd.put("resId", inMd.get("pdrid"));
+        } else {
+            missingFields.add("pdrid");
         }
+
         if (inMd.has("checksumAlgorithm")) {
             outMd.put("checksumAlgorithm", inMd.get("checksumAlgorithm"));
+        } else {
+            missingFields.add("checksumAlgorithm");
         }
+
         if (inMd.has("checksum")) {
             outMd.put("checksum", inMd.get("checksum"));
+        } else {
+            missingFields.add("checksum");
         }
+
         if (inMd.has("version")) {
             outMd.put("version", inMd.get("version"));
+        } else {
+            missingFields.add("version");
         }
+
         if (inMd.has("ediid")) {
             outMd.put("ediid", inMd.get("ediid"));
+        } else {
+            missingFields.add("ediid");
         }
+
         if (inMd.has("aipid")) {
             outMd.put("aipid", inMd.get("aipid"));
+        } else {
+            missingFields.add("aipid");
         }
+
         if (inMd.has("sinceDate")) {
             outMd.put("sinceDate", inMd.get("sinceDate"));
+        } else {
+            missingFields.add("sinceDate");
         }
+
+        if (!missingFields.isEmpty()) {
+            logger.debug("Metadata missing fields: " + String.join(", ", missingFields));
+        }
+
         return outMd;
     }
+
 
     /**
      * Constructs a download URL using the given base download URL, random ID, and file path from the metadata.
      *
      * @param baseDownloadUrl the base download URL
-     * @param randomId the random temporary ID
-     * @param path the file path from the metadata
+     * @param randomId        the random temporary ID
+     * @param path            the file path from the metadata
      * @return the download URL as a string
      * @throws RequestProcessingException if there was an error building the download URL
      */
