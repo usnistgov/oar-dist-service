@@ -421,4 +421,14 @@ public class AWSS3CacheVolumeTest {
         assertEquals(new URL("https://ex.org/goober"), s3cv.getRedirectFor("goober"));
         assertEquals(new URL("https://ex.org/i%20a/m%20groot"), s3cv.getRedirectFor("i a/m groot"));
     }
+
+    @Test
+    public void testRedirectFor2()
+        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
+    {
+        s3cv = new AWSS3CacheVolume(bucket, "cach", s3client, "https://ex.org/");
+        testSaveAs();
+        String burl = "http://localhost:9090//"+bucket+"/"+folder+"/";
+        assertEquals(new URL(burl+"test.txt"), s3cv.getRedirectFor("test.txt"));
+    }
 }
