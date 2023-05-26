@@ -159,8 +159,9 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             missingFields.add("size");
         }
 
-        if (inMd.has("title")) {
-            outMd.put("resTitle", inMd.get("title"));
+        // change to resTitle instead of title
+        if (inMd.has("resTitle")) {
+            outMd.put("resTitle", inMd.get("resTitle"));
         } else {
             missingFields.add("title");
         }
