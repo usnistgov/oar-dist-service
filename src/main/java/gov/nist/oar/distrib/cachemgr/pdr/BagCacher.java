@@ -15,47 +15,41 @@ package gov.nist.oar.distrib.cachemgr.pdr;
 
 import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.bags.preservation.HeadBagUtils;
-import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.NoMatchingVolumesException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.NoMatchingVolumesException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.BagStorage;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collection;
-import java.util.List;
-import java.text.ParseException;
-
+import org.apache.commons.io.FilenameUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONTokener;
-import org.json.JSONException;
-
-import org.apache.commons.io.FilenameUtils;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.ParseException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * A machine for restoring data from archive bags in long-term storage into cache.
@@ -481,6 +475,7 @@ public class BagCacher implements PDRCacheRoles {
                      aipid, version);
             return;
         }
+        JSONObject save = null;
         if (isDataFileType(nerd)) {
             String file = nerd.optString("filepath");
             if (file == null) {
@@ -488,8 +483,7 @@ public class BagCacher implements PDRCacheRoles {
                         aipid, version, filename);
                 return;
             }
-
-            JSONObject save = new JSONObject();
+            save = new JSONObject();
             if (nerd.has("filepath"))
                 save.put("filepath", nerd.get("filepath"));
             if (nerd.has("mediaType"))
@@ -511,8 +505,43 @@ public class BagCacher implements PDRCacheRoles {
             mdcache.cacheFileMetadata(aipid, version, save);
 
         } else if (isTopLevelType(nerd)){
-            // TODO: check if top level file, and then call save
+            // Create a new JSON object
+            JSONObject obj = new JSONObject();
+            // Get the title from the nerd object
+            String title = nerd.optString("title");
+            // Add the title to the new object
+            obj.put("title", title);
+            // Save the new object to a file with the name "_"
+            Path dsdir = ensureDatasetDir(aipid, version);
+            Path newFile = dsdir.resolve("_");
+            FileWriter writer = new FileWriter(newFile.toFile());
+            try {
+                writer.write(obj.toString());
+            } finally {
+                writer.close();
+            }
+            // cacheFileMetadata will check for existence of _ file and retrieve the top level title
+            mdcache.cacheFileMetadata(aipid, version, save);
         }
+    }
+
+    // ensures the existence of a dataset directory
+    Path ensureDatasetDir(String aipid, String version) throws IOException {
+        if (aipid.length() == 0)
+            throw new IllegalArgumentException("aipid: empty string");
+        if (version.length() == 0)
+            throw new IllegalArgumentException("version: empty string");
+
+        Path dsdir = mdcache.basedir.resolve(aipid).resolve(version);
+        if (! Files.isDirectory(dsdir)) {
+            try {
+                Files.createDirectories(dsdir);
+            } catch (SecurityException ex) {
+                throw new IOException("Unable to create metadata cache files ("+dsdir.toString()+
+                        "): permission denied", ex);
+            }
+        }
+        return dsdir;
     }
 
     boolean isDataFileType(JSONObject cmp) {
@@ -528,16 +557,19 @@ public class BagCacher implements PDRCacheRoles {
         return false;
     }
 
-    // check if resource type
+    // check if top level type
     boolean isTopLevelType(JSONObject cmp) {
         JSONArray types = cmp.optJSONArray("@type");
         if (types == null) return false;
 
-        for (Object el: types) {
+        for (Object el : types) {
             try {
-                if (((String) el).endsWith(":Resource") || ((String) el).endsWith(":PublicDataResource"))
+                if (((String) el).endsWith(":Resource")
+                        || ((String) el).endsWith(":PublicDataResource")
+                        || ((String) el).endsWith(":Dataset"))
                     return true;
-            } catch (ClassCastException ex) { }
+            } catch (ClassCastException ex) {
+            }
         }
         return false;
     }
