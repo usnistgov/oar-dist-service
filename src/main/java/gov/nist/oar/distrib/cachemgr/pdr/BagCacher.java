@@ -511,6 +511,7 @@ public class BagCacher implements PDRCacheRoles {
             String title = nerd.optString("title");
             // Add the title to the new object
             obj.put("title", title);
+            obj.put("filepath", "_");
             // Save the new object to a file with the name "_"
             Path dsdir = ensureDatasetDir(aipid, version);
             Path newFile = dsdir.resolve("_");
@@ -521,7 +522,7 @@ public class BagCacher implements PDRCacheRoles {
                 writer.close();
             }
             // cacheFileMetadata will check for existence of _ file and retrieve the top level title
-            mdcache.cacheFileMetadata(aipid, version, save);
+            mdcache.cacheFileMetadata(aipid, version, obj);
         }
     }
 
