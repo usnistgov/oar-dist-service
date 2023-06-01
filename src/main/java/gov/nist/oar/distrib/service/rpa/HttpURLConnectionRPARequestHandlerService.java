@@ -3,13 +3,7 @@ package gov.nist.oar.distrib.service.rpa;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.service.rpa.exceptions.*;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
@@ -312,8 +306,15 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
             // set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
             userInfoWrapper.setRecaptcha(null);
+
             // Sanitize user input
-            UserInfoWrapper cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
+            UserInfoWrapper cleanUserInfoWrapper;
+            try {
+                cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
+            } catch (InvalidFormInputException e) {
+                LOGGER.debug("Error while sanitizing user input: " + e.getMessage());
+                throw new InvalidRequestException("Error while sanitizing user input: " + e.getMessage());
+            }
 
             // Set the pending status of the record in this service, and not based on the user's input
             cleanUserInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);

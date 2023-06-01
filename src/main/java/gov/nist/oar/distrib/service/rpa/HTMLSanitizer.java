@@ -1,5 +1,7 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidFormInputException;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.safety.Safelist;
@@ -9,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.validator.routines.UrlValidator;
 
 /**
  * The {@code HTMLSanitizer} class provides a method for sanitizing HTML input strings
@@ -33,6 +37,12 @@ public class HTMLSanitizer {
 
     // Define a constant to limit the recursion depth
     private static final int MAX_DEPTH = 7;
+
+    private static UrlValidator urlValidator;
+
+    static {
+        urlValidator = new UrlValidator();
+    }
 
     /**
      * This function sanitizes an input object, recursively, and returns the sanitized object.
@@ -60,11 +70,11 @@ public class HTMLSanitizer {
      * @throws RuntimeException if any exceptions occur during the sanitization process
      * @return the sanitized object
      */
-    public static <T> T sanitize(T object) {
+    public static <T> T sanitize(T object) throws InvalidFormInputException {
         return sanitizeRecursive(object, MAX_DEPTH);
     }
 
-    private static <T> T sanitizeRecursive(T object, int depth) {
+    private static <T> T sanitizeRecursive(T object, int depth) throws InvalidFormInputException {
         if (object == null || depth == 0) {
             // If the input object is null or the recursion depth is 0, return the object as-is
             return object;
@@ -128,15 +138,40 @@ public class HTMLSanitizer {
      * @param input the HTML input to sanitize
      * @return the sanitized input
      */
-    private static String sanitizeHtml(String input) {
-
+    private static String sanitizeHtml(String input) throws InvalidFormInputException {
         // Jsoup removes the newline character (\n) by default from the HTML text
         // To prevent that, disable pretty-print
         Document.OutputSettings outputSettings = new Document.OutputSettings();
         outputSettings.prettyPrint(false);
 
         // Use the Jsoup.clean method to sanitize the input string
-        return Jsoup.clean(input, "", BASIC_SAFELIST, outputSettings);
+        String output = Jsoup.clean(input, "", BASIC_SAFELIST, outputSettings);
+        // Check if form input contains URL
+        if (containsURL(output)) {
+            // Form input contains URL
+            LOGGER.debug("URL detected in the input: " + output);
+            throw new InvalidFormInputException("URL detected in the input: " + output);
+        }
+        return output;
+    }
+
+    /**
+     * Checks if the given input string contains a valid URL within some text.
+     *
+     * @param input the string to check for URLs
+     * @return true if a valid URL is found within the text, false otherwise
+     */
+    private static boolean containsURL(String input) {
+        // Split the input by whitespace to separate individual words
+        String[] words = input.split("\\s+");
+
+        // Check each word if it is a valid URL
+        for (String word : words) {
+            if (urlValidator.isValid(word)) {
+                return true; // Found a valid URL within the text
+            }
+        }
+        return false; // No valid URL found
     }
 
 }
