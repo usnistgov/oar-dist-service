@@ -1,5 +1,8 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidFormInputException;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 import org.junit.Assert;
@@ -8,9 +11,12 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 /**
  * Unit tests for the {@link HTMLSanitizer} class.
- * The tests cover the different use cases for the {@link HTMLSanitizer#sanitize()} ()} method, which is designed to help protect against
+ * The tests cover the different use cases for the {@link HTMLSanitizer#sanitize(Object)} method, which is designed to help protect against
  * cross-site scripting (XSS) attacks by sanitizing input strings and objects that were provided by the user.
  * <p>
  * The test cases include:
@@ -113,4 +119,24 @@ public class HTMLSanitizerTest {
         // This checks line breaks as well
         Assert.assertEquals(testDescription, userInfoWrapper.getUserInfo().getDescription());
     }
+
+    @Test
+    public void testSanitize_badRequest_containsURL() {
+        String input = "http://example.com";
+        try {
+            HTMLSanitizer.sanitize(input);
+            fail("Expected InvalidFormInputException to be thrown");
+        } catch (InvalidFormInputException e) {
+            assertEquals("URL detected in the input: http://example.com", e.getMessage());
+        }
+
+        String input_2 = "some text ftp://example.com";
+        try {
+            HTMLSanitizer.sanitize(input_2);
+            fail("Expected InvalidFormInputException to be thrown");
+        } catch (InvalidFormInputException e) {
+            assertEquals("URL detected in the input: some text ftp://example.com", e.getMessage());
+        }
+    }
+
 }
