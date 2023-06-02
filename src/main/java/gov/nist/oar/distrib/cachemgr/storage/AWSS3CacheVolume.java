@@ -435,12 +435,24 @@ public class AWSS3CacheVolume implements CacheVolume {
      */
     public URL getRedirectFor(String name) throws StorageVolumeException, UnsupportedOperationException {
         if (baseurl == null)
-            throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
-        try {
-            return new URL(baseurl + name);
+            throw new UnsupportedOperationException("AWSS3CacheVolume: getRedirectFor not supported");
+
+        if (exists(name)) {
+            try {
+                return s3client.getUrl(bucket, s3name(name));
+            }
+            catch (AmazonServiceException ex) {
+                throw new StorageVolumeException("Failed to determine redirect URL for name="+name+": "+
+                                                 ex.getMessage(), ex);
+            }
         }
-        catch (MalformedURLException ex) {
-            throw new StorageVolumeException("Failed to form legal URL: "+ex.getMessage(), ex);
+        else {
+            try {
+                return new URL(baseurl + name.replace(" ", "%20"));
+            }
+            catch (MalformedURLException ex) {
+                throw new StorageVolumeException("Failed to form legal URL: "+ex.getMessage(), ex);
+            }
         }
     }
 
