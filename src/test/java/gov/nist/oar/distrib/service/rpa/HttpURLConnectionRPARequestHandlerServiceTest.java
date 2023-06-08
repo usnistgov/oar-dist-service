@@ -286,7 +286,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
                 testRecordWrapper.getRecord().getUserInfo(),
-                RECAPTCHA_RESPONSE
+                RECAPTCHA_RESPONSE,
+                new HashMap<>()
         );
 
         // Act

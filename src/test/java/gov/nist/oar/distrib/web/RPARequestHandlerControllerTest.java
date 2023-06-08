@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -52,6 +53,9 @@ public class RPARequestHandlerControllerTest {
     @Mock
     RPACachingService mockRPACachingService;
 
+    @Mock
+    RequestSanitizer mockRequestSanitizer;
+
     private RPARequestHandlerController controller;
 
     private MockMvc mockMvc;
@@ -62,6 +66,7 @@ public class RPARequestHandlerControllerTest {
         when(mockRPAServiceProvider.getIRPARequestHandler(mockRPACachingService)).thenReturn(service);
         // create a test instance of the RPARequestHandlerController class
         controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService);
+        controller.setRequestSanitizer(mockRequestSanitizer);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .build();
     }
@@ -182,7 +187,7 @@ public class RPARequestHandlerControllerTest {
 
 
     /**
-     * Unit test for {@link RPARequestHandlerController#createRecord(UserInfoWrapper)}.
+     * Unit test for {@link RPARequestHandlerController#createRecord(UserInfoWrapper, String)}.
      * Verifies that a record is created successfully and returns the expected response with HTTP status code 200 OK.
      *
      * @throws Exception if an error occurs while running the test
@@ -191,8 +196,22 @@ public class RPARequestHandlerControllerTest {
     public void createRecord() throws Exception {
         // Arrange
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("Pending");
+        userInfo.setProductTitle("Some product title");
+        userInfo.setSubject("ark:\\88434\\mds2\\2106");
+        userInfo.setDescription("Some description");
+
+        userInfoWrapper.setUserInfo(userInfo);
+
         RecordWrapper recordWrapper = new RecordWrapper();
-        recordWrapper.setRecord(new Record("123", "12345", new UserInfo()));
+        recordWrapper.setRecord(new Record("123", "12345", userInfo));
         // mock the getRecord() method of the IRPARequestHandler object to return the test RecordWrapper object
         when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenReturn(recordWrapper);
 
@@ -225,6 +244,20 @@ public class RPARequestHandlerControllerTest {
     public void createRecord_withAuthorizationHeader() throws Exception {
         // Arrange
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("Pending");
+        userInfo.setProductTitle("Some product title");
+        userInfo.setSubject("ark:\\88434\\mds2\\2106");
+        userInfo.setDescription("Some description");
+
+        userInfoWrapper.setUserInfo(userInfo);
+
         RecordWrapper recordWrapper = new RecordWrapper();
         recordWrapper.setRecord(new Record("123", "12345", new UserInfo()));
         // mock the getRecord() method of the IRPARequestHandler object to return the test RecordWrapper object
@@ -260,7 +293,7 @@ public class RPARequestHandlerControllerTest {
     }
 
     /**
-     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper)} method
+     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper, String)} method
      * when it throws a {@link RequestProcessingException}, and verifies that the controller returns the
      * correct error response when the exception is thrown.
      *
@@ -275,6 +308,19 @@ public class RPARequestHandlerControllerTest {
         when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("Pending");
+        userInfo.setProductTitle("Some product title");
+        userInfo.setSubject("ark:\\88434\\mds2\\2106");
+        userInfo.setDescription("Some description");
+
+        userInfoWrapper.setUserInfo(userInfo);
         // Act and Assert
         mockMvc.perform(post("/ds/rpa/request/form")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -285,7 +331,7 @@ public class RPARequestHandlerControllerTest {
     }
 
     /**
-     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper)} method
+     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper, String)} method
      * when it throws a {@link InvalidRequestException}, and verifies that the controller returns the
      * correct error response when the exception is thrown.
      *
@@ -300,6 +346,20 @@ public class RPARequestHandlerControllerTest {
         when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("Pending");
+        userInfo.setProductTitle("Some product title");
+        userInfo.setSubject("ark:\\88434\\mds2\\2106");
+        userInfo.setDescription("Some description");
+
+        userInfoWrapper.setUserInfo(userInfo);
+
         // Act and Assert
         mockMvc.perform(post("/ds/rpa/request/form")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -310,7 +370,33 @@ public class RPARequestHandlerControllerTest {
     }
 
     /**
-     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper)} method
+     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper, String)} method
+     * when it throws a {@link InvalidRequestException} due to a sanitization error, and checks if it returns the
+     * correct error response when the exception is thrown.
+     *
+     * @throws Exception if an error occurs during the test
+     */
+    @Test
+    public void testCreateRecord_invalidInput_sanitizerException() throws Exception {
+        // Arrange
+        InvalidRequestException exception = new InvalidRequestException("Test error message");
+
+        // Mock the sanitizeAndValidate() method of the RequestSanitizer object to throw an InvalidRequestException
+        doThrow(exception).when(mockRequestSanitizer).sanitizeAndValidate(any(UserInfoWrapper.class));
+
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        // Act and Assert
+        mockMvc.perform(post("/ds/rpa/request/form")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(userInfoWrapper)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("invalid request: Test error message"));
+    }
+
+    /**
+     * This method tests the behavior of the {@link RPARequestHandlerController#createRecord(UserInfoWrapper, String)} method
      * when it throws a {@link RecaptchaVerificationFailedException}, and verifies that the controller returns the
      * correct error response when the exception is thrown.
      *
@@ -325,6 +411,19 @@ public class RPARequestHandlerControllerTest {
         when(service.createRecord(any(UserInfoWrapper.class), isNull())).thenThrow(exception);
 
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("Pending");
+        userInfo.setProductTitle("Some product title");
+        userInfo.setSubject("ark:\\88434\\mds2\\2106");
+        userInfo.setDescription("Some description");
+
+        userInfoWrapper.setUserInfo(userInfo);
         // Act and Assert
         mockMvc.perform(post("/ds/rpa/request/form")
                         .contentType(MediaType.APPLICATION_JSON)
