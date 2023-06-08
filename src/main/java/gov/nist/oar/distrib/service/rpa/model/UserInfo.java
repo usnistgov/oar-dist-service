@@ -1,17 +1,21 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 /**
  * Represents the user information.
  * This contains the information the user submitted through the request form.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties(ignoreUnknown = true) // ignore any unknown properties during deserialization.
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserInfo extends JsonSerializable {
@@ -71,6 +75,12 @@ public class UserInfo extends JsonSerializable {
      */
     @JsonProperty("description")
     private String description = "";
+
+    /**
+     * Used to store unknown properties encountered during JSON deserialization.
+     */
+    private Map<String, Object> unknownProperties = new HashMap<>();
+
 
 
     public String getFullName() {
@@ -143,6 +153,26 @@ public class UserInfo extends JsonSerializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * Sets an unknown property encountered during JSON deserialization.
+     *
+     * @param name  The name of the unknown property.
+     * @param value The value of the unknown property.
+     */
+    @JsonAnySetter
+    public void setUnknownProperty(String name, Object value) {
+        unknownProperties.put(name, value);
+    }
+
+    /**
+     * Retrieves the map of unknown properties encountered during JSON deserialization.
+     *
+     * @return The map of unknown properties.
+     */
+    public Map<String, Object> getUnknownProperties() {
+        return unknownProperties;
     }
 
 }
