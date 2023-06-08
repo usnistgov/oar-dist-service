@@ -304,29 +304,18 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             }
             LOGGER.debug("CREATE_RECORD_URL=" + url);
 
-            // set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
-            userInfoWrapper.setRecaptcha(null);
-
-            // Sanitize user input
-            UserInfoWrapper cleanUserInfoWrapper;
-            try {
-                cleanUserInfoWrapper = HTMLSanitizer.sanitize(userInfoWrapper);
-            } catch (InvalidFormInputException e) {
-                LOGGER.debug("Error while sanitizing user input: " + e.getMessage());
-                throw new InvalidRequestException("Error while sanitizing user input: " + e.getMessage());
-            }
-
             // Set the pending status of the record in this service, and not based on the user's input
-            cleanUserInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
+            userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
 
-            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + cleanUserInfoWrapper);
+            // Log the payload before serialization
+            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + userInfoWrapper);
 
             String postPayload;
             try {
-                postPayload = new ObjectMapper().writeValueAsString(cleanUserInfoWrapper);
+                postPayload = prepareRequestPayload(userInfoWrapper);
             } catch (JsonProcessingException e) {
-                LOGGER.debug("Error while serializing user input: " + e.getMessage());
-                throw new RequestProcessingException("Error while serializing user input: " + e.getMessage());
+                LOGGER.error("Error while preparing user info payload: " + e.getMessage());
+                throw new RequestProcessingException("Error while preparing user info payload: " + e.getMessage());
             }
 
             // Send POST request
@@ -397,6 +386,14 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         }
 
         return newRecordWrapper;
+    }
+
+    private String prepareRequestPayload(UserInfoWrapper userInfoWrapper) throws JsonProcessingException {
+        // Set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
+        userInfoWrapper.setRecaptcha(null);
+
+        // Serialize the userInfoWrapper object to JSON
+        return new ObjectMapper().writeValueAsString(userInfoWrapper);
     }
 
     /**

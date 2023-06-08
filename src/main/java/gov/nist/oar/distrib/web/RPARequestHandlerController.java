@@ -41,12 +41,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
     IRPARequestHandler service;
+    private RequestSanitizer requestSanitizer;
+
 
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
 
     @Autowired
     public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider, RPACachingService rpaCachingService) {
         this.service = rpaServiceProvider.getIRPARequestHandler(rpaCachingService);
+        this.requestSanitizer = new RequestSanitizer();
+    }
+
+    public void setRequestSanitizer(RequestSanitizer requestSanitizer) {
+        this.requestSanitizer = requestSanitizer;
     }
 
     /**
@@ -82,6 +89,8 @@ public class RPARequestHandlerController {
                                        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
         LOGGER.debug("Creating a new record...");
+        // Sanitize and validate the user input
+        requestSanitizer.sanitizeAndValidate(userInfoWrapper);
         RecordWrapper recordWrapper = service.createRecord(userInfoWrapper, authorizationHeader);
         return new ResponseEntity(recordWrapper, HttpStatus.OK);
     }

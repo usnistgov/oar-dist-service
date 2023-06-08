@@ -99,7 +99,7 @@ public class RPADataCachingController {
     /**
      * Retrieve metadata of a cached dataset.
      *
-     * @param randomId - the random ID representing the cached dataset.
+     * @param cacheId - the random ID representing the cached dataset.
      *
      * @return Map<String, Object>  - a map representing the metadata of the cached dataset files.
      */
