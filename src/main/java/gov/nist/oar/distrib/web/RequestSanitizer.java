@@ -11,8 +11,15 @@ import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+
+
 
 /**
  * The RequestSanitizer class is responsible for sanitizing and validating a UserInfoWrapper object,
@@ -104,6 +111,7 @@ public class RequestSanitizer {
         }
 
         if (!unsupportedParams.isEmpty()) {
+            LOGGER.debug("Request payload contains unsupported parameters in UserInfo: " + unsupportedParams);
             throw new InvalidRequestException("Request payload contains unsupported parameters: " + unsupportedParams);
         }
     }
