@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * The RequestSanitizer class is responsible for sanitizing and validating a UserInfoWrapper object,
@@ -87,7 +88,8 @@ public class RequestSanitizer {
         }
 
         if (!unsupportedParams.isEmpty()) {
-            throw new InvalidRequestException("Request contains unsupported parameters in UserInfoWrapper: " + unsupportedParams);
+            LOGGER.debug("Request payload contains unsupported parameters in UserInfoWrapper: " + unsupportedParams);
+            throw new InvalidRequestException("Request payload contains unsupported parameters: " + unsupportedParams);
         }
     }
 
@@ -102,7 +104,7 @@ public class RequestSanitizer {
         }
 
         if (!unsupportedParams.isEmpty()) {
-            throw new InvalidRequestException("Request contains unsupported parameters in UserInfo: " + unsupportedParams);
+            throw new InvalidRequestException("Request payload contains unsupported parameters: " + unsupportedParams);
         }
     }
 
@@ -198,48 +200,31 @@ public class RequestSanitizer {
     }
 
     /**
-     * checks if the known fields in the UserInfo object are valid by ensuring they are not null, and not empty.
+     * Checks if the known fields in the UserInfo object are valid by ensuring they are not null, and not empty.
+     * We only validate the fields that required.
      * If any field fails the validation, an InvalidRequestException is thrown.
      *
      * @param userInfo
      */
     private void validateKnownFields(UserInfo userInfo) {
-        if (userInfo.getFullName() == null || userInfo.getFullName().trim().isEmpty()) {
-            throw new InvalidRequestException("fullName cannot be blank.");
-        }
+        // add a field to this map to make it required for validation
+        Map<String, String> requiredFields = new HashMap<>();
+        requiredFields.put("fullName", userInfo.getFullName());
+        requiredFields.put("organization", userInfo.getOrganization());
+        requiredFields.put("email", userInfo.getEmail());
+        requiredFields.put("country", userInfo.getCountry());
+        requiredFields.put("productTitle", userInfo.getProductTitle());
+        requiredFields.put("subject", userInfo.getSubject());
+        requiredFields.put("description", userInfo.getDescription());
 
-        if (userInfo.getOrganization() == null || userInfo.getOrganization().trim().isEmpty()) {
-            throw new InvalidRequestException("organization cannot be blank.");
-        }
+        for (Map.Entry<String, String> entry : requiredFields.entrySet()) {
+            String fieldName = entry.getKey();
+            String fieldValue = entry.getValue();
 
-        if (userInfo.getEmail() == null || userInfo.getEmail().trim().isEmpty()) {
-            throw new InvalidRequestException("email cannot be blank.");
-        }
-
-        if (userInfo.getReceiveEmails() == null || userInfo.getReceiveEmails().trim().isEmpty()) {
-            throw new InvalidRequestException("receiveEmails cannot be blank.");
-        }
-
-        if (userInfo.getCountry() == null || userInfo.getCountry().trim().isEmpty()) {
-            throw new InvalidRequestException("country cannot be blank.");
-        }
-
-        if (userInfo.getApprovalStatus() == null || userInfo.getApprovalStatus().trim().isEmpty()) {
-            throw new InvalidRequestException("approvalStatus cannot be blank.");
-        }
-
-        if (userInfo.getProductTitle() == null || userInfo.getProductTitle().trim().isEmpty()) {
-            throw new InvalidRequestException("productTitle cannot be blank.");
-        }
-
-        if (userInfo.getSubject() == null || userInfo.getSubject().trim().isEmpty()) {
-            throw new InvalidRequestException("subject cannot be blank.");
-        }
-
-        if (userInfo.getDescription() == null || userInfo.getDescription().trim().isEmpty()) {
-            throw new InvalidRequestException("description cannot be blank.");
+            if (fieldValue == null || fieldValue.trim().isEmpty()) {
+                throw new InvalidRequestException(fieldName + " cannot be blank.");
+            }
         }
     }
-
 
 }
