@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,6 +34,7 @@ public class UserInfoWrapper extends JsonSerializable {
     /**
      * Used to store unknown properties encountered during JSON deserialization.
      */
+    @JsonIgnore
     private Map<String, Object> unknownProperties = new HashMap<>();
 
     public UserInfoWrapper(UserInfo userInfo, String recaptcha) {
@@ -60,6 +62,9 @@ public class UserInfoWrapper extends JsonSerializable {
 
     /**
      * Sets an unknown property encountered during JSON deserialization.
+     *
+     * The @JsonAnySetter annotation will ensure that any JSON fields not matching known properties will be stored
+     * in the unknownProperties map.
      *
      * @param name  The name of the unknown property.
      * @param value The value of the unknown property.

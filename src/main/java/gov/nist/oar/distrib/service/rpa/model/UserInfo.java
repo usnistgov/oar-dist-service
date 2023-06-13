@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
@@ -79,9 +80,8 @@ public class UserInfo extends JsonSerializable {
     /**
      * Used to store unknown properties encountered during JSON deserialization.
      */
+    @JsonIgnore
     private Map<String, Object> unknownProperties = new HashMap<>();
-
-
 
     public String getFullName() {
         return fullName;
