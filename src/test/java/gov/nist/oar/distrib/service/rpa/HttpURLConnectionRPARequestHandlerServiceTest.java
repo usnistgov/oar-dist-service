@@ -529,10 +529,10 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                             getTestRecordWrapper("Pending").getRecord().getUserInfo(),
                             RECAPTCHA_RESPONSE
                     ), null);
-            fail("Expected InvalidRequestException to be thrown");
-        } catch (InvalidRequestException e) {
+            fail("Expected RequestProcessingException to be thrown");
+        } catch (RequestProcessingException e) {
             // Assert
-            assertEquals("Invalid request: Bad Request", e.getMessage());
+            assertEquals("Error response from Salesforce service: Bad Request", e.getMessage());
         }
 
         // Verify connection is closed

@@ -307,15 +307,14 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             // Set the pending status of the record in this service, and not based on the user's input
             userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
 
-            // Log the payload before serialization
-            LOGGER.debug("CREATE_RECORD_USER_INFO_PAYLOAD=" + userInfoWrapper);
-
             String postPayload;
             try {
                 postPayload = prepareRequestPayload(userInfoWrapper);
+                // Log the payload before serialization
+                LOGGER.debug("CREATE_RECORD_PAYLOAD=" + postPayload);
             } catch (JsonProcessingException e) {
-                LOGGER.error("Error while preparing user info payload: " + e.getMessage());
-                throw new RequestProcessingException("Error while preparing user info payload: " + e.getMessage());
+                LOGGER.error("Error while preparing record creation payload: " + e.getMessage());
+                throw new RequestProcessingException("Error while preparing record creation payload: " + e.getMessage());
             }
 
             // Send POST request
@@ -348,9 +347,6 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                         // Handle the response
                         newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                     }
-                } else if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) { // If bad request
-                    LOGGER.debug("Invalid request: " + connection.getResponseMessage());
-                    throw new InvalidRequestException("Invalid request: " + connection.getResponseMessage());
                 } else {
                     // Handle any other error response
                     LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
