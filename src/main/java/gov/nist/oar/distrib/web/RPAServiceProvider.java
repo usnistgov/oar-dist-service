@@ -31,4 +31,8 @@ public class RPAServiceProvider {
     private IRPARequestHandler getHttpURLConnectionRPARequestHandler(RPACachingService rpaCachingService) {
         return new HttpURLConnectionRPARequestHandlerService(this.rpaConfiguration, rpaCachingService);
     }
+
+    public RPAConfiguration getRpaConfiguration() {
+        return this.rpaConfiguration;
+    }
 }
