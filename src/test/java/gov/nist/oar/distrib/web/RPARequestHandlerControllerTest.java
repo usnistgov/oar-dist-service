@@ -26,6 +26,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -56,6 +59,9 @@ public class RPARequestHandlerControllerTest {
     @Mock
     RequestSanitizer mockRequestSanitizer;
 
+    @Mock
+    JwtTokenValidator mockJwtTokenValidator;
+
     private RPARequestHandlerController controller;
 
     private MockMvc mockMvc;
@@ -67,6 +73,7 @@ public class RPARequestHandlerControllerTest {
         // create a test instance of the RPARequestHandlerController class
         controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService);
         controller.setRequestSanitizer(mockRequestSanitizer);
+        controller.setJwtTokenValidator(mockJwtTokenValidator);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .build();
     }
@@ -105,7 +112,7 @@ public class RPARequestHandlerControllerTest {
      * @throws Exception if an error occurs during the test
      */
     @Test
-    public void getRecord() throws Exception {
+    public void testGetRecord() throws Exception {
         // Set a test record ID
         String recordId = "123";
         // Create a test RecordWrapper object
@@ -115,8 +122,21 @@ public class RPARequestHandlerControllerTest {
         // mock the getRecord() method of the IRPARequestHandler object to return the test RecordWrapper object
         when(service.getRecord(recordId)).thenReturn(recordWrapper);
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Set up the behavior of the validate method to return the mock Claims map
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
         // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
-        ResponseEntity result = controller.getRecord(recordId);
+        ResponseEntity result = controller.getRecord(recordId, headers.getFirst(HttpHeaders.AUTHORIZATION));
 
         // Assert that the HTTP status code is HttpStatus.OK
         assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -133,7 +153,7 @@ public class RPARequestHandlerControllerTest {
 
         // Test using url path
         // Assert that the "record" key in the response body is not null
-        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId))
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", "Bearer TEST123"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.record").exists()) // verify that key "record" exists
                 .andExpect(jsonPath("$.record").value(notNullValue()));
@@ -151,11 +171,21 @@ public class RPARequestHandlerControllerTest {
         // Create a test record ID
         String recordId = "123";
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator to always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
         // Mock the getRecord() method of the IRPARequestHandler object to throw a RecordNotFoundException
         when(service.getRecord(recordId)).thenThrow(RecordNotFoundException.fromRecordId(recordId));
 
         // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
-        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId))
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", "Bearer TEST123"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("record not found: " +
@@ -164,8 +194,8 @@ public class RPARequestHandlerControllerTest {
 
 
     /**
-     * This method tests the behavior of the {@link RPARequestHandlerController#getRecord(String)} method
-     * when it throws a {@link RequestProcessingException}, and verifies that the controller returns the
+     * Unit test {@link RPARequestHandlerController#getRecord(String)} method when it throws
+     * a {@link RequestProcessingException}, and verifies that the controller returns the
      * correct error response when the exception is thrown.
      *
      * @throws Exception if an error occurs during the test
@@ -175,14 +205,63 @@ public class RPARequestHandlerControllerTest {
         // Create a test record ID
         String recordId = "123";
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
         // Mock the getRecord() method of the IRPARequestHandler object to throw a RecordNotFoundException
         when(service.getRecord(recordId)).thenThrow(new RequestProcessingException("Something went wrong"));
 
         // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
-        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId))
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", "Bearer TEST123"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.message").value("internal server error: Something went wrong"));
+    }
+
+    /**
+     * Unit test the scenario where the JWT token provided is invalid.
+     * Expect an internal server error (HTTP status 500) with a specific error message will be returned.
+     *
+     * @throws Exception if any exception is thrown during the test
+     */
+    @Test
+    public void testGetRecord_UnauthorizedInvalidToken() throws Exception {
+        // Create a test record ID
+        String recordId = "123";
+
+        // Mock the JwtTokenValidator always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(null);
+
+        // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", "Bearer TEST123"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized: invalid token"));
+    }
+
+    /**
+     * Unit test the scenario where the Authorization header is missing or invalid.
+     * Expect an internal server error (HTTP status 500) with a specific error message will be returned.
+     *
+     * @throws Exception if any exception is thrown during the test
+     */
+    @Test
+    public void testGetRecord_UnauthorizedInvalidAuthHeader() throws Exception {
+        // Create a test record ID
+        String recordId = "123";
+
+        // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", ""))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized: invalid authorization header"));
     }
 
 
@@ -193,7 +272,7 @@ public class RPARequestHandlerControllerTest {
      * @throws Exception if an error occurs while running the test
      */
     @Test
-    public void createRecord() throws Exception {
+    public void testCreateRecord() throws Exception {
         // Arrange
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
 
@@ -446,10 +525,27 @@ public class RPARequestHandlerControllerTest {
         RecordStatus recordStatus = new RecordStatus(recordId, status);
         when(service.updateRecord(anyString(), anyString())).thenReturn(recordStatus);
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator to always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
         RecordPatch recordPatch = new RecordPatch(status);
         // Call the updateRecord() method of the RPARequestHandlerController class with the test record ID and
         // recordPatch
-        ResponseEntity result = controller.updateRecord(recordId, recordPatch);
+        ResponseEntity result = controller.updateRecord(
+                recordId,
+                recordPatch,
+                headers.getFirst(HttpHeaders.AUTHORIZATION)
+        );
 
         // Assert that the HTTP status code is HttpStatus.OK
         assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -468,7 +564,8 @@ public class RPARequestHandlerControllerTest {
         // Use MockMvc approach to test with URL path
         mockMvc.perform(patch("/ds/rpa/request/accepted/" + recordId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(recordPatch)))
+                        .content(new ObjectMapper().writeValueAsString(recordPatch))
+                        .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordId").value("123"));
     }
@@ -489,10 +586,24 @@ public class RPARequestHandlerControllerTest {
         // Mock the createRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
         when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator to always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
         // Act and Assert
         mockMvc.perform(patch("/ds/rpa/request/accepted/123")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending"))))
+                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending")))
+                        .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("record not found: " +
@@ -514,10 +625,24 @@ public class RPARequestHandlerControllerTest {
         // Mock the updateRecord() method of the IRPARequestHandler object to throw an RequestProcessingException
         when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator to always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
         // Act and Assert
         mockMvc.perform(patch("/ds/rpa/request/accepted/123")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending"))))
+                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending")))
+                        .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.message").value("internal server error: Something went wrong"));
@@ -538,14 +663,68 @@ public class RPARequestHandlerControllerTest {
         // Mock the updateRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
         when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
 
+        // Create a mock Claims map object
+        Map<String, String> expectedTokenDetails = new HashMap<>();
+        expectedTokenDetails.put("username", "john.doe");
+        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("expiry", "1643218800");
+        expectedTokenDetails.put("user_id", "12345");
+
+        // Mock the JwtTokenValidator to always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(expectedTokenDetails);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer TEST123");
+
         // Act and Assert
         mockMvc.perform(patch("/ds/rpa/request/accepted/123")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending"))))
+                        .content(new ObjectMapper().writeValueAsString(new RecordPatch("Pending")))
+                        .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("invalid request: Bad Request"));
     }
+
+    /**
+     * Unit test the scenario where the update record request contains an invalid JWT token.
+     * Expect an internal server error (HTTP status 500) with a specific error message will be returned.
+     *
+     * @throws Exception if any exception is thrown during the test execution
+     */
+    @Test
+    public void testUpdateRecord_UnauthorizedInvalidToken() throws Exception {
+        // Create a test record ID
+        String recordId = "123";
+
+        // Mock the JwtTokenValidator always return true
+        when(mockJwtTokenValidator.validate(any())).thenReturn(null);
+
+        // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", "Bearer TEST123"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized: invalid token"));
+    }
+
+    /**
+     * Unit test the scenario where the update record request is missing a valid Authorization header.
+     * Expect an internal server error (HTTP status 500) with a specific error message will be returned.
+     *
+     * @throws Exception if any exception is thrown during the test execution
+     */
+    @Test
+    public void testUpdateRecord_UnauthorizedInvalidAuthHeader() throws Exception {
+        // Create a test record ID
+        String recordId = "123";
+
+        // Call the getRecord() method of the RPARequestHandlerController class with the test record ID
+        mockMvc.perform(get("/ds/rpa/request/accepted/" + recordId).header("Authorization", ""))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized: invalid authorization header"));
+    }
+
 
     /**
      * Unit test {@link RPARequestHandlerController#handleRecordNotFoundException(RecordNotFoundException)}.
@@ -625,6 +804,28 @@ public class RPARequestHandlerControllerTest {
 
         // Call the handleInvalidRequestException() method with the exception
         ErrorInfo errorInfo = controller.handleRecaptchaVerificationFailedException(exception);
+
+        // Verify that the returned ErrorInfo contains the expected status code and message
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), errorInfo.status);
+        assertEquals("Unauthorized: " + errorMessage, errorInfo.message);
+    }
+
+    /**
+     * Unit test
+     * {@link RPARequestHandlerController#handleUnauthorizedException(UnauthorizedException)}.
+     * <p>
+     * Call the handleUnauthorizedException method with the exception and verify that the returned
+     * {@link ErrorInfo}
+     * contains the expected status code and message.
+     */
+    @Test
+    public void testHandleUnauthorizedException() {
+        // Arrange
+        String errorMessage = "invalid token";
+        UnauthorizedException exception = new UnauthorizedException(errorMessage);
+
+        // Call the handleUnauthorizedException() method with the exception
+        ErrorInfo errorInfo = controller.handleUnauthorizedException(exception);
 
         // Verify that the returned ErrorInfo contains the expected status code and message
         assertEquals(HttpStatus.UNAUTHORIZED.value(), errorInfo.status);

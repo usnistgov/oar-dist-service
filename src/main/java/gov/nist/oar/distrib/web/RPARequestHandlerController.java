@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RPARequestHandlerController {
     IRPARequestHandler service;
     private RequestSanitizer requestSanitizer;
+    private JwtTokenValidator jwtTokenValidator;
 
 
     private final static Logger LOGGER = LoggerFactory.getLogger(RPARequestHandlerController.class);
@@ -50,10 +53,15 @@ public class RPARequestHandlerController {
     public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider, RPACachingService rpaCachingService) {
         this.service = rpaServiceProvider.getIRPARequestHandler(rpaCachingService);
         this.requestSanitizer = new RequestSanitizer();
+        this.jwtTokenValidator = new JwtTokenValidator(rpaServiceProvider.getRpaConfiguration());
     }
 
     public void setRequestSanitizer(RequestSanitizer requestSanitizer) {
         this.requestSanitizer = requestSanitizer;
+    }
+
+    public void setJwtTokenValidator(JwtTokenValidator jwtTokenValidator) {
+        this.jwtTokenValidator = jwtTokenValidator;
     }
 
     /**
@@ -72,10 +80,29 @@ public class RPARequestHandlerController {
      * @return RecordWrapper - the requested record wrapped within a "record" envelope.
      */
     @GetMapping(value = "/request/accepted/{id}")
-    public ResponseEntity getRecord(@PathVariable String id) throws RecordNotFoundException,
-            RequestProcessingException {
-        RecordWrapper recordWrapper = service.getRecord(id);
-        return new ResponseEntity(recordWrapper, HttpStatus.OK);
+    public ResponseEntity getRecord(@PathVariable String id, @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
+            throws RecordNotFoundException, RequestProcessingException, UnauthorizedException {
+        // Extracting the token from the header
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.substring("Bearer ".length());
+
+            // Validate token using JwtTokenValidator
+            boolean isValid = false;
+            try {
+                isValid = jwtTokenValidator.validate(token) != null;
+            } catch (Exception e) {
+                throw new RequestProcessingException(e.getMessage());
+            }
+
+            if (isValid) {
+                RecordWrapper recordWrapper = service.getRecord(id);
+                return new ResponseEntity(recordWrapper, HttpStatus.OK);
+            } else {
+                throw new UnauthorizedException("invalid token");
+            }
+        } else {
+            throw new UnauthorizedException("invalid authorization header");
+        }
     }
 
     /**
@@ -103,11 +130,31 @@ public class RPARequestHandlerController {
      * @return RecordStatus - the new status of the record
      */
     @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json")
-    public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch)
-            throws RecordNotFoundException, InvalidRequestException, RequestProcessingException {
-        LOGGER.info("Updating approval status of record with ID = " + id);
-        RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus());
-        return new ResponseEntity(recordStatus, HttpStatus.OK);
+    public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch,
+                                       @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
+            throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
+
+        // Extracting the token from the header
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.substring("Bearer ".length());
+            // Validate token using JwtTokenValidator
+            Map<String, String> tokenDetails = null;
+            try {
+                tokenDetails = jwtTokenValidator.validate(token);
+            } catch (Exception e) {
+                throw new RequestProcessingException(e.getMessage());
+            }
+
+            if (tokenDetails != null) {
+                LOGGER.info("Updating approval status of record with ID = " + id);
+                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus());
+                return new ResponseEntity(recordStatus, HttpStatus.OK);
+            } else {
+                throw new UnauthorizedException("invalid token");
+            }
+        } else {
+            throw new UnauthorizedException("invalid authorization header");
+        }
     }
 
     /**
@@ -161,4 +208,9 @@ public class RPARequestHandlerController {
     }
 
 
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorInfo handleUnauthorizedException(UnauthorizedException ex) {
+        return new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
+    }
 }
