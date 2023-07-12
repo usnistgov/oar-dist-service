@@ -21,8 +21,6 @@ import java.util.Map;
 @Validated
 @ConfigurationProperties("distrib.rpa")
 public class RPAConfiguration {
-
-
     @JsonProperty("salesforceJwt")
     private SalesforceJwt salesforceJwt = null;
     @JsonProperty("emailTemplates")
@@ -47,6 +45,9 @@ public class RPAConfiguration {
     String recaptchaSecret;
     @JsonProperty("authorized")
     List<String> authorized = null;
+    @JsonProperty("jwtSecretKey")
+    String jwtSecretKey = null;
+
 
     public SalesforceJwt getSalesforceJwt() {
         return salesforceJwt;
@@ -151,6 +152,14 @@ public class RPAConfiguration {
             }
         }
         return false;
+    }
+
+    public String getJwtSecretKey() {
+        return jwtSecretKey;
+    }
+
+    public void setJwtSecretKey(String jwtSecretKey) {
+        this.jwtSecretKey = jwtSecretKey;
     }
 
     @NoArgsConstructor
