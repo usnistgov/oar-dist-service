@@ -47,9 +47,14 @@ public class EmailInfoProvider {
         String recordId = record.getId();
         String datasetId = record.getUserInfo().getSubject();
         List<RPAConfiguration.Approver.ApproverData> approvers = rpaConfiguration.getApprovers().get(datasetId);
+        if (approvers == null) {
+            return null;
+        }
         // For multiple approvers, we check if there are more than one approver
         // then join their email addresses using ';'
-        String smeEmailAddresses = approvers.stream().map(RPAConfiguration.Approver.ApproverData::getEmail).collect(Collectors.joining(";"));
+        String smeEmailAddresses = approvers.stream()
+                .map(RPAConfiguration.Approver.ApproverData::getEmail)
+                .collect(Collectors.joining(";"));
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = createEmailContent(record);
 
