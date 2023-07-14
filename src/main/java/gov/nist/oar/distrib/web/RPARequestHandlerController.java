@@ -146,8 +146,8 @@ public class RPARequestHandlerController {
             }
 
             if (tokenDetails != null) {
-                LOGGER.info("Updating approval status of record with ID = " + id);
                 RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus());
+                logUpdateAction(tokenDetails, id);
                 return new ResponseEntity(recordStatus, HttpStatus.OK);
             } else {
                 throw new UnauthorizedException("invalid token");
@@ -155,6 +155,12 @@ public class RPARequestHandlerController {
         } else {
             throw new UnauthorizedException("invalid authorization header");
         }
+    }
+
+    // Log SME action
+    private void logUpdateAction(Map<String, String> tokenDetails, String recordId) {
+        String smeID = tokenDetails.get("email");
+        LOGGER.info("SME " + smeID + " updated record with ID=" + recordId);
     }
 
     /**
