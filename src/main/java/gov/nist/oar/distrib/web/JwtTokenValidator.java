@@ -4,7 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,8 +38,13 @@ public class JwtTokenValidator {
      */
     public Map<String, String> validate(String token) throws Exception {
         try {
+            // Generate SecretKey
+            String secretKeyString = rpaConfiguration.getJwtSecretKey();
+            byte[] secretKeyBytes = secretKeyString.getBytes(StandardCharsets.UTF_8);
+            SecretKey secretKey = new SecretKeySpec(secretKeyBytes, SignatureAlgorithm.HS256.getJcaName());
+            // Parse token
             Jws<Claims> jws = Jwts.parser()
-                    .setSigningKey(rpaConfiguration.getJwtSecretKey())
+                    .setSigningKey(secretKey)
                     .parseClaimsJws(token);
 
             Claims claims = jws.getBody();
