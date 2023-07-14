@@ -7,6 +7,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -66,13 +70,19 @@ public class JwtTokenValidatorTest {
     private String generateValidToken() {
         long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
 
+        // Generate SecretKey
+        String secretKeyString = mockRpaConfiguration.getJwtSecretKey();
+        byte[] secretKeyBytes = secretKeyString.getBytes(StandardCharsets.UTF_8);
+        SecretKey secretKey = new SecretKeySpec(secretKeyBytes, SignatureAlgorithm.HS256.getJcaName());
+
+        // Generate token
         return Jwts.builder()
                 .setSubject("john.doe")
                 .claim("user_name", "John Doe")
                 .claim("email", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
                 .claim("user_id", 12345)
-                .signWith(SignatureAlgorithm.HS256, mockRpaConfiguration.getJwtSecretKey())
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
