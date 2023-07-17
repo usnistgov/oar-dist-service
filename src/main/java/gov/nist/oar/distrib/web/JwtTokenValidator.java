@@ -49,8 +49,9 @@ public class JwtTokenValidator {
 
             Claims claims = jws.getBody();
             Map<String, String> tokenDetails = new HashMap<>();
-            tokenDetails.put("username", claims.get("user_name", String.class));
-            tokenDetails.put("email", claims.get("email", String.class));
+            String userFullname = claims.get("userLastName", String.class) + ", " + claims.get("userName", String.class);
+            tokenDetails.put("userFullname", userFullname );
+            tokenDetails.put("userEmail", claims.get("userEmail", String.class));
             tokenDetails.put("expiry", claims.get("exp").toString());
             tokenDetails.put("user_id", claims.get("user_id").toString());
 
