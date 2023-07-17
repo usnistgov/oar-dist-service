@@ -140,8 +140,10 @@ public class RPARequestHandlerController {
             // Validate token using JwtTokenValidator
             Map<String, String> tokenDetails = null;
             try {
+
                 tokenDetails = jwtTokenValidator.validate(token);
             } catch (Exception e) {
+                LOGGER.debug("unable to validate token: " + e.getMessage());
                 throw new RequestProcessingException(e.getMessage());
             }
 
@@ -150,17 +152,20 @@ public class RPARequestHandlerController {
                 logUpdateAction(tokenDetails, id);
                 return new ResponseEntity(recordStatus, HttpStatus.OK);
             } else {
+                LOGGER.debug("invalid token");
                 throw new UnauthorizedException("invalid token");
             }
         } else {
+            LOGGER.debug("invalid authorization header");
             throw new UnauthorizedException("invalid authorization header");
         }
     }
 
-    // Log SME action
+    // Log SME action and identity
     private void logUpdateAction(Map<String, String> tokenDetails, String recordId) {
-        String smeID = tokenDetails.get("email");
-        LOGGER.info("SME " + smeID + " updated record with ID=" + recordId);
+        String smeEmail = tokenDetails.get("userEmail");
+        String smeFullname = tokenDetails.get("userFullname");
+        LOGGER.info(smeFullname + " (" + smeEmail + ") has updated record with ID=" + recordId);
     }
 
     /**
