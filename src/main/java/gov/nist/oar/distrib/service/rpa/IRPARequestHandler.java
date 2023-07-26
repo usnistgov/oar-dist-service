@@ -22,7 +22,7 @@ public interface IRPARequestHandler {
      * @throws InvalidRequestException if the request payload is invalid
      * @throws RequestProcessingException if there is an error while processing the request
      */
-    RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException, InvalidRequestException
+    RecordStatus updateRecord(String recordId, String status, String smeId) throws RecordNotFoundException, InvalidRequestException
             , RequestProcessingException;
 
     /**

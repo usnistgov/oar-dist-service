@@ -421,7 +421,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      * @throws RequestProcessingException If there is an error processing the request.
      */
     @Override
-    public RecordStatus updateRecord(String recordId, String status) throws RecordNotFoundException,
+    public RecordStatus updateRecord(String recordId, String status, String smeId) throws RecordNotFoundException,
             InvalidRequestException, RequestProcessingException {
         // Initialize return object
         RecordStatus recordStatus;
@@ -430,7 +430,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
 
         // Create a valid approval status based on input
-        String approvalStatus = generateApprovalStatus(status);
+        String approvalStatus = generateApprovalStatus(status, smeId);
 
         // TODO: try caching here before updating the status in SF
 
@@ -504,10 +504,11 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      * The date is in ISO 8601 format.
      *
      * @param status the approval status to use, either "Approved" or "Declined"
-     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]"
+     * @param email the email to append to the status
+     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[email]"
      * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
      */
-    private String generateApprovalStatus(String status) throws InvalidRequestException {
+    private String generateApprovalStatus(String status, String smeId) throws InvalidRequestException {
         String formattedDate = Instant.now().toString(); // ISO 8601 format: 2023-05-09T15:59:03.872Z
         String approvalStatus;
         if (status != null) {
@@ -524,7 +525,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         } else {
             throw new InvalidRequestException("Invalid approval status: status is null");
         }
-        return approvalStatus + formattedDate;
+        return approvalStatus + formattedDate + "_" + smeId;
     }
 
 }

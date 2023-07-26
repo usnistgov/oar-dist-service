@@ -557,7 +557,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Test
     public void testUpdateRecord_success() throws Exception {
         String recordId = "record12345";
-        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z";
+        String email = "test@example.com";
+        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email;
 
         // Mock behavior of getRecord method
         doReturn(getTestRecordWrapper(expectedApprovalStatus)).when(service).getRecord("record12345");
@@ -567,7 +568,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
         when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
         when(httpResponse.getEntity()).thenReturn(
-                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z\"," +
+                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z_test@example.com\"," +
                         "\"recordId\":\"record12345\"}",
                         ContentType.APPLICATION_JSON)
         );
@@ -578,7 +579,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, "Approved");
+        RecordStatus result = service.updateRecord(recordId, "Approved", email);
 
         // Assert
         assertEquals(expectedApprovalStatus, result.getApprovalStatus());
@@ -595,9 +596,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         JSONObject payloadObject = new JSONObject(patchPayload);
         // Pattern to match ISO 8601 format
         // This pattern matches a string in the format "Approved_YYYY-MM-DDTHH:MM:SS.SSSZ"
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z";
+        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z_[\\w.-]+@[\\w.-]+\\.\\w+";
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
-
 
     }
 
@@ -605,12 +605,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testUpdateRecord_withUnknownStatus() {
         String recordId = "record12345";
         String status = "HelloWorld";
+        String email = "test@example.com";
         String expectedErrorMessage = "Invalid approval status: HelloWorld";
 
         // Call the method and catch the exception
         try {
             // Act
-            service.updateRecord(recordId, status);
+            service.updateRecord(recordId, status, email);
             fail("Expected InvalidRequestException to be thrown");
         } catch (InvalidRequestException e) {
             // Assert the message of the exception

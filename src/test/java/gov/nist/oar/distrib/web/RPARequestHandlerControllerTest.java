@@ -523,12 +523,12 @@ public class RPARequestHandlerControllerTest {
         String recordId = "123";
         String status = "Approved";
         RecordStatus recordStatus = new RecordStatus(recordId, status);
-        when(service.updateRecord(anyString(), anyString())).thenReturn(recordStatus);
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(recordStatus);
 
         // Create a mock Claims map object
         Map<String, String> expectedTokenDetails = new HashMap<>();
-        expectedTokenDetails.put("username", "john.doe");
-        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("userFullname", "john.doe");
+        expectedTokenDetails.put("userEmail", "john.doe@example.com");
         expectedTokenDetails.put("expiry", "1643218800");
         expectedTokenDetails.put("user_id", "12345");
 
@@ -584,12 +584,12 @@ public class RPARequestHandlerControllerTest {
         RecordNotFoundException exception = RecordNotFoundException.fromRecordId("123");
 
         // Mock the createRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
-        when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenThrow(exception);
 
         // Create a mock Claims map object
         Map<String, String> expectedTokenDetails = new HashMap<>();
-        expectedTokenDetails.put("username", "john.doe");
-        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("userFullname", "john.doe");
+        expectedTokenDetails.put("userEmail", "john.doe@example.com");
         expectedTokenDetails.put("expiry", "1643218800");
         expectedTokenDetails.put("user_id", "12345");
 
@@ -623,12 +623,12 @@ public class RPARequestHandlerControllerTest {
         RequestProcessingException exception = new RequestProcessingException("Something went wrong");
 
         // Mock the updateRecord() method of the IRPARequestHandler object to throw an RequestProcessingException
-        when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenThrow(exception);
 
         // Create a mock Claims map object
         Map<String, String> expectedTokenDetails = new HashMap<>();
-        expectedTokenDetails.put("username", "john.doe");
-        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("userFullName", "john.doe");
+        expectedTokenDetails.put("userEmail", "john.doe@example.com");
         expectedTokenDetails.put("expiry", "1643218800");
         expectedTokenDetails.put("user_id", "12345");
 
@@ -661,12 +661,12 @@ public class RPARequestHandlerControllerTest {
         InvalidRequestException exception = new InvalidRequestException("Bad Request");
 
         // Mock the updateRecord() method of the IRPARequestHandler object to throw an InvalidRequestException
-        when(service.updateRecord(anyString(), anyString())).thenThrow(exception);
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenThrow(exception);
 
         // Create a mock Claims map object
         Map<String, String> expectedTokenDetails = new HashMap<>();
-        expectedTokenDetails.put("username", "john.doe");
-        expectedTokenDetails.put("email", "john.doe@example.com");
+        expectedTokenDetails.put("userFullname", "john.doe");
+        expectedTokenDetails.put("userEmail", "john.doe@example.com");
         expectedTokenDetails.put("expiry", "1643218800");
         expectedTokenDetails.put("user_id", "12345");
 

@@ -256,7 +256,8 @@ public class RPARequestHandlerController {
 
             if (tokenDetails != null) {
                 LOGGER.debug("Updating record in the service layer...");
-                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus());
+                String smeId = tokenDetails.get("userEmail");
+                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus(), smeId);
 
                 logUpdateAction(tokenDetails, id);
 
