@@ -3,7 +3,13 @@ package gov.nist.oar.distrib.service.rpa;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.exceptions.*;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
@@ -246,130 +252,103 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     /**
      * Creates a new record in Salesforce using the information from the provided UserInfoWrapper object.
      *
-     * @param userInfoWrapper     The UserInfoWrapper object containing the data to create the new record.
-     * @param authorizationHeader
-     * @return The RecordWrapper object containing the newly created record.
-     * @throws InvalidRecaptchaException If the reCAPTCHA verification fails.
+     * This method builds a URL to create a record in Salesforce using a configuration endpoint.
+     * It prepares the request payload from the UserInfoWrapper object and sends a POST request
+     * to Salesforce. The response is parsed into a RecordWrapper object, which is returned.
+     *
+     * @param userInfoWrapper       The UserInfoWrapper object containing the data to create the new record.
+     * @return RecordWrapper        The RecordWrapper object containing the newly created record.
      * @throws InvalidRequestException   If the request is invalid or incomplete.
+     * @throws RequestProcessingException If an error occurs during request processing, including URL creation, serialization, or communication errors.
      */
+
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper, String authorizationHeader) throws InvalidRequestException,
-            RequestProcessingException, RecaptchaVerificationFailedException {
+    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
+            RequestProcessingException {
         int responseCode;
         // Initialize return value
         RecordWrapper newRecordWrapper;
 
-        boolean shouldVerifyRecaptcha = true; // always verify
-        // unless an authorization token exists
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            // Extract token by stripping "Bearer " keyword
-            String token = authorizationHeader.substring(7);
-            if (!token.isEmpty() && getConfig().isAuthorized(token)) {
-                // if a bearer token exists and is authorized, skip verification
-                shouldVerifyRecaptcha = false;
-            }
+        // Get path
+        String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
+
+        // Get token
+        JWTToken token = jwtHelper.getToken();
+
+        // Build URL
+        String url;
+        try {
+            url = new URIBuilder(token.getInstanceUrl())
+                    .setPath(createRecordUri)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
+            throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        // verify the reCAPTCHA
-        RecaptchaResponse recaptchaResponse = new RecaptchaResponse();
-        if (shouldVerifyRecaptcha) {
-            String recaptchaToken = userInfoWrapper.getRecaptcha();
-            try {
-                recaptchaResponse = verifyRecaptcha(recaptchaToken);
-            } catch (RecaptchaServerException e) {
-                // if error is between our service and Google reCAPTCHA service
-                throw new RequestProcessingException(e.getMessage());
-            } catch (RecaptchaClientException e) {
-                // if error is caused by end user (reCAPTCHA response invalid for example)
-                throw new InvalidRequestException(e.getMessage());
-            }
+        LOGGER.debug("CREATE_RECORD_URL=" + url);
+
+        // Set the pending status of the record in this service, and not based on the user's input
+        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
+
+        String postPayload;
+        try {
+            postPayload = prepareRequestPayload(userInfoWrapper);
+            // Log the payload before serialization
+            LOGGER.debug("CREATE_RECORD_PAYLOAD=" + postPayload);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error while preparing record creation payload: " + e.getMessage());
+            throw new RequestProcessingException("Error while preparing record creation payload: " + e.getMessage());
         }
 
-        // We proceed only if reCAPTCHA validation was successful
-        if (!shouldVerifyRecaptcha || recaptchaResponse.isSuccess()) {
-            // Get path
-            String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
+        // Send POST request
+        HttpURLConnection connection = null;
 
-            // Get token
-            JWTToken token = jwtHelper.getToken();
+        try {
+            URL requestUrl = new URL(url);
+            connection = connectionFactory.createHttpURLConnection(requestUrl);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Authorization", "Bearer " + token.getAccessToken());
+            // Set payload
+            byte[] payloadBytes = postPayload.getBytes(StandardCharsets.UTF_8);
+            connection.setDoOutput(true); // tell connection we are writing data to the output stream
+            OutputStream os = connection.getOutputStream();
+            os.write(payloadBytes);
+            os.flush();
+            os.close();
 
-            // Build URL
-            String url;
-            try {
-                url = new URIBuilder(token.getInstanceUrl())
-                        .setPath(createRecordUri)
-                        .build()
-                        .toString();
-            } catch (URISyntaxException e) {
-                throw new RequestProcessingException("Error building URI: " + e.getMessage());
-            }
-            LOGGER.debug("CREATE_RECORD_URL=" + url);
+            responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) { // If created
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
 
-            // Set the pending status of the record in this service, and not based on the user's input
-            userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
-
-            String postPayload;
-            try {
-                postPayload = prepareRequestPayload(userInfoWrapper);
-                // Log the payload before serialization
-                LOGGER.debug("CREATE_RECORD_PAYLOAD=" + postPayload);
-            } catch (JsonProcessingException e) {
-                LOGGER.error("Error while preparing record creation payload: " + e.getMessage());
-                throw new RequestProcessingException("Error while preparing record creation payload: " + e.getMessage());
-            }
-
-            // Send POST request
-            HttpURLConnection connection = null;
-
-            try {
-                URL requestUrl = new URL(url);
-                connection = connectionFactory.createHttpURLConnection(requestUrl);
-                connection.setRequestMethod("POST");
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setRequestProperty("Authorization", "Bearer " + token.getAccessToken());
-                // Set payload
-                byte[] payloadBytes = postPayload.getBytes(StandardCharsets.UTF_8);
-                connection.setDoOutput(true); // tell connection we are writing data to the output stream
-                OutputStream os = connection.getOutputStream();
-                os.write(payloadBytes);
-                os.flush();
-                os.close();
-
-                responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) { // If created
-                    try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                        StringBuilder response = new StringBuilder();
-                        String line;
-
-                        while ((line = in.readLine()) != null) {
-                            response.append(line);
-                        }
-                        LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
-                        // Handle the response
-                        newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
                     }
-                } else {
-                    // Handle any other error response
-                    LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
-                    throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
+                    LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
+                    // Handle the response
+                    newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                 }
-
-            } catch (MalformedURLException e) {
-                // Handle the URL Malformed error
-                LOGGER.debug("Invalid URL: " + e.getMessage());
-                throw new RequestProcessingException("Invalid URL: " + e.getMessage());
-            } catch (IOException e) {
-                // Handle the I/O error
-                LOGGER.debug("Error sending GET request: " + e.getMessage());
-                throw new RequestProcessingException("I/O error: " + e.getMessage());
-            } finally {
-                // Close the connection
-                if (connection != null) {
-                    connection.disconnect();
-                }
+            } else {
+                // Handle any other error response
+                LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
+                throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
             }
 
-        } else { // reCAPTCHA verification not successful
-            throw new RecaptchaVerificationFailedException("reCAPTCHA verification failed");
+        } catch (MalformedURLException e) {
+            // Handle the URL Malformed error
+            LOGGER.debug("Invalid URL: " + e.getMessage());
+            throw new RequestProcessingException("Invalid URL: " + e.getMessage());
+        } catch (IOException e) {
+            // Handle the I/O error
+            LOGGER.debug("Error sending GET request: " + e.getMessage());
+            throw new RequestProcessingException("I/O error: " + e.getMessage());
+        } finally {
+            // Close the connection
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
 
         // Check if success and handle accordingly
@@ -392,23 +371,6 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         return new ObjectMapper().writeValueAsString(userInfoWrapper);
     }
 
-    /**
-     * Verifies the reCAPTCHA token.
-     *
-     * @param recaptchaToken the reCAPTCHA token to verify, this what the reCAPTCHA widget returns
-     * @return the reCAPTCHA response
-     * @throws RecaptchaServerException if there is an error while communicating with the Google reCAPTCHA service
-     * @throws RecaptchaClientException if the reCAPTCHA client request is invalid
-     */
-    private RecaptchaResponse verifyRecaptcha(String recaptchaToken) throws RecaptchaServerException,
-            RecaptchaClientException {
-        RecaptchaResponse recaptchaResponse = recaptchaHelper.verifyRecaptcha(
-                getConfig().getRecaptchaSecret(),
-                recaptchaToken
-        );
-        LOGGER.debug("RECAPTCHA_GOOGLE_RESPONSE=" + recaptchaResponse.toString());
-        return recaptchaResponse;
-    }
 
     /**
      * Updates the status of a record with a given ID.
@@ -504,7 +466,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
      * The date is in ISO 8601 format.
      *
      * @param status the approval status to use, either "Approved" or "Declined"
-     * @param email the email to append to the status
+     * @param email  the email to append to the status
      * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[email]"
      * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
      */

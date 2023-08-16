@@ -43,7 +43,7 @@ public interface IRPARequestHandler {
      * @throws InvalidRequestException    if the request payload is invalid
      * @throws RequestProcessingException if there is an error while processing the request
      */
-    RecordWrapper createRecord(UserInfoWrapper userInfoWrapper, String authorizationHeader) throws InvalidRequestException,
+    RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
             RequestProcessingException, RecaptchaVerificationFailedException;
 
 }

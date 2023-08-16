@@ -98,7 +98,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             "\"receiveEmails\":\"true\",\"country\":\"USA\",\"approvalStatus\":\"Pending\",\"productTitle\":" +
             "\"Test Product\",\"subject\":\"1234567890\",\"description\":\"Test Product Description\"}}}";
 
-    private static final String RECAPTCHA_SECRET = "recaptcha_secret";
     private static final String RECAPTCHA_RESPONSE = "recaptcha_response";
     @Mock
     private RPAConfiguration rpaConfiguration;
@@ -111,8 +110,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     JWTHelper mockJwtHelper;
     @Mock
     RecaptchaHelper recaptchaHelper;
-    @Mock
-    RecaptchaResponse recaptchaResponse;
     @Mock
     RecordResponseHandler recordResponseHandler;
 
@@ -245,16 +242,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_success()
-            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
-            InvalidRequestException, IOException {
+            throws InvalidRequestException, IOException {
         // Arrange
-        // Mock RPA Config to return the RECAPTCHA_SECRET
-        when(rpaConfiguration.getRecaptchaSecret()).thenReturn(RECAPTCHA_SECRET);
-
-        // Mock the recaptcha response
-        when(recaptchaResponse.isSuccess()).thenReturn(true);
-        when(recaptchaResponse.toString()).thenReturn("whatever"); // this just for the debug message in the service
-        when(recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE)).thenReturn(recaptchaResponse);
 
         // Set up mock behavior for mockConnection
         // Set expected dummy response
@@ -291,7 +280,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         );
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, null);
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -316,8 +305,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withAuthorizedUser_shouldSucceed()
-            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
-            InvalidRequestException, IOException {
+            throws InvalidRequestException, IOException {
         // Recaptcha stubbings ar no longer needed here since we skip verification
 
         // Set up mock behavior for mockConnection
@@ -353,11 +341,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 RECAPTCHA_RESPONSE
         );
 
-        // Set Authorized Token
-        String authorizedToken = "TOKEN_123";
-        when(rpaConfiguration.isAuthorized(authorizedToken)).thenReturn(true);
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, "Bearer " + authorizedToken);
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -382,16 +367,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_with_NON_AuthorizedUser_shouldSucceed()
-            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
-            InvalidRequestException, IOException {
+            throws InvalidRequestException, IOException {
         // Arrange
-        // Mock RPA Config to return the RECAPTCHA_SECRET
-        when(rpaConfiguration.getRecaptchaSecret()).thenReturn(RECAPTCHA_SECRET);
-
-        // Mock the recaptcha response
-        when(recaptchaResponse.isSuccess()).thenReturn(true);
-        when(recaptchaResponse.toString()).thenReturn("whatever"); // this just for the debug message in the service
-        when(recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE)).thenReturn(recaptchaResponse);
 
         // Set up mock behavior for mockConnection
         // Set expected dummy response
@@ -426,11 +403,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 RECAPTCHA_RESPONSE
         );
 
-        // Set Authorized Token
-        String authorizedToken = "TOKEN_123";
-        when(rpaConfiguration.isAuthorized(authorizedToken)).thenReturn(false);
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper, "Bearer " + authorizedToken);
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -472,46 +446,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     }
 
     @Test
-    public void testCreateRecord_failure_recaptchaVerificationFailed()
-            throws RecaptchaServerException, RecaptchaClientException, InvalidRequestException {
-
-        // Arrange
-        // Mock RPA Config to return the RECAPTCHA_SECRET
-        when(rpaConfiguration.getRecaptchaSecret()).thenReturn(RECAPTCHA_SECRET);
-        // Mock the recaptcha response
-        when(recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE)).thenReturn(recaptchaResponse);
-        when(recaptchaResponse.isSuccess()).thenReturn(false);
-
-        RecordWrapper actualRecord = null;
-        try {
-            // Act
-            actualRecord = service.createRecord(
-                    new UserInfoWrapper(
-                            getTestRecordWrapper("Pending").getRecord().getUserInfo(),
-                            RECAPTCHA_RESPONSE
-                    ), null);
-            fail("Expected InvalidRequestException to be thrown");
-        } catch (RecaptchaVerificationFailedException e) {
-            // recaptchaResponse.getSuccess() == false, record should be null
-            assertEquals("reCAPTCHA verification failed", e.getMessage());
-            assertNull(actualRecord);
-        }
-
-        // We didn't get to create a connection here, we throw exception before
-        verify(mockConnection, never()).disconnect();
-    }
-
-    @Test
     public void testCreateRecord_failure_badRequest()
-            throws RecaptchaVerificationFailedException, RecaptchaServerException, RecaptchaClientException,
-            IOException {
+            throws IOException {
         // Arrange
-        // Mock RPA Config to return the RECAPTCHA_SECRET
-        when(rpaConfiguration.getRecaptchaSecret()).thenReturn(RECAPTCHA_SECRET);
-        // Mock the recaptcha response
-        when(recaptchaResponse.isSuccess()).thenReturn(true);
-        when(recaptchaResponse.toString()).thenReturn("whatever"); // this just for the debug message in the service
-        when(recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE)).thenReturn(recaptchaResponse);
 
         // Set up mock behavior for mockConnection
         // Here the dummy record doesn't matter since we are expecting an exception to be thrown
@@ -528,7 +465,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                     new UserInfoWrapper(
                             getTestRecordWrapper("Pending").getRecord().getUserInfo(),
                             RECAPTCHA_RESPONSE
-                    ), null);
+                    ));
             fail("Expected RequestProcessingException to be thrown");
         } catch (RequestProcessingException e) {
             // Assert
