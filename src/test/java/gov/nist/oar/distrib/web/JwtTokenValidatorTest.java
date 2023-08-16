@@ -39,7 +39,7 @@ public class JwtTokenValidatorTest {
         try {
             tokenDetails = jwtTokenValidator.validate(validToken);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            fail("Unexpected exception: " + e.getMessage());
         }
 
         // Assert the token details
@@ -59,12 +59,51 @@ public class JwtTokenValidatorTest {
         try {
             tokenDetails = jwtTokenValidator.validate(invalidToken);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            fail("Unexpected exception: " + e.getMessage());
         }
 
         // Assert that the token is invalid
         assertNull(tokenDetails);
     }
+
+    @Test
+    public void testMissingClaimException() {
+        // Generate a token without a required claim (e.g., "user_id")
+        String tokenWithMissingClaim = generateTokenWithMissingClaim();
+
+        // Perform token validation
+        Map<String, String> tokenDetails = null;
+        try {
+            tokenDetails = jwtTokenValidator.validate(tokenWithMissingClaim);
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getMessage());
+        }
+
+        // Assert that the token details are null, as the validate method returns null when a missing claim is detected
+        assertNull(tokenDetails);
+    }
+
+
+    private String generateTokenWithMissingClaim() {
+        long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
+
+        // Generate SecretKey
+        String secretKeyString = mockRpaConfiguration.getJwtSecretKey();
+        byte[] secretKeyBytes = secretKeyString.getBytes(StandardCharsets.UTF_8);
+        SecretKey secretKey = new SecretKeySpec(secretKeyBytes, SignatureAlgorithm.HS256.getJcaName());
+
+        // Generate token without the "user_id" claim
+        return Jwts.builder()
+                .setSubject("john.doe")
+                .claim("userName", "John")
+                .claim("userLastName", "Doe")
+                .claim("userEmail", "john.doe@example.com")
+                .claim("exp", expirationTimeMillis)
+                // .claim("user_id", 12345) // Omit this claim to trigger the exception
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .compact();
+    }
+
 
     private String generateValidToken() {
         long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
