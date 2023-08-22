@@ -94,12 +94,11 @@ public class JwtTokenValidatorTest {
 
         // Generate token without the "user_id" claim
         return Jwts.builder()
-                .setSubject("john.doe")
+                // .setSubject("john.doe") // Omit this claim to trigger the exception
                 .claim("userName", "John")
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
-                // .claim("user_id", 12345) // Omit this claim to trigger the exception
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -120,7 +119,6 @@ public class JwtTokenValidatorTest {
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
-                .claim("user_id", 12345)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
