@@ -80,7 +80,7 @@ public class JwtTokenValidator {
             tokenDetails.put("userFullname", userFullname);
             tokenDetails.put("userEmail", getClaimAsString(claims.get("userEmail"), "userEmail"));
             tokenDetails.put("expiry", getClaimAsString(claims.get("exp"), "exp"));
-            tokenDetails.put("user_id", getClaimAsString(claims.get("user_id"), "user_id"));
+            tokenDetails.put("user_id", getClaimAsString(claims.getSubject(), "user_id"));
 
             LOGGER.debug("Token successfully validated and details extracted.");
 
