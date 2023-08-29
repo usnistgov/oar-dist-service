@@ -2,7 +2,6 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
-import gov.nist.oar.distrib.service.rpa.RecaptchaHelper;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -14,6 +13,7 @@ import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
+import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -35,7 +35,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).
@@ -214,7 +213,7 @@ public class RPARequestHandlerController {
      * @param userInfoWrapper     The UserInfoWrapper object encapsulating the user information used to create a new
      *                            record.
      * @param authorizationHeader The optional authorization header, indicating the caller's credentials. May be used
-     *                           to bypass reCAPTCHA verification.
+     *                            to bypass reCAPTCHA verification.
      * @return ResponseEntity       A ResponseEntity that encapsulates the HTTP response. On success, it contains a
      * RecordWrapper object representing the newly created record.
      * @throws InvalidRequestException              If the request or the UserInfoWrapper object is invalid.
@@ -295,9 +294,13 @@ public class RPARequestHandlerController {
             try {
                 tokenDetails = jwtTokenValidator.validate(token);
                 LOGGER.debug("Token is validated");
-            } catch (Exception e) {
-                LOGGER.error("Failed to validate token: {}", e.getMessage());
-                throw new RequestProcessingException(e.getMessage());
+            } catch (MissingRequiredClaimException e) {
+                String missingClaimName = e.getMissingClaimName();
+                LOGGER.debug("Missing required claim detected: " + missingClaimName);
+                throw new InvalidRequestException("JWT token invalid");
+            } catch (JwtException e) {
+                LOGGER.debug("Token validation failed due to JwtException: " + e.getMessage());
+                throw new RequestProcessingException("JWT token validation failed");
             }
 
             if (tokenDetails != null) {
