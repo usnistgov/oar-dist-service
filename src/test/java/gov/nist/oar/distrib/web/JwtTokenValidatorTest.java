@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.web;
 
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.Before;
@@ -54,34 +55,30 @@ public class JwtTokenValidatorTest {
         // Invalid token for testing
         String invalidToken = "invalid-token";
 
-        // Perform token validation
-        Map<String, String> tokenDetails = null;
         try {
-            tokenDetails = jwtTokenValidator.validate(invalidToken);
+            // Perform token validation
+            jwtTokenValidator.validate(invalidToken);
+            fail("Expected JwtException to be thrown");
         } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
+            assertTrue(e instanceof JwtException);
         }
-
-        // Assert that the token is invalid
-        assertNull(tokenDetails);
     }
+
 
     @Test
     public void testMissingRequiredClaimException() {
         // Generate a token without a required claim (e.g., "user_id")
         String tokenWithMissingClaim = generateTokenWithMissingRequiredClaim();
 
-        // Perform token validation
-        Map<String, String> tokenDetails = null;
         try {
-            tokenDetails = jwtTokenValidator.validate(tokenWithMissingClaim);
+            // Perform token validation
+            jwtTokenValidator.validate(tokenWithMissingClaim);
+            fail("Expected MissingRequiredClaimException to be thrown");
         } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
+            assertTrue(e instanceof MissingRequiredClaimException);
         }
-
-        // Assert that the token details are null, as the validate method returns null when a missing claim is detected
-        assertNull(tokenDetails);
     }
+
 
     @Test
     public void testMissingNonRequiredClaimException() {
@@ -111,12 +108,11 @@ public class JwtTokenValidatorTest {
 
         // Generate token without the "user_id" claim
         return Jwts.builder()
-                .setSubject("john.doe")
+//                .setSubject("john.doe") // Omit this claim to trigger the exception
                 .claim("userName", "John")
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
-                // .claim("user_id", 12345) // Omit this claim to trigger the exception
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -136,7 +132,7 @@ public class JwtTokenValidatorTest {
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
 //                .claim("exp", expirationTimeMillis)
-                 .claim("user_id", 12345) // Omit this claim to trigger the exception
+                 .claim("user_id", 12345)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
