@@ -51,12 +51,13 @@ public class JwtTokenValidator {
      * token details are extracted: user's full name, email, token expiry, and user_id.
      * <p>
      * TODO: add more details to the map
+     * TODO: fail with 400 if email and user_id not there
      *
      * @param token The JWT token to be validated and from which to extract details.
      * @return A Map containing the extracted token details, or null if the token is invalid or expired.
      * @throws RuntimeException If there is an error while processing the token.
      */
-    public Map<String, String> validate(String token) throws JwtException, MissingClaimException  {
+    public Map<String, String> validate(String token) throws JwtException, MissingRequiredClaimException  {
         try {
             // Retrieve the secret key string from the configuration, convert it to bytes using UTF-8 encoding,
             // and then create a SecretKey object using these bytes using the HS256 signature algorithm.
@@ -75,29 +76,25 @@ public class JwtTokenValidator {
             // time, and user ID.
             Claims claims = jws.getBody();
             Map<String, String> tokenDetails = new HashMap<>();
-            String userFullname = getClaimAsString(claims.get("userLastName"), "userLastName") + ", " +
-                            getClaimAsString(claims.get("userName"), "userName");
-            tokenDetails.put("userFullname", userFullname);
-            tokenDetails.put("userEmail", getClaimAsString(claims.get("userEmail"), "userEmail"));
-            tokenDetails.put("expiry", getClaimAsString(claims.get("exp"), "exp"));
-            tokenDetails.put("user_id", getClaimAsString(claims.getSubject(), "user_id"));
+            tokenDetails.put("userFullname", getClaimAsString(claims.get("userLastName"), "userLastName", false) + ", " +
+                    getClaimAsString(claims.get("userName"), "userName", false));
+            tokenDetails.put("userEmail", getClaimAsString(claims.get("userEmail"), "userEmail", true));
+            tokenDetails.put("expiry", getClaimAsString(claims.get("exp"), "exp", false));
+            tokenDetails.put("user_id", getClaimAsString(claims.getSubject(), "user_id", true));
 
             LOGGER.debug("Token successfully validated and details extracted.");
 
             return tokenDetails;
 
-        } catch (MissingClaimException e) {
-            // Handle the specific case of a missing claim
+        } catch (MissingRequiredClaimException e) {
+            // Handle the specific case of a missing required claim
             String missingClaimName = e.getMissingClaimName();
-            LOGGER.warn("Missing claim detected: " + missingClaimName);
-            return null;
+            LOGGER.warn("Missing required claim detected: " + missingClaimName);
+            throw e;
         } catch (JwtException ex) {
             // If the token is expired or signature does not match, it will throw an Exception
             LOGGER.debug("Token validation failed due to JwtException: ", ex);
-            return null;
-        } catch (Exception ex) {
-            LOGGER.error("Error while processing the token: ", ex);
-            throw new RuntimeException("Error while processing the token: " + ex.getMessage());
+            throw ex;
         }
     }
 
@@ -105,16 +102,19 @@ public class JwtTokenValidator {
      * Retrieves the string representation of a claim object. If the object is null, logs a warning and throws a
      * MissingClaimException.
      *
-     * @param obj       The object to be converted to a string. Represents the value of a JWT claim.
-     * @param fieldName The name of the field or claim being processed. Used in the warning and exception messages.
-     * @return The string representation of the object if it's not null.
-     * @throws MissingClaimException If the object is null, indicating that the claim is missing from the token.
+     * @param obj The object representing the claim.
+     * @param fieldName The name of the claim field.
+     * @param required Whether the claim is required. If true and the claim is missing, a MissingRequiredClaimException is thrown.
+     * @return The claim as a string, or null if the claim is not required and missing.
+     * @throws MissingRequiredClaimException If the claim is required and missing.
      */
-    private String getClaimAsString(Object obj, String fieldName) throws MissingClaimException {
+    private String getClaimAsString(Object obj, String fieldName, boolean required) throws MissingRequiredClaimException {
         if (obj != null) {
             return obj.toString();
+        } else if (required) {
+            throw new MissingRequiredClaimException(fieldName);
         } else {
-            throw new MissingClaimException(fieldName);
+            return null; // Return null for non-required fields
         }
     }
 

@@ -67,9 +67,9 @@ public class JwtTokenValidatorTest {
     }
 
     @Test
-    public void testMissingClaimException() {
+    public void testMissingRequiredClaimException() {
         // Generate a token without a required claim (e.g., "user_id")
-        String tokenWithMissingClaim = generateTokenWithMissingClaim();
+        String tokenWithMissingClaim = generateTokenWithMissingRequiredClaim();
 
         // Perform token validation
         Map<String, String> tokenDetails = null;
@@ -83,8 +83,25 @@ public class JwtTokenValidatorTest {
         assertNull(tokenDetails);
     }
 
+    @Test
+    public void testMissingNonRequiredClaimException() {
+        // Generate a token without a non required claim (e.g., "user_id")
+        String tokenWithMissingClaim = generateTokenWithMissingNonRequiredClaim();
 
-    private String generateTokenWithMissingClaim() {
+        // Perform token validation
+        Map<String, String> tokenDetails = null;
+        try {
+            tokenDetails = jwtTokenValidator.validate(tokenWithMissingClaim);
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getMessage());
+        }
+
+        // Assert that the token details are null, as the validate method returns null when a missing claim is detected
+        assertNotNull(tokenDetails);
+    }
+
+
+    private String generateTokenWithMissingRequiredClaim() {
         long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
 
         // Generate SecretKey
@@ -94,11 +111,32 @@ public class JwtTokenValidatorTest {
 
         // Generate token without the "user_id" claim
         return Jwts.builder()
-                // .setSubject("john.doe") // Omit this claim to trigger the exception
+                .setSubject("john.doe")
                 .claim("userName", "John")
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
+                // .claim("user_id", 12345) // Omit this claim to trigger the exception
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .compact();
+    }
+
+    private String generateTokenWithMissingNonRequiredClaim() {
+        long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
+
+        // Generate SecretKey
+        String secretKeyString = mockRpaConfiguration.getJwtSecretKey();
+        byte[] secretKeyBytes = secretKeyString.getBytes(StandardCharsets.UTF_8);
+        SecretKey secretKey = new SecretKeySpec(secretKeyBytes, SignatureAlgorithm.HS256.getJcaName());
+
+        // Generate token without the "user_id" claim
+        return Jwts.builder()
+                .setSubject("john.doe")
+                .claim("userName", "John")
+                .claim("userLastName", "Doe")
+                .claim("userEmail", "john.doe@example.com")
+//                .claim("exp", expirationTimeMillis)
+                 .claim("user_id", 12345) // Omit this claim to trigger the exception
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
@@ -119,6 +157,7 @@ public class JwtTokenValidatorTest {
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
                 .claim("exp", expirationTimeMillis)
+                .claim("user_id", 12345)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
