@@ -41,7 +41,7 @@ logging:
   path : /var/log/dist-service
   exception-conversion-word: '%wEx'
   level:
-    gov.nist.oar.distrib.service.rpa: DEBUG
+    gov.nist.oar.distrib: DEBUG
   
 springdoc:
   swagger-ui:
