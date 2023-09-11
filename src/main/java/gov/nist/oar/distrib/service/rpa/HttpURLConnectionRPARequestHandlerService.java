@@ -426,7 +426,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
             CloseableHttpResponse response = httpClient.execute(httpPatch);
             int statusCode = response.getStatusLine().getStatusCode();
-
+            LOGGER.debug("UPDATE_RECORD_STATUS_CODE=" + statusCode);
             if (statusCode == HttpStatus.SC_OK) { // If success
                 try (InputStream inputStream = response.getEntity().getContent()) {
                     String responseString = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
