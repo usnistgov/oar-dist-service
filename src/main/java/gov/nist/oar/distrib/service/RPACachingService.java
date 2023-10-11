@@ -62,6 +62,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
         logger.debug("Request to cache dataset with ID=" + datasetID);
 
+        // this is to handle ark IDs
         String dsid = datasetID;
         if (datasetID.startsWith("ark:/")) {
             // Split the dataset ID into components
@@ -245,5 +246,11 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      **/
     private String generateRandomID(int length, boolean useLetters, boolean useNumbers) {
         return RandomStringUtils.random(length, useLetters, useNumbers);
+    }
+
+    public boolean uncacheById(String randomId) throws CacheManagementException {
+        logger.debug("Request to cache dataset with ID=" + randomId);
+        this.pdrCacheManager.uncache(randomId);
+        return false;
     }
 }
