@@ -92,20 +92,18 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     }
 
     /**
-     * Called when a record status was updated to "Approved".
-     * This uses {@link RPADatasetCacher} to cache the dataset.
+     * Called when a record update operation has been approved.
      *
-     * @param record the record that was updated
+     * @param record   the record that was updated and approved
+     * @param randomId the ID generated after caching the dataset related to the record
+     * @throws InvalidRequestException if there is an error in the request
+     * @throws RequestProcessingException if there is an error while processing the request
      */
     @Override
-    public void onRecordUpdateApproved(Record record) throws InvalidRequestException, RequestProcessingException {
-        LOGGER.info("User was approved by SME. Starting caching...");
-        String datasetId = record.getUserInfo().getSubject();
-        // NEW: case dataset using the RPADatasetCacher
-        String randomId = this.rpaDatasetCacher.cache(datasetId);
-        if (randomId == null)
-            throw new RequestProcessingException("Caching process return a null randomId");
+    public void onRecordUpdateApproved(Record record, String randomId) throws InvalidRequestException, RequestProcessingException {
+
         LOGGER.info("Dataset was cached successfully. Sending email to user...");
+
         // Build Download URL
         String downloadUrl;
         try {
