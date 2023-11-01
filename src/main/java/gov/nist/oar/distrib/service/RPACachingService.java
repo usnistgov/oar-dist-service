@@ -74,7 +74,9 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         }
 
         logger.debug("Caching dataset with dsid=" + dsid);
-        String randomID = generateRandomID(RANDOM_ID_LENGTH, true, true);
+        // append "rpa-" with the generated random ID
+        String randomID = "rpa-" + generateRandomID(RANDOM_ID_LENGTH, true, true);
+
 
         int prefs = ROLE_RESTRICTED_DATA;
         if (!version.isEmpty())
@@ -248,9 +250,44 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         return RandomStringUtils.random(length, useLetters, useNumbers);
     }
 
+    /**
+     * Uncache dataset objects using a specified random ID.
+     *
+     * @param randomId - The random ID used to fetch and uncache dataset objects.
+     * @return boolean - True if at least one dataset object was uncached successfully; otherwise, false.
+     * @throws CacheManagementException if an error occurs during the uncaching process.
+     */
     public boolean uncacheById(String randomId) throws CacheManagementException {
-        logger.debug("Request to cache dataset with ID=" + randomId);
-        this.pdrCacheManager.uncache(randomId);
-        return false;
+        // Validate input
+        if (randomId == null || randomId.isEmpty()) {
+            throw new IllegalArgumentException("Random ID cannot be null or empty.");
+        }
+
+        logger.debug("Request to uncache dataset with ID=" + randomId);
+
+        // Retrieve dataset objects using the randomId
+        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomId, this.pdrCacheManager.VOL_FOR_INFO);
+
+        if (objects.isEmpty()) {
+            logger.debug("No objects found for ID=" + randomId);
+            return false;
+        }
+
+        boolean isUncached = false;
+
+        // Iterate through the retrieved objects and attempt to uncache them
+        for (CacheObject obj : objects) {
+            try {
+                logger.debug("Deleting file with ID=" + obj.id);
+                this.pdrCacheManager.uncache(obj.id);
+                isUncached = true;
+            } catch (CacheManagementException e) {
+                // Log the exception without throwing it to continue attempting to uncache remaining objects
+                logger.error("Failed to uncache object with ID=" + obj.id, e);
+            }
+        }
+
+        return isUncached;
     }
+
 }
