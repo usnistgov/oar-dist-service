@@ -125,7 +125,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      * @param record the record that was updated
      */
     @Override
-    public void onRecordUpdateDeclined(Record record) {
+    public void onRecordUpdateDeclined(Record record) throws InvalidRequestException, RequestProcessingException {
         LOGGER.debug("User was declined by SME");
     }
 

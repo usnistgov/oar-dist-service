@@ -50,6 +50,11 @@ public class HttpRPADatasetCacher implements RPADatasetCacher {
         return sendHttpRequest(datasetId, url);
     }
 
+    @Override
+    public boolean uncache(String randomId) {
+        return false;
+    }
+
     /**
      * Builds the URL for the given dataset ID and using the given {@link RPAConfiguration} object.
      *
