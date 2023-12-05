@@ -129,6 +129,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
     /**
      * Formats the metadata from a cache object to a JSON object with an additional field for the download URL.
+     * The download URL includes the random temporary ID, aipid, and the file path from the metadata.
      *
      * @param inMd     the metadata from the cache object
      * @param randomID the random temporary ID associated with the cache object
@@ -139,16 +140,26 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         JSONObject outMd = new JSONObject();
         List<String> missingFields = new ArrayList<>();
 
+        String aipid = "";
+        if (inMd.has("aipid")) {
+            aipid = inMd.getString("aipid");
+            outMd.put("aipid", aipid);
+        } else {
+            missingFields.add("aipid");
+        }
+
         if (inMd.has("filepath")) {
             String downloadURL = getDownloadUrl(
                     rpaConfiguration.getBaseDownloadUrl(),
                     randomID,
-                    inMd.get("filepath").toString());
+                    aipid,
+                    inMd.getString("filepath"));
             outMd.put("downloadURL", downloadURL);
-            outMd.put("filePath", inMd.get("filepath"));
+            outMd.put("filePath", inMd.getString("filepath"));
         } else {
             missingFields.add("filepath");
         }
+
 
         if (inMd.has("contentType")) {
             outMd.put("mediaType", inMd.get("contentType"));
@@ -199,12 +210,6 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             missingFields.add("ediid");
         }
 
-        if (inMd.has("aipid")) {
-            outMd.put("aipid", inMd.get("aipid"));
-        } else {
-            missingFields.add("aipid");
-        }
-
         if (inMd.has("sinceDate")) {
             outMd.put("sinceDate", inMd.get("sinceDate"));
         } else {
@@ -220,27 +225,43 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
 
     /**
-     * Constructs a download URL using the given base download URL, random ID, and file path from the metadata.
+     * Constructs a download URL using the given base download URL, random ID, aipid, and file path from the metadata.
      *
      * @param baseDownloadUrl the base download URL
      * @param randomId        the random temporary ID
+     * @param aipid           the aipid from the metadata
      * @param path            the file path from the metadata
      * @return the download URL as a string
      * @throws RequestProcessingException if there was an error building the download URL
      */
-    private String getDownloadUrl(String baseDownloadUrl, String randomId, String path) throws RequestProcessingException {
+
+    private String getDownloadUrl(String baseDownloadUrl, String randomId, String aipid, String path) throws RequestProcessingException {
         URL downloadUrl;
         try {
             URL url = new URL(baseDownloadUrl);
+            StringBuilder pathBuilder = new StringBuilder();
+
+            // append the randomId to the path
+            pathBuilder.append(randomId);
+
+            // append the aipid if it's not empty
+            if (!aipid.isEmpty()) {
+                pathBuilder.append("/").append(aipid);
+            }
+
+            // append the file path, ensuring it doesn't start with a "/"
             if (path.startsWith("/")) {
                 path = path.substring(1);
             }
-            downloadUrl = new URL(url, randomId + "/" + path);
+            pathBuilder.append("/").append(path);
+
+            downloadUrl = new URL(url, pathBuilder.toString());
         } catch (MalformedURLException e) {
             throw new RequestProcessingException("Failed to build downloadUrl: " + e.getMessage());
         }
         return downloadUrl.toString();
     }
+
 
     /**
      * Generate a random alphanumeric string for the dataset to store
