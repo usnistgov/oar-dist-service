@@ -1,10 +1,7 @@
-FROM ibmjava:8-sdk
-
-# a hack that gets around an installation problem with update-alternatives, openjdk-8-jdk-headless
+FROM eclipse-temurin:8
 
 RUN mkdir -p /usr/share/man/man1
-
-RUN apt-get update && apt-get upgrade -y && apt-get install -y netcat-openbsd zip git less \
+RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
                                             python2 curl maven
 RUN cd /usr/bin && ln -s python2 python
 

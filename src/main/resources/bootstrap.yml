@@ -2,7 +2,7 @@ spring:
   application:
     name: oar-dist-service
   profiles:
-    active: local
+    active: prod
   cloud:
     config:
       uri: http://localhost:8087
@@ -40,6 +40,8 @@ logging:
   file: distservice.log
   path : /var/log/dist-service
   exception-conversion-word: '%wEx'
+  level:
+    gov.nist.oar.distrib: DEBUG
   
 springdoc:
   swagger-ui:

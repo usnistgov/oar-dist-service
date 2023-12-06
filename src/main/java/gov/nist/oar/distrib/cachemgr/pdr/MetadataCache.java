@@ -233,12 +233,32 @@ public class MetadataCache {
             return new JSONObject();
 
         FileReader rdr = new FileReader(mdfile.toFile());
+        JSONObject out = null;
         try {
-            return new JSONObject(new JSONTokener(rdr));
+            // define out instead of return
+            out = new JSONObject(new JSONTokener(rdr));
         }
         finally {
             try { rdr.close(); } catch (IOException ex) { }
         }
+
+        // Read file with name "_" if it exists
+        Path topLevelFile = dsdir.resolve("_");
+        if (Files.exists(topLevelFile)) {
+            FileReader fileReader = new FileReader(topLevelFile.toFile());
+            try {
+                JSONObject topLevelFileJson = new JSONObject(new JSONTokener(fileReader));
+                if (topLevelFileJson.has("title")) {
+                    String title = topLevelFileJson.getString("title");
+                    // Add the title as a resTitle field to the out object
+                    out.put("resTitle", title);
+                }
+            } finally {
+                try { fileReader.close(); } catch (IOException ex) { }
+            }
+        }
+
+        return out;
     }
 
     /**

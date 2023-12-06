@@ -12,6 +12,16 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.service.DataPackagingService;
+import gov.nist.oar.distrib.service.DefaultDataPackagingService;
+import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.service.RPACachingService;
+import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
+import gov.nist.oar.distrib.service.rpa.JKSKeyRetriever;
+import gov.nist.oar.distrib.service.rpa.KeyRetriever;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import io.swagger.v3.oas.models.Components;
@@ -19,13 +29,6 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
-import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.DefaultPreservationBagService;
-import gov.nist.oar.distrib.service.DataPackagingService;
-import gov.nist.oar.distrib.service.DefaultDataPackagingService;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -41,6 +44,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -53,7 +57,6 @@ import org.slf4j.LoggerFactory;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.regions.RegionUtils;
     
 
 /**
@@ -280,6 +283,38 @@ public class NISTDistribServiceConfig {
     {
         return new CacheManagerProvider(config, bagstor, s3client);
     }
+
+
+    /**
+     * create a configuration object for Restricted Public Access (RPA)
+     */
+    @Bean
+    @ConfigurationProperties("distrib.rpa")
+    public RPAConfiguration getRPAConfiguration() throws ConfigurationException {
+        // this will have config properties injected into it
+        return new RPAConfiguration();
+    }
+
+    /**
+     * the service implementation to use for restricted data access caching service
+     */
+    @Bean
+    public RPACachingService getRestrictedDataCachingService(
+            CacheManagerProvider cacheManagerProvider,
+            RPAConfiguration rpaConfiguration)
+            throws ConfigurationException
+    {
+        return new RPACachingService(cacheManagerProvider.getPDRCacheManager(), rpaConfiguration);
+    }
+
+    /**
+     * the configured RPAServiceProvider to use
+     */
+    @Bean
+    public RPAServiceProvider getRPAServiceProvider(RPAConfiguration rpaConfiguration) {
+        return new RPAServiceProvider(rpaConfiguration);
+    }
+
 
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.

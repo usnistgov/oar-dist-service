@@ -153,7 +153,7 @@ public class CacheManagementControllerTest {
     public void setUp()
         throws CacheManagementException, StorageVolumeException, ResourceNotFoundException, ConfigurationException
     {
-        provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
+        provider.getPDRCacheManager().cacheDataset("mds1491", null, true, 0 , null);
     }
 
     @Test
