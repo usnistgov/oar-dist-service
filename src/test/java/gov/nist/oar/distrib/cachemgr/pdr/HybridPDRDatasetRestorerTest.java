@@ -179,5 +179,22 @@ public class HybridPDRDatasetRestorerTest {
         }
         catch (ObjectNotFoundException ex) { /* Success! */ }
     }
+
+    @Test
+    public void testGetChecksum() throws StorageVolumeException, CacheManagementException {
+        Checksum cksm = rstr.getChecksum("mds1491/trial1.json");
+        assertEquals("d155d99281ace123351a311084cd8e34edda6a9afcddd76eb039bad479595ec9", cksm.hash);
+        assertEquals("sha256", cksm.algorithm);
+
+        cksm = rstr.getChecksum("mds1491/trial3/trial3a.json");
+        assertEquals("ccf6d9df969ab2ef6873f1d3125eac2fbdc082784b446be4c44d8bab148f5396", cksm.hash);
+        assertEquals("sha256", cksm.algorithm);
+
+        try {
+            rstr.getChecksum("goober/file.json");
+            fail("found non-existent file");
+        }
+        catch (ObjectNotFoundException ex) { /* Success! */ }
+    }
 }
 

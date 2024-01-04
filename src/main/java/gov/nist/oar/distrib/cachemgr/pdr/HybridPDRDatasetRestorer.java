@@ -151,40 +151,6 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         }
     }
 
-
-    /**
-     * return the checksum hash of the object with the given identifier or null if unknown.
-     * @param id   the distribution ID for the object
-     * @throws ObjectNotFoundException    if the object can not be found in the underlying storage
-     * @throws UnsupportedOperationException   if due to implementation limitations, this Restorer is
-     *             unable to return sizes for any objects it knows about.
-     */
-    @Override
-    public Checksum getChecksum(String id)
-            throws StorageVolumeException, CacheManagementException, UnsupportedOperationException
-    {
-        String[] parts = parseId(id);
-        JSONObject cmpmd = null;
-        try {
-            cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
-        }
-        catch (ResourceNotFoundException ex) {
-            throw new ObjectNotFoundException(id);
-        }
-        catch (FileNotFoundException ex) {
-            throw new ObjectNotFoundException(id);
-        }
-        JSONObject chksum = cmpmd.optJSONObject("checksum");
-        if (chksum == null)
-            return null;
-        JSONObject alg = chksum.optJSONObject("algorithm");
-        if (alg == null) {
-            alg = new JSONObject();
-            alg.put("tag", "unknown");
-        }
-        return new Checksum(chksum.optString("hash", ""), alg.optString("tag", "unknown"));
-    }
-
     /**
      * restore the identified object to the CacheVolume associated with the given Reservation
      * @param id        the storage-independent identifier for the data object
