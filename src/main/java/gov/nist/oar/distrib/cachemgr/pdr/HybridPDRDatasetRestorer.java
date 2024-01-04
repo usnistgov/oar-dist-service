@@ -126,34 +126,6 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         this.restrictedLtstore = restrictedLtstore;
     }
 
-    String[] parseId(String id) {
-        String[] out = new String[3];
-        String[] parts = null;
-
-        // version
-        out[2] = null;
-        if (id.contains("#")) {
-            parts = id.split("#", 2);
-            out[2] = parts[1];
-            id = parts[0];
-        }
-
-        out[0] = id;
-        out[1] = "";
-        if (id.contains("/")) {
-            parts = id.split("/", 2);
-            out[0] = parts[0];
-            out[1] = parts[1];
-        }
-
-        return out;
-    }
-
-    /**
-     * return the size-limit for "small files" in bytes.  Files restored by this Restorer that are smaller
-     * than this limit will preferentially be cached into volumes marked for small files.
-     */
-    public long getSmallSizeLimit() { return smszlim; }
 
     /**
      * return true if an object does <i>not</i> exist in the long term storage system.  Returning
@@ -641,19 +613,6 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
             fixMissingChecksums(into, fix, manifest);
     }
 
-    /**
-     * helper method to generate an ID for the object to be cached
-     */
-    public String idForObject(String aipid, String filepath, String forVersion, String target) {
-        String id;
-        id = aipid + "/" + filepath;
-        if (target != null && !target.isEmpty())
-            id = target + "/" + filepath;
-        if (forVersion != null && forVersion.length() > 0)
-            id += "#" + forVersion;
-        return id;
-    }
-
 
     private Map<String,String> extractFromManifest(InputStream manifest, Collection<String> need)
             throws IOException
@@ -768,81 +727,5 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
             throw new RestorationException(headbag+": Trouble reading file metadata for "+filepath+
                     ex.getMessage(), ex);
         }
-    }
-
-    /**
-     * return a recommended name for the object with the given id that can be used as its name in a
-     * cache volume.
-     * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
-     * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
-     */
-    @Override
-    public String nameForObject(String id) {
-        String[] idparts = parseId(id);
-        int prefs = 0;
-        if (idparts[2] != null)
-            prefs = ROLE_OLD_VERSIONS;
-        return nameForObject(id, prefs);
-    }
-
-    /**
-     * return a recommended name for the object with the given id that can be used as its name in a
-     * cache volume.
-     * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
-     * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
-     */
-    public String nameForObject(String id, int prefs) {
-        String[] idparts = parseId(id);
-        return nameForObject(idparts[0], idparts[1], idparts[2], prefs, null);
-    }
-
-    /**
-     * return a recommended name for the object with the given id that can be used as its name in a
-     * cache volume.
-     * @throws StorageVolumeException -- if an exception occurs while consulting the underlying storage system
-     * @throws RestorationException -- if some other error occurs while (e.g. the ID is not valid)
-     */
-    public String nameForObject(String aipid, String filepath, String version, int prefs, String target) {
-        if ((prefs & ROLE_OLD_VERSIONS) > 0 || (prefs & ROLE_OLD_RESTRICTED_DATA) > 0)
-            return getNameForOldVerCache(aipid, filepath, version, target);
-
-        StringBuilder sb = new StringBuilder();
-        if (target != null && target.length() > 0) {
-            // if restricted access
-            sb.append(target).append("/").append(filepath);
-            log.info("FILE_URL=" + sb.toString());
-            return sb.toString();
-        }
-        sb.append(aipid).append("/").append(filepath);
-        log.info("FILE_URL=" + sb.toString());
-        return sb.toString();
-    }
-
-
-    /**
-     * return an IntegrityMonitor instance that is attached to the internal head bag cache and that can
-     * be used to test the integrity of objects in that cache against a specific list of checks.
-     */
-    public IntegrityMonitor getIntegrityMonitor(List<CacheObjectCheck> checks) {
-        return hbcm.getIntegrityMonitor(checks);
-    }
-
-    /**
-     * return an AND-ed set of caching preferences for the an object with a given ID, size, and priority.
-     * <p>
-     * The returned set is drawn from the {@link PDRCacheRoles} definitions.
-     * Currently, this implementation always ignores the priority value.
-     * @param id        the object's id
-     * @param size      the object's content length in bytes; if non-positive, the value is unknown
-     * @param priority  the priority that will be attached to the object when cached.  If &lt; 0,
-     *                     the priority will be ignored.
-     */
-    public int getPreferencesFor(String id, long size, int priority) {
-        String[] idparts = parseId(id);
-        if (idparts.length > 2 && idparts[2] != null && idparts[2].length() > 0)
-            return ROLE_OLD_VERSIONS;
-        if (size > 0 && size <= getSmallSizeLimit())
-            return ROLE_SMALL_OBJECTS;
-        return ROLE_GENERAL_PURPOSE;
     }
 }
