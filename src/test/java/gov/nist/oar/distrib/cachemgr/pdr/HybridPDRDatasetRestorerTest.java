@@ -91,7 +91,7 @@ public class HybridPDRDatasetRestorerTest {
     @Before
     public void setUp() throws IOException, CacheManagementException {
 
-        publicLtstore = new FilesystemLongTermStorage(ltsdir + "/public");
+        publicLtstore = new FilesystemLongTermStorage(ltsdir);
         restrictedLtstore = new FilesystemLongTermStorage(ltsdir + "/restricted");
 
         hbcm = createHBCache(restrictedLtstore);
@@ -169,5 +169,15 @@ public class HybridPDRDatasetRestorerTest {
         assertFalse(rstr.doesNotExist("mds1491-rpa/"));
     }
 
+    @Test
+    public void testGetSize() throws StorageVolumeException, CacheManagementException {
+        assertEquals(69, rstr.getSizeOf("mds1491/trial1.json"));
+        assertEquals(553, rstr.getSizeOf("mds1491/trial3/trial3a.json"));
+        try {
+            rstr.getSizeOf("goober/file.json");
+            fail("found non-existent file");
+        }
+        catch (ObjectNotFoundException ex) { /* Success! */ }
+    }
 }
 

@@ -151,30 +151,6 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         }
     }
 
-    /**
-     * return the size of the object with the given identifier in bytes or -1L if unknown
-     * @param id   the distribution ID for the object
-     * @throws ObjectNotFoundException    if the object can not be found in the underlying storage
-     * @throws UnsupportedOperationException   if due to implementation limitations, this Restorer is
-     *             unable to return sizes for any objects it knows about.
-     */
-    @Override
-    public long getSizeOf(String id)
-            throws StorageVolumeException, CacheManagementException, UnsupportedOperationException
-    {
-        String[] parts = parseId(id);
-        JSONObject cmpmd = null;
-        try {
-            cmpmd = hbcm.resolveDistribution(parts[0], parts[1], parts[2]);
-        }
-        catch (ResourceNotFoundException ex) {
-            throw new ObjectNotFoundException(id);
-        }
-        catch (FileNotFoundException ex) {
-            throw new ObjectNotFoundException(id);
-        }
-        return cmpmd.optLong("size", -1L);
-    }
 
     /**
      * return the checksum hash of the object with the given identifier or null if unknown.
