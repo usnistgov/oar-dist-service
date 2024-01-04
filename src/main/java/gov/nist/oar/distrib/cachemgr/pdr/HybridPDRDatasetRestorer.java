@@ -292,11 +292,27 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
      *                    otherwise, it will be.
      * @return Set<String> -- a list of the filepaths for files that were cached
      */
+    @Override
     public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache, int prefs, String target)
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+
+        Set<String> cachedFiles;
+
+        try {
+            cachedFiles = cacheDatasetFromStore(aipid, version, into, recache, prefs, target, restrictedLtstore);
+        } catch (ResourceNotFoundException ex) {
+            cachedFiles = super.cacheDataset(aipid, version, into, recache, prefs, target);
+        }
+
+        return cachedFiles;
+    }
+
+    private Set<String> cacheDatasetFromStore(String aipid, String version, Cache into, boolean recache, int prefs,
+                                              String target,  BagStorage store)
             throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
         // find the head bag in the bag store
-        String headbag = ltstore.findHeadBagFor(aipid, version);  // throws exc if does not exist
+        String headbag = store.findHeadBagFor(aipid, version);  // throws exc if does not exist
         if (! headbag.endsWith(".zip"))
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);

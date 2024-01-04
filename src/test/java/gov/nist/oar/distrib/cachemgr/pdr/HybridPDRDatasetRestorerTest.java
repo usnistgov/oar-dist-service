@@ -233,5 +233,75 @@ public class HybridPDRDatasetRestorerTest {
         assertTrue((new File(tempf.getRoot(),
                 "data/"+resv.getVolumeName()+"/NMRRVocab20171102.rdf.sha256")).exists());
     }
+
+    @Test
+    public void testCacheDataset()
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true, 0 , null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(3, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1", cache, true, 0 , null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(3, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true, 0 , null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(3, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache, true, 0 , null);
+        assertEquals(2, cached.size());
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+    }
 }
 
