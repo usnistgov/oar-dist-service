@@ -77,8 +77,6 @@ import org.apache.commons.io.FilenameUtils;
  * however, whole datasets can be efficiently cached as well via its extended interface.
  */
 public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
-
-    BagStorage ltstore = null;
     BagStorage restrictedLtstore = null;
     HeadBagCacheManager hbcm = null;
     long smszlim = 100000000L;  // 100 MB
@@ -137,10 +135,19 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
     public boolean doesNotExist(String id) throws StorageVolumeException, CacheManagementException {
         String[] parts = parseId(id);
         try {
-            ltstore.findBagsFor(parts[0]);
+            this.restrictedLtstore.findBagsFor(parts[0]);
+            // if no exception is thrown, the object exists in the restricted storage
             return false;
-        } catch (ResourceNotFoundException ex) {
-            return true;
+        } catch (ResourceNotFoundException e) {
+            // if object not found in the restricted storage, check the public storage
+            try {
+                this.ltstore.findBagsFor(parts[0]);
+                // if no exception is thrown, the object exists in the public storage
+                return false;
+            } catch (ResourceNotFoundException ex) {
+                // object not found in either storage
+                return true;
+            }
         }
     }
 
