@@ -76,51 +76,54 @@ import org.apache.commons.io.FilenameUtils;
  * Individual files can restored to cache using the {@link gov.nist.oar.distrib.cachemgr.Restorer} interface;
  * however, whole datasets can be efficiently cached as well via its extended interface.
  */
-public class HybridPDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles {
+public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
 
     BagStorage ltstore = null;
+    BagStorage restrictedLtstore = null;
     HeadBagCacheManager hbcm = null;
     long smszlim = 100000000L;  // 100 MB
     Logger log = null;
 
     /**
      * create the restorer
-     * @param bagstore      the long term storage where the head bags are stored
+     * @param publicLtstore      the public long-term storage where the head bags are stored
+     * @param restrictedLtstore  the restricted long-term storage
      * @param headbagcache  the cache to use cache the head bags
      */
-    public HybridPDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache) {
-        this(bagstore, headbagcache, -1L);
+    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
+                                    HeadBagCacheManager headbagcache) {
+        super(publicLtstore, headbagcache, -1L);
+        this.restrictedLtstore = restrictedLtstore;
     }
 
     /**
      * create the restorer
-     * @param bagstore      the long term storage where the head bags are stored
+     * @param publicLtstore the public long-term storage where the head bags are stored
+     * @param restrictedLtstore  the restricted long-term storage
      * @param headbagcache  the cache to use cache the head bags
      * @param smallsizelim  a data file size limit: files smaller than this will preferentially go
      *                        into volumes marked for small files.
      */
-    public HybridPDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache, long smallsizelim) {
-        this(bagstore, headbagcache, smallsizelim, null);
+    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
+                                    HeadBagCacheManager headbagcache, long smallsizelim) {
+        super(publicLtstore, headbagcache, smallsizelim);
+        this.restrictedLtstore = restrictedLtstore;
     }
 
     /**
      * create the restorer
-     * @param bagstore      the long term storage where the head bags are stored
+     * @param publicLtstore  the long term storage where the head bags are stored
+     * @param restrictedLtstore  the restricted long-term storage
      * @param headbagcache  the cache to use cache the head bags
      * @param smallsizelim  a data file size limit: files smaller than this will preferentially go
      *                        into volumes marked for small files.
      * @param logger        the logger to use for messages.
      */
-    public HybridPDRDatasetRestorer(BagStorage bagstore, HeadBagCacheManager headbagcache, long smallsizelim,
+    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore, HeadBagCacheManager headbagcache, long smallsizelim,
                               Logger logger)
     {
-        ltstore = bagstore;
-        hbcm = headbagcache;
-        if (smallsizelim >= 0L)
-            smszlim = smallsizelim;
-        if (logger == null)
-            logger = LoggerFactory.getLogger(getClass().getName());
-        log = logger;
+        super(publicLtstore, headbagcache, smallsizelim, logger);
+        this.restrictedLtstore = restrictedLtstore;
     }
 
     String[] parseId(String id) {
@@ -815,21 +818,6 @@ public class HybridPDRDatasetRestorer implements Restorer, PDRConstants, PDRCach
         return sb.toString();
     }
 
-
-    final String getNameForOldVerCache(String aipid, String filepath, String version, String target) {
-        String ext = FilenameUtils.getExtension(filepath);
-        String base = filepath.substring(0, filepath.length()-ext.length()-1);
-        String exttp = ext.toLowerCase();
-        if (exttp.equals("gz") || exttp.equals("bz") || exttp.equals("xz")) {
-            String ext2 = FilenameUtils.getExtension(base);
-            if (ext2.length() > 0 && ext2.length() <= 4) {
-                base = base.substring(0, base.length()-ext2.length()-1);
-                ext = ext2+"."+ext;
-            }
-        }
-        filepath = base + "-v" + version + "." + ext;
-        return nameForObject(aipid, filepath, version, 0, target);
-    }
 
     /**
      * return an IntegrityMonitor instance that is attached to the internal head bag cache and that can
