@@ -450,9 +450,23 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         }
     }
 
+    @Override
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,
                                 JSONObject resmd, int defprefs, String forVersion, Cache into,
                                 boolean recache, String target)
+            throws StorageVolumeException, FileNotFoundException, CacheManagementException {
+
+        try {
+            cacheFromBagUsingStore(bagfile, need, cached, resmd, defprefs, forVersion, into, recache, target, restrictedLtstore);
+        } catch (FileNotFoundException e) {
+            // If the bag file is not found in the restricted storage, try the public storage.
+            super.cacheFromBag(bagfile, need, cached, resmd, defprefs, forVersion, into, recache, target);
+        }
+    }
+
+    private void cacheFromBagUsingStore(String bagfile, Collection<String> need, Collection<String> cached,
+                                JSONObject resmd, int defprefs, String forVersion, Cache into,
+                                boolean recache, String target, BagStorage store)
             throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
         if (! bagfile.endsWith(".zip"))
@@ -483,7 +497,7 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
             fs = co.volume.getStream(bagfile);
         }
         else
-            fs = ltstore.openFile(bagfile);
+            fs = store.openFile(bagfile);
 
         Map<String,String> manifest = null;
         List<String> fix = new ArrayList<String>();
