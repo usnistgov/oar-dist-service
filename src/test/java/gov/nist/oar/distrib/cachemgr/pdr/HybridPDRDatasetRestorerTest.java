@@ -196,5 +196,42 @@ public class HybridPDRDatasetRestorerTest {
         }
         catch (ObjectNotFoundException ex) { /* Success! */ }
     }
+
+    @Test
+    public void testRestoreObject() throws CacheManagementException, StorageVolumeException, JSONException {
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
+        Reservation resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_SMALL_OBJECTS);
+        rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertEquals("foobar", resv.getVolumeName());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/trial1.json")).exists());
+
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+        resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_OLD_VERSIONS);
+        rstr.restoreObject("mds1491/trial3/trial3a.json#1", resv, "mds1491/trial3/trial3a-v1.json", null);
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+        assertEquals("old", resv.getVolumeName());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/trial3/trial3a-v1.json")).exists());
+
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_GENERAL_PURPOSE);
+        rstr.restoreObject("mds1491/trial3/trial3a.json#1.1.0", resv, "mds1491/trial3/trial3a-X.json", null);
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertEquals("cranky", resv.getVolumeName());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/trial3/trial3a-X.json")).exists());
+
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        resv = cache.reserveSpace(64);
+        rstr.restoreObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256",
+                resv, "NMRRVocab20171102.rdf.sha256", null);
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/NMRRVocab20171102.rdf.sha256")).exists());
+    }
 }
 

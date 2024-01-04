@@ -78,9 +78,6 @@ import org.apache.commons.io.FilenameUtils;
  */
 public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
     BagStorage restrictedLtstore = null;
-    HeadBagCacheManager hbcm = null;
-    long smszlim = 100000000L;  // 100 MB
-    Logger log = null;
 
     /**
      * create the restorer
@@ -152,7 +149,8 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
     }
 
     /**
-     * restore the identified object to the CacheVolume associated with the given Reservation
+     * restore the identified object to the CacheVolume associated with the given Reservation,
+     * first trying the restricted storage, then the public storage.
      * @param id        the storage-independent identifier for the data object
      * @param resv      the reservation for space in a CacheVolume where the object should be restored to.
      * @param name      the name to assign to the object within the volume.
@@ -165,13 +163,23 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
      */
     @Override
     public void restoreObject(String id, Reservation resv, String name, JSONObject metadata)
+            throws RestorationException, StorageVolumeException, JSONException {
+
+        try {
+            restoreObjectFromStore(id, resv, name, metadata, restrictedLtstore);
+        } catch (ObjectNotFoundException ex) {
+            super.restoreObject(id, resv, name, metadata);
+        }
+    }
+
+    private void restoreObjectFromStore(String id, Reservation resv, String name, JSONObject metadata, BagStorage store)
             throws RestorationException, StorageVolumeException, JSONException
     {
         String[] idparts = parseId(id);
         String headbag = null;
         JSONObject cachemd = null;
         try {
-            headbag = ltstore.findHeadBagFor(idparts[0], idparts[2]);
+            headbag = store.findHeadBagFor(idparts[0], idparts[2]);
             cachemd = getCacheMDFromHeadBag(headbag, idparts[1]);
         }
         catch (ResourceNotFoundException ex) {
@@ -198,7 +206,7 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
 
         InputStream bstrm = null;
         try {
-            bstrm = ltstore.openFile(srcbag);
+            bstrm = store.openFile(srcbag);
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openDataFile(bstrm, bagname, idparts[1]);
             resv.saveAs(ntry.stream, id, name, cachemd);
             log.info("Cached "+id);
@@ -656,7 +664,7 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         String bagname = headbag.substring(0, headbag.length()-4);
 
         try {
-            CacheObject hbo = hbcm.getObject(headbag);
+            CacheObject hbo = this.hbcm.getObject(headbag);
             InputStream is = hbo.volume.getStream(headbag);
             try {
                 JSONObject cmpmd = ZipBagUtils.getFileMetadata(filepath, is, bagname);
