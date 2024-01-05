@@ -21,6 +21,6 @@ public class RPAConfigurationTest {
         assertEquals(50000000L, config.getHeadbagCacheSize());
         assertEquals("local", config.getBagstoreMode());
         assertNull(config.getBagstoreLocation());
-        assertNull(config.getJwtSecretKey());
+        assertEquals("1234567890 pdr.rpa.2023 1234567890", config.getJwtSecretKey());
     }
 }
