@@ -243,11 +243,23 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     public void restoreObject(String id, Reservation resv, String name, JSONObject metadata)
         throws RestorationException, StorageVolumeException, JSONException
     {
+        restoreObjectFromStore(id, resv, name, metadata, ltstore);
+    }
+
+    /**
+     * restore the identified object from the specified long-term storage to the CacheVolume associated 
+     * with the given Reservation.  Called by {@link restoreObject}, this is provided to allow alternate 
+     * implementations by subclasses.    
+     */
+    protected void restoreObjectFromStore(String id, Reservation resv, String name, JSONObject metadata,
+                                          BagStorage store)
+            throws RestorationException, StorageVolumeException, JSONException
+    {
         String[] idparts = parseId(id);
         String headbag = null;
         JSONObject cachemd = null;
         try {
-            headbag = ltstore.findHeadBagFor(idparts[0], idparts[2]);
+            headbag = store.findHeadBagFor(idparts[0], idparts[2]);
             cachemd = getCacheMDFromHeadBag(headbag, idparts[1]);
         }
         catch (ResourceNotFoundException ex) {
@@ -274,7 +286,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         InputStream bstrm = null;
         try {
-            bstrm = ltstore.openFile(srcbag);
+            bstrm = store.openFile(srcbag);
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openDataFile(bstrm, bagname, idparts[1]);
             resv.saveAs(ntry.stream, id, name, cachemd);
             log.info("Cached "+id);
@@ -360,11 +372,24 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      *                    otherwise, it will be.  
      * @return Set<String> -- a list of the filepaths for files that were cached
      */
-    public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache, int prefs, String target)
+    public Set<String> cacheDataset(String aipid, String version, Cache into, boolean recache,
+                                    int prefs, String target)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
+        return cacheDatasetFromStore(aipid, version, into, recache, prefs, target, ltstore);
+    }
+
+    /**
+     * cache all data that is part of a the latest version of the archive information package (AIP)
+     * from a particular store.  Called by {@link cacheDataset}, this is provided to allow alternate 
+     * implementations by subclasses.
+     */
+    protected Set<String> cacheDatasetFromStore(String aipid, String version, Cache into, boolean recache, 
+                                              int prefs, String target,  BagStorage store)
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
         // find the head bag in the bag store
-        String headbag = ltstore.findHeadBagFor(aipid, version);  // throws exc if does not exist
+        String headbag = store.findHeadBagFor(aipid, version);  // throws exc if does not exist
         if (! headbag.endsWith(".zip"))
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);
@@ -417,8 +442,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
             log.info("Caching files from bag, "+bagfile);
-            try {
-                cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache, target);
+            try { 
+               cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache, target);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
@@ -507,6 +532,15 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                                 boolean recache, String target)
         throws StorageVolumeException, FileNotFoundException, CacheManagementException
     {
+        cacheFromBagUsingStore(bagfile, need, cached, resmd, defprefs, forVersion, into, recache,
+                               target, ltstore);
+    }
+
+    protected void cacheFromBagUsingStore(String bagfile, Collection<String> need, Collection<String> cached,
+                                          JSONObject resmd, int defprefs, String forVersion, Cache into,
+                                          boolean recache, String target, BagStorage store)
+            throws StorageVolumeException, FileNotFoundException, CacheManagementException
+    {
         if (! bagfile.endsWith(".zip"))
             throw new RestorationException("Unsupported serialization type on bag: " + bagfile);
         String aipid = null, version = null;
@@ -535,7 +569,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             fs = co.volume.getStream(bagfile);
         }
         else
-            fs = ltstore.openFile(bagfile);
+            fs = store.openFile(bagfile);
 
         Map<String,String> manifest = null;
         List<String> fix = new ArrayList<String>();
