@@ -253,53 +253,8 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         return cachedFiles;
     }
 
-    /**
-     * cache all data found in the specified bag file
-     * @param bagfile  the name the bag in the bag storage to unpack and cache
-     * @param files    an editable set of names of data files to be extract from the associated bag.  The
-     *                    files are specified as filepaths relative to the data directory.  This method will
-     *                    remove members from the set as the files are cached such that when this method
-     *                    returns, the set will only contain names of files that were not found in the bag.
-     *                    If null, all data files found in the bag will be extracted.
-     * @param forVersion  If non-null, append this label to the cache object's ID (as in
-     *                    <code>"#"+forVersion</code>) to indicate that this file was request for a particular
-     *                    version of the dataset.  This will also affect where the file gets cached.
-     * @param into        The cache to cache the files into
-     * @param recache     if false and a file is already in the cache, the file will not be rewritten;
-     *                    otherwise, it will be replaced with fresh copy
-     * @return Set<String>   a listing of data files that were cached to disk.
-     */
-    public Set<String> cacheFromBag(String bagfile, Collection<String> files, String forVersion, Cache into,
-                                    boolean recache)
-            throws StorageVolumeException, FileNotFoundException, CacheManagementException
-    {
-        String aipid = null, version = null;
-        try {
-            List<String> parts = BagUtils.parseBagName(bagfile);
-            aipid = parts.get(0);
-            version = parts.get(1);
-        }
-        catch (ParseException ex) {
-            throw new RestorationException("Illegal bagfile name: "+bagfile);
-        }
-        if (version.length() == 0)
-            version = "1";
-
-        try {
-            JSONObject resmd = hbcm.resolveAIPID(aipid, version);
-            int cap = 5;
-            if (files != null)
-                cap = files.size();
-            HashSet<String> cached = new HashSet<String>(cap);
-            int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
-
-            cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into, recache, null);
-            return cached;
-        }
-        catch (ResourceNotFoundException ex) {
-            throw new RestorationException("Unable to pull needed metadata for bag file, " + bagfile +
-                    ": resource not found");
-        }
+    protected int getDefaultPrefs(boolean versionSpecific) {
+        return (versionSpecific) ? ROLE_OLD_RESTRICTED_DATA : ROLE_RESTRICTED_DATA;
     }
 
     @Override

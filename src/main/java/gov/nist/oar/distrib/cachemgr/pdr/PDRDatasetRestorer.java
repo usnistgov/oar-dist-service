@@ -395,7 +395,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         String bagname = headbag.substring(0, headbag.length()-4);
         String mbagver = BagUtils.multibagVersionOf(bagname);
         if (prefs == 0) {
-            prefs = (version == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+            prefs = getDefaultPrefs(version != null);
         }
         // pull out the NERDm resource metadata record
         JSONObject resmd = null;
@@ -516,7 +516,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             if (files != null)
                 cap = files.size();
             HashSet<String> cached = new HashSet<String>(cap);
-            int prefs = (forVersion == null) ? ROLE_GENERAL_PURPOSE : ROLE_OLD_VERSIONS;
+            int prefs = getDefaultPrefs(forVersion != null);
 
             cacheFromBag(bagfile, files, cached, resmd, prefs, forVersion, into, recache, null);
             return cached;
@@ -525,6 +525,13 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new RestorationException("Unable to pull needed metadata for bag file, " + bagfile +
                                            ": resource not found");
         }
+    }
+
+    /**
+     * return caching preferences that should be used when none are set
+     */
+    protected int getDefaultPrefs(boolean versionSpecific) {
+        return (versionSpecific) ? ROLE_OLD_VERSIONS : ROLE_GENERAL_PURPOSE;
     }
 
     protected void cacheFromBag(String bagfile, Collection<String> need, Collection<String> cached,
