@@ -38,7 +38,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class HybridPDRDatasetRestorerTest {
+public class RestrictedDatasetRestorerTest {
 
     @Rule
     public final TemporaryFolder tempf = new TemporaryFolder();
@@ -48,7 +48,7 @@ public class HybridPDRDatasetRestorerTest {
     private BagStorage publicLtstore;
     private BagStorage restrictedLtstore;
     private HeadBagCacheManager hbcm;
-    private HybridPDRDatasetRestorer rstr;
+    private RestrictedDatasetRestorer rstr;
 
     ConfigurableCache cache = null;
 
@@ -106,7 +106,7 @@ public class HybridPDRDatasetRestorerTest {
 
         hbcm = createHBCache(restrictedLtstore, publicLtstore);
         cache = createDataCache();
-        rstr = new HybridPDRDatasetRestorer(publicLtstore, restrictedLtstore, hbcm, 500);
+        rstr = new RestrictedDatasetRestorer(publicLtstore, restrictedLtstore, hbcm, 500);
 
     }
 

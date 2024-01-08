@@ -76,7 +76,7 @@ import org.apache.commons.io.FilenameUtils;
  * Individual files can restored to cache using the {@link gov.nist.oar.distrib.cachemgr.Restorer} interface;
  * however, whole datasets can be efficiently cached as well via its extended interface.
  */
-public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
+public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
     BagStorage restrictedLtstore = null;
 
     /**
@@ -85,8 +85,8 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
      * @param restrictedLtstore  the restricted long-term storage
      * @param headbagcache  the cache to use cache the head bags
      */
-    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
-                                    HeadBagCacheManager headbagcache) {
+    public RestrictedDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
+                                     HeadBagCacheManager headbagcache) {
         super(publicLtstore, headbagcache, -1L);
         this.restrictedLtstore = restrictedLtstore;
     }
@@ -99,8 +99,8 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
      * @param smallsizelim  a data file size limit: files smaller than this will preferentially go
      *                        into volumes marked for small files.
      */
-    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
-                                    HeadBagCacheManager headbagcache, long smallsizelim) {
+    public RestrictedDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore,
+                                     HeadBagCacheManager headbagcache, long smallsizelim) {
         super(publicLtstore, headbagcache, smallsizelim);
         this.restrictedLtstore = restrictedLtstore;
     }
@@ -114,8 +114,8 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
      *                        into volumes marked for small files.
      * @param logger        the logger to use for messages.
      */
-    public HybridPDRDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore, HeadBagCacheManager headbagcache, long smallsizelim,
-                              Logger logger)
+    public RestrictedDatasetRestorer(BagStorage publicLtstore, BagStorage restrictedLtstore, 
+                                     HeadBagCacheManager headbagcache, long smallsizelim, Logger logger)
     {
         super(publicLtstore, headbagcache, smallsizelim, logger);
         this.restrictedLtstore = restrictedLtstore;
