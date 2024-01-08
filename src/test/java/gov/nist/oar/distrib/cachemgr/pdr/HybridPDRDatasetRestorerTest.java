@@ -16,6 +16,7 @@ import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +26,8 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -77,17 +80,17 @@ public class HybridPDRDatasetRestorerTest {
         File cvdir = new File(croot, "foobar");  cvdir.mkdir();
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar");
-        vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS|PDRCacheRoles.ROLE_FAST_ACCESS);
-        cache.addCacheVolume(cv, 2000000, null, vc, true);
-
-        cvdir = new File(croot, "cranky");  cvdir.mkdir();
-        cv = new FilesystemCacheVolume(cvdir, "cranky");
-        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         cvdir = new File(croot, "old");  cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "old");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
+
+        cvdir = new File(croot, "rpa");  cvdir.mkdir();
+        cv = new FilesystemCacheVolume(cvdir, "rpa");
+        vc.setRoles(PDRCacheRoles.ROLE_RESTRICTED_DATA);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         return cache;
@@ -177,6 +180,7 @@ public class HybridPDRDatasetRestorerTest {
     @Test
     public void testGetSize() throws StorageVolumeException, CacheManagementException {
         assertEquals(69, rstr.getSizeOf("mds1491/trial1.json"));
+        assertEquals(15, rstr.getSizeOf("mds1491/README.txt"));   // from restricted bag only
         assertEquals(553, rstr.getSizeOf("mds1491/trial3/trial3a.json"));
         try {
             rstr.getSizeOf("goober/file.json");
@@ -191,8 +195,8 @@ public class HybridPDRDatasetRestorerTest {
         assertEquals("d155d99281ace123351a311084cd8e34edda6a9afcddd76eb039bad479595ec9", cksm.hash);
         assertEquals("sha256", cksm.algorithm);
 
-        cksm = rstr.getChecksum("mds1491/trial3/trial3a.json");
-        assertEquals("ccf6d9df969ab2ef6873f1d3125eac2fbdc082784b446be4c44d8bab148f5396", cksm.hash);
+        cksm = rstr.getChecksum("mds1491/README.txt");  // from restricted bag
+        assertEquals("b6433cb0e033f32ba411463e2cc304bd6aa3a9e0efa8e2539c452622f02a99cd", cksm.hash);
         assertEquals("sha256", cksm.algorithm);
 
         try {
@@ -203,40 +207,53 @@ public class HybridPDRDatasetRestorerTest {
     }
 
     @Test
-    public void testRestoreObject() throws CacheManagementException, StorageVolumeException, JSONException {
+    public void testRestoreObject()
+        throws CacheManagementException, StorageVolumeException, JSONException, IOException
+    {
         assertTrue(! cache.isCached("mds1491/trial1.json"));
-        Reservation resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_SMALL_OBJECTS);
+        Reservation resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_RESTRICTED_DATA);
         rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
         assertTrue(cache.isCached("mds1491/trial1.json"));
-        assertEquals("foobar", resv.getVolumeName());
+        assertEquals("rpa", resv.getVolumeName());
         assertTrue((new File(tempf.getRoot(),
                 "data/"+resv.getVolumeName()+"/mds1491/trial1.json")).exists());
 
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
-        resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_OLD_VERSIONS);
-        rstr.restoreObject("mds1491/trial3/trial3a.json#1", resv, "mds1491/trial3/trial3a-v1.json", null);
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+        // this file is only found in the restricted store
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+        resv = cache.reserveSpace(15, PDRCacheRoles.ROLE_RESTRICTED_DATA);
+        rstr.restoreObject("mds1491/README.txt", resv, "mds1491/README.txt", null);
+        assertTrue(cache.isCached("mds1491/README.txt"));
+        assertEquals("rpa", resv.getVolumeName());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/README.txt")).exists());
+
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        resv = cache.reserveSpace(68, PDRCacheRoles.ROLE_RESTRICTED_DATA);
+        rstr.restoreObject("mds1491/trial2.json", resv, "mds1491/trial2.json", null);
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertEquals("rpa", resv.getVolumeName());
+        File t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        assertTrue(t2file.exists());
+
+        // confirm that we got the one from the restricted store
+        String trial2 = new String(Files.readAllBytes(Paths.get(t2file.toURI())));
+        JSONObject data = new JSONObject(trial2);
+        assertTrue(data.getBoolean("result"));
+        assertEquals("2024-01-06", data.getString("date"));
+
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_OLD_VERSIONS);
+        rstr.restoreObject("mds1491/trial2.json#1.1.0", resv, "mds1491/trial2.json", null);
+        assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
         assertEquals("old", resv.getVolumeName());
-        assertTrue((new File(tempf.getRoot(),
-                "data/"+resv.getVolumeName()+"/mds1491/trial3/trial3a-v1.json")).exists());
+        t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        assertTrue(t2file.exists());
 
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
-        resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_GENERAL_PURPOSE);
-        rstr.restoreObject("mds1491/trial3/trial3a.json#1.1.0", resv, "mds1491/trial3/trial3a-X.json", null);
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
-        assertEquals("cranky", resv.getVolumeName());
-        assertTrue((new File(tempf.getRoot(),
-                "data/"+resv.getVolumeName()+"/mds1491/trial3/trial3a-X.json")).exists());
-
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
-        resv = cache.reserveSpace(64);
-        rstr.restoreObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256",
-                resv, "NMRRVocab20171102.rdf.sha256", null);
-        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
-        assertTrue((new File(tempf.getRoot(),
-                "data/"+resv.getVolumeName()+"/NMRRVocab20171102.rdf.sha256")).exists());
+        // confirm that we got the one from the public store
+        trial2 = new String(Files.readAllBytes(Paths.get(t2file.toURI())));
+        data = new JSONObject(trial2);
+        assertFalse(data.getBoolean("result"));
+        assertEquals("2017-02-02", data.getString("date"));
     }
 
     @Test
@@ -246,6 +263,7 @@ public class HybridPDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
         assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
@@ -253,14 +271,17 @@ public class HybridPDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
 
-        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true, 0 , null);
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true,
+                                               PDRCacheRoles.ROLE_RESTRICTED_DATA, null);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("README.txt"));
         assertTrue(cached.contains("trial3/trial3a.json"));
-        assertEquals(3, cached.size());
+        assertEquals(4, cached.size());
 
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/README.txt"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
         assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
@@ -269,44 +290,17 @@ public class HybridPDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial2.json#1"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
 
-        cached = rstr.cacheDataset("mds1491", "1", cache, true, 0 , null);
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true,
+                                   PDRCacheRoles.ROLE_OLD_VERSIONS, null);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
+        assertFalse(cached.contains("README.txt"));
         assertEquals(3, cached.size());
-
-        assertTrue(cache.isCached("mds1491/trial1.json"));
-        assertTrue(cache.isCached("mds1491/trial2.json"));
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
-        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
-        assertTrue(cache.isCached("mds1491/trial1.json#1"));
-        assertTrue(cache.isCached("mds1491/trial2.json#1"));
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
-
-        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true, 0 , null);
-        assertTrue(cached.contains("trial1.json"));
-        assertTrue(cached.contains("trial2.json"));
-        assertTrue(cached.contains("trial3/trial3a.json"));
-        assertEquals(3, cached.size());
-
-        assertTrue(cache.isCached("mds1491/trial1.json"));
-        assertTrue(cache.isCached("mds1491/trial2.json"));
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
         assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
         assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
-        assertTrue(cache.isCached("mds1491/trial1.json#1"));
-        assertTrue(cache.isCached("mds1491/trial2.json#1"));
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
-
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
-        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache, true, 0 , null);
-        assertEquals(2, cached.size());
-        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
-        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        assertTrue(! cache.isCached("mds1491/README.txt#1.1.0"));
     }
 
     @Test
@@ -317,9 +311,7 @@ public class HybridPDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
-        assertTrue(! cache.isCached("mds1491/trial1.json#8"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#8"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
 
         ArrayList<String> need = new ArrayList<String>();
         need.add("trial1.json");
@@ -328,29 +320,23 @@ public class HybridPDRDatasetRestorerTest {
         Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache, true);
         assertTrue(cached.contains("trial1.json"));
         assertTrue(! cached.contains("trial2.json"));
+        assertTrue(! cached.contains("README.txt"));
         assertTrue(cached.contains("trial3/trial3a.json"));
         assertEquals(2, cached.size());
 
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
-        assertTrue(! cache.isCached("mds1491/trial1.json#8"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#8"));
 
-        need.add("trial1.json");
-        need.add("trial3/trial3a.json");
-        cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, "8", cache, true);
-        assertTrue(cached.contains("trial1.json"));
-        assertTrue(! cached.contains("trial2.json"));
-        assertTrue(cached.contains("trial3/trial3a.json"));
-        assertEquals(2, cached.size());
+        need.add("README.txt");
+        cached = rstr.cacheFromBag("mds1491.1_2_0.mbag0_4-2.zip", need, null, cache, true);
+        assertTrue(cached.contains("README.txt"));
+        assertEquals(1, cached.size());
 
-        assertTrue(cache.isCached("mds1491/trial1.json#8"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#8"));
-        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#8"));
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/README.txt"));
         assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
     }
 
@@ -401,7 +387,7 @@ public class HybridPDRDatasetRestorerTest {
                         .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
                                 VolumeStatus.VOL_FOR_GET);
         assertEquals(1, found.size());
-        assertEquals("crunchy", found.get(0).volname);
+        assertEquals("rpa", found.get(0).volname);
 
         // test optional recache
         since = found.get(0).getMetadatumLong("since", 0L);
