@@ -172,6 +172,15 @@ public class HybridPDRDatasetRestorer extends PDRDatasetRestorer {
         }
     }
 
+    @Override
+    protected InputStream openBag(String bagfilename) throws FileNotFoundException, StorageVolumeException {
+        try {
+            return ltstore.openFile(bagfilename);
+        } catch (FileNotFoundException ex) {
+            return restrictedLtstore.openFile(bagfilename);
+        }
+    }
+
     /**
      * consult the given head bag and return the name of the bag that contains the file indicated by
      * the given filepath.

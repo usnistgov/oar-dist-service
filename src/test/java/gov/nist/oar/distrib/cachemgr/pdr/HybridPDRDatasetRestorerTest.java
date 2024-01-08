@@ -53,7 +53,9 @@ public class HybridPDRDatasetRestorerTest {
     ConfigurableCache cache = null;
 
     // Helper method to create HeadBagCacheManager. Adjust based on your actual implementation.
-    HeadBagCacheManager createHBCache(BagStorage ltstore) throws IOException, CacheManagementException {
+    HeadBagCacheManager createHBCache(BagStorage reststore, BagStorage pubstore)
+        throws IOException, CacheManagementException
+    {
         File tf = tempf.newFolder("headbags");
         File dbf = new File(tf, "inventory.sqlite");
         HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
@@ -66,7 +68,7 @@ public class HybridPDRDatasetRestorerTest {
         cvd = new File(tf, "cv1");  cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
 
-        return new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), "88434");
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(reststore, pubstore), "88434");
     }
 
     ConfigurableCache createDataCache() throws CacheManagementException, IOException {
@@ -102,7 +104,7 @@ public class HybridPDRDatasetRestorerTest {
         publicLtstore = new FilesystemLongTermStorage(ltsdir);
         restrictedLtstore = new FilesystemLongTermStorage(ltsdir + "/restricted");
 
-        hbcm = createHBCache(restrictedLtstore);
+        hbcm = createHBCache(restrictedLtstore, publicLtstore);
         cache = createDataCache();
         rstr = new HybridPDRDatasetRestorer(publicLtstore, restrictedLtstore, hbcm, 500);
 
