@@ -60,21 +60,25 @@ import org.json.JSONException;
 import org.apache.commons.io.FilenameUtils;
 
 /**
- * A {@link gov.nist.oar.distrib.cachemgr.Restorer} for restoring PDR datasets and dataset files according
- * to PDR conventions for long-term storage of datasets in BagIt bags.
+ * A {@link gov.nist.oar.distrib.cachemgr.Restorer} for restoring "restricted public" datasets from the 
+ * PDR.
  * <p>
- * The NIST Public Data Repository (PDR) preserves its data into a preservation format that consists of
- * aggregations of files conforming the to the BagIt standard using the NIST PDR BagIt profile.  The
- * profile itself is an extenstion of the more general Multibag Profile.  This latter profile defines the
- * concept of a head bag that provides a directory for all data in the aggregation; in the PDR extension
- * profile, the complete metadata is also stored in the head bag.  In the PDR, preservation bag files are
- * stored in an AWS S3 bucket which has some access overheads associated with it; thus, it is helpful to
- * cache head bags on local disk for access to the metadata; thus, this
- * {@link gov.nist.oar.distrib.cachemgr.Restorer} implementation makes use of such a cache (via a
- * {@link HeadBagCacheManager}).
- * <p>
- * Individual files can restored to cache using the {@link gov.nist.oar.distrib.cachemgr.Restorer} interface;
- * however, whole datasets can be efficiently cached as well via its extended interface.
+ * In the federal repository context, <i>restricted public data</i> is data that is nominally public but 
+ * require some user-interactive process to access.  In the specific context of the PDR, it refers to 
+ * data that require users to request to download the data through an interactive form.  Within the PDR 
+ * system, data that is restricted must be handled differently that pure public data.  In particular, 
+ * the restricted data must be stored separately from public data, and the system must ensure that 
+ * the restricted data can not be leaked via public APIs.  
+ * </p><p>
+ * In the PDR, a restricted public dataset may have some components that are fully public and while 
+ * others that must be requested to download.  This is handled by storing the public parts in bags stored 
+ * the normal public long-term storage, while the restricted parts are stored in separate restricted 
+ * long-term storage.  Thus, to obtain a complete restricted public dataset, data must be retrieved from
+ * multiple (2) long-term storage locations.  This class handles the special requirements for restoring
+ * restricted public data.  
+ * </p>
+ * @see HeadBagRestorer
+ * @see HeadBagCacheManager
  */
 public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
     BagStorage restrictedLtstore = null;
