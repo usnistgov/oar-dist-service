@@ -31,7 +31,6 @@ import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
 import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 import org.json.JSONObject;
@@ -79,7 +78,7 @@ public class HeadBagCacheManagerTest {
         cvs.add(new FilesystemCacheVolume(cvd, "cv1"));
 
         SimpleCache cache = new SimpleCache("simple", sidb, cvs);
-        hbcmgr = new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), "88434");
+        hbcmgr = new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), "88434");
     }
 
     @Test

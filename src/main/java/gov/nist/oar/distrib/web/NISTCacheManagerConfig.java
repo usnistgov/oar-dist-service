@@ -26,13 +26,13 @@ import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BigOldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagRestorer;
 import gov.nist.oar.distrib.BagStorage;
 
 import java.util.Collection;
@@ -450,7 +450,7 @@ public class NISTCacheManagerConfig {
         if (! cvd.exists()) cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), getHeadbagCacheSize()/2, null, true);
 
-        return new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), getArkNaan());
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), getArkNaan());
     }
 
     public PDRDatasetRestorer createDefaultRestorer(BagStorage lts, HeadBagCacheManager hbmgr) {

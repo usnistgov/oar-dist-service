@@ -57,16 +57,14 @@ import java.text.ParseException;
 public class HeadBagCacheManager extends BasicCacheManager implements PDRConstants {
 
     HeadBagDB db = null;
-    BagStorage ltstore = null;
     final String arknaan;
     final Pattern ARK_PAT;
 
-    public HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, BagStorage store,
-                               Restorer restorer, String naan)
+    public HeadBagCacheManager(BasicCache cache, HeadBagDB hbdb, 
+                               HeadBagRestorer restorer, String naan)
     {
         super(cache, restorer);
         db = hbdb;
-        ltstore = store;
         arknaan = naan;
         ARK_PAT = Pattern.compile("^ark:/"+naan+"/");
     }
@@ -105,7 +103,7 @@ public class HeadBagCacheManager extends BasicCacheManager implements PDRConstan
             throw new ResourceNotFoundException(aip);
 
         try {
-            String headbagname = ltstore.findHeadBagFor(aipid, version);
+            String headbagname = ((HeadBagRestorer) restorer).findHeadBagFor(aipid, version);
             cache(headbagname);
 
             // make sure the head bag for it is in the cache and return a handle for it

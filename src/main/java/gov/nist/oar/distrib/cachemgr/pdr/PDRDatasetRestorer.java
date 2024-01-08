@@ -286,7 +286,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         InputStream bstrm = null;
         try {
-            bstrm = store.openFile(srcbag);
+            bstrm = openBag(srcbag);
             ZipBagUtils.OpenEntry ntry = ZipBagUtils.openDataFile(bstrm, bagname, idparts[1]);
             resv.saveAs(ntry.stream, id, name, cachemd);
             log.info("Cached "+id);
@@ -306,6 +306,14 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 catch (IOException ex) { }
             }
         }
+    }
+
+    /**
+     * Open a source bag to extract files.  This method is provided to allow for alternate implementations
+     * in subclasses
+     */
+    protected InputStream openBag(String bagfilename) throws FileNotFoundException, StorageVolumeException {
+        return ltstore.openFile(bagfilename);
     }
 
     /**

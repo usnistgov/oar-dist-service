@@ -38,7 +38,6 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 import org.json.JSONObject;
@@ -75,7 +74,7 @@ public class PDRDatasetRestorerTest {
         cvd = new File(tf, "cv1");  cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
 
-        return new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), "88434");
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), "88434");
     }
 
     ConfigurableCache createDataCache() throws CacheManagementException, IOException {

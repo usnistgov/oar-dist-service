@@ -22,8 +22,8 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagRestorer;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -116,8 +116,8 @@ public class RPACachingServiceProvider {
                              rpacfg.getHeadbagCacheSize()/2, null, true);
 
         // return new HybridHeadBagCacheManager(cache, sidb, getRPBagStorage(), pubstore);
-        return new HeadBagCacheManager(cache, sidb, getRPBagStorage(),
-                                       new FileCopyRestorer(getRPBagStorage()), cmcfg.getArkNaan());
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(getRPBagStorage()), 
+                                       cmcfg.getArkNaan());
     }
 
     /**
