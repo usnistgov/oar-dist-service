@@ -14,15 +14,17 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManager;
 import gov.nist.oar.distrib.cachemgr.simple.SimpleCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
+import gov.nist.oar.distrib.cachemgr.pdr.RestrictedDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagRestorer;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetCacheManager;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 
 import java.io.File;
@@ -46,6 +48,7 @@ public class RPACachingServiceProvider {
 
     BagStorage rpastore = null;
     HeadBagCacheManager hbcmgr = null;
+    RPACachingService cacher = null;
 
     public RPACachingServiceProvider(NISTCacheManagerConfig cmConfig,
                                      RPAConfiguration rpaConfig,
@@ -60,6 +63,20 @@ public class RPACachingServiceProvider {
     
     private Logger _getLogger() {
         return LoggerFactory.getLogger("RPACaching");
+    }
+
+    /**
+     * return true if this provider has the necessary configuration to create a CacheManager.  Note that 
+     * this method does not check the validity of configuration; thus, createCacheManager() may still 
+     * raise exceptions.  
+     */
+    protected boolean canCreateService() {
+        if (cmcfg == null || cmcfg.getAdmindir() == null ||
+            cmcfg.getAdmindir().equals("@null") || rpacfg.getBagstoreLocation() == null)
+        {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -115,8 +132,7 @@ public class RPACachingServiceProvider {
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"),
                              rpacfg.getHeadbagCacheSize()/2, null, true);
 
-        // return new HybridHeadBagCacheManager(cache, sidb, getRPBagStorage(), pubstore);
-        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(getRPBagStorage()), 
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(getRPBagStorage(), pubstore), 
                                        cmcfg.getArkNaan());
     }
 
@@ -135,10 +151,10 @@ public class RPACachingServiceProvider {
     public BagStorage createRPBagStorage() throws ConfigurationException {
         String storeloc = rpacfg.getBagstoreLocation();
         if (storeloc == null)
-            throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore.location");
+            throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore-location");
         String mode = rpacfg.getBagstoreMode();
         if (mode == null || mode.length() == 0)
-            throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore.mode");
+            throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore-mode");
 
         try {
             if (mode.equals("aws") || mode.equals("remote")) 
@@ -146,11 +162,11 @@ public class RPACachingServiceProvider {
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(storeloc);
             else
-                throw new ConfigurationException("distrib.bagstore.mode",
+                throw new ConfigurationException("distrib.rpa.bagstore-mode",
                                                  "Unsupported storage mode: "+ mode);
         }
         catch (FileNotFoundException ex) {
-            throw new ConfigurationException("distrib.rpa.bagstore.location",
+            throw new ConfigurationException("distrib.rpa.bagstore-location",
                                              "RP Storage Location not found: "+ex.getMessage(), ex);
         }
     }
@@ -158,19 +174,47 @@ public class RPACachingServiceProvider {
     /**
      * return the RP data restorer to use to restore restricted public data into the cache
      */
-    public PDRDatasetRestorer createRPDatasetRestorer()
+    public RestrictedDatasetRestorer createRPDatasetRestorer()
         throws ConfigurationException, IOException, CacheManagementException
     {
-        // return HybridDatasetRestorer(pubstore, getRPBagStorage(), getHeadBagCacheManager());
-        return new PDRDatasetRestorer(getRPBagStorage(), getHeadBagCacheManager());
+        return new RestrictedDatasetRestorer(pubstore, getRPBagStorage(), getHeadBagCacheManager());
+        // return new PDRDatasetRestorer(getRPBagStorage(), getHeadBagCacheManager());
     }
 
     /**
      * return the cache manager to use to place requested restricted public data into the cache
      */
-    public CacheManager createRPACacheManager(BasicCache cache)
+    public PDRDatasetCacheManager createRPACacheManager(BasicCache cache)
         throws ConfigurationException, IOException, CacheManagementException
     {
-        return new SimpleCacheManager(cache, createRPDatasetRestorer());
+        return new PDRDatasetCacheManager(cache, createRPDatasetRestorer(), _getLogger());
+    }
+
+    /**
+     * instantiate an RPACachingService to be used to as the RPA service backend.  Called by
+     * {@link #getRPACachingService()}, this method will always create a new instance; thus a 
+     * Spring boot configuration should call {@link #getRPACachingService()} instead so as to use 
+     * a single instance across the whole application.
+     * @param s3   an AmazonS3 interface for accessing S3 buckets for storage (as specified in
+     *             the configuration)
+     */
+    protected RPACachingService createRPACachingService(AmazonS3 s3) 
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        return new RPACachingService(createRPACacheManager(cmcfg.getCache(s3)), rpacfg);
+    }
+
+    /**
+     * return a singleton instance of RPACachingService created from the configuration for the 
+     * application.  If one has not been created yet, it will be and cached in within this class. 
+     * @param s3   an AmazonS3 interface for accessing S3 buckets for storage (as specified in
+     *             the configuration); ignored if the service has already been created.
+     */
+    public RPACachingService getRPACachingService(AmazonS3 s3) 
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        if (cacher == null && canCreateService())
+            cacher = createRPACachingService(s3);
+        return cacher;
     }
 }

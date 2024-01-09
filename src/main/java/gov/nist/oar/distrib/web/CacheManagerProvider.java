@@ -58,7 +58,7 @@ public class CacheManagerProvider {
         if (canCreateManager())
             _getLogger().info("A CacheManager will be created for this application.");
         else
-            _getLogger().debug("Insufficient configuration to run a CacheManager; none will used.");
+            _getLogger().debug("Insufficient configuration to run a CacheManager; none will be used.");
     }
 
     private Logger _getLogger() {
@@ -152,10 +152,11 @@ public class CacheManagerProvider {
         if (! canCreateManager())
             throw new ConfigurationException("Configuration is not set for running a CacheManager "
                                              +"(Missing 'admindir')");
-        headbagcmgr = getHeadBagManager();
+        if (headbagcmgr == null)
+            headbagcmgr = getHeadBagManager();
 
         try {
-            BasicCache cache = cfg.createDefaultCache(s3client);
+            BasicCache cache = cfg.getCache(s3client);
             PDRDatasetRestorer restorer = 
                 cfg.createDefaultRestorer(bagstore, headbagcmgr);
 

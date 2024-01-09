@@ -107,6 +107,7 @@ public class NISTCacheManagerConfig {
     String dbroot = null;
     String hbdbroot = null;
     boolean triggercache = false;
+    BasicCache theCache = null;
 
     public String getAdmindir() { return admindir; }
     public void setAdmindir(String dirpath) { admindir = dirpath; }
@@ -366,6 +367,14 @@ public class NISTCacheManagerConfig {
             else
                 throw new ConfigurationException("Unrecognized volume type, "+m.group(0)+" for "+location);
         }
+    }
+
+    public BasicCache getCache(AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        if (theCache == null)
+            theCache = createDefaultCache(s3);
+        return theCache;
     }
 
     public BasicCache createDefaultCache(AmazonS3 s3)
