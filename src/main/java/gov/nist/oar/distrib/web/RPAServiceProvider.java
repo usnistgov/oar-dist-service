@@ -23,7 +23,6 @@ public class RPAServiceProvider {
         return new DefaultRPARequestHandlerService(this.rpaConfiguration, restTemplate);
     }
 
-    @Autowired
     public IRPARequestHandler getIRPARequestHandler(RPACachingService rpaCachingService) {
         return this.getHttpURLConnectionRPARequestHandler(rpaCachingService);
     }

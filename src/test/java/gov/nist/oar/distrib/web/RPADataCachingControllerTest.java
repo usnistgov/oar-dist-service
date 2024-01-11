@@ -29,13 +29,13 @@ public class RPADataCachingControllerTest {
     @Mock
     RPACachingService rpaCachingService;
 
-    @InjectMocks
-    RPADataCachingController controller;
+    RPADataCachingController controller = null;;
 
     MockMvc mockMvc;
 
     @Before
     public void setUp() {
+        controller = new RPADataCachingController(rpaCachingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
