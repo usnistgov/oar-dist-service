@@ -26,13 +26,13 @@ import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BigOldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagRestorer;
 import gov.nist.oar.distrib.BagStorage;
 
 import java.util.Collection;
@@ -107,6 +107,7 @@ public class NISTCacheManagerConfig {
     String dbroot = null;
     String hbdbroot = null;
     boolean triggercache = false;
+    BasicCache theCache = null;
 
     public String getAdmindir() { return admindir; }
     public void setAdmindir(String dirpath) { admindir = dirpath; }
@@ -368,6 +369,14 @@ public class NISTCacheManagerConfig {
         }
     }
 
+    public BasicCache getCache(AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        if (theCache == null)
+            theCache = createDefaultCache(s3);
+        return theCache;
+    }
+
     public BasicCache createDefaultCache(AmazonS3 s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
@@ -450,7 +459,7 @@ public class NISTCacheManagerConfig {
         if (! cvd.exists()) cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), getHeadbagCacheSize()/2, null, true);
 
-        return new HeadBagCacheManager(cache, sidb, ltstore, new FileCopyRestorer(ltstore), getArkNaan());
+        return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), getArkNaan());
     }
 
     public PDRDatasetRestorer createDefaultRestorer(BagStorage lts, HeadBagCacheManager hbmgr) {

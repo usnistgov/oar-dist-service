@@ -105,6 +105,7 @@ public class CacheManagementControllerTest {
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
         (new File(testdir,"db")).mkdirs();
+        provider.cfg.theCache = null;
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
 

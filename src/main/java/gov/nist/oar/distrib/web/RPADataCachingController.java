@@ -21,8 +21,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.amazonaws.services.s3.AmazonS3;
+
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
+import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * The {@link RPARequestHandlerController} class serves as the REST controller for handling requests to cache
@@ -42,8 +46,37 @@ public class RPADataCachingController {
      */
     private static final String ARK_REGEX = "ark:/{naan:\\d+}/{dsid}";
 
+    RPACachingService restrictedSrvc = null;
+
     @Autowired
-    RPACachingService restrictedSrvc;
+    public RPADataCachingController(RPACachingServiceProvider provider, AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        if (provider != null && provider.canCreateService())
+            restrictedSrvc = provider.getRPACachingService(s3);
+    }
+
+    public RPADataCachingController(RPACachingService cacher) {
+        restrictedSrvc = cacher;
+    }
+
+    /**
+     * a specialized exception indicating that a CacheManager is not currently in use.  This is used 
+     * to inform clients to such if they try to access endpoints provided by this class.
+     */
+    class NotOperatingException extends CacheManagementException {
+        NotOperatingException(String message) {
+            super(message);
+        }
+        NotOperatingException() {
+            this("Restricted data service is not in operation at this time (no cache manager available)");
+        }
+    }
+
+    private void _checkForService() throws NotOperatingException {
+        if (restrictedSrvc == null)
+            throw new NotOperatingException();
+    }
 
     /**
      * This endpoint handles caching of a dataset under restricted public access, and generates a random ID for it.
@@ -63,6 +96,7 @@ public class RPADataCachingController {
             @RequestParam(name = "version", defaultValue = "") String version)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        _checkForService();
         logger.debug("dsid=" + dsid);
         String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
         return randomId;
@@ -91,6 +125,7 @@ public class RPADataCachingController {
             @Parameter(hidden = true) HttpServletRequest request)
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException {
 
+        _checkForService();
         logger.debug("Matched ARK ID for caching: ark:/" + naan + "/" + dsid);
         String randomId = restrictedSrvc.cacheAndGenerateRandomId(dsid, version);
         return randomId;
@@ -107,6 +142,7 @@ public class RPADataCachingController {
     public Map<String, Object> retrieveMetadata(@PathVariable("cacheid") String cacheId)
             throws CacheManagementException, MetadataNotFoundException, RequestProcessingException {
 
+        _checkForService();
         logger.debug("cacheId=" + cacheId);
         Map<String, Object> metadata = restrictedSrvc.retrieveMetadata(cacheId);
         return metadata;
@@ -140,5 +176,13 @@ public class RPADataCachingController {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorInfo handleRequestProcessingException(RequestProcessingException ex) {
         return new ErrorInfo(500, "internal service error: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(NotOperatingException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorInfo handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
+        logger.warn("Request to non-engaged RPACachingService: " + req.getRequestURI() + "\n  " +
+                    ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
     }
 }
