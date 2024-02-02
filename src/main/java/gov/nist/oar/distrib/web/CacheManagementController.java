@@ -11,6 +11,7 @@
  */
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
@@ -329,6 +330,46 @@ public class CacheManagementController {
             return new ResponseEntity<String>("check trigger not yet implemented", HttpStatus.METHOD_NOT_ALLOWED);
         else
             return new ResponseEntity<String>("Method not allowed on URL", HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    /**
+     * Endpoint to remove a dataset or specific files within a dataset from the cache.
+     *
+     * @param dsid the dataset identifier
+     * @param request used to extract the optional file path from the URL
+     * @return ResponseEntity with the result of the operation
+     */
+    @DeleteMapping(value="/objects/{dsid}/**")
+    public ResponseEntity<String> removeFromCache(@PathVariable("dsid") String dsid, HttpServletRequest request) {
+        try {
+
+            _checkForManager();
+
+            // Extract the optional file path from the request URL
+            String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+            String prefix = "/cache/objects/" + dsid;
+            String filepath = path.startsWith(prefix) ? path.substring(prefix.length()) : "";
+
+            if (filepath.isEmpty() || filepath.equals("/")) {
+                // Remove the entire dataset from the cache
+                List<CacheObject> files = mgr.selectDatasetObjects(dsid, VolumeStatus.VOL_FOR_UPDATE);
+                for (CacheObject file : files) {
+                    mgr.uncache(file.id); // Use the uncache method directly
+                }
+                return ResponseEntity.ok("Dataset " + dsid + " removed from cache");
+            } else {
+                // Remove specific file or directory within the dataset from the cache
+                List<CacheObject> files = mgr.selectFileObjects(dsid, filepath, VolumeStatus.VOL_FOR_UPDATE);
+                for (CacheObject file : files) {
+                    mgr.uncache(file.id);
+                }
+                return ResponseEntity.ok("File(s) " + filepath + " in dataset " + dsid + " removed from cache");
+            }
+        } catch (NotOperatingException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Cache manager is not operational");
+        } catch (CacheManagementException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing cache removal request: " + e.getMessage());
+        }
     }
 
     /**
