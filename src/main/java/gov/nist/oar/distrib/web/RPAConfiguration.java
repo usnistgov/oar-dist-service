@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.web;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -53,6 +54,11 @@ public class RPAConfiguration {
     String bagStore = null;
     @JsonProperty("bagstore-mode")
     String mode = null;
+    @JsonProperty("disallowedEmails")
+    private List<String> disallowedEmails = new ArrayList<>();
+
+    @JsonProperty("disallowedCountries")
+    private List<String> disallowedCountries = new ArrayList<>();
 
 
     public long getHeadbagCacheSize() {
@@ -187,6 +193,22 @@ public class RPAConfiguration {
 
     public void setJwtSecretKey(String jwtSecretKey) {
         this.jwtSecretKey = jwtSecretKey;
+    }
+
+    public List<String> getDisallowedEmails() {
+        return disallowedEmails;
+    }
+
+    public void setDisallowedEmailStrings(List<String> disallowedEmails) {
+        this.disallowedEmails = disallowedEmails;
+    }
+
+    public List<String> getDisallowedCountries() {
+        return disallowedCountries;
+    }
+
+    public void setDisallowedCountries(List<String> disallowedCountries) {
+        this.disallowedCountries = disallowedCountries;
     }
 
     @NoArgsConstructor
