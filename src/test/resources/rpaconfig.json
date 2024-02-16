@@ -3,5 +3,13 @@
   "datacartUrl": "https://localhost/datacart/rpa",
   "headbagCacheSize": 50000000,
   "bagstoreMode": "local",
-  "jwtSecretKey": "1234567890 pdr.rpa.2023 1234567890"
+  "jwtSecretKey": "1234567890 pdr.rpa.2023 1234567890",
+  "disallowedEmails": [
+    "@123\\.",
+    "@example\\.com$"
+  ],
+  "disallowedCountries": [
+    "Cuba",
+    "North Korea"
+  ]
 }

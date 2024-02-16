@@ -22,5 +22,16 @@ public class RPAConfigurationTest {
         assertEquals("local", config.getBagstoreMode());
         assertNull(config.getBagstoreLocation());
         assertEquals("1234567890 pdr.rpa.2023 1234567890", config.getJwtSecretKey());
+
+        // assertions for disallowed email strings and countries
+        assertNotNull(config.getDisallowedEmails());
+        assertEquals(2, config.getDisallowedEmails().size());
+        assertTrue(config.getDisallowedEmails().contains("@123\\."));
+        assertTrue(config.getDisallowedEmails().contains("@example\\.com$"));
+
+        assertNotNull(config.getDisallowedCountries());
+        assertEquals(2, config.getDisallowedCountries().size());
+        assertTrue(config.getDisallowedCountries().contains("Cuba"));
+        assertTrue(config.getDisallowedCountries().contains("North Korea"));
     }
 }
