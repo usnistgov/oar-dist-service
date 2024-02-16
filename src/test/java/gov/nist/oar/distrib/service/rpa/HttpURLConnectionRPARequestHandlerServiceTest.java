@@ -3,13 +3,9 @@ package gov.nist.oar.distrib.service.rpa;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
-import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
@@ -41,16 +37,15 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -244,6 +239,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testCreateRecord_success()
             throws InvalidRequestException, IOException {
         // Arrange
+        // Mock the RPAConfiguration to return non-blacklisted email strings and countries
+        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@disallowed\\.com$"));
+        when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Disallowed Country"));
 
         // Set up mock behavior for mockConnection
         // Set expected dummy response
@@ -272,7 +270,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(mockConnection.getURL()).thenReturn(url);
         // Call method under test
 
-        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
+                , "jane.doe@test.gov", "United States");
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
                 testRecordWrapper.getRecord().getUserInfo(),
                 RECAPTCHA_RESPONSE,
@@ -286,6 +285,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
         // Assert that the status was set by the server and not the user's input
         assertEquals(actualRecord.getRecord().getUserInfo().getApprovalStatus(), "Pending");
+        assertEquals("United States", actualRecord.getRecord().getUserInfo().getCountry());
+        assertEquals("jane.doe@test.gov", actualRecord.getRecord().getUserInfo().getEmail());
 
         // Verify that the mock output stream was written to as expected
         byte[] expectedPayloadBytes = userInfoWrapper.toString().getBytes(StandardCharsets.UTF_8);
@@ -301,6 +302,41 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Verify connection was closed
         verify(mockConnection).disconnect();
 
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testCreateRecord_withBlacklistedEmail_shouldThrowInvalidRequestException() throws Exception {
+        // Arrange
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
+                , "jane.doe@123.com", "United States");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE,
+                new HashMap<>()
+        );
+
+        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
+
+        // Act
+        service.createRecord(userInfoWrapper);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testCreateRecord_withBlacklistedCountry_shouldThrowInvalidRequestException() throws Exception {
+        // Arrange
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
+                , "jane.doe@test.gov", "Cuba");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE,
+                new HashMap<>()
+        );
+        // Mocking blacklisted country
+        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\.", "@gmail\\.com"));
+        when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Cuba"));
+
+        // Act
+        service.createRecord(userInfoWrapper);
     }
 
     @Test
@@ -335,7 +371,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(mockConnection.getURL()).thenReturn(url);
         // Call method under test
 
-        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
+                , "jane.doe@test.gov", "United States");
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
                 testRecordWrapper.getRecord().getUserInfo(),
                 RECAPTCHA_RESPONSE
@@ -397,7 +434,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(mockConnection.getURL()).thenReturn(url);
         // Call method under test
 
-        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status");
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
+                , "jane.doe@test.gov", "United States");
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
                 testRecordWrapper.getRecord().getUserInfo(),
                 RECAPTCHA_RESPONSE
@@ -427,15 +465,14 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     }
 
-
-    private RecordWrapper getTestRecordWrapper(String status) {
+    private RecordWrapper getTestRecordWrapper(String status, String email, String country) {
         UserInfo userInfo = new UserInfo();
         userInfo.setFullName("Jane Doe");
         userInfo.setSubject("1234");
-        userInfo.setCountry("United States");
+        userInfo.setCountry(country);
         userInfo.setOrganization("NASA");
         userInfo.setDescription("Some description goes here");
-        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setEmail(email);
         userInfo.setProductTitle("Product title");
         userInfo.setApprovalStatus(status);
         userInfo.setReceiveEmails("Yes");
@@ -463,7 +500,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             // Act
             service.createRecord(
                     new UserInfoWrapper(
-                            getTestRecordWrapper("Pending").getRecord().getUserInfo(),
+                            getTestRecordWrapper("Pending",
+                                    "jane.doe@test.gov", "United States").getRecord().getUserInfo(),
                             RECAPTCHA_RESPONSE
                     ));
             fail("Expected RequestProcessingException to be thrown");
@@ -495,10 +533,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testUpdateRecord_success() throws Exception {
         String recordId = "record12345";
         String email = "test@example.com";
+        String country = "United States";
         String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email;
 
         // Mock behavior of getRecord method
-        doReturn(getTestRecordWrapper(expectedApprovalStatus)).when(service).getRecord("record12345");
+        doReturn(getTestRecordWrapper(expectedApprovalStatus, email, country)).when(service).getRecord("record12345");
 
         // Mock HttpResponse
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
