@@ -276,6 +276,10 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         String country = userInfoWrapper.getUserInfo().getCountry();
         String rejectionReason = "";
 
+        // Log user info
+        LOGGER.debug("User's email: " + email);
+        LOGGER.debug("User's country: " + country);
+
         // Check for blacklisted email and country
         if (isEmailBlacklisted(email)) {
             rejectionReason = "Email " + email + " is blacklisted.";
@@ -387,8 +391,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
                 this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
             } else {
                 // Since the record is automatically rejected, we skip sending approval and notification emails.
-                LOGGER.info("Record automatically rejected due to blacklist. Skipping email notifications."
-                        + newRecordWrapper.getRecord().getUserInfo().getDescription());
+                LOGGER.info("Record automatically rejected due to blacklist. Skipping email notifications.");
             }
         } else {
             // we expect a record to be created every time we call createRecord
