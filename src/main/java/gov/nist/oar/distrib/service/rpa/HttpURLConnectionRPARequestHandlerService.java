@@ -73,6 +73,7 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     private final static String RECORD_PENDING_STATUS = "pending";
     private final static String RECORD_APPROVED_STATUS = "approved";
     private final static String RECORD_DECLINED_STATUS = "declined";
+    private final static String RECORD_REJECTED_STATUS = "rejected";
 
     /**
      * The RPA configuration.
@@ -273,15 +274,23 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         // Validate the email and country against the blacklists before proceeding
         String email = userInfoWrapper.getUserInfo().getEmail();
         String country = userInfoWrapper.getUserInfo().getCountry();
+        String rejectionReason = "";
 
+        // Check for blacklisted email and country
         if (isEmailBlacklisted(email)) {
+            rejectionReason = "Email " + email + " is blacklisted.";
             LOGGER.warn("Email {} is blacklisted. Request to create record will be automatically rejected.", email);
-            throw new InvalidRequestException("The provided email is blacklisted.");
+        } else if (isCountryBlacklisted(country)) {
+            rejectionReason = "Country " + country + " is blacklisted.";
+            LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
         }
 
-        if (isCountryBlacklisted(country)) {
-            LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
-            throw new InvalidRequestException("The provided country is blacklisted.");
+        if (!rejectionReason.isEmpty()) {
+            // Append the rejection reason to the existing description
+            String currentDescription = userInfoWrapper.getUserInfo().getDescription();
+            String updatedDescription = currentDescription + "\nThis record was automatically rejected. Reason: " + rejectionReason;
+            userInfoWrapper.getUserInfo().setDescription(updatedDescription);
+            userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
         }
 
         // Initialize return value
@@ -371,12 +380,22 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
 
         // Check if success and handle accordingly
         if (newRecordWrapper != null) {
-            this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
+            // Check if the record is marked as rejected before proceeding
+            if (!RECORD_REJECTED_STATUS.equals(newRecordWrapper.getRecord().getUserInfo().getApprovalStatus())) {
+                // If the record is not marked as rejected, proceed with the normal success handling,
+                // including sending emails for SME approval and to the requester.
+                this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
+            } else {
+                // Since the record is automatically rejected, we skip sending approval and notification emails.
+                LOGGER.info("Record automatically rejected due to blacklist. Skipping email notifications."
+                        + newRecordWrapper.getRecord().getUserInfo().getDescription());
+            }
         } else {
             // we expect a record to be created every time we call createRecord
-            // if newRecordWrapped is null, it means creation failed
+            // if newRecordWrapper is null, it means creation failed
             this.recordResponseHandler.onRecordCreationFailure(responseCode);
         }
+
 
         return newRecordWrapper;
     }
