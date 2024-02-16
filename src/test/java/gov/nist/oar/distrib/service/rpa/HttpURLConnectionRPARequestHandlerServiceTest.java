@@ -44,9 +44,12 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -302,10 +305,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Verify connection was closed
         verify(mockConnection).disconnect();
 
+        // Verify that onRecordCreationSuccess is called for non-blacklisted records
+        verify(recordResponseHandler, times(1)).onRecordCreationSuccess(any());
+
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testCreateRecord_withBlacklistedEmail_shouldThrowInvalidRequestException() throws Exception {
+    @Test
+    public void testCreateRecord_withBlacklistedEmail_DoesNotSendEmails() throws Exception {
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -318,26 +324,106 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
 
         // Act
-        service.createRecord(userInfoWrapper);
+        // Set expected dummy response
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@123.com\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"rejected\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"Some description goes here\""
+                + "}}}";
+        // Create an input stream with the dummy data
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        // When getInputStream() is called on the mockConnection, return the dummy input stream
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        // Create a mock output stream for the connection
+        OutputStream osMock = mock(OutputStream.class);
+        // Set up the mock to return the mock output stream when getOutputStream is called
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        URL url = new URL(getCreateRecordUrl());
+        when(mockConnection.getURL()).thenReturn(url);
+
+        // Act
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+
+        // Assert
+        assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
+        // Assert that the status was set by the server and not the user's input
+        assertEquals("rejected", actualRecord.getRecord().getUserInfo().getApprovalStatus());
+        assertEquals("United States", actualRecord.getRecord().getUserInfo().getCountry());
+        assertEquals("jane.doe@123.com", actualRecord.getRecord().getUserInfo().getEmail());
+
+        // Verify that the mock output stream was written to as expected
+        byte[] expectedPayloadBytes = userInfoWrapper.toString().getBytes(StandardCharsets.UTF_8);
+        verify(osMock).write(expectedPayloadBytes);
+        verify(osMock).flush();
+        verify(osMock).close();
+        verify(mockConnection).setRequestMethod("POST");
+        verify(mockConnection).setDoOutput(true);
+        verify(mockConnection).setRequestProperty("Content-Type", "application/json");
+        verify(mockConnection).setRequestProperty("Authorization", "Bearer " + testToken.getAccessToken());
+        assertEquals(getCreateRecordUrl(), mockConnection.getURL().toString());
+
+        // Verify connection was closed
+        verify(mockConnection).disconnect();
+
+        // Verify that onRecordCreationSuccess is not called for a blacklisted email
+        verify(recordResponseHandler, never()).onRecordCreationSuccess(any());
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testCreateRecord_withBlacklistedCountry_shouldThrowInvalidRequestException() throws Exception {
+    @Test
+    public void testCreateRecord_withBlacklistedEmail_SetsStatusAndDescriptionCorrectly() throws Exception {
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
-                , "jane.doe@test.gov", "Cuba");
+                , "jane.doe@123.com", "United States");
         UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
                 testRecordWrapper.getRecord().getUserInfo(),
                 RECAPTCHA_RESPONSE,
                 new HashMap<>()
         );
-        // Mocking blacklisted country
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\.", "@gmail\\.com"));
-        when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Cuba"));
+
+        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
 
         // Act
-        service.createRecord(userInfoWrapper);
+        // Set expected dummy response
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@123.com\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"rejected\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"This record was automatically rejected. Reason: Email is blacklisted.\""
+                + "}}}";
+        // Create an input stream with the dummy data
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        // When getInputStream() is called on the mockConnection, return the dummy input stream
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        // Create a mock output stream for the connection
+        OutputStream osMock = mock(OutputStream.class);
+        // Set up the mock to return the mock output stream when getOutputStream is called
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+
+        // Act
+        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+
+        // Assert
+        assertEquals("rejected", actualRecord.getRecord().getUserInfo().getApprovalStatus());
+        assertTrue(actualRecord.getRecord().getUserInfo().getDescription()
+                .contains("This record was automatically rejected."));
+
     }
+
 
     @Test
     public void testCreateRecord_withAuthorizedUser_shouldSucceed()
