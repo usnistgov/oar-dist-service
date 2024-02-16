@@ -42,6 +42,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -266,6 +269,21 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
     public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
             RequestProcessingException {
         int responseCode;
+
+        // Validate the email and country against the blacklists before proceeding
+        String email = userInfoWrapper.getUserInfo().getEmail();
+        String country = userInfoWrapper.getUserInfo().getCountry();
+
+        if (isEmailBlacklisted(email)) {
+            LOGGER.warn("Email {} is blacklisted. Request to create record will be automatically rejected.", email);
+            throw new InvalidRequestException("The provided email is blacklisted.");
+        }
+
+        if (isCountryBlacklisted(country)) {
+            LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
+            throw new InvalidRequestException("The provided country is blacklisted.");
+        }
+
         // Initialize return value
         RecordWrapper newRecordWrapper;
 
@@ -361,6 +379,23 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         }
 
         return newRecordWrapper;
+    }
+
+    private boolean isEmailBlacklisted(String email) {
+        List<String> disallowedEmailStrings = rpaConfiguration.getDisallowedEmails();
+        for (String patternString : disallowedEmailStrings) {
+            Pattern pattern = Pattern.compile(patternString);
+            Matcher matcher = pattern.matcher(email);
+            if (matcher.find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCountryBlacklisted(String country) {
+        List<String> disallowedCountries = rpaConfiguration.getDisallowedCountries();
+        return disallowedCountries.contains(country);
     }
 
     private String prepareRequestPayload(UserInfoWrapper userInfoWrapper) throws JsonProcessingException {
