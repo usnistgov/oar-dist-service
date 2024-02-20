@@ -486,10 +486,11 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException(rootdir+": Not an existing directory");
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
-        checks.add(new ChecksumCheck(false, true));
         // Get the StorageInventoryDB from the cache and add the CacheExpiryCheck to the list of checks
         StorageInventoryDB inventoryDB = cache.getInventoryDB();
         checks.add(new CacheExpiryCheck(inventoryDB));
+        checks.add(new ChecksumCheck(false, true));
+
         PDRCacheManager out = new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, 
                                                   getCheckGracePeriod()*1000, -1, rootdir, logger);
         if (getMonitorAutoStart()) {
