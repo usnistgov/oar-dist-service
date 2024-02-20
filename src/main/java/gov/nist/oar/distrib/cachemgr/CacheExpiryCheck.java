@@ -36,29 +36,48 @@ public class CacheExpiryCheck implements CacheObjectCheck {
             throw new IllegalArgumentException("CacheObject or StorageInventoryDB is null");
         }
 
-        if (!co.hasMetadatum("expiresIn")) {
-            throw new IntegrityException("CacheObject missing 'expiresIn' metadata");
-        }
-
-        long expiresInDuration = co.getMetadatumLong("expiresIn", -1L);
-        if (expiresInDuration == -1L) {
-            throw new IntegrityException("Invalid 'expiresIn' metadata value");
-        }
-
-        long lastModified = co.getLastModified();
-        if (lastModified == -1L) {
-            throw new IntegrityException("CacheObject 'lastModified' time not available");
-        }
-
-        long expiryTime = lastModified + expiresInDuration;
-        long currentTime = Instant.now().toEpochMilli();
-
-        if (expiryTime < currentTime) {
-            try {
-                inventoryDB.removeObject(co.volname, co.name);
-            } catch (InventoryException e) {
-                throw new CacheManagementException("Error removing expired object from inventory database: " + co.name, e);
+        if (co.hasMetadatum("expiresIn")) {
+            long expiresInDuration = co.getMetadatumLong("expiresIn", -1L);
+            if (expiresInDuration == -1L) {
+                throw new IntegrityException("Invalid 'expiresIn' metadata value");
             }
+
+            long lastModified = co.getLastModified();
+            if (lastModified == -1L) {
+                throw new IntegrityException("CacheObject 'lastModified' time not available");
+            }
+
+            long expiryTime = lastModified + expiresInDuration;
+            long currentTime = Instant.now().toEpochMilli();
+
+            // Check if the object is expired
+            if (expiryTime < currentTime) {
+                try {
+                    boolean removed = removeObject(co);
+                    if (!removed) {
+                        throw new CacheManagementException("Failed to remove expired object: " + co.name);
+                    }
+                } catch (InventoryException e) {
+                    throw new CacheManagementException("Error removing expired object from inventory database: " + co.name, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Attempts to remove a cache object from both its physical volume and the inventory database.
+     * Synchronization ensures thread-safe removal operations.
+     *
+     * @param co The cache object to be removed.
+     * @return true if the object was successfully removed from its volume, false otherwise.
+     * @throws StorageVolumeException if an error occurs accessing the storage volume.
+     * @throws InventoryException if an error occurs updating the inventory database.
+     */
+    protected boolean removeObject(CacheObject co) throws StorageVolumeException, InventoryException {
+        synchronized (inventoryDB) {
+            boolean out = co.volume.remove(co.name);
+            inventoryDB.removeObject(co.volname, co.name);
+            return out;
         }
     }
 }

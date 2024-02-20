@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Instant;
+
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,19 +37,17 @@ public class CacheExpiryCheckTest {
      * @throws Exception to handle any exceptions thrown during the test execution
      */
     @Test
-    public void testExpiredObject() throws Exception {
-        // Setup mock
-        cacheObject.name = "testObject";
-        cacheObject.volname = "testVolume";
+    public void testExpiredObjectRemoval() throws Exception {
+        // Setup an expired cache object
+        cacheObject.volume = mockVolume;
         when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(14 * 24 * 60 * 60 * 1000L); // 14 days in milliseconds
-        long lastModified = System.currentTimeMillis() - (15 * 24 * 60 * 60 * 1000L); // 15 days ago
-        when(cacheObject.getLastModified()).thenReturn(lastModified);
+        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(1000L); // Expires in 1 second
+        when(cacheObject.getLastModified()).thenReturn(Instant.now().minusSeconds(10).toEpochMilli());
+        when(cacheObject.volume.remove(cacheObject.name)).thenReturn(true);
 
-        // Perform the check
         expiryCheck.check(cacheObject);
 
-        // Verify the interactions
+        // Verify removeObject effect
         verify(mockInventoryDB).removeObject(cacheObject.volname, cacheObject.name);
     }
 
@@ -77,41 +77,75 @@ public class CacheExpiryCheckTest {
     }
 
     /**
-     * Test to verify that {@link CacheExpiryCheck} throws an {@link IntegrityException} when the last modified time
-     * of a cache object is unknown (indicated by a value of -1). This situation should be flagged as an error
-     * as the expiry status of the object cannot be determined.
+     * Tests that no action is taken and no exception is thrown for a cache object without the {@code expiresIn} metadata.
+     * This verifies that the absence of {@code expiresIn} metadata does not trigger any removal process or result in an error.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
      */
-    @Test(expected = IntegrityException.class)
-    public void testUnknownLastModifiedTime() throws Exception {
-        // Setup mock
-        cacheObject.name = "unknownLastModifiedObject";
-        cacheObject.volname = "testVolume";
-        cacheObject.volume = mockVolume;
-        long lastModified = -1; // Unknown last modified time
-        when(cacheObject.getLastModified()).thenReturn(lastModified);
-
-        // Perform the check, expecting an IntegrityException
-        expiryCheck.check(cacheObject);
-    }
-
-    /**
-     * Test to verify that {@link CacheExpiryCheck} throws an {@link IntegrityException} when a cache object lacks the
-     * `expiresIn` metadata. This scenario indicates that the object's expiration cannot be determined, necessitating
-     * error handling.
-     *
-     * @throws Exception to handle any exceptions thrown during the test execution
-     */
-    @Test(expected = IntegrityException.class)
-    public void testObjectWithoutExpiresInMetadata() throws Exception {
-        // Setup mock to simulate an object without expiresIn metadata
+    @Test
+    public void testObjectWithoutExpiresInMetadata_NoActionTaken() throws Exception {
         cacheObject.name = "objectWithoutExpiresIn";
         cacheObject.volname = "testVolume";
         when(cacheObject.hasMetadatum("expiresIn")).thenReturn(false);
 
-        // Attempt to check the object, expecting an IntegrityException
         expiryCheck.check(cacheObject);
+
+        verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
+    }
+
+    /**
+     * Test to ensure that a cache object with an expiration date in the future is not removed from the cache.
+     * This test verifies the {@code check} method's correct behavior in handling non-expired objects based
+     * on the {@code expiresIn} metadata.
+     *
+     * @throws Exception to handle any exceptions thrown during the test execution.
+     */
+    @Test
+    public void testNonExpiredObject_NoRemoval() throws Exception {
+        // Setup a non-expired cache object
+        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(System.currentTimeMillis() + 10000L); // Expires in the future
+        when(cacheObject.getLastModified()).thenReturn(System.currentTimeMillis());
+
+        expiryCheck.check(cacheObject);
+
+        // Verify no removal happens
+        verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
+    }
+
+
+    /**
+     * Tests that an {@link IntegrityException} is thrown when a cache object has the {@code expiresIn} metadata
+     * but lacks a valid {@code lastModified} time.
+     *
+     * @throws Exception to handle any exceptions thrown during the test execution
+     */
+    @Test(expected = IntegrityException.class)
+    public void testObjectWithExpiresInButNoLastModified_ThrowsException() throws Exception {
+        cacheObject.name = "objectWithNoLastModified";
+        cacheObject.volname = "testVolume";
+        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(1000L); // Expires in 1 second
+        when(cacheObject.getLastModified()).thenReturn(-1L); // Last modified not available
+
+        expiryCheck.check(cacheObject);
+    }
+
+    /**
+     * Test to verify that no action is taken for a cache object missing the {@code expiresIn} metadata.
+     * This test ensures that the absence of {@code expiresIn} metadata does not trigger any removal or error.
+     *
+     * @throws Exception to handle any exceptions thrown during the test execution.
+     */
+    @Test
+    public void testObjectWithoutExpiresIn_NoAction() throws Exception {
+        // Setup an object without expiresIn metadata
+        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(false);
+
+        expiryCheck.check(cacheObject);
+
+        // Verify no action is taken
+        verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
     }
 
 }
