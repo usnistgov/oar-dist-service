@@ -2,6 +2,8 @@ package gov.nist.oar.distrib.cachemgr;
 
 import gov.nist.oar.distrib.StorageVolumeException;
 
+import java.time.Instant;
+
 /**
  * Implements a cache object check to identify and remove objects that have been in the cache
  * longer than a specified duration, specifically two weeks. This check helps in
@@ -10,7 +12,7 @@ import gov.nist.oar.distrib.StorageVolumeException;
  */
 public class CacheExpiryCheck implements CacheObjectCheck {
 
-    private static final long TWO_WEEKS_MILLIS = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
+    // private static final long TWO_WEEKS_MILLIS = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
     private StorageInventoryDB inventoryDB;
 
     public CacheExpiryCheck(StorageInventoryDB inventoryDB) {
@@ -18,45 +20,45 @@ public class CacheExpiryCheck implements CacheObjectCheck {
     }
 
     /**
-     * Checks whether a cache object has expired based on its last modified time and removes it if expired.
-     * An object is considered expired if it has been in the cache for more than two weeks.
+     * Checks if a cache object is expired and removes it from the cache if it is.
+     * The method uses the {@code expiresIn} metadata field to determine the expiration status.
+     * The expiration time is calculated based on the {@code LastModified} time plus the {@code expiresIn} duration.
+     * If the current time is past the calculated expiry time, the object is removed from the inventory database.
      *
-     * @param co The CacheObject to be checked for expiry.
-     * @throws IntegrityException if the cache object's last modified time is unknown.
-     * @throws StorageVolumeException if there is an issue removing the expired object from the cache volume.
+     * @param co The cache object to check for expiration.
+     * @throws IntegrityException If the object is found to be corrupted during the check.
+     * @throws StorageVolumeException If there's an error accessing the storage volume during the check.
+     * @throws CacheManagementException If there's an error managing the cache, including removing the expired object.
      */
     @Override
-    public void check(CacheObject co) throws IntegrityException, StorageVolumeException {
-        long currentTime = System.currentTimeMillis();
-        long objectLastModifiedTime = co.getLastModified();
-
-        // Throw an exception if the last modified time is unknown
-        if (objectLastModifiedTime == -1) {
-            throw new IntegrityException("Last modified time of cache object is unknown: " + co.name);
+    public void check(CacheObject co) throws IntegrityException, StorageVolumeException, CacheManagementException {
+        if (co == null || inventoryDB == null) {
+            throw new IllegalArgumentException("CacheObject or StorageInventoryDB is null");
         }
 
-        // If the cache object is expired, remove it from the cache
-        if ((currentTime - objectLastModifiedTime) > TWO_WEEKS_MILLIS) {
-            removeExpiredObject(co);
+        if (!co.hasMetadatum("expiresIn")) {
+            throw new IntegrityException("CacheObject missing 'expiresIn' metadata");
         }
-    }
 
-    /**
-     * Removes an expired object from the cache.
-     *
-     * @param co The expired CacheObject to be removed.
-     * @throws StorageVolumeException if there is an issue removing the object from the cache volume.
-     */
-    protected void removeExpiredObject(CacheObject co) throws StorageVolumeException {
-        CacheVolume volume = co.volume;
-        if (volume != null && volume.remove(co.name)) {
+        long expiresInDuration = co.getMetadatumLong("expiresIn", -1L);
+        if (expiresInDuration == -1L) {
+            throw new IntegrityException("Invalid 'expiresIn' metadata value");
+        }
+
+        long lastModified = co.getLastModified();
+        if (lastModified == -1L) {
+            throw new IntegrityException("CacheObject 'lastModified' time not available");
+        }
+
+        long expiryTime = lastModified + expiresInDuration;
+        long currentTime = Instant.now().toEpochMilli();
+
+        if (expiryTime < currentTime) {
             try {
                 inventoryDB.removeObject(co.volname, co.name);
             } catch (InventoryException e) {
-                throw new StorageVolumeException("Failed to remove object from inventory database: " + co.name, e);
+                throw new CacheManagementException("Error removing expired object from inventory database: " + co.name, e);
             }
-        } else {
-            throw new StorageVolumeException("Failed to remove expired object from cache volume: " + co.name);
         }
     }
 }
