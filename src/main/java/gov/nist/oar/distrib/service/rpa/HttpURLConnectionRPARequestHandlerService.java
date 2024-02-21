@@ -289,11 +289,15 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
         }
 
+        // Set the pending status of the record in this service, and not based on the user's input
+        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
+
         if (!rejectionReason.isEmpty()) {
             // Append the rejection reason to the existing description
             String currentDescription = userInfoWrapper.getUserInfo().getDescription();
             String updatedDescription = currentDescription + "\nThis record was automatically rejected. Reason: " + rejectionReason;
             userInfoWrapper.getUserInfo().setDescription(updatedDescription);
+            // Set approval status to rejected
             userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
         }
 
@@ -317,9 +321,6 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
         LOGGER.debug("CREATE_RECORD_URL=" + url);
-
-        // Set the pending status of the record in this service, and not based on the user's input
-        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
 
         String postPayload;
         try {
