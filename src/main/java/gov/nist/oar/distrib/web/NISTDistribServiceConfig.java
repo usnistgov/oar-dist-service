@@ -17,14 +17,8 @@ import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
-import gov.nist.oar.distrib.service.rpa.JKSKeyRetriever;
-import gov.nist.oar.distrib.service.rpa.KeyRetriever;
-import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -37,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.boot.SpringApplication;
@@ -46,7 +39,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -141,12 +133,6 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.bagstore.mode}")
     String mode;
 
-    @Value("${distrib.rpa.bagstore-location}")
-    private String rpaBagstore;
-
-    @Value("${distrib.rpa.bagstore-mode}")
-    private String rpaMode;
-
     /**
      * the AWS region the service should operate in; this is ignored if mode=local.
      */
@@ -208,25 +194,6 @@ public class NISTDistribServiceConfig {
         catch (FileNotFoundException ex) {
             throw new ConfigurationException("distrib.bagstore.location",
                                              "Storage Location not found: "+ex.getMessage(), ex);
-        }
-    }
-
-    /**
-     * The storage service to use to access the bags, considering the mode and location.
-     */
-    @Bean
-    public BagStorage getBagStorageService() throws ConfigurationException {
-        try {
-            if ("aws".equals(rpaMode) || "remote".equals(rpaMode)) {
-                return new AWSS3LongTermStorage(rpaBagstore, s3client);
-            } else if ("local".equals(rpaMode)) {
-                return new FilesystemLongTermStorage(rpaBagstore);
-            } else {
-                throw new ConfigurationException("distrib.rpa.bagstore-mode", "Unsupported storage mode: " + rpaMode);
-            }
-        } catch (FileNotFoundException ex) {
-            throw new ConfigurationException("distrib.rpa.bagstore-location",
-                    "Storage Location not found: " + ex.getMessage(), ex);
         }
     }
 
