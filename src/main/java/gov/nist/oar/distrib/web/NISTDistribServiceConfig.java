@@ -179,6 +179,12 @@ public class NISTDistribServiceConfig {
 
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
+
+    @Value("${distrib.rpa.bagstore-location}")
+    private String rpaBagstore;
+
+    @Value("${distrib.rpa.bagstore-mode}")
+    private String rpaMode;
     
     @Autowired AmazonS3             s3client;    // set via getter below
     @Autowired BagStorage                lts;    // set via getter below
@@ -202,6 +208,25 @@ public class NISTDistribServiceConfig {
         catch (FileNotFoundException ex) {
             throw new ConfigurationException("distrib.bagstore.location",
                                              "Storage Location not found: "+ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * The storage service to use to access the bags, considering the mode and location.
+     */
+    @Bean
+    public BagStorage getBagStorageService() throws ConfigurationException {
+        try {
+            if ("aws".equals(rpaMode) || "remote".equals(rpaMode)) {
+                return new AWSS3LongTermStorage(rpaBagstore, s3client);
+            } else if ("local".equals(rpaMode)) {
+                return new FilesystemLongTermStorage(rpaBagstore);
+            } else {
+                throw new ConfigurationException("distrib.rpa.bagstore-mode", "Unsupported storage mode: " + rpaMode);
+            }
+        } catch (FileNotFoundException ex) {
+            throw new ConfigurationException("distrib.rpa.bagstore-location",
+                    "Storage Location not found: " + ex.getMessage(), ex);
         }
     }
 
