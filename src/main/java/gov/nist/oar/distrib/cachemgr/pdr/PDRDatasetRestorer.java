@@ -82,8 +82,6 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     HeadBagCacheManager hbcm = null;
     long smszlim = 100000000L;  // 100 MB
     Logger log = null;
-    private static final long TWO_WEEKS_MILLIS = 14L * 24 * 60 * 60 * 1000; // 2 weeks in milliseconds
-
 
     /**
      * create the restorer
@@ -652,12 +650,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("ediid", resmd.get("ediid"));
                 md.put("cachePrefs", prefs);
 
-                // Add expiresIn metadata for files marked as ROLE_RESTRICTED_DATA
-                if ((prefs & ROLE_RESTRICTED_DATA) != 0) {
-                    // Calculate the expiration time as current time + 2 weeks
-                    long expiresIn = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
-                    md.put("expiresIn", expiresIn);
-                }
+                // a hook for handling the expiration logic
+                updateMetadata(md, prefs);
 
                 // find space in the cache, and copy the data file into it
                 try {
@@ -694,6 +688,18 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         if (fix.size() > 0 && manifest != null)
             fixMissingChecksums(into, fix, manifest);
+    }
+
+    /**
+     * Method intended for customization of metadata before caching. This method can be overridden
+     * by subclasses to implement specific metadata customization logic as needed.
+     *
+     * @param md The metadata JSONObject to be customized.
+     * @param prefs flags for data roles
+     */
+    protected void updateMetadata(JSONObject md, int prefs) {
+        // Default implementation does nothing.
+        // Subclasses can override this to implement specific logic.
     }
 
     /**

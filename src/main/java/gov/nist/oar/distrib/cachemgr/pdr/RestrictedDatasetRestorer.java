@@ -20,44 +20,23 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.cachemgr.Restorer;
 import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
-import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.Cache;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Set;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.text.ParseException;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import org.json.JSONObject;
 import org.json.JSONException;
 
-import org.apache.commons.io.FilenameUtils;
 
 /**
  * A {@link gov.nist.oar.distrib.cachemgr.Restorer} for restoring "restricted public" datasets from the 
@@ -82,6 +61,7 @@ import org.apache.commons.io.FilenameUtils;
  */
 public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
     BagStorage restrictedLtstore = null;
+    long expiryTime = 1209600000L; // 2 weeks in milliseconds
 
     /**
      * create the restorer
@@ -125,6 +105,25 @@ public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
         this.restrictedLtstore = restrictedLtstore;
     }
 
+    /**
+     * Retrieves the expiry time for data.
+     * <p>
+     * This value represents the duration in milliseconds after which the data is considered expired.
+     *
+     * @return the expiry time in milliseconds.
+     */
+    public long getExpiryTime() {
+        return expiryTime;
+    }
+
+    /**
+     * Sets the expiry time for restricted/public access content.
+     *
+     * @param expiryTime the expiry time in milliseconds to set.
+     */
+    public void setExpiryTime(long expiryTime) {
+        this.expiryTime = expiryTime;
+    }
 
     /**
      * return true if an object does <i>not</i> exist in the long term storage system.  Returning
@@ -283,6 +282,21 @@ public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
             // If the bag file is not found in the restricted storage, try the public storage.
             cacheFromBagUsingStore(bagfile, need, cached, resmd, defprefs, forVersion, into, recache,
                                    target, ltstore);
+        }
+    }
+
+    /**
+     * Updates the metadata for files marked as restricted, by adding an expiration time.
+     *
+     * @param md The metadata JSONObject to be customized.
+     * @param prefs flags for data roles
+     */
+    @Override
+    protected void updateMetadata(JSONObject md, int prefs) {
+        if ((prefs & ROLE_RESTRICTED_DATA) != 0) {
+            // Calculate the expiration time as current time + expiryTime
+            long expiresIn = System.currentTimeMillis() + expiryTime;
+            md.put("expiresIn", expiresIn);
         }
     }
 }

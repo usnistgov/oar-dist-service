@@ -53,7 +53,8 @@ public class RPAConfiguration {
     String bagStore = null;
     @JsonProperty("bagstore-mode")
     String mode = null;
-
+    @JsonProperty("expiresAfterMillis")
+    long expiresAfterMillis = 0L;
 
     public long getHeadbagCacheSize() {
         return hbCacheSize;
@@ -74,6 +75,14 @@ public class RPAConfiguration {
     }
     public void setBagstoreMode(String mode) {
         this.mode = mode;
+    }
+
+    public long getExpiresAfterMillis() {
+        return expiresAfterMillis;
+    }
+
+    public void setExpiresAfterMillis(long expiresAfterMillis) {
+        this.expiresAfterMillis = expiresAfterMillis;
     }
 
     public SalesforceJwt getSalesforceJwt() {
