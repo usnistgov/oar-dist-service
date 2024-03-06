@@ -407,7 +407,7 @@ public class RestrictedDatasetRestorerTest {
     }
 
     @Test
-    public void testExpiresIn() throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+    public void testExpires() throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
 
         assertTrue(! cache.isCached("mds1491/trial1.json"));
         assertTrue(! cache.isCached("mds1491/trial2.json"));
@@ -429,33 +429,33 @@ public class RestrictedDatasetRestorerTest {
 
         List<CacheObject> found = cache.getInventoryDB().findObject("mds1491/trial1.json", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expiresIn metadata", found.get(0).hasMetadatum("expiresIn"));
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
 
-        // Verify the "expiresIn" value is approximately 2 weeks from the current time
+        // Verify the "expires" value is approximately 2 weeks from the current time
         long TWO_WEEKS_MILLIS = 14L * 24 * 60 * 60 * 1000;
-        long expectedExpiresIn = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
-        long actualExpiresIn = found.get(0).getMetadatumLong("expiresIn", 0);
-        // Check that the absolute difference between the expected and actual expiresIn values is less than 1000ms
-        assertTrue("expiresIn should be set to 2 weeks from the current time",
-                Math.abs(expectedExpiresIn - actualExpiresIn) < 1000);
+        long expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        long actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        // Check that the absolute difference between the expected and actual expires values is less than 1000ms
+        assertTrue("expires field should be set to 2 weeks from the current time",
+                Math.abs(expectedExpires - actualExpires) < 1000);
 
         found = cache.getInventoryDB().findObject("mds1491/trial2.json", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expiresIn metadata", found.get(0).hasMetadatum("expiresIn"));
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
 
-        expectedExpiresIn = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
-        actualExpiresIn = found.get(0).getMetadatumLong("expiresIn", 0);
-        assertTrue("expiresIn should be set to 2 weeks from the current time",
-                Math.abs(expectedExpiresIn - actualExpiresIn) < 1000);
+        expectedExpires= System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        assertTrue("expires field should be set to 2 weeks from the current time",
+                Math.abs(expectedExpires - actualExpires) < 1000);
 
         found = cache.getInventoryDB().findObject("mds1491/README.txt", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expiresIn metadata", found.get(0).hasMetadatum("expiresIn"));
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
 
-        expectedExpiresIn = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
-        actualExpiresIn = found.get(0).getMetadatumLong("expiresIn", 0);
-        assertTrue("expiresIn should be set to 2 weeks from the current time",
-                Math.abs(expectedExpiresIn - actualExpiresIn) < 1000);
+        expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        assertTrue("expires field should be set to 2 weeks from the current time",
+                Math.abs(expectedExpires - actualExpires) < 1000);
 
     }
 

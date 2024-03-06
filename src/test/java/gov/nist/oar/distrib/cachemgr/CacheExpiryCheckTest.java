@@ -30,7 +30,7 @@ public class CacheExpiryCheckTest {
 
     /**
      * Test to verify that {@link CacheExpiryCheck} correctly identifies and processes an expired cache object.
-     * An object is considered expired based on the `expiresIn` metadata, which defines the duration after which
+     * An object is considered expired based on the `expires` metadata, which defines the duration after which
      * an object should be considered expired from the time of its last modification. This test ensures that an object
      * past its expiration is appropriately removed from the inventory database.
      *
@@ -40,8 +40,8 @@ public class CacheExpiryCheckTest {
     public void testExpiredObjectRemoval() throws Exception {
         // Setup an expired cache object
         cacheObject.volume = mockVolume;
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(1000L); // Expires in 1 second
+        when(cacheObject.hasMetadatum("expires")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(1000L); // Expires in 1 second
         when(cacheObject.getLastModified()).thenReturn(Instant.now().minusSeconds(10).toEpochMilli());
         when(cacheObject.volume.remove(cacheObject.name)).thenReturn(true);
 
@@ -54,7 +54,7 @@ public class CacheExpiryCheckTest {
 
     /**
      * Test to ensure that {@link CacheExpiryCheck} does not flag a cache object as expired if the current time has not
-     * exceeded its `expiresIn` duration since its last modification. This test verifies that no removal action is taken
+     * exceeded its `expires` duration since its last modification. This test verifies that no removal action is taken
      * for such non-expired objects.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
@@ -64,8 +64,8 @@ public class CacheExpiryCheckTest {
         // Setup mock
         cacheObject.name = "nonExpiredObject";
         cacheObject.volname = "testVolume";
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(14 * 24 * 60 * 60 * 1000L); // 14 days in milliseconds
+        when(cacheObject.hasMetadatum("expires")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(14 * 24 * 60 * 60 * 1000L); // 14 days in milliseconds
         long lastModified = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L); // 7 days ago, within expiry period
         when(cacheObject.getLastModified()).thenReturn(lastModified);
 
@@ -77,16 +77,16 @@ public class CacheExpiryCheckTest {
     }
 
     /**
-     * Tests that no action is taken and no exception is thrown for a cache object without the {@code expiresIn} metadata.
-     * This verifies that the absence of {@code expiresIn} metadata does not trigger any removal process or result in an error.
+     * Tests that no action is taken and no exception is thrown for a cache object without the {@code expires} metadata.
+     * This verifies that the absence of {@code expires} metadata does not trigger any removal process or result in an error.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
      */
     @Test
-    public void testObjectWithoutExpiresInMetadata_NoActionTaken() throws Exception {
-        cacheObject.name = "objectWithoutExpiresIn";
+    public void testObjectWithoutExpiresMetadata_NoActionTaken() throws Exception {
+        cacheObject.name = "objectWithoutExpires";
         cacheObject.volname = "testVolume";
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(false);
+        when(cacheObject.hasMetadatum("expires")).thenReturn(false);
 
         expiryCheck.check(cacheObject);
 
@@ -96,15 +96,15 @@ public class CacheExpiryCheckTest {
     /**
      * Test to ensure that a cache object with an expiration date in the future is not removed from the cache.
      * This test verifies the {@code check} method's correct behavior in handling non-expired objects based
-     * on the {@code expiresIn} metadata.
+     * on the {@code expires} metadata.
      *
      * @throws Exception to handle any exceptions thrown during the test execution.
      */
     @Test
     public void testNonExpiredObject_NoRemoval() throws Exception {
         // Setup a non-expired cache object
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(System.currentTimeMillis() + 10000L); // Expires in the future
+        when(cacheObject.hasMetadatum("expires")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(System.currentTimeMillis() + 10000L); // Expires in the future
         when(cacheObject.getLastModified()).thenReturn(System.currentTimeMillis());
 
         expiryCheck.check(cacheObject);
@@ -115,32 +115,32 @@ public class CacheExpiryCheckTest {
 
 
     /**
-     * Tests that an {@link IntegrityException} is thrown when a cache object has the {@code expiresIn} metadata
+     * Tests that an {@link IntegrityException} is thrown when a cache object has the {@code expires} metadata
      * but lacks a valid {@code lastModified} time.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
      */
     @Test(expected = IntegrityException.class)
-    public void testObjectWithExpiresInButNoLastModified_ThrowsException() throws Exception {
+    public void testObjectWithExpiresButNoLastModified_ThrowsException() throws Exception {
         cacheObject.name = "objectWithNoLastModified";
         cacheObject.volname = "testVolume";
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expiresIn", -1L)).thenReturn(1000L); // Expires in 1 second
+        when(cacheObject.hasMetadatum("expires")).thenReturn(true);
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(1000L); // Expires in 1 second
         when(cacheObject.getLastModified()).thenReturn(-1L); // Last modified not available
 
         expiryCheck.check(cacheObject);
     }
 
     /**
-     * Test to verify that no action is taken for a cache object missing the {@code expiresIn} metadata.
-     * This test ensures that the absence of {@code expiresIn} metadata does not trigger any removal or error.
+     * Test to verify that no action is taken for a cache object missing the {@code expires} metadata.
+     * This test ensures that the absence of {@code expires} metadata does not trigger any removal or error.
      *
      * @throws Exception to handle any exceptions thrown during the test execution.
      */
     @Test
-    public void testObjectWithoutExpiresIn_NoAction() throws Exception {
-        // Setup an object without expiresIn metadata
-        when(cacheObject.hasMetadatum("expiresIn")).thenReturn(false);
+    public void testObjectWithoutExpires_NoAction() throws Exception {
+        // Setup an object without expires metadata
+        when(cacheObject.hasMetadatum("expires")).thenReturn(false);
 
         expiryCheck.check(cacheObject);
 

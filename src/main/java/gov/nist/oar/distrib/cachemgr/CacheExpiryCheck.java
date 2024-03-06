@@ -12,7 +12,6 @@ import java.time.Instant;
  */
 public class CacheExpiryCheck implements CacheObjectCheck {
 
-    // private static final long TWO_WEEKS_MILLIS = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
     private StorageInventoryDB inventoryDB;
 
     public CacheExpiryCheck(StorageInventoryDB inventoryDB) {
@@ -21,8 +20,8 @@ public class CacheExpiryCheck implements CacheObjectCheck {
 
     /**
      * Checks if a cache object is expired and removes it from the cache if it is.
-     * The method uses the {@code expiresIn} metadata field to determine the expiration status.
-     * The expiration time is calculated based on the {@code LastModified} time plus the {@code expiresIn} duration.
+     * The method uses the {@code expires} metadata field to determine the expiration status.
+     * The expiration time is calculated based on the {@code LastModified} time plus the {@code expires} duration.
      * If the current time is past the calculated expiry time, the object is removed from the inventory database.
      *
      * @param co The cache object to check for expiration.
@@ -36,10 +35,10 @@ public class CacheExpiryCheck implements CacheObjectCheck {
             throw new IllegalArgumentException("CacheObject or StorageInventoryDB is null");
         }
 
-        if (co.hasMetadatum("expiresIn")) {
-            long expiresInDuration = co.getMetadatumLong("expiresIn", -1L);
-            if (expiresInDuration == -1L) {
-                throw new IntegrityException("Invalid 'expiresIn' metadata value");
+        if (co.hasMetadatum("expires")) {
+            long expiresDuration = co.getMetadatumLong("expires", -1L);
+            if (expiresDuration == -1L) {
+                throw new IntegrityException("Invalid 'expires' metadata value");
             }
 
             long lastModified = co.getLastModified();
@@ -47,7 +46,7 @@ public class CacheExpiryCheck implements CacheObjectCheck {
                 throw new IntegrityException("CacheObject 'lastModified' time not available");
             }
 
-            long expiryTime = lastModified + expiresInDuration;
+            long expiryTime = lastModified + expiresDuration;
             long currentTime = Instant.now().toEpochMilli();
 
             // Check if the object is expired

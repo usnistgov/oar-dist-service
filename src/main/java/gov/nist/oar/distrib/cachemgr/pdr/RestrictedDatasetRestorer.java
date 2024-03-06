@@ -295,8 +295,8 @@ public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
     protected void updateMetadata(JSONObject md, int prefs) {
         if ((prefs & ROLE_RESTRICTED_DATA) != 0) {
             // Calculate the expiration time as current time + expiryTime
-            long expiresIn = System.currentTimeMillis() + expiryTime;
-            md.put("expiresIn", expiresIn);
+            long expires = System.currentTimeMillis() + expiryTime;
+            md.put("expires", expires);
         }
     }
 }
