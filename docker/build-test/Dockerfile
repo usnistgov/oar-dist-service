@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 FROM eclipse-temurin:8-jdk-focal 
 
 RUN mkdir -p /usr/share/man/man1
@@ -16,14 +15,12 @@ RUN java_certs=$JAVA_HOME/jre/lib/security/cacerts; \
         keytool -import -keystore $java_certs -trustcacerts -file $crt \
                 -storepass changeit -alias $name -noprompt; \
     done;
-=======
 FROM eclipse-temurin:8
 
 RUN mkdir -p /usr/share/man/man1
 RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
                                             python2 curl maven
 RUN cd /usr/bin && ln -s python2 python
->>>>>>> origin/integration
 
 # Create the user that build/test operations should run as.  Normally,
 # this is set to match identity information of the host user that is
