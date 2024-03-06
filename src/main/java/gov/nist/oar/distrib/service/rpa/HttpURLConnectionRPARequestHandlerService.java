@@ -140,6 +140,10 @@ public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHan
         this.recordResponseHandler = recordResponseHandler;
     }
 
+    public void seRPADatasetCacher(RPADatasetCacher rpaDatasetCacher) {
+        this.rpaDatasetCacher = rpaDatasetCacher;
+    }
+
     /**
      * Constructs a new instance of the service using the given RPA configuration.
      *
