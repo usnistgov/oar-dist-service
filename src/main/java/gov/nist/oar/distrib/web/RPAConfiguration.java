@@ -47,7 +47,34 @@ public class RPAConfiguration {
     List<String> authorized = null;
     @JsonProperty("jwtSecretKey")
     String jwtSecretKey = null;
+    @JsonProperty("headbagCacheSize")
+    long hbCacheSize = 50000000;   // 50 MB
+    @JsonProperty("bagstore-location")
+    String bagStore = null;
+    @JsonProperty("bagstore-mode")
+    String mode = null;
 
+
+    public long getHeadbagCacheSize() {
+        return hbCacheSize;
+    }
+    public void setHeadbagCacheSize(long size) {
+        hbCacheSize = size;
+    }
+
+    public String getBagstoreLocation() {
+        return bagStore;
+    }
+    public void setBagstoreLocation(String loc) {
+        bagStore = loc;
+    }
+    
+    public String getBagstoreMode() {
+        return mode;
+    }
+    public void setBagstoreMode(String mode) {
+        this.mode = mode;
+    }
 
     public SalesforceJwt getSalesforceJwt() {
         return salesforceJwt;

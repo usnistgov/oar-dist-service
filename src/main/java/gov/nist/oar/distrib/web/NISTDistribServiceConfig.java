@@ -24,6 +24,7 @@ import gov.nist.oar.distrib.service.rpa.KeyRetriever;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.boot.SpringApplication;
@@ -296,16 +298,26 @@ public class NISTDistribServiceConfig {
     }
 
     /**
-     * the service implementation to use for restricted data access caching service
+     * create an RPACachingServiceProvider, used to create the RPACachingService
      */
     @Bean
-    public RPACachingService getRestrictedDataCachingService(
-            CacheManagerProvider cacheManagerProvider,
-            RPAConfiguration rpaConfiguration)
-            throws ConfigurationException
+    public RPACachingServiceProvider getRPACachingServiceProvider(NISTCacheManagerConfig cmConfig,
+                                                                  RPAConfiguration rpaConfig,
+                                                                  BagStorage bagstor, AmazonS3 s3client)
     {
-        return new RPACachingService(cacheManagerProvider.getPDRCacheManager(), rpaConfiguration);
+        return new RPACachingServiceProvider(cmConfig, rpaConfig, bagstor, s3client);
     }
+
+    /**
+     * the service implementation to use for restricted data access caching service
+     *
+    public RPACachingService getRestrictedDataCachingService(RPACachingServiceProvider rpaProvider,
+                                                             AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        return rpaProvider.getRPACachingService(s3);
+    }
+     */
 
     /**
      * the configured RPAServiceProvider to use
@@ -314,7 +326,6 @@ public class NISTDistribServiceConfig {
     public RPAServiceProvider getRPAServiceProvider(RPAConfiguration rpaConfiguration) {
         return new RPAServiceProvider(rpaConfiguration);
     }
-
 
     /**
      * configure MVC model, including setting CORS support and semicolon in URLs.

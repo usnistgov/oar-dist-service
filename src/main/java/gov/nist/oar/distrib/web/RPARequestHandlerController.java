@@ -13,6 +13,7 @@ import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.amazonaws.services.s3.AmazonS3;
+
 import java.util.Map;
+import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).
@@ -57,7 +62,7 @@ public class RPARequestHandlerController {
     /**
      * The primary service for handling RPA requests.
      */
-    IRPARequestHandler service;
+    IRPARequestHandler service = null;
 
     /**
      * The sanitizer for incoming requests.
@@ -88,12 +93,50 @@ public class RPARequestHandlerController {
      * @param rpaCachingService  The caching service for storing and retrieving RPA data.
      */
     @Autowired
-    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider, RPACachingService rpaCachingService) {
-        this.service = rpaServiceProvider.getIRPARequestHandler(rpaCachingService);
+    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider,
+                                       RPACachingServiceProvider cachingProvider,
+                                       AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        this(rpaServiceProvider, getCachingServiceFromProvider(cachingProvider, s3));
+    }
+
+    protected static RPACachingService getCachingServiceFromProvider(RPACachingServiceProvider cachingProvider,
+                                                                     AmazonS3 s3)
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        if (cachingProvider == null || ! cachingProvider.canCreateService())
+            return null;
+        return cachingProvider.getRPACachingService(s3);
+    }
+    
+    public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider,
+                                       RPACachingService cachingService)
+    {
+        if (cachingService != null && rpaServiceProvider != null)
+            this.service = rpaServiceProvider.getIRPARequestHandler(cachingService);
         this.requestSanitizer = new RequestSanitizer();
         this.configuration = rpaServiceProvider.getRpaConfiguration();
         this.jwtTokenValidator = new JwtTokenValidator(this.configuration);
         this.recaptchaHelper = new RecaptchaVerificationHelper(this.configuration);
+    }
+
+    /**
+     * a specialized exception indicating that a CacheManager is not currently in use.  This is used 
+     * to inform clients to such if they try to access endpoints provided by this class.
+     */
+    class NotOperatingException extends RequestProcessingException {
+        NotOperatingException(String message) {
+            super(message);
+        }
+        NotOperatingException() {
+            this("Restricted data service is not in operation at this time (no cache manager available)");
+        }
+    }
+
+    private void _checkForService() throws NotOperatingException {
+        if (service == null)
+            throw new NotOperatingException();
     }
 
     /**
@@ -141,6 +184,7 @@ public class RPARequestHandlerController {
      */
     @GetMapping("test")
     ResponseEntity testConnectionToSalesforceAPIs() {
+        _checkForService();
         LOGGER.info("Testing connection to Salesforce APIs...");
         // TODO: make Salesforce API call
         return new ResponseEntity("Salesforce API is available.", HttpStatus.OK);
@@ -168,6 +212,7 @@ public class RPARequestHandlerController {
                                     @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, RequestProcessingException, UnauthorizedException {
 
+        _checkForService();
         LOGGER.debug("Attempting to retrieve record with ID {}", id);
 
         // Extracting the token from the header
@@ -225,6 +270,7 @@ public class RPARequestHandlerController {
     public ResponseEntity createRecord(@RequestBody UserInfoWrapper userInfoWrapper,
                                        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
+        _checkForService();
         LOGGER.debug("Attempting to create a new record...");
 
         // Check if reCAPTCHA verification should be skipped
@@ -284,6 +330,7 @@ public class RPARequestHandlerController {
                                        @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
 
+        _checkForService();
         LOGGER.debug("Attempting to update record with ID: {}", id);
 
         // Extracting the token from the header
@@ -433,5 +480,11 @@ public class RPARequestHandlerController {
         return new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
     }
 
-
+    @ExceptionHandler(NotOperatingException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorInfo handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
+        LOGGER.warn("Request to non-engaged RPACachingService: " + req.getRequestURI() + "\n  " +
+                    ex.getMessage());
+        return new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
+    }
 }

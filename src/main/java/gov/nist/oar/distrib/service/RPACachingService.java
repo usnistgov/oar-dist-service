@@ -4,7 +4,7 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
@@ -32,7 +32,7 @@ import java.util.Set;
 public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
     public static final int RANDOM_ID_LENGTH = 20;
-    private PDRCacheManager pdrCacheManager;
+    private PDRDatasetCacheManager pdrCacheManager;
     private RPAConfiguration rpaConfiguration;
 
     protected static Logger logger = LoggerFactory.getLogger(RPACachingService.class);
@@ -44,7 +44,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      * @param pdrCacheManager  the PDRCacheManager to use to store the restricted public data.
      * @param rpaConfiguration the RPAConfiguration object to use with this service.
      **/
-    public RPACachingService(PDRCacheManager pdrCacheManager, RPAConfiguration rpaConfiguration) {
+    public RPACachingService(PDRDatasetCacheManager pdrCacheManager, RPAConfiguration rpaConfiguration) {
         this.pdrCacheManager = pdrCacheManager;
         this.rpaConfiguration = rpaConfiguration;
     }

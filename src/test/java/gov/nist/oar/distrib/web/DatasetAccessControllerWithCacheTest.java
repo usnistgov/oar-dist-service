@@ -113,6 +113,7 @@ public class DatasetAccessControllerWithCacheTest {
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
+        provider.cfg.theCache = null;
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
     }
