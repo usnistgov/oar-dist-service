@@ -231,13 +231,16 @@ public class CacheManagementController {
         }
 
         List<CacheObject> files = mgr.selectDatasetObjects(dsid, mgr.VOL_FOR_INFO);
-        if (files.size() == 0)
-            throw new ResourceNotFoundException(dsid);
 
         if (filepath.length() > 0)
             files = mgr.selectFileObjects(dsid, filepath, purpose);
         else if (purpose != mgr.VOL_FOR_INFO)
             files = mgr.selectDatasetObjects(dsid, purpose);
+
+        // Ensure that a ResourceNotFoundException is thrown if the files list is empty
+        // after all the selection logic has been applied
+        if (files.size() == 0)
+            throw new ResourceNotFoundException(dsid);
 
         if (selector == null && filepath.length() > 0) {
             // return a single JSON object; get the one that's cached
@@ -333,7 +336,12 @@ public class CacheManagementController {
     }
 
     /**
-     * Endpoint to remove a dataset or specific files within a dataset from the cache.
+     * Removes a dataset or specific files within a dataset from the cache based on the provided dataset identifier (dsid).
+     * This endpoint supports selective removal using the ":cached" selector in the URL path, allowing for more granular
+     * control over cache management.
+     *
+     * If the ":cached" selector is present, and no specific file path is provided, the entire dataset identified by the dsid
+     * is removed from the cache. If a specific file path is provided, only the specified file within the dataset will be removed.
      *
      * @param dsid the dataset identifier
      * @param request used to extract the optional file path from the URL
@@ -344,30 +352,51 @@ public class CacheManagementController {
         try {
 
             _checkForManager();
+            log.debug("Attempting to remove files from cache for Dataset ID: {}", dsid);
 
             // Extract the optional file path from the request URL
             String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
             String prefix = "/cache/objects/" + dsid;
             String filepath = path.startsWith(prefix) ? path.substring(prefix.length()) : "";
 
-            if (filepath.isEmpty() || filepath.equals("/")) {
-                // Remove the entire dataset from the cache
-                List<CacheObject> files = mgr.selectDatasetObjects(dsid, VolumeStatus.VOL_FOR_UPDATE);
-                for (CacheObject file : files) {
-                    mgr.uncache(file.id); // Use the uncache method directly
-                }
-                return ResponseEntity.ok("Dataset " + dsid + " removed from cache");
-            } else {
-                // Remove specific file or directory within the dataset from the cache
-                List<CacheObject> files = mgr.selectFileObjects(dsid, filepath, VolumeStatus.VOL_FOR_UPDATE);
-                for (CacheObject file : files) {
-                    mgr.uncache(file.id);
-                }
-                return ResponseEntity.ok("File(s) " + filepath + " in dataset " + dsid + " removed from cache");
+            String selector = null;
+            Matcher selmatch = SEL_PATH_FIELD.matcher(filepath);
+            if (selmatch.find()) {
+                selector = selmatch.group(1);
+                filepath = filepath.substring(0, selmatch.start());
             }
+            if (filepath.startsWith("/")) {
+                filepath = filepath.substring(1); // Remove leading slash
+            }
+
+            if (":cached".equals(selector)) {
+                if (filepath.isEmpty() || filepath.equals("/")) {
+                    log.debug("Removing entire dataset from cache for ID: {}", dsid);
+                    List<CacheObject> files = mgr.selectDatasetObjects(dsid, VolumeStatus.VOL_FOR_UPDATE);
+                    for (CacheObject file : files) {
+                        log.debug("Uncaching file: {}", file.id);
+                        mgr.uncache(file.id);
+                    }
+                    return ResponseEntity.ok("Dataset " + dsid + " removed from cache");
+                } else {
+                    log.debug("Removing file(s) from cache for dataset ID: {} and path: {}", dsid, filepath);
+                    List<CacheObject> files = mgr.selectFileObjects(dsid, filepath, VolumeStatus.VOL_FOR_UPDATE);
+                    for (CacheObject file : files) {
+                        log.debug("Uncaching file: {}", file.id);
+                        mgr.uncache(file.id);
+                    }
+                    return ResponseEntity.ok("File(s) " + filepath + " in dataset " + dsid + " removed from cache");
+                }
+            } else {
+                log.warn("Operation not allowed: URL does not contain ':cached' selector");
+                return new ResponseEntity<String>("Operation not allowed on URL without :cached selector", HttpStatus.METHOD_NOT_ALLOWED);
+            }
+
         } catch (NotOperatingException e) {
+            log.error("Cache manager is not operational", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Cache manager is not operational");
         } catch (CacheManagementException e) {
+            log.error("Error processing cache removal request", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing cache removal request: " + e.getMessage());
         }
     }
