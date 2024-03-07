@@ -2,7 +2,7 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.HttpURLConnectionRPARequestHandlerService;
-import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 
 public class RPAServiceProvider {
     RPAConfiguration rpaConfiguration;
@@ -11,11 +11,11 @@ public class RPAServiceProvider {
         this.rpaConfiguration = rpaConfiguration;
     }
 
-    public IRPARequestHandler getIRPARequestHandler(RPACachingService rpaCachingService) {
+    public RPARequestHandler getRPARequestHandler(RPACachingService rpaCachingService) {
         return this.getHttpURLConnectionRPARequestHandler(rpaCachingService);
     }
 
-    private IRPARequestHandler getHttpURLConnectionRPARequestHandler(RPACachingService rpaCachingService) {
+    private RPARequestHandler getHttpURLConnectionRPARequestHandler(RPACachingService rpaCachingService) {
         return new HttpURLConnectionRPARequestHandlerService(this.rpaConfiguration, rpaCachingService);
     }
 

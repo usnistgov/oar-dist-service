@@ -3,15 +3,10 @@ package gov.nist.oar.distrib.service.rpa;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRecaptchaException;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
-import gov.nist.oar.distrib.service.rpa.model.RecaptchaResponse;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
@@ -45,10 +40,14 @@ import java.time.Instant;
 
 
 /**
- * An implementation of the RPARequestHandlerService that uses HttpURLConnection to send HTTP requests and
- * receives responses from the Salesforce service.
+ * An implementation of the {@link RPARequestHandler} interface that uses HttpURLConnection
+ * to send HTTP requests and receive responses from the Salesforce service. This class serves
+ * as a bridge between the application and Salesforce, acting as the data source for managing
+ * records. Through this service, records can be created, retrieved, and updated directly in
+ * Salesforce, using the platform's API for record management.
+ *
  */
-public class HttpURLConnectionRPARequestHandlerService implements IRPARequestHandler {
+public class HttpURLConnectionRPARequestHandlerService implements RPARequestHandler {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(HttpURLConnectionRPARequestHandlerService.class);
 
