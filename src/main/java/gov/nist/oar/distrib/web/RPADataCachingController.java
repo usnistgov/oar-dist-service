@@ -149,34 +149,6 @@ public class RPADataCachingController {
         return metadata;
     }
 
-    /**
-     * This endpoint handles the removal of a dataset from the cache based on its randomly generated ID.
-     *
-     * @param randomId The randomly generated ID that was assigned when the dataset was cached.
-     *
-     * @return A ResponseEntity containing a status message and HTTP status code.
-     *
-     * @throws CacheManagementException If there is an issue with removing the dataset from the cache.
-     * @throws ResourceNotFoundException If the dataset associated with the randomId is not found in the cache.
-     * @throws StorageVolumeException If there is an issue with the storage volume.
-     */
-    @PutMapping(value = "/uncache/{randomId}")
-    public ResponseEntity<String> uncacheDataset(
-            @PathVariable("randomId") String randomId)
-            throws CacheManagementException {
-
-        logger.debug("randomId to uncache=" + randomId);
-
-        // Perform uncache operation via the service
-        boolean success = restrictedSrvc.uncacheById(randomId);
-
-        if (success) {
-            return new ResponseEntity<>("Dataset was successfully removed from cache.", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Failed to uncache the dataset.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
 
     @ExceptionHandler(MetadataNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
