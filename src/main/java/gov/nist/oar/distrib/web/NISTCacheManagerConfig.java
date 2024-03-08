@@ -12,9 +12,11 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.cachemgr.BasicCache;
+import gov.nist.oar.distrib.cachemgr.CacheExpiryCheck;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
@@ -484,7 +486,11 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException(rootdir+": Not an existing directory");
 
         List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
+        // Get the StorageInventoryDB from the cache and add the CacheExpiryCheck to the list of checks
+        StorageInventoryDB inventoryDB = cache.getInventoryDB();
+        checks.add(new CacheExpiryCheck(inventoryDB));
         checks.add(new ChecksumCheck(false, true));
+
         PDRCacheManager out = new PDRCacheManager(cache, rstr, checks, getCheckDutyCycle()*1000, 
                                                   getCheckGracePeriod()*1000, -1, rootdir, logger);
         if (getMonitorAutoStart()) {

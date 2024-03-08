@@ -22,5 +22,6 @@ public class RPAConfigurationTest {
         assertEquals("local", config.getBagstoreMode());
         assertNull(config.getBagstoreLocation());
         assertEquals("1234567890 pdr.rpa.2023 1234567890", config.getJwtSecretKey());
+        assertEquals(1209600000L, config.getExpiresAfterMillis());
     }
 }
