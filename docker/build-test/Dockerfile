@@ -1,3 +1,20 @@
+FROM eclipse-temurin:8-jdk-focal 
+
+RUN mkdir -p /usr/share/man/man1
+RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
+                                            ca-certificates python3 curl maven gnupg
+RUN cd /usr/bin && ln -s python3 python
+
+COPY cacerts/README.md cacerts/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+RUN java_certs=$JAVA_HOME/jre/lib/security/cacerts; \
+    add_certs=`ls /usr/local/share/ca-certificates/*.crt` && \
+    for crt in $add_certs; do \
+        name=`basename -s .crt $crt`; \
+        echo -n ${name}: " "; \
+        keytool -import -keystore $java_certs -trustcacerts -file $crt \
+                -storepass changeit -alias $name -noprompt; \
+    done;
 FROM eclipse-temurin:8
 
 RUN mkdir -p /usr/share/man/man1

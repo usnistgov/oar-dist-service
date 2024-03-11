@@ -346,8 +346,8 @@ public class RPARequestHandlerController {
                 LOGGER.debug("Missing required claim detected: " + missingClaimName);
                 throw new InvalidRequestException("JWT token invalid");
             } catch (JwtException e) {
-                LOGGER.debug("Token validation failed due to JwtException: " + e.getMessage());
-                throw new RequestProcessingException("JWT token validation failed");
+                LOGGER.debug("Token validation failed due to a JwtException: " + e.getMessage());
+                throw new UnauthorizedException("JWT token validation failed");
             }
 
             if (tokenDetails != null) {

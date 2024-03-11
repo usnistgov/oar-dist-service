@@ -14,4 +14,6 @@ public interface RPADatasetCacher {
      * @throws RequestProcessingException
      */
     String cache(String datasetId) throws RequestProcessingException;
+
+    boolean uncache(String randomId);
 }

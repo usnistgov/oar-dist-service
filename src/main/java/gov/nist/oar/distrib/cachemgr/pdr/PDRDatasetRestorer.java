@@ -694,7 +694,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         String id;
         id = aipid + "/" + filepath;
         if (target != null && !target.isEmpty())
-            id = target + "/" + filepath;
+            id = target + "/" + aipid + "/" + filepath;
         if (forVersion != null && forVersion.length() > 0)
             id += "#" + forVersion;
         return id;
