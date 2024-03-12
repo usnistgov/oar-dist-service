@@ -404,6 +404,44 @@ public class CacheManagementControllerTest {
         assertFalse("Monitor failed to finish?", status.getBoolean("running"));
     }
 
+    @Test
+    public void testRemoveFromCache() {
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+
+        // First, ensure the dataset or file initially exists in the cache by sending a GET request
+        // This is a check to confirm presence before deletion
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:cached",
+                HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+        // Attempt to remove a specific file (trial2.json) from the cache using the DELETE method
+        // The file path and the ':cached' selector are included in the URL
+        ResponseEntity<String> removeResp = websvc.exchange(getBaseURL() +
+                        "/cache/objects/mds1491/trial2.json/:cached",
+                HttpMethod.DELETE, req, String.class);
+        assertEquals(HttpStatus.OK, removeResp.getStatusCode());
+
+        // After deletion, verify that the specific file (trial2.json) is no longer accessible
+        // Expect a NOT_FOUND status code to confirm successful deletion
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial2.json/:cached",
+                HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        // Now, attempt to remove the entire dataset ('mds1491') from the cache
+        // This tests the capability to delete all files under a dataset identifier
+        removeResp = websvc.exchange(getBaseURL() +
+                        "/cache/objects/mds1491/:cached",
+                HttpMethod.DELETE, req, String.class);
+        assertEquals(HttpStatus.OK, removeResp.getStatusCode());
+
+        // Confirm that the entire dataset ('mds1491') is no longer available in the cache
+        // A GET request should return a NOT_FOUND status, meaning the dataset has been successfully removed from cache
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:cached",
+                HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+    }
+
+
     private String getBaseURL() {
         return "http://localhost:" + port + "/od";
     }

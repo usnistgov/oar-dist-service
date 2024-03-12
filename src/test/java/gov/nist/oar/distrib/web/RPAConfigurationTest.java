@@ -33,5 +33,6 @@ public class RPAConfigurationTest {
         assertEquals(2, config.getDisallowedCountries().size());
         assertTrue(config.getDisallowedCountries().contains("Cuba"));
         assertTrue(config.getDisallowedCountries().contains("North Korea"));
+        assertEquals(1209600000L, config.getExpiresAfterMillis());
     }
 }

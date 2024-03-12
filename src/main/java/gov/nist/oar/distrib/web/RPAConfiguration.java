@@ -56,10 +56,10 @@ public class RPAConfiguration {
     String mode = null;
     @JsonProperty("disallowedEmails")
     private List<String> disallowedEmails = new ArrayList<>();
-
     @JsonProperty("disallowedCountries")
     private List<String> disallowedCountries = new ArrayList<>();
-
+    @JsonProperty("expiresAfterMillis")
+    long expiresAfterMillis = 0L;
 
     public long getHeadbagCacheSize() {
         return hbCacheSize;
@@ -80,6 +80,14 @@ public class RPAConfiguration {
     }
     public void setBagstoreMode(String mode) {
         this.mode = mode;
+    }
+
+    public long getExpiresAfterMillis() {
+        return expiresAfterMillis;
+    }
+
+    public void setExpiresAfterMillis(long expiresAfterMillis) {
+        this.expiresAfterMillis = expiresAfterMillis;
     }
 
     public SalesforceJwt getSalesforceJwt() {

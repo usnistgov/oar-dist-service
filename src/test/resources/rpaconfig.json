@@ -11,5 +11,6 @@
   "disallowedCountries": [
     "Cuba",
     "North Korea"
-  ]
+  ],
+  "expiresAfterMillis": 1209600000
 }
