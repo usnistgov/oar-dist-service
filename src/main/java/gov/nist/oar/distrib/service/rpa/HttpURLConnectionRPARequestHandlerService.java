@@ -37,6 +37,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -69,6 +72,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private final static String RECORD_PENDING_STATUS = "pending";
     private final static String RECORD_APPROVED_STATUS = "approved";
     private final static String RECORD_DECLINED_STATUS = "declined";
+    private final static String RECORD_REJECTED_STATUS = "rejected";
 
     /**
      * The RPA configuration.
@@ -273,6 +277,37 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
             RequestProcessingException {
         int responseCode;
+
+        // Validate the email and country against the blacklists before proceeding
+        String email = userInfoWrapper.getUserInfo().getEmail();
+        String country = userInfoWrapper.getUserInfo().getCountry();
+        String rejectionReason = "";
+
+        // Log user info
+        LOGGER.debug("User's email: " + email);
+        LOGGER.debug("User's country: " + country);
+
+        // Check for blacklisted email and country
+        if (isEmailBlacklisted(email)) {
+            rejectionReason = "Email " + email + " is blacklisted.";
+            LOGGER.warn("Email {} is blacklisted. Request to create record will be automatically rejected.", email);
+        } else if (isCountryBlacklisted(country)) {
+            rejectionReason = "Country " + country + " is blacklisted.";
+            LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
+        }
+
+        // Set the pending status of the record in this service, and not based on the user's input
+        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
+
+        if (!rejectionReason.isEmpty()) {
+            // Append the rejection reason to the existing description
+            String currentDescription = userInfoWrapper.getUserInfo().getDescription();
+            String updatedDescription = currentDescription + "\nThis record was automatically rejected. Reason: " + rejectionReason;
+            userInfoWrapper.getUserInfo().setDescription(updatedDescription);
+            // Set approval status to rejected
+            userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
+        }
+
         // Initialize return value
         RecordWrapper newRecordWrapper;
 
@@ -293,9 +328,6 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
         LOGGER.debug("CREATE_RECORD_URL=" + url);
-
-        // Set the pending status of the record in this service, and not based on the user's input
-        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
 
         String postPayload;
         try {
@@ -360,14 +392,40 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         // Check if success and handle accordingly
         if (newRecordWrapper != null) {
-            this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
+            // Check if the record is marked as rejected before proceeding
+            if (!RECORD_REJECTED_STATUS.equals(newRecordWrapper.getRecord().getUserInfo().getApprovalStatus())) {
+                // If the record is not marked as rejected, proceed with the normal success handling,
+                // including sending emails for SME approval and to the requester.
+                this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
+            } else {
+                // Since the record is automatically rejected, we skip sending approval and notification emails.
+                LOGGER.info("Record automatically rejected due to blacklist. Skipping email notifications.");
+            }
         } else {
             // we expect a record to be created every time we call createRecord
-            // if newRecordWrapped is null, it means creation failed
+            // if newRecordWrapper is null, it means creation failed
             this.recordResponseHandler.onRecordCreationFailure(responseCode);
         }
 
+
         return newRecordWrapper;
+    }
+
+    private boolean isEmailBlacklisted(String email) {
+        List<String> disallowedEmailStrings = rpaConfiguration.getDisallowedEmails();
+        for (String patternString : disallowedEmailStrings) {
+            Pattern pattern = Pattern.compile(patternString);
+            Matcher matcher = pattern.matcher(email);
+            if (matcher.find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCountryBlacklisted(String country) {
+        List<String> disallowedCountries = rpaConfiguration.getDisallowedCountries();
+        return disallowedCountries.contains(country);
     }
 
     private String prepareRequestPayload(UserInfoWrapper userInfoWrapper) throws JsonProcessingException {
