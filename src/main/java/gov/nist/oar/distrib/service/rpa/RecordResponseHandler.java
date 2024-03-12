@@ -23,7 +23,7 @@ public interface RecordResponseHandler {
      * This method is called when a record update operation is successful and user was approved.
      * @param record The record that was the user approved for.
      */
-    void onRecordUpdateApproved(Record record);
+    void onRecordUpdateApproved(Record record, String randomId);
 
     /**
      * This method is called when a record update operation is successful but user was declined.

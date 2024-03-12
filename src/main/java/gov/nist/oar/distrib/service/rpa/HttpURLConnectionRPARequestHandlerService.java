@@ -97,6 +97,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      */
     private RecordResponseHandler recordResponseHandler;
 
+    private RPADatasetCacher rpaDatasetCacher;
     /**
      * Sets the HTTP URL connection factory.
      *
@@ -138,6 +139,10 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         this.recordResponseHandler = recordResponseHandler;
     }
 
+    public void seRPADatasetCacher(RPADatasetCacher rpaDatasetCacher) {
+        this.rpaDatasetCacher = rpaDatasetCacher;
+    }
+
     /**
      * Constructs a new instance of the service using the given RPA configuration.
      *
@@ -162,6 +167,9 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // Set RecordResponseHandler
         this.recordResponseHandler = new RecordResponseHandlerImpl(this.rpaConfiguration, this.connectionFactory,
                 rpaCachingService);
+
+        // Set RPADatasetCacher
+        this.rpaDatasetCacher = new DefaultRPADatasetCacher(rpaCachingService);
 
         // Set HttpClient
         this.httpClient = HttpClients.createDefault();
@@ -372,28 +380,55 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
 
     /**
-     * Updates the status of a record with a given ID.
+     * Updates the status of a record in the database.
+     * <p>
+     * This method handles the approval or decline of a record. When a record is approved, it caches the dataset,
+     * generates a random ID, and appends this ID to the status before updating the record in the database.
+     * When a record is declined, the dataset is not cached, a null random ID is used, and the record status is
+     * updated in the database without appending the random ID.
+     * </p>
+     * <p>
+     * In cases where a record was initially approved (and thus cached with a random ID) but is later declined,
+     * this method retrieves the random ID from the status, uncaches the dataset using this ID, and updates
+     * the record status without the random ID.
+     * </p>
      *
      * @param recordId The ID of the record to update.
-     * @param status   The status to update the record with.
-     * @return The {@link RecordStatus} object representing the updated record status.
+     * @param status   The new status to be set for the record. Can be 'Approved' or 'Declined'.
+     * @param smeId    The SME ID associated with the record update.
+     * @return A {@link RecordStatus} object representing the updated record status.
      * @throws RecordNotFoundException    If the record with the given ID is not found.
-     * @throws InvalidRequestException    If the request is invalid.
-     * @throws RequestProcessingException If there is an error processing the request.
+     * @throws InvalidRequestException    If the provided status is invalid or the request is otherwise invalid.
+     * @throws RequestProcessingException If there is an error in processing the update request, such as issues
+     *                                    with caching or communication errors with the database.
      */
     @Override
     public RecordStatus updateRecord(String recordId, String status, String smeId) throws RecordNotFoundException,
             InvalidRequestException, RequestProcessingException {
         // Initialize return object
         RecordStatus recordStatus;
+        Record record = this.getRecord(recordId).getRecord();
+        String datasetId = record.getUserInfo().getSubject();
+        String randomId = null;
 
-        // Get endpoint
-        String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
+        // If the record is being approved
+        if (RECORD_APPROVED_STATUS.equalsIgnoreCase(status)) {
+            LOGGER.info("Starting caching...");
+            randomId = this.rpaDatasetCacher.cache(datasetId);
+            if (randomId == null) {
+                throw new RequestProcessingException("Caching process returned a null randomId");
+            }
+        }
+        // If the record is being declined, check if it needs uncaching
+        else if (RECORD_DECLINED_STATUS.equalsIgnoreCase(status)) {
+            randomId = extractRandomIdFromCurrentStatus(record.getUserInfo().getApprovalStatus());
+            if (randomId != null) {
+                this.rpaDatasetCacher.uncache(randomId);
+            }
+        }
 
         // Create a valid approval status based on input
-        String approvalStatus = generateApprovalStatus(status, smeId);
-
-        // TODO: try caching here before updating the status in SF
+        String approvalStatus = generateApprovalStatus(status, smeId, randomId);
 
         // PATCH request payload
         // Approval_Status__c is how SF service expect the key
@@ -402,6 +437,9 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         // Get token
         JWTToken token = jwtHelper.getToken();
+
+        // Get endpoint
+        String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
 
         // Build request URL
         String url;
@@ -447,12 +485,9 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         }
 
-        // Retrieve updated record from SF service
-        Record record = this.getRecord(recordId).getRecord();
-
         // Check if status is approved
         if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
-            this.recordResponseHandler.onRecordUpdateApproved(record);
+            this.recordResponseHandler.onRecordUpdateApproved(record, randomId);
         } else {
             this.recordResponseHandler.onRecordUpdateDeclined(record);
         }
@@ -460,25 +495,48 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         return recordStatus;
     }
 
+    private String extractRandomIdFromCurrentStatus(String currentStatus) {
+        if (currentStatus != null && currentStatus.startsWith("Approved_")) {
+            String[] parts = currentStatus.split("_");
+
+            // Since the expected format is "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]",
+            // the randomId should be the 4th part, if all parts are present
+            if (parts.length == 4) {
+                return parts[3];
+            }
+        }
+        return null;
+    }
+
+
     /**
-     * Generates an approval status string based on the given status and current date/time.
-     * The date is in ISO 8601 format.
+     * Generates an approval status string based on the given status, current date/time, and random ID.
+     * The date is in ISO 8601 format. If the status is "Declined", the randomId will not be appended.
      *
-     * @param status the approval status to use, either "Approved" or "Declined"
-     * @param email  the email to append to the status
-     * @return the generated approval status string, in the format "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[email]"
+     * @param status   the approval status to use, either "Approved" or "Declined"
+     * @param smeId    the SME ID to append to the status
+     * @param randomId the generated random ID to append (only if status is "Approved")
+     * @return the generated approval status string.
+     *         If status is "Approved", the format is:
+     *         "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]".
+     *         If status is "Declined", the format is:
+     *         "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]"
      * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
      */
-    private String generateApprovalStatus(String status, String smeId) throws InvalidRequestException {
-        String formattedDate = Instant.now().toString(); // ISO 8601 format: 2023-05-09T15:59:03.872Z
+    private String generateApprovalStatus(String status, String smeId, String randomId) throws InvalidRequestException {
+        String formattedDate = Instant.now().toString();
         String approvalStatus;
+
         if (status != null) {
             switch (status.toLowerCase()) {
                 case RECORD_APPROVED_STATUS:
-                    approvalStatus = "Approved_";
+                    approvalStatus = "Approved_" + formattedDate + "_" + smeId;
+                    if (randomId != null) {
+                        approvalStatus += "_" + randomId;
+                    }
                     break;
                 case RECORD_DECLINED_STATUS:
-                    approvalStatus = "Declined_";
+                    approvalStatus = "Declined_" + formattedDate + "_" + smeId;
                     break;
                 default:
                     throw new InvalidRequestException("Invalid approval status: " + status);
@@ -486,7 +544,8 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         } else {
             throw new InvalidRequestException("Invalid approval status: status is null");
         }
-        return approvalStatus + formattedDate + "_" + smeId;
+        return approvalStatus;
     }
+
 
 }

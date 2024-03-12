@@ -650,6 +650,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("ediid", resmd.get("ediid"));
                 md.put("cachePrefs", prefs);
 
+                // a hook for handling the expiration logic
+                updateMetadata(md, prefs);
+
                 // find space in the cache, and copy the data file into it
                 try {
                     resv = into.reserveSpace(ze.getSize(), prefs);
@@ -688,13 +691,25 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
     }
 
     /**
+     * Method intended for customization of metadata before caching. This method can be overridden
+     * by subclasses to implement specific metadata customization logic as needed.
+     *
+     * @param md The metadata JSONObject to be customized.
+     * @param prefs flags for data roles
+     */
+    protected void updateMetadata(JSONObject md, int prefs) {
+        // Default implementation does nothing.
+        // Subclasses can override this to implement specific logic.
+    }
+
+    /**
      * helper method to generate an ID for the object to be cached
      */
     public String idForObject(String aipid, String filepath, String forVersion, String target) {
         String id;
         id = aipid + "/" + filepath;
         if (target != null && !target.isEmpty())
-            id = target + "/" + filepath;
+            id = target + "/" + aipid + "/" + filepath;
         if (forVersion != null && forVersion.length() > 0)
             id += "#" + forVersion;
         return id;

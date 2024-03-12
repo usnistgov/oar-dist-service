@@ -52,8 +52,8 @@ public class RPACachingServiceTest {
         String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
 
         assertNotNull(result);
-        assertEquals(RPACachingService.RANDOM_ID_LENGTH, result.length());
-        assertTrue(result.matches("^[a-zA-Z0-9]*$")); // check that the ID is alphanumeric
+        assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+        assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
         verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
     }
 
@@ -69,8 +69,8 @@ public class RPACachingServiceTest {
         String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
 
         assertNotNull(result);
-        assertEquals(RPACachingService.RANDOM_ID_LENGTH, result.length());
-        assertTrue(result.matches("^[a-zA-Z0-9]*$")); // check that the ID is alphanumeric
+        assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+        assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
         verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
     }
 
@@ -85,6 +85,7 @@ public class RPACachingServiceTest {
     @Test
     public void testRetrieveMetadata_success() throws Exception  {
         String randomID = "randomId123";
+        String aipid = "456";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
                 .put("filepath", "path/to/file1.txt")
                 .put("contentType", "text/plain")
@@ -95,7 +96,7 @@ public class RPACachingServiceTest {
                 .put("checksum", "abc123")
                 .put("version", "v1")
                 .put("ediid", "123")
-                .put("aipid", "456")
+                .put("aipid", aipid)
                 .put("sinceDate", "08-05-2023"),
                 "Volume1");
 
@@ -109,7 +110,7 @@ public class RPACachingServiceTest {
                 .put("checksum", "def456")
                 .put("version", "v2")
                 .put("ediid", "123")
-                .put("aipid", "456")
+                .put("aipid", aipid)
                 .put("sinceDate", "08-05-2023"),
                 "Volume1");
 
@@ -124,7 +125,8 @@ public class RPACachingServiceTest {
         Map<String, Object> expected = new HashMap<>();
         expected.put("randomId", randomID);
         expected.put("metadata", new JSONArray()
-                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file1.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID
+                                + "/" + aipid + "/path/to/file1.txt")
                         .put("filePath", "path/to/file1.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -136,7 +138,8 @@ public class RPACachingServiceTest {
                         .put("ediid", "123")
                         .put("aipid", "456")
                         .put("sinceDate", "08-05-2023"))
-                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file2.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID
+                                + "/" + aipid  + "/path/to/file2.txt")
                         .put("filePath", "path/to/file2.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -159,6 +162,7 @@ public class RPACachingServiceTest {
     @Test
     public void testRetrieveMetadata_withMissingFilepath() throws Exception  {
         String randomID = "randomId123";
+        String aipid = "456";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
                 .put("contentType", "text/plain")
                 .put("size", 100L)
@@ -168,7 +172,7 @@ public class RPACachingServiceTest {
                 .put("checksum", "abc123")
                 .put("version", "v1")
                 .put("ediid", "123")
-                .put("aipid", "456")
+                .put("aipid", aipid)
                 .put("sinceDate", "08-05-2023"),
                 "Volume1");
 
@@ -182,7 +186,7 @@ public class RPACachingServiceTest {
                 .put("checksum", "def456")
                 .put("version", "v2")
                 .put("ediid", "123")
-                .put("aipid", "456")
+                .put("aipid", aipid)
                 .put("sinceDate", "08-05-2023"),
                 "Volume1");
 
@@ -197,7 +201,8 @@ public class RPACachingServiceTest {
         Map<String, Object> expected = new HashMap<>();
         expected.put("randomId", randomID);
         expected.put("metadata", new JSONArray()
-                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID + "/path/to/file2.txt")
+                .put(new JSONObject().put("downloadURL", testBaseDownloadUrl + "/" + randomID
+                                + "/" + aipid +"/path/to/file2.txt")
                         .put("filePath", "path/to/file2.txt")
                         .put("mediaType", "text/plain")
                         .put("size", 100L)
@@ -207,7 +212,7 @@ public class RPACachingServiceTest {
                         .put("checksum", "def456")
                         .put("version", "v2")
                         .put("ediid", "123")
-                        .put("aipid", "456")
+                        .put("aipid", aipid)
                         .put("sinceDate", "08-05-2023"))
                 .toList());
 

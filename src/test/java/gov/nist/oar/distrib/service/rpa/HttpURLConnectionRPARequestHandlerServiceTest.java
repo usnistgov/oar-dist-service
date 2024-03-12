@@ -45,9 +45,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -116,6 +120,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Mock
     RPACachingService rpaCachingService;
 
+    @Mock
+    RPADatasetCacher rpaDatasetCacher;
+
     private HttpURLConnectionRPARequestHandlerService service;
     JWTToken testToken = null;
     Map<String, String> map = new HashMap<String, String>() {{
@@ -132,6 +139,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         service.setRecaptchaHelper(recaptchaHelper);
         service.setHttpURLConnectionFactory(url -> mockConnection);
         service.setRecordResponseHandler(recordResponseHandler);
+        service.seRPADatasetCacher(rpaDatasetCacher);
         service.setHttpClient(mockHttpClient);
 
         // Set up mock behavior for mockJwtHelper
@@ -491,21 +499,45 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         return url;
     }
 
+    /**
+     * Tests successful record update operation when approving a record.
+     *
+     * <p>
+     * This test simulates the scenario where a record is approved, ensuring that the
+     * caching process is invoked, a PATCH request is made to update the record status in
+     * Salesforce with a newly generated random ID, and the approval status is updated correctly.
+     * The test verifies that the final approval status matches the expected format.
+     * <pre>
+     * Status_YYYY-MM-DDTHH:MM:SS.SSSZ_email_randomID
+     * </pre>
+     * Where:
+     * <ul>
+     *     <li><b>Status</b> - Indicates the status of the record (e.g., "Approved" or "Declined").</li>
+     *     <li><b>YYYY-MM-DDTHH:MM:SS.SSSZ</b> - The timestamp of the approval in ISO 8601 format. 'T' separates the date and time, and 'Z' denotes UTC time zone.</li>
+     *     <li><b>email</b> - The email address associated with the user who approved the record.</li>
+     *     <li><b>randomID</b> - A unique identifier generated for the approval process or the record itself.</li>
+     * </ul>
+     * </p>
+     *
+     * @throws Exception if any error occurs during the test execution.
+     */
     @Test
     public void testUpdateRecord_success() throws Exception {
         String recordId = "record12345";
         String email = "test@example.com";
-        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email;
+        String mockRandomId = "mockRandomId123";
+        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
 
         // Mock behavior of getRecord method
         doReturn(getTestRecordWrapper(expectedApprovalStatus)).when(service).getRecord("record12345");
+        when(rpaDatasetCacher.cache(anyString())).thenReturn(mockRandomId);
 
         // Mock HttpResponse
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
         when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
         when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
         when(httpResponse.getEntity()).thenReturn(
-                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z_test@example.com\"," +
+                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z_test@example.com_mockRandomId123\"," +
                         "\"recordId\":\"record12345\"}",
                         ContentType.APPLICATION_JSON)
         );
@@ -531,19 +563,33 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // We can't test the exact time as it changes when we run the test, but we can verify the format
         String patchPayload = EntityUtils.toString(patchRequest.getEntity(), StandardCharsets.UTF_8);
         JSONObject payloadObject = new JSONObject(patchPayload);
-        // Pattern to match ISO 8601 format
-        // This pattern matches a string in the format "Approved_YYYY-MM-DDTHH:MM:SS.SSSZ"
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z_[\\w.-]+@[\\w.-]+\\.\\w+";
+        // The following regex pattern expects:
+        // - The "Approved" status followed by a date-time in ISO 8601 format.
+        // - An email address.
+        // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
+        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+";
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
 
     }
 
+    /**
+     * Tests the updateRecord method's behavior when an unknown status is provided.
+     * <p>
+     * This test ensures that the method throws an InvalidRequestException when attempting to
+     * update a record with an unrecognized status. The expected behavior is to validate the
+     * status input and throw an exception with a specific error message if the status does not
+     * match expected values (e.g., "Approved" or "Declined").
+     * </p>
+     */
     @Test
     public void testUpdateRecord_withUnknownStatus() {
         String recordId = "record12345";
         String status = "HelloWorld";
         String email = "test@example.com";
         String expectedErrorMessage = "Invalid approval status: HelloWorld";
+
+        // Mock behavior of getRecord method
+        doReturn(getTestRecordWrapper("Pending")).when(service).getRecord("record12345");
 
         // Call the method and catch the exception
         try {
@@ -554,6 +600,99 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             // Assert the message of the exception
             assertEquals(expectedErrorMessage, e.getMessage());
         }
+    }
+
+    /**
+     * Tests the record decline operation for a record that has not been previously approved.
+     *
+     * <p>
+     * This test case ensures that when a record is declined without prior approval, the record's
+     * status is updated accordingly without triggering caching or uncaching operations. It verifies
+     * the successful update of the record's approval status to "Declined" and confirms that no
+     * caching or uncaching methods are called, as expected for records not previously approved.
+     * </p>
+     *
+     * @throws Exception if any error occurs during the test execution.
+     */
+    @Test
+    public void testDeclineRecordWithoutPriorApproval_success() throws Exception {
+        String recordId = "record12345";
+        String email = "sme@test.com";
+        String status = "Declined";
+
+        // Mock behavior of getRecord method to simulate a record that has not been approved before
+        doReturn(getTestRecordWrapper("Pending")).when(service).getRecord(recordId);
+
+        // Mock HttpResponse for the decline operation
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+        when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
+        when(httpResponse.getEntity()).thenReturn(
+                new StringEntity("{\"approvalStatus\":\"Declined\",\"recordId\":\"" + recordId + "\"}",
+                        ContentType.APPLICATION_JSON));
+
+        // Mock the HttpPatch execution
+        doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
+
+        // Act
+        RecordStatus result = service.updateRecord(recordId, status, email);
+
+        // Assert
+        assertEquals("Declined", result.getApprovalStatus());
+        assertEquals(recordId, result.getRecordId());
+
+        // Verify that caching and uncaching were not invoked
+        verify(rpaDatasetCacher, never()).cache(anyString());
+        verify(rpaDatasetCacher, never()).uncache(anyString());
+    }
+
+    /**
+     * Tests the decline operation for a record that was previously approved.
+     *
+     * <p>
+     * This test checks the behavior of the updateRecord method when declining a record that
+     * has a prior approval status, including a random ID. It simulates retrieving a previously
+     * approved record, uncaching the dataset associated with the random ID, and updating the
+     * record's approval status to "Declined". The test verifies that the uncaching operation
+     * is executed with the correct random ID and that the record's status is correctly updated.
+     * </p>
+     *
+     * @throws Exception if any error occurs during the test execution.
+     */
+    @Test
+    public void testDeclinePreviouslyApprovedRecord_success() throws Exception {
+        String recordId = "record12345";
+        String email = "sme@test.com";
+        String status = "Declined";
+        String mockRandomId = "mockRandomId123";
+        String initialApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
+
+        // Mock behavior of getRecord method to simulate retrieving a previously approved record
+        doReturn(getTestRecordWrapper(initialApprovalStatus)).when(service).getRecord(recordId);
+
+        // Simulate `uncache` returning true
+        when(rpaDatasetCacher.uncache(anyString())).thenReturn(true);
+
+        // Mock HttpResponse for updating the record to "Declined"
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+        when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
+        when(httpResponse.getEntity()).thenReturn(
+                new StringEntity("{\"approvalStatus\":\"Declined\",\"recordId\":\"" + recordId + "\"}",
+                        ContentType.APPLICATION_JSON));
+
+        // Mock the HttpPatch execution
+        doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
+
+        // Act
+        RecordStatus result = service.updateRecord(recordId, status, email);
+
+        // Assert
+        assertEquals("Declined", result.getApprovalStatus());
+        assertEquals(recordId, result.getRecordId());
+
+        // Verify uncaching was invoked with the correct random ID
+        verify(rpaDatasetCacher).uncache(mockRandomId);
     }
 
 

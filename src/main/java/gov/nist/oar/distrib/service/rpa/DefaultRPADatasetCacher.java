@@ -37,6 +37,19 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
         return randomId;
     }
 
+    @Override
+    public boolean uncache(String randomId) {
+        boolean uncached = false;
+        try {
+            uncached = rpaCachingService.uncacheById(randomId);
+        } catch (Exception e) {
+            this.logCachingException(e);
+            throw new RequestProcessingException(e.getMessage());
+        }
+
+        return uncached;
+    }
+
     /**
      * Logs the specified exception to the debug log, along with its stack trace.
      *
