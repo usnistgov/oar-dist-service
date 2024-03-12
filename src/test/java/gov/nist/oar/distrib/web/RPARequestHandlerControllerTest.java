@@ -2,7 +2,7 @@ package gov.nist.oar.distrib.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RecaptchaHelper;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(MockitoJUnitRunner.class)
 public class RPARequestHandlerControllerTest {
     @Mock
-    private IRPARequestHandler service;
+    private RPARequestHandler service;
 
     @Mock
     RPAServiceProvider mockRPAServiceProvider;
@@ -79,7 +79,7 @@ public class RPARequestHandlerControllerTest {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        when(mockRPAServiceProvider.getIRPARequestHandler(mockRPACachingService)).thenReturn(service);
+        when(mockRPAServiceProvider.getRPARequestHandler(mockRPACachingService)).thenReturn(service);
         // create a test instance of the RPARequestHandlerController class
         controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService);
         controller.setRequestSanitizer(mockRequestSanitizer);

@@ -18,13 +18,10 @@ import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.DefaultRPARequestHandlerService;
 import gov.nist.oar.distrib.service.rpa.JKSKeyRetriever;
 import gov.nist.oar.distrib.service.rpa.KeyRetriever;
-import gov.nist.oar.distrib.service.rpa.RPARequestHandlerService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -37,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import javax.activation.MimetypesFileTypeMap;
 
 import org.springframework.boot.SpringApplication;
@@ -46,7 +42,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -204,6 +199,7 @@ public class NISTDistribServiceConfig {
                                              "Storage Location not found: "+ex.getMessage(), ex);
         }
     }
+
 
     /**
      * the client for access S3 storage

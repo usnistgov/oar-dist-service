@@ -62,6 +62,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
         logger.debug("Request to cache dataset with ID=" + datasetID);
 
+        // this is to handle ark IDs
         String dsid = datasetID;
         if (datasetID.startsWith("ark:/")) {
             // Split the dataset ID into components
@@ -73,7 +74,9 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         }
 
         logger.debug("Caching dataset with dsid=" + dsid);
-        String randomID = generateRandomID(RANDOM_ID_LENGTH, true, true);
+        // append "rpa-" with the generated random ID
+        String randomID = "rpa-" + generateRandomID(RANDOM_ID_LENGTH, true, true);
+
 
         int prefs = ROLE_RESTRICTED_DATA;
         if (!version.isEmpty())
@@ -126,6 +129,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
     /**
      * Formats the metadata from a cache object to a JSON object with an additional field for the download URL.
+     * The download URL includes the random temporary ID, aipid, and the file path from the metadata.
      *
      * @param inMd     the metadata from the cache object
      * @param randomID the random temporary ID associated with the cache object
@@ -136,16 +140,26 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         JSONObject outMd = new JSONObject();
         List<String> missingFields = new ArrayList<>();
 
+        String aipid = "";
+        if (inMd.has("aipid")) {
+            aipid = inMd.getString("aipid");
+            outMd.put("aipid", aipid);
+        } else {
+            missingFields.add("aipid");
+        }
+
         if (inMd.has("filepath")) {
             String downloadURL = getDownloadUrl(
                     rpaConfiguration.getBaseDownloadUrl(),
                     randomID,
-                    inMd.get("filepath").toString());
+                    aipid,
+                    inMd.getString("filepath"));
             outMd.put("downloadURL", downloadURL);
-            outMd.put("filePath", inMd.get("filepath"));
+            outMd.put("filePath", inMd.getString("filepath"));
         } else {
             missingFields.add("filepath");
         }
+
 
         if (inMd.has("contentType")) {
             outMd.put("mediaType", inMd.get("contentType"));
@@ -196,12 +210,6 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             missingFields.add("ediid");
         }
 
-        if (inMd.has("aipid")) {
-            outMd.put("aipid", inMd.get("aipid"));
-        } else {
-            missingFields.add("aipid");
-        }
-
         if (inMd.has("sinceDate")) {
             outMd.put("sinceDate", inMd.get("sinceDate"));
         } else {
@@ -217,27 +225,43 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
 
     /**
-     * Constructs a download URL using the given base download URL, random ID, and file path from the metadata.
+     * Constructs a download URL using the given base download URL, random ID, aipid, and file path from the metadata.
      *
      * @param baseDownloadUrl the base download URL
      * @param randomId        the random temporary ID
+     * @param aipid           the aipid from the metadata
      * @param path            the file path from the metadata
      * @return the download URL as a string
      * @throws RequestProcessingException if there was an error building the download URL
      */
-    private String getDownloadUrl(String baseDownloadUrl, String randomId, String path) throws RequestProcessingException {
+
+    private String getDownloadUrl(String baseDownloadUrl, String randomId, String aipid, String path) throws RequestProcessingException {
         URL downloadUrl;
         try {
             URL url = new URL(baseDownloadUrl);
+            StringBuilder pathBuilder = new StringBuilder();
+
+            // append the randomId to the path
+            pathBuilder.append(randomId);
+
+            // append the aipid if it's not empty
+            if (!aipid.isEmpty()) {
+                pathBuilder.append("/").append(aipid);
+            }
+
+            // append the file path, ensuring it doesn't start with a "/"
             if (path.startsWith("/")) {
                 path = path.substring(1);
             }
-            downloadUrl = new URL(url, randomId + "/" + path);
+            pathBuilder.append("/").append(path);
+
+            downloadUrl = new URL(url, pathBuilder.toString());
         } catch (MalformedURLException e) {
             throw new RequestProcessingException("Failed to build downloadUrl: " + e.getMessage());
         }
         return downloadUrl.toString();
     }
+
 
     /**
      * Generate a random alphanumeric string for the dataset to store
@@ -246,4 +270,45 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
     private String generateRandomID(int length, boolean useLetters, boolean useNumbers) {
         return RandomStringUtils.random(length, useLetters, useNumbers);
     }
+
+    /**
+     * Uncache dataset objects using a specified random ID.
+     *
+     * @param randomId - The random ID used to fetch and uncache dataset objects.
+     * @return boolean - True if at least one dataset object was uncached successfully; otherwise, false.
+     * @throws CacheManagementException if an error occurs during the uncaching process.
+     */
+    public boolean uncacheById(String randomId) throws CacheManagementException {
+        // Validate input
+        if (randomId == null || randomId.isEmpty()) {
+            throw new IllegalArgumentException("Random ID cannot be null or empty.");
+        }
+
+        logger.debug("Request to uncache dataset with ID=" + randomId);
+
+        // Retrieve dataset objects using the randomId
+        List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomId, this.pdrCacheManager.VOL_FOR_INFO);
+
+        if (objects.isEmpty()) {
+            logger.debug("No objects found for ID=" + randomId);
+            return false;
+        }
+
+        boolean isUncached = false;
+
+        // Iterate through the retrieved objects and attempt to uncache them
+        for (CacheObject obj : objects) {
+            try {
+                logger.debug("Deleting file with ID=" + obj.id);
+                this.pdrCacheManager.uncache(obj.id);
+                isUncached = true;
+            } catch (CacheManagementException e) {
+                // Log the exception without throwing it to continue attempting to uncache remaining objects
+                logger.error("Failed to uncache object with ID=" + obj.id, e);
+            }
+        }
+
+        return isUncached;
+    }
+
 }
