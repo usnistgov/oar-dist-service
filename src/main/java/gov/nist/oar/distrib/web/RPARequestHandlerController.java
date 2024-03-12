@@ -1,7 +1,7 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.IRPARequestHandler;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -62,7 +62,7 @@ public class RPARequestHandlerController {
     /**
      * The primary service for handling RPA requests.
      */
-    IRPARequestHandler service = null;
+    RPARequestHandler service = null;
 
     /**
      * The sanitizer for incoming requests.
@@ -114,7 +114,7 @@ public class RPARequestHandlerController {
                                        RPACachingService cachingService)
     {
         if (cachingService != null && rpaServiceProvider != null)
-            this.service = rpaServiceProvider.getIRPARequestHandler(cachingService);
+            this.service = rpaServiceProvider.getRPARequestHandler(cachingService);
         this.requestSanitizer = new RequestSanitizer();
         this.configuration = rpaServiceProvider.getRpaConfiguration();
         this.jwtTokenValidator = new JwtTokenValidator(this.configuration);

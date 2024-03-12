@@ -9,9 +9,11 @@ import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 
 /**
- * An interface for handling requests to manage records.
+ * An interface for handling requests to manage records. This includes operations
+ * such as creating, retrieving, and updating records. Implementations of this interface
+ * are responsible for the interaction with a data source to perform these operations.
  */
-public interface IRPARequestHandler {
+public interface RPARequestHandler {
 
     /**
      * Updates the status of a record by ID.
