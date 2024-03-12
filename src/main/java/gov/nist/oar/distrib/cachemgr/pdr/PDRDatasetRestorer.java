@@ -650,6 +650,9 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                     md.put("ediid", resmd.get("ediid"));
                 md.put("cachePrefs", prefs);
 
+                // a hook for handling the expiration logic
+                updateMetadata(md, prefs);
+
                 // find space in the cache, and copy the data file into it
                 try {
                     resv = into.reserveSpace(ze.getSize(), prefs);
@@ -685,6 +688,18 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
 
         if (fix.size() > 0 && manifest != null)
             fixMissingChecksums(into, fix, manifest);
+    }
+
+    /**
+     * Method intended for customization of metadata before caching. This method can be overridden
+     * by subclasses to implement specific metadata customization logic as needed.
+     *
+     * @param md The metadata JSONObject to be customized.
+     * @param prefs flags for data roles
+     */
+    protected void updateMetadata(JSONObject md, int prefs) {
+        // Default implementation does nothing.
+        // Subclasses can override this to implement specific logic.
     }
 
     /**

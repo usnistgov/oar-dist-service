@@ -177,7 +177,9 @@ public class RPACachingServiceProvider {
     public RestrictedDatasetRestorer createRPDatasetRestorer()
         throws ConfigurationException, IOException, CacheManagementException
     {
-        return new RestrictedDatasetRestorer(pubstore, getRPBagStorage(), getHeadBagCacheManager());
+        RestrictedDatasetRestorer rdr = new RestrictedDatasetRestorer(pubstore, getRPBagStorage(), getHeadBagCacheManager());
+        rdr.setExpiryTime(rpacfg.getExpiresAfterMillis());
+        return rdr;
         // return new PDRDatasetRestorer(getRPBagStorage(), getHeadBagCacheManager());
     }
 

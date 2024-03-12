@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.cachemgr.pdr.RestrictedDatasetRestorer;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
@@ -81,6 +82,7 @@ public class RPACachingServiceProviderTest {
     public void testCreateRPDatasetRestorer()
         throws ConfigurationException, IOException, CacheManagementException
     {
-        PDRDatasetRestorer rest = prov.createRPDatasetRestorer();
+        RestrictedDatasetRestorer rest = prov.createRPDatasetRestorer();
+        assertEquals(rest.getExpiryTime(), 1209600000L);
     }
 }
