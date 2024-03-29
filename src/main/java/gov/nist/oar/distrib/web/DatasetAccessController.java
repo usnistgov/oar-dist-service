@@ -493,7 +493,7 @@ public class DatasetAccessController {
 	    response.setHeader("Content-Length", Long.toString(sh.getInfo().contentLength));
 	    response.setHeader("Content-Type", sh.getInfo().contentType);
 	    response.setHeader("Content-Disposition",
-		    "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+		    "attachment;filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
 
 	    int len;
 	    byte[] buf = new byte[100000];
