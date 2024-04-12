@@ -104,7 +104,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         logger.debug("Requesting metadata for temporary ID=" + randomID);
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID,
-                this.pdrCacheManager.VOL_FOR_INFO);
+                this.pdrCacheManager.VOL_FOR_GET);
         if (objects.size() > 0) {
             for (CacheObject obj : objects) {
                 JSONObject objMd = formatMetadata(obj.exportMetadata(), randomID);
