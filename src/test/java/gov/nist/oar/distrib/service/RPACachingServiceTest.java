@@ -116,7 +116,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "https://testdata.nist.gov";
@@ -192,7 +192,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "https://testdata.nist.gov";
@@ -241,7 +241,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         rpaCachingService.retrieveMetadata(randomID);
@@ -252,7 +252,7 @@ public class RPACachingServiceTest {
 
         String randomID = "randomId123";
         List<CacheObject> objects = new ArrayList<>();
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO)).thenReturn(objects);
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET)).thenReturn(objects);
 
         rpaCachingService.retrieveMetadata(randomID);
     }
@@ -292,7 +292,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_INFO))
+        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "htp://testdata.nist.gov/";
