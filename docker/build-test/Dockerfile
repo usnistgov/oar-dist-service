@@ -20,8 +20,8 @@ FROM eclipse-temurin:21
 
 RUN mkdir -p /usr/share/man/man1
 RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
-                                            python2 curl maven
-RUN cd /usr/bin && ln -s python2 python
+                                            python3 curl maven
+RUN cd /usr/bin && ln -s python3 python
 
 # Create the user that build/test operations should run as.  Normally,
 # this is set to match identity information of the host user that is
