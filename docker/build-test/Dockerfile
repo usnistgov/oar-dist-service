@@ -16,7 +16,7 @@ RUN java_certs=$JAVA_HOME/lib/security/cacerts; \
         keytool -import -keystore $java_certs -trustcacerts -file $crt \
                 -storepass changeit -alias $name -noprompt; \
     done;
-FROM eclipse-temurin:8
+FROM eclipse-temurin:21
 
 RUN mkdir -p /usr/share/man/man1
 RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
