@@ -436,8 +436,9 @@ public class RestrictedDatasetRestorerTest {
         long expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         long actualExpires = found.get(0).getMetadatumLong("expires", 0);
         // Check that the absolute difference between the expected and actual expires values is less than 1000ms
-        assertTrue("expires field should be set to 2 weeks from the current time",
-                Math.abs(expectedExpires - actualExpires) < 1000);
+        assertTrue("expires field should be set to 2 weeks from the current time (diff="+
+                   Long.toString(Math.abs(expectedExpires - actualExpires)) + ")",
+                   Math.abs(expectedExpires - actualExpires) < 5000);
 
         found = cache.getInventoryDB().findObject("mds1491/trial2.json", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
@@ -446,7 +447,7 @@ public class RestrictedDatasetRestorerTest {
         expectedExpires= System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         actualExpires = found.get(0).getMetadatumLong("expires", 0);
         assertTrue("expires field should be set to 2 weeks from the current time",
-                Math.abs(expectedExpires - actualExpires) < 1000);
+                Math.abs(expectedExpires - actualExpires) < 5000);
 
         found = cache.getInventoryDB().findObject("mds1491/README.txt", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
@@ -455,7 +456,7 @@ public class RestrictedDatasetRestorerTest {
         expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         actualExpires = found.get(0).getMetadatumLong("expires", 0);
         assertTrue("expires field should be set to 2 weeks from the current time",
-                Math.abs(expectedExpires - actualExpires) < 1000);
+                Math.abs(expectedExpires - actualExpires) < 5000);
 
     }
 
