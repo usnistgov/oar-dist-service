@@ -334,6 +334,9 @@ public class PDRDatasetRestorerTest {
         assertTrue(! cache.isCached("mds1491/trial2.json#8"));
         assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#8"));
 
+        opts = new CacheOpts(false, 0, "99");
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, opts, null);
+        assertEquals(cached.size(), 0);
     }    
 
     @Test

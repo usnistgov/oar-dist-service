@@ -465,6 +465,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 if (bagf.endsWith("-"+opts.seq))
                     uselu.put(bagf, revlu.get(bagf));
             }
+            if (uselu.size() == 0) 
+                log.warn("Sequence tag does not match any bag files for requested version");
         }
 
         // loop through the member bags and extract the data files
