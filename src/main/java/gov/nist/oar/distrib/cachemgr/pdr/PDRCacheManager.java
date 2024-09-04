@@ -794,7 +794,7 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
             try {
                 if (parts[1].length() == 0) 
                     // dataset identifier
-                    cacheDataset(parts[0], version, opts.recache, 0, null);
+                    cacheDataset(parts[0], version, opts, null);
                 else if (opts.recache || ! isCached(nextid))
                     // data file identifier
                     cache(nextid, true);
