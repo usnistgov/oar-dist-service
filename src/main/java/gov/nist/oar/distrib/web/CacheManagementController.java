@@ -319,7 +319,7 @@ public class CacheManagementController {
         if (version != null)
             id += "#"+version;
         String recachep = request.getParameter("recache");
-        boolean recache = ! ("0".equals(recachep) || "false".equals(recachep));
+        boolean recache = ! (recachep == null || "0".equals(recachep) || "false".equals(recachep));
         String seq = request.getParameter("seq");
         
         if (":cached".equals(selector)) {
