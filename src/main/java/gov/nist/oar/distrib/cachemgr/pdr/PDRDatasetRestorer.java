@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 import java.nio.file.Path;
@@ -393,8 +394,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      * @param aipid    the identifier for the AIP.  
      * @param version  the version of the AIP to cache.  If null, the latest is cached. 
      * @param into     the Cache to save the files to 
-     * @param recache  if false and a file is already in the cache, the file will not be rewritten;
-     *                    otherwise, it will be.  
+     * @param opts     options for caching the data (including "recache", whether to force a recache)
      * @return Set<String> -- a list of the filepaths for files that were cached
      */
     public Set<String> cacheDataset(String aipid, String version, Cache into, CacheOpts opts, String target)
@@ -474,6 +474,22 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
         Set<String> missing = new HashSet<String>();
         for (String bagfile : uselu.keySet()) {
             Set<String> need = new HashSet<String>(uselu.get(bagfile));
+            if (! opts.recache) {
+                // check to see if we really need to open up this bag
+                Iterator<String> it = need.iterator();
+                while (it.hasNext()) {
+                    String fp = it.next();
+                    if (into.isCached(idForObject(aipid, fp, version, target))) {
+                        it.remove();
+                        cached.add(fp);
+                    }
+                }
+                if (need.size() == 0) {
+                    log.info("Nothing needed from bag, {} (skipping)", bagfile);
+                    continue;
+                }
+            }
+            
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
             log.info("Caching files from bag, "+bagfile);
