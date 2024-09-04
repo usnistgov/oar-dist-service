@@ -325,7 +325,7 @@ public class CacheManagementController {
         if (":cached".equals(selector)) {
             try {
                 mgr.queueCache(id, recache, seq);
-                log.info("Queued for caching: {}", id);
+                log.info("Queued for caching: {} {}", id, ((seq==null) ? "" : "seq="+seq));
                 return new ResponseEntity<String>("Cache target queued", HttpStatus.ACCEPTED);
             } catch (ResourceNotFoundException ex) {
                 return new ResponseEntity<String>("Resource not found", HttpStatus.NOT_FOUND);
