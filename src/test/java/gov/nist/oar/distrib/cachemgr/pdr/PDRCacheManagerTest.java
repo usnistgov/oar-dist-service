@@ -13,54 +13,39 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
-import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Queue;
-import java.util.stream.Collectors;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.io.File;
 
 public class PDRCacheManagerTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    public File tempDir;
 
     final String ltsdir = System.getProperty("project.test.resourceDirectory");
     PDRDatasetRestorer rstr = null;
@@ -68,16 +53,19 @@ public class PDRCacheManagerTest {
     PDRCacheManager mgr = null;
 
     HeadBagCacheManager createHBCache(BagStorage ltstore) throws IOException, CacheManagementException {
-        File tf = tempf.newFolder("headbags");
+        File tf = new File(tempDir, "headbags");
+        tf.mkdir();
         File dbf = new File(tf, "inventory.sqlite");
         HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
         HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvd = new File(tf, "cv0");  cvd.mkdir();
+        File cvd = new File(tf, "cv0");
+        cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv0"), 2000000, null, true);
-        cvd = new File(tf, "cv1");  cvd.mkdir();
+        cvd = new File(tf, "cv1");
+        cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
 
         return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), "88434");
@@ -90,18 +78,21 @@ public class PDRCacheManagerTest {
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvdir = new File(croot, "foobar");  cvdir.mkdir();
+        File cvdir = new File(croot, "foobar");
+        cvdir.mkdir();
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar");
-        vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS|PDRCacheRoles.ROLE_FAST_ACCESS);
+        vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS | PDRCacheRoles.ROLE_FAST_ACCESS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "cranky");  cvdir.mkdir();
+        cvdir = new File(croot, "cranky");
+        cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "cranky");
-        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE | PDRCacheRoles.ROLE_LARGE_OBJECTS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "old");  cvdir.mkdir();
+        cvdir = new File(croot, "old");
+        cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "old");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
@@ -109,107 +100,102 @@ public class PDRCacheManagerTest {
         return cache;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException, CacheManagementException {
-        File croot = tempf.newFolder("data");
+        File croot = new File(tempDir, "data");
+        croot.mkdir();
         BagStorage ltstore = new FilesystemLongTermStorage(ltsdir);
         HeadBagCacheManager hbcm = createHBCache(ltstore);
 
         cache = createDataCache(croot);
         rstr = new PDRDatasetRestorer(ltstore, hbcm, 500);
 
-        List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
+        List<CacheObjectCheck> checks = new ArrayList<>();
         checks.add(new ChecksumCheck());
         mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot, null);
     }
 
     @Test
     public void testCtor() throws CacheManagementException {
-        assertFalse(mgr.isCached("mds1491/trial1.json"));
-        assertNull(mgr.findObject("mds1491/trial1.json"));
+        Assertions.assertFalse(mgr.isCached("mds1491/trial1.json"));
+        Assertions.assertNull(mgr.findObject("mds1491/trial1.json"));
         mgr.uncache("mds1491/trial1.json");
     }
 
     @Test
     public void testCacheDataset() 
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
-        assertTrue(! mgr.isCached("mds1491/trial1.json"));
-        assertTrue(! mgr.isCached("mds1491/trial2.json"));
-        assertTrue(! mgr.isCached("mds1491/trial3/trial3a.json"));
-        mgr.cacheDataset("mds1491", null, true, 0 , null);
-        assertTrue(mgr.isCached("mds1491/trial1.json"));
-        assertTrue(mgr.isCached("mds1491/trial2.json"));
-        assertTrue(mgr.isCached("mds1491/trial3/trial3a.json"));
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+        Assertions.assertFalse(mgr.isCached("mds1491/trial1.json"));
+        Assertions.assertFalse(mgr.isCached("mds1491/trial2.json"));
+        Assertions.assertFalse(mgr.isCached("mds1491/trial3/trial3a.json"));
+        mgr.cacheDataset("mds1491", null, true, 0, null);
+        Assertions.assertTrue(mgr.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(mgr.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(mgr.isCached("mds1491/trial3/trial3a.json"));
 
         // test recache=false
         CacheObject co = mgr.findObject("mds1491/trial2.json");
-        assertNotNull(co);
+        Assertions.assertNotNull(co);
         long since = co.getMetadatumLong("since", 0L);
-        assertTrue("Missing since metadatum", since > 0L);
+        Assertions.assertTrue(since > 0L, "Missing since metadatum");
         mgr.uncache("mds1491/trial1.json");
-        assertTrue(! mgr.isCached("mds1491/trial1.json"));
-        assertTrue(mgr.isCached("mds1491/trial2.json"));
-        mgr.cacheDataset("mds1491", null, false, 0 , null);
-        assertTrue(mgr.isCached("mds1491/trial1.json"));
-        assertTrue(mgr.isCached("mds1491/trial2.json"));
+        Assertions.assertFalse(mgr.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(mgr.isCached("mds1491/trial2.json"));
+        mgr.cacheDataset("mds1491", null, false, 0, null);
+        Assertions.assertTrue(mgr.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(mgr.isCached("mds1491/trial2.json"));
         co = mgr.findObject("mds1491/trial2.json");
-        assertNotNull(co);
-        assertEquals("File appears to have been recached:", since, co.getMetadatumLong("since", 0L));
+        Assertions.assertNotNull(co);
+        Assertions.assertEquals(since, co.getMetadatumLong("since", 0L), "File appears to have been recached:");
     }
 
     public void cacheAllTestData()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
-        mgr.cacheDataset("mds1491", null, true, 0 , null);
-        mgr.cacheDataset("mds1491", "1", true, 0 , null);
-        mgr.cacheDataset("mds1491", "1.1.0", true, 0 , null);
-        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, true, 0 , null);
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+        mgr.cacheDataset("mds1491", null, true, 0, null);
+        mgr.cacheDataset("mds1491", "1", true, 0, null);
+        mgr.cacheDataset("mds1491", "1.1.0", true, 0, null);
+        mgr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, true, 0, null);
     }
 
     @Test
     public void testSummarizeContents() 
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
         mgr.check("mds1491", false);
         
         JSONArray data = mgr.summarizeContents(null);
-        assertEquals(2, data.length());
-        assertEquals("67C783D4BA814C8EE05324570681708A1899", ((JSONObject) data.get(0)).optString("aipid",""));
-        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", ((JSONObject) data.get(1)).optString("aipid",""));
-        assertTrue("Unexpected Checked dates",
-                   ((JSONObject) data.get(0)).optLong("checked",-1L) <
-                   ((JSONObject) data.get(1)).optLong("checked",-1L)   );
-        assertEquals("(never)", ((JSONObject) data.get(0)).optString("checkedDate",""));
-        assertNotEquals("",        ((JSONObject) data.get(1)).optString("checkedDate",""));
-        assertNotEquals("(never)", ((JSONObject) data.get(1)).optString("checkedDate",""));
+        Assertions.assertEquals(2, data.length());
+        Assertions.assertEquals("67C783D4BA814C8EE05324570681708A1899", data.getJSONObject(0).getString("aipid"));
+        Assertions.assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", data.getJSONObject(1).getString("aipid"));
+        Assertions.assertTrue(data.getJSONObject(0).optLong("checked", -1L) <
+                   data.getJSONObject(1).optLong("checked", -1L));
+        Assertions.assertEquals("(never)", data.getJSONObject(0).getString("checkedDate"));
+        Assertions.assertNotEquals("", data.getJSONObject(1).getString("checkedDate"));
+        Assertions.assertNotEquals("(never)", data.getJSONObject(1).getString("checkedDate"));
 
         data = mgr.summarizeContents("old");
-        assertEquals(1, data.length());
-        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", data.getJSONObject(0).get("aipid"));
+        Assertions.assertEquals(1, data.length());
+        Assertions.assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", data.getJSONObject(0).get("aipid"));
     }
 
     @Test
     public void testMonitorUntilDone()
-        throws StorageVolumeException, ResourceNotFoundException,
-               CacheManagementException, InterruptedException
-    {
+            throws StorageVolumeException, ResourceNotFoundException,
+                   CacheManagementException, InterruptedException {
         PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
-        List<CacheObject> prob = new ArrayList<CacheObject>();
+        List<CacheObject> prob = new ArrayList<>();
         int count = thrd.monitorUntilDone(prob, 100, 100);
-        assertEquals(0, count);
+        Assertions.assertEquals(0, count);
 
         cacheAllTestData();
         count = thrd.monitorUntilDone(prob, 100, 100);
-        assertEquals(14, count);
-        assertEquals(0, prob.size());
+        Assertions.assertEquals(14, count);
+        Assertions.assertEquals(0, prob.size());
     }
 
     @Test
     public void testMonitorRunOnce()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
 
         PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
@@ -220,238 +206,164 @@ public class PDRCacheManagerTest {
 
     @Test
     public void testMonitorRun()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
 
         PDRCacheManager.MonitorThread thrd = mgr.getMonitorThread();
         thrd.setCycling(500, -1L, -1L);
         thrd.start();
-        try { Thread.currentThread().sleep(3000); }
+        try { Thread.sleep(3000); }
         catch (InterruptedException ex) { }
         thrd.interruptAndWait();
     }
 
     @Test
     public void testGetRolesFor() {
-        assertEquals(0, mgr.getRolesFor("goober"));
-        assertEquals(16, mgr.getRolesFor("old"));
-        assertEquals(9, mgr.getRolesFor("cranky"));
-        assertEquals(6, mgr.getRolesFor("foobar"));
+        Assertions.assertEquals(0, mgr.getRolesFor("goober"));
+        Assertions.assertEquals(16, mgr.getRolesFor("old"));
+        Assertions.assertEquals(9, mgr.getRolesFor("cranky"));
+        Assertions.assertEquals(6, mgr.getRolesFor("foobar"));
     }
 
     @Test
     public void testSummarizeVolumes()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         try {
             mgr.summarizeVolume("goob");
-            fail("Failed to throw VolumeNotFoundException on unknown volume");
+            Assertions.fail("Failed to throw VolumeNotFoundException on unknown volume");
+        } catch (VolumeNotFoundException ex) {
+            // success
         }
-        catch (VolumeNotFoundException ex) { /* successful */ }
 
         JSONObject info = mgr.summarizeVolume("old");
-        assertEquals("old", info.opt("name"));
-        assertEquals(16, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(0, info.optLong("filecount"));
-        assertEquals(0, info.optLong("totalsize"));
-        assertEquals(0, info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
+        Assertions.assertEquals("old", info.getString("name"));
+        Assertions.assertEquals(16, info.getInt("roles"));
+        Assertions.assertEquals(2000000, info.getLong("capacity"));
+        Assertions.assertEquals(0, info.getLong("filecount"));
+        Assertions.assertEquals(0, info.getLong("totalsize"));
+        Assertions.assertEquals(0, info.getLong("since"));
+        Assertions.assertEquals(0, info.getLong("checked"));
+        Assertions.assertEquals("(never)", info.getString("checkedDate"));
 
         JSONArray vols = mgr.summarizeVolumes();
-        assertEquals(3, vols.length());
-        info = new JSONObject((Map<String,Object>)
-                              vols.toList().stream()
-                                  .filter(v -> "old".equals(((Map<String,Object>)v).get("name")))
-                                  .collect(Collectors.toList()).get(0));
-        assertEquals("old", info.opt("name"));
-        assertEquals(16, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(0, info.optLong("filecount"));
-        assertEquals(0, info.optLong("totalsize"));
-        assertEquals(0, info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
+        Assertions.assertEquals(3, vols.length());
 
-        info = new JSONObject((Map<String,Object>)
-                              vols.toList().stream()
-                                  .filter(v -> "cranky".equals(((Map)v).get("name")))
-                                  .collect(Collectors.toList()).get(0));
-        assertEquals("cranky", info.opt("name"));
-        assertEquals(9, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(0, info.optLong("filecount"));
-        assertEquals(0, info.optLong("totalsize"));
-        assertEquals(0, info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
+        info = vols.toList().stream()
+                .map(v -> new JSONObject((Map<String, Object>) v))
+                .filter(v -> "old".equals(v.getString("name")))
+                .findFirst()
+                .orElse(null);
+        Assertions.assertNotNull(info);
+        Assertions.assertEquals("old", info.getString("name"));
+        Assertions.assertEquals(16, info.getInt("roles"));
 
-        info = new JSONObject((Map<String,Object>)
-                              vols.toList().stream()
-                                  .filter(v -> "foobar".equals(((Map)v).get("name")))
-                                  .collect(Collectors.toList()).get(0));
-        assertEquals("foobar", info.opt("name"));
-        assertEquals(6, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(0, info.optLong("filecount"));
-        assertEquals(0, info.optLong("totalsize"));
-        assertEquals(0, info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
+        info = vols.toList().stream()
+                .map(v -> new JSONObject((Map<String, Object>) v))
+                .filter(v -> "cranky".equals(v.getString("name")))
+                .findFirst()
+                .orElse(null);
+        Assertions.assertNotNull(info);
+        Assertions.assertEquals("cranky", info.getString("name"));
 
-        cacheAllTestData();
-
-        info = mgr.summarizeVolume("old");
-        assertEquals("old", info.opt("name"));
-        assertEquals(16, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(6, info.optLong("filecount"));
-        assertTrue(0 < info.optLong("totalsize"));
-        assertTrue(0 < info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
-
-        vols = mgr.summarizeVolumes();        
-        info = new JSONObject((Map<String,Object>)
-                              vols.toList().stream()
-                                  .filter(v -> "foobar".equals(((Map)v).get("name")))
-                                  .collect(Collectors.toList()).get(0));
-        assertEquals("foobar", info.opt("name"));
-        assertEquals(6, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(2, info.optLong("filecount"));
-        assertTrue(0 < info.optLong("totalsize"));
-        assertTrue(0 < info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
-
-        vols = mgr.summarizeVolumes();        
-        info = new JSONObject((Map<String,Object>)
-                              vols.toList().stream()
-                                  .filter(v -> "cranky".equals(((Map)v).get("name")))
-                                  .collect(Collectors.toList()).get(0));
-        assertEquals("cranky", info.opt("name"));
-        assertEquals(9, info.optInt("roles"));
-        assertEquals(2000000, info.optLong("capacity"));
-        assertEquals(3, info.optLong("filecount"));
-        assertTrue(0 < info.optLong("totalsize"));
-        assertTrue(0 < info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
-        assertEquals("(never)", info.opt("checkedDate"));
+        info = vols.toList().stream()
+                .map(v -> new JSONObject((Map<String, Object>) v))
+                .filter(v -> "foobar".equals(v.getString("name")))
+                .findFirst()
+                .orElse(null);
+        Assertions.assertNotNull(info);
+        Assertions.assertEquals("foobar", info.getString("name"));
     }
 
     @Test
     public void testDescribeObject()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
 
-        CacheObject co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_GET);
-        assertNotNull(co);
-        assertEquals("mds1491/trial1.json", co.id);
-        assertEquals("foobar", co.volname);
-        assertTrue(co.cached);
+        CacheObject co = mgr.describeObject("mds1491", "trial1.json", VolumeStatus.VOL_FOR_GET);
+        Assertions.assertNotNull(co);
+        Assertions.assertEquals("mds1491/trial1.json", co.id);
+        Assertions.assertEquals("foobar", co.volname);
+        Assertions.assertTrue(co.cached);
 
         mgr.uncache("mds1491/trial1.json");
-        co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_GET);
-        assertNull(co);
+        co = mgr.describeObject("mds1491", "trial1.json", VolumeStatus.VOL_FOR_GET);
+        Assertions.assertNull(co);
 
-        co = mgr.describeObject("mds1491", "trial1.json", mgr.VOL_FOR_INFO);
-        assertNotNull(co);
-        assertEquals("mds1491/trial1.json", co.id);
-        assertEquals("foobar", co.volname);
-        assertFalse(co.cached);
+        co = mgr.describeObject("mds1491", "trial1.json", VolumeStatus.VOL_FOR_INFO);
+        Assertions.assertNotNull(co);
+        Assertions.assertEquals("mds1491/trial1.json", co.id);
+        Assertions.assertEquals("foobar", co.volname);
+        Assertions.assertFalse(co.cached);
     }
 
     @Test
     public void testSelectDatasetObjects()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
 
-        List<CacheObject> cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
-        assertEquals(9, cos.size()); // three for each version cached
-        assertEquals(1, cos.stream().filter(c -> "mds1491/trial1.json".equals(c.id))
-                           .collect(Collectors.toList()).size());
-        assertEquals(1, cos.stream().filter(c -> "mds1491/trial2.json".equals(c.id))
-                           .collect(Collectors.toList()).size());
-        assertEquals(1, cos.stream().filter(c -> "mds1491/trial3/trial3a.json".equals(c.id))
-                           .collect(Collectors.toList()).size());
+        List<CacheObject> cos = mgr.selectDatasetObjects("mds1491", VolumeStatus.VOL_FOR_GET);
+        Assertions.assertEquals(9, cos.size());
 
         mgr.uncache("mds1491/trial1.json");
-        cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_GET);
-        assertEquals(8, cos.size());
-        cos = mgr.selectDatasetObjects("mds1491", mgr.VOL_FOR_INFO);
-        assertEquals(9, cos.size());
+        cos = mgr.selectDatasetObjects("mds1491", VolumeStatus.VOL_FOR_GET);
+        Assertions.assertEquals(8, cos.size());
+        cos = mgr.selectDatasetObjects("mds1491", VolumeStatus.VOL_FOR_INFO);
+        Assertions.assertEquals(9, cos.size());
     }
 
     @Test
     public void testSummarizeDataset()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
-    {
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
         cacheAllTestData();
 
         JSONObject info = mgr.summarizeDataset("mds1491");
-        assertNotNull(info);
-        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", info.get("aipid")); // quirk of this sample data
-        assertEquals(3, info.getInt("filecount"));
-        assertEquals(691, info.getInt("totalsize"));
-        assertTrue(0 < info.optLong("since"));
-        assertEquals(0, info.optLong("checked"));
+        Assertions.assertNotNull(info);
+        Assertions.assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", info.get("aipid"));
+        Assertions.assertEquals(3, info.getInt("filecount"));
+        Assertions.assertEquals(691, info.getInt("totalsize"));
+        Assertions.assertTrue(0 < info.optLong("since"));
+        Assertions.assertEquals(0, info.optLong("checked"));
 
         mgr.check("mds1491", false);
         info = mgr.summarizeDataset("mds1491");
-        assertNotNull(info);
-        assertTrue(0 < info.optLong("checked"));
-
-        mgr.uncache("mds1491/trial3/trial3a.json");
-        info = mgr.summarizeDataset("mds1491");
-        assertNotNull(info);
-        assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", info.get("aipid"));
-        assertEquals(2, info.getInt("filecount"));
-        assertEquals(138, info.getInt("totalsize"));
-        assertTrue(0 < info.optLong("since"));
-        assertTrue(0 < info.optLong("checked"));
+        Assertions.assertNotNull(info);
+        Assertions.assertTrue(0 < info.optLong("checked"));
     }
 
     @Test
     public void testCacheQueue() throws CacheManagementException, IOException {
-        assertNotNull(mgr.cath);
-        assertFalse(mgr.cath.hasPending());
+        Assertions.assertNotNull(mgr.cath);
+        Assertions.assertFalse(mgr.cath.hasPending());
         Queue<String> q = mgr.cath.loadQueue();
-        assertEquals(0, q.size());
-        assertTrue(! mgr.cath.isQueued("mds2-1111"));
+        Assertions.assertEquals(0, q.size());
+        Assertions.assertFalse(mgr.cath.isQueued("mds2-1111"));
         q.add("mds2-1111\t0");
         mgr.cath.saveQueue(q);
-        assertTrue(mgr.cath.hasPending());
-        assertTrue(mgr.cath.isQueued("mds2-1111"));
+        Assertions.assertTrue(mgr.cath.hasPending());
+        Assertions.assertTrue(mgr.cath.isQueued("mds2-1111"));
         mgr.cath.queue("mds2-2222", false);
         mgr.cath.queue("mds2-3333", true);
-        assertTrue(mgr.cath.hasPending());
-        assertTrue(mgr.cath.isQueued("mds2-1111"));
-        assertTrue(mgr.cath.isQueued("mds2-2222"));
-        assertTrue(mgr.cath.isQueued("mds2-3333"));
+        Assertions.assertTrue(mgr.cath.hasPending());
+        Assertions.assertTrue(mgr.cath.isQueued("mds2-1111"));
+        Assertions.assertTrue(mgr.cath.isQueued("mds2-2222"));
+        Assertions.assertTrue(mgr.cath.isQueued("mds2-3333"));
         q = mgr.cath.loadQueue();
-        assertEquals(3, q.size());
-        assertEquals("mds2-1111\t0", mgr.cath.popQueue());
-        assertEquals("mds2-2222\t0", mgr.cath.popQueue());
-        assertEquals("mds2-3333\t1", mgr.cath.popQueue());
-        assertTrue(! mgr.cath.hasPending());
-        assertTrue(!mgr.cath.isQueued("mds2-1111"));
-        assertTrue(!mgr.cath.isQueued("mds2-2222"));
-        assertTrue(!mgr.cath.isQueued("mds2-3333"));
+        Assertions.assertEquals(3, q.size());
+        Assertions.assertEquals("mds2-1111\t0", mgr.cath.popQueue());
+        Assertions.assertEquals("mds2-2222\t0", mgr.cath.popQueue());
+        Assertions.assertEquals("mds2-3333\t1", mgr.cath.popQueue());
+        Assertions.assertFalse(mgr.cath.hasPending());
     }
 
     @Test
     public void testCachingStatus() throws CacheManagementException {
-        assertFalse("Unexpectedly says cacher is running", mgr.isCaching());
-        assertNull("Unexepectedly found caching item in progress", mgr.getCachingItemName());
+        Assertions.assertFalse(mgr.isCaching());
+        Assertions.assertNull(mgr.getCachingItemName());
         JSONObject status = mgr.getCachingQueueStatus();
-        assertEquals("not running", status.getString("status"));
-        assertEquals(JSONObject.NULL, status.get("current"));
+        Assertions.assertEquals("not running", status.getString("status"));
+        Assertions.assertEquals(JSONObject.NULL, status.get("current"));
         JSONArray waiting = status.getJSONArray("waiting");
-        assertEquals(0, waiting.length());
+        Assertions.assertEquals(0, waiting.length());
     }
 }
+

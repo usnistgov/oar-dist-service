@@ -1,20 +1,5 @@
 package gov.nist.oar.distrib.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.RPACachingService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +8,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(MockitoJUnitRunner.class)
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gov.nist.oar.distrib.service.RPACachingService;
+
+@ExtendWith(MockitoExtension.class)
 public class RPADataCachingControllerTest {
 
     @Mock
@@ -33,7 +34,7 @@ public class RPADataCachingControllerTest {
 
     MockMvc mockMvc;
 
-    @Before
+    @BeforeAll
     public void setUp() {
         controller = new RPADataCachingController(rpaCachingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
@@ -71,7 +72,7 @@ public class RPADataCachingControllerTest {
 
         mockMvc.perform(get("/ds/rpa/dlset/" + cacheId))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(expectedJson));
 
         verify(rpaCachingService).retrieveMetadata(eq(cacheId));

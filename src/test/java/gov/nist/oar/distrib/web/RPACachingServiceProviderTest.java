@@ -5,26 +5,24 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
 
 import java.io.IOException;
 import java.io.File;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class RPACachingServiceProviderTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    File tempf;
 
     File root = null;
     NISTCacheManagerConfig cmcfg = null;
@@ -32,23 +30,23 @@ public class RPACachingServiceProviderTest {
     BagStorage publts = null;
     RPACachingServiceProvider prov = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         cmcfg = new NISTCacheManagerConfig();
-        root = tempf.newFolder("rpaadm");
+        root = new File(tempf, "rpaadm");
         cmcfg.setAdmindir(root.toString());
 
         rpacfg = (new ObjectMapper()).readValue(getClass().getResourceAsStream("/rpaconfig.json"),
                                                 RPAConfiguration.class);
-        rpacfg.setBagstoreLocation(tempf.newFolder("rpalts").toString());
+        rpacfg.setBagstoreLocation(new File(tempf, "rpalts").toString());
 
         Logger logger = LoggerFactory.getLogger("Publts");
-        publts = new FilesystemLongTermStorage(tempf.newFolder("publts").toString(), 10000000, logger);
+        publts = new FilesystemLongTermStorage(new File(tempf, "publts").toString(), 10000000, logger);
 
         prov = new RPACachingServiceProvider(cmcfg, rpacfg, publts, null);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         tempf.delete();
         cmcfg = null;
@@ -83,6 +81,6 @@ public class RPACachingServiceProviderTest {
         throws ConfigurationException, IOException, CacheManagementException
     {
         RestrictedDatasetRestorer rest = prov.createRPDatasetRestorer();
-        assertEquals(rest.getExpiryTime(), 1209600000L);
+        assertEquals(1209600000L, rest.getExpiryTime());
     }
 }

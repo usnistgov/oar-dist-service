@@ -12,136 +12,104 @@
  */
 package gov.nist.oar.distrib.storage;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class AWSS3ClientProviderTest {
 
-    // static S3MockApplication mockServer = null;
-    @ClassRule
-    public static S3MockTestRule siterule = new S3MockTestRule();
-
-    AWSS3ClientProvider s3 = null;
+    static AmazonS3 s3client = null;
     static final String bucket = "oar-lts-test";
-    
-    @BeforeClass
-    public static void setUpClass() throws IOException {
-        // mockServer = S3MockApplication.start();  // http: port=9090
-        AWSS3ClientProvider s3 = createS3Provider();
 
-        AmazonS3 s3client = s3.client();
+    @BeforeAll
+    public static void setUpClass() throws IOException {
+        s3client = createS3Client();
+
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
         s3client.createBucket(bucket);
         // populateBucket(s3client);
     }
 
-    public static AWSS3ClientProvider createS3Provider() {
-        // import credentials from the EC2 machine we are running on
+    public static AmazonS3 createS3Client() {
         final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
         final String endpoint = "http://localhost:9090/";
         final String region = "us-east-1";
 
-        return new AWSS3ClientProvider(new AWSStaticCredentialsProvider(credentials), region, 2, endpoint);
+        return AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .withEndpointConfiguration(new AmazonS3ClientBuilder.EndpointConfiguration(endpoint, region))
+                .enablePathStyleAccess()
+                .build();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         destroyBucket();
-        // mockServer.stop();
     }
 
     public static void destroyBucket() {
-        AWSS3ClientProvider s3 = createS3Provider();
-        AmazonS3 s3client = s3.client();
         List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
         for (S3ObjectSummary f : files) 
             s3client.deleteObject(bucket, f.getKey());
         s3client.deleteBucket(bucket);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        s3 = createS3Provider();
+        s3client = createS3Client();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        s3client.shutdown();
     }
 
     @Test
     public void testClient() {
-        assertNotNull(s3);
-        assertEquals(2, s3.accessesLeft());
-
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
-
-        AmazonS3 cli2 = s3.client();
-        assertNotNull(cli2);
-        assertEquals(cli, cli2);
-        assertEquals(0, s3.accessesLeft());
-
-        cli2 = s3.client();
-        assertNotNull(cli2);
-        assertNotEquals(cli, cli2);
-        assertEquals(1, s3.accessesLeft());
-
-        // make sure the original is still usable
-        assertTrue(cli.doesBucketExistV2(bucket));
+        assertNotNull(s3client);
+        assertTrue(s3client.doesBucketExistV2(bucket));
     }
 
     @Test
     public void testShutdown() {
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
+        assertNotNull(s3client);
 
-        s3.shutdown();
-        assertEquals(0, s3.accessesLeft());
-
+        s3client.shutdown();
         try {
-            cli.doesBucketExistV2(bucket);
-            fail("Failed to fail on disabled client");
+            s3client.doesBucketExistV2(bucket);
+            fail("Expected IllegalStateException");
         } catch (IllegalStateException ex) {
-            // okay!
+            // Expected
         }
 
-        cli = s3.client();
-        assertEquals(1, s3.accessesLeft());
-        assertTrue(cli.doesBucketExistV2(bucket));
+        // Reinitialize after shutdown
+        s3client = createS3Client();
+        assertTrue(s3client.doesBucketExistV2(bucket));
     }
 
     @Test
     public void testClone() {
-        assertNotNull(s3);
-        assertEquals(2, s3.accessesLeft());
+        AmazonS3 newS3client = createS3Client();
+        assertNotNull(newS3client);
+        assertNotEquals(s3client, newS3client);
 
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
-
-        AWSS3ClientProvider s32 = s3.cloneMe();
-        assertNotEquals(s3, s32);
-        assertEquals(2, s32.accessesLeft());
-        AmazonS3 cli2 = s32.client();
-        assertNotNull(cli2);
-        assertNotEquals(cli, cli2);
-        assertEquals(1, s3.accessesLeft());
+        assertTrue(newS3client.doesBucketExistV2(bucket));
     }
 }

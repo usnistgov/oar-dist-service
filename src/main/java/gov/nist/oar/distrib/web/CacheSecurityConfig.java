@@ -13,31 +13,22 @@ package gov.nist.oar.distrib.web;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import jakarta.servlet.Filter;
 
-import org.apache.commons.lang3.StringUtils;
-
-
-import javax.servlet.Filter;
-
-/**
- * Security configuration for the Cache management service endpoints.
- * <p>
- * This engages an AuthenticationFilter for accesses to the endpoints for the {@link CacheManagementController}.
- */
 @Configuration
 @EnableWebSecurity
-public class CacheSecurityConfig extends WebSecurityConfigurerAdapter {
+public class CacheSecurityConfig {
 
     private static final RequestMatcher SECURED_ENDPOINTS =
         new OrRequestMatcher(new AntPathRequestMatcher("/cache/**"));
@@ -50,27 +41,39 @@ public class CacheSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     /**
-     * configure the web service security used in the application.
+     * Configures the security filter chain for the application, specifying the security rules
+     * for different endpoints, session management, authentication, and filter chain setup.
      * <p>
-     * This configures the following conditions:
+     * This method configures the following:
      * <ul>
-     *   <li> installs our {@link BearerTokenAuthenticationFilter} to do the actual authentication test, </li>
-     *   <li> establishes which endpoints should use this authentication filter, </li>
-     *   <li> sets stateless (as in, no) session management, </li>
-     *   <li> use default exception handling, particularly when authentication fails (sending 401), and </li>
-     *   <li> disables use of login forms, logout forms, and CSRF guarding. <li>
+     *   <li> Stateless session management is enforced to prevent the creation of sessions, ensuring the application
+     *        remains stateless. </li>
+     *   <li> A custom {@link BearerTokenAuthenticationFilter} is added to used authentication via bearer tokens. </li>
+     *   <li> Only the secured endpoints defined by {@link #SECURED_ENDPOINTS} require authentication. </li>
+     *   <li> Cross-Site Request Forgery (CSRF) protection is disabled. </li>
+     *   <li> Login, HTTP Basic authentication, and logout mechanisms are disabled since this application uses token-based authentication. </li>
      * </ul>
+     * 
+     * @param http the {@link HttpSecurity} instance used to configure security for the application
+     * @return the {@link SecurityFilterChain} defining the security rules for the application
+     * @throws Exception if an error occurs during configuration
      */
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-            .exceptionHandling().and()
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(authenticationFilter(), AnonymousAuthenticationFilter.class)
-            .authorizeRequests().requestMatchers(SECURED_ENDPOINTS).authenticated().and()
-            .csrf().disable()
-            .formLogin().disable()
-            .httpBasic().disable()
-            .logout().disable();
+            .authorizeHttpRequests(auth -> auth.requestMatchers(SECURED_ENDPOINTS).authenticated())
+            .csrf(csrf -> csrf.disable())
+            .formLogin(form -> form.disable())
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .logout(logout -> logout.disable());
+
+        return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
     /**
@@ -80,7 +83,7 @@ public class CacheSecurityConfig extends WebSecurityConfigurerAdapter {
     protected Filter authenticationFilter() throws Exception {
         final BearerTokenAuthenticationFilter out =
             new BearerTokenAuthenticationFilter(accessToken, SECURED_ENDPOINTS);
-        out.setAuthenticationManager(authenticationManager());
+        out.setAuthenticationManager(authenticationManager(null));  // Inject the AuthenticationManager
         return out;
     }
 }

@@ -12,70 +12,66 @@
 package gov.nist.oar;
 
 import java.net.URL;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.io.IOException;
 
-import org.junit.rules.TestRule;
-import org.junit.runners.model.Statement;
-import org.junit.runner.Description;
-import org.junit.AssumptionViolatedException;
-
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.Assumptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * a JUnit ClassRule that checks for access to a web site (e.g. data.nist.gov) as a guard for tests 
- * that require that.
+ * A JUnit 5 extension that checks for access to a website (e.g., data.nist.gov) 
+ * before all tests are run.
  */
-public class RequireWebSite implements TestRule {
+public class RequireWebSite implements BeforeAllCallback {
 
-    private String _testurl = null;
+    private String testUrl;
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    public RequireWebSite(String testurl) {
-        _testurl = testurl;
+    public RequireWebSite(String testUrl) {
+        this.testUrl = testUrl;
     }
 
+    /**
+     * Method to check if the site is available by sending an HTTP request.
+     * 
+     * @return true if the site is available, false otherwise
+     */
     public boolean checkSite() {
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) (new URL(_testurl)).openConnection();
+            // Use URI to create a URL
+            URI uri = new URI(testUrl);
+            URL url = uri.toURL();
+
+            conn = (HttpURLConnection) url.openConnection();
             conn.setInstanceFollowRedirects(true);
             conn.setConnectTimeout(2000);
             conn.setReadTimeout(20000);
             int status = conn.getResponseCode();
             conn.getContent();
 
-            if (status >= 200 && status < 300)
-                return true;
+            return status >= 200 && status < 300;
+        } catch (URISyntaxException ex) {
+            log.error("Bad required web site URL, " + testUrl + ": " + ex.getMessage());
             return false;
-        }
-        catch (MalformedURLException ex) {
-            log.error("Bad required web site URL, "+_testurl+": "+ex.getMessage());
-            return false;
-        }
-        catch (IOException ex) {
-            log.warn("IOException while accessing "+_testurl+"; assuming not available");
+        } catch (IOException ex) {
+            log.warn("IOException while accessing " + testUrl + "; assuming not available");
             log.warn(ex.getMessage());
             return false;
-        }
-        finally {
+        } finally {
             if (conn != null) conn.disconnect();
         }
     }
 
     @Override
-    public Statement apply(Statement base, Description desc) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                if (! checkSite()) 
-                    throw new AssumptionViolatedException("Site appears unavailable: Skipping test(s)");
-                else
-                    base.evaluate();
-            }
-        };
+    public void beforeAll(ExtensionContext context) throws Exception {
+        // If the site is not available, skip the test(s)
+        Assumptions.assumeTrue(checkSite(), 
+            "Site appears unavailable: Skipping test(s)");
     }
 }
-

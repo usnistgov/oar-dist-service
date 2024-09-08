@@ -11,37 +11,34 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.io.File;
+import java.io.IOException;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.FileSystemUtils;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
-import java.io.IOException;
-import java.io.File;
-
-
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = NISTDistribServiceConfig.class)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = NISTDistribServiceConfig.class)
 @TestPropertySource(properties = {
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.packaging.maxpackagesize = 100000",
-        "distrib.packaging.maxfilecount = 2",
-        "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
+        "distrib.packaging.maxpackagesize=100000",
+        "distrib.packaging.maxfilecount=2",
+        "distrib.packaging.allowedurls=nist.gov|s3.amazonaws.com/nist-midas",
         "distrib.baseurl=http://localhost/od/ds",
         "distrib.cachemgr.admindir=${java.io.tmpdir}/testcmgr",
         "distrib.cachemgr.headbagCacheSize=40000000",
@@ -75,31 +72,31 @@ public class NISTDistribServiceConfigTest {
     RPAConfiguration rpaConfiguration;
 
     public static void cleanTestDir(File testdir) throws IOException {
-        /*
-        */
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
         String tmpdir = System.getProperty("java.io.tmpdir");
         if (tmpdir == null)
             throw new RuntimeException("java.io.tmpdir property not set");
         File tmp = new File(tmpdir);
-        if (! tmp.exists())
+        if (!tmp.exists())
             tmp.mkdir();
         testdir = new File(tmp, "testcmgr");
         cleanTestDir(testdir);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() throws IOException {
-        testdir.delete();
+        if (testdir.exists()) {
+            FileSystemUtils.deleteRecursively(testdir);
+        }
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         cleanTestDir(testdir);
     }

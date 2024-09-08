@@ -11,79 +11,74 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.distrib.cachemgr.inventory;
+package gov.nist.oar.distrib.cachemgr.storage;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
 
-import java.io.PrintWriter;
-import java.io.InputStreamReader;
-import java.io.InputStream;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
-import java.io.File;
 import java.io.IOException;
-import java.time.Instant;
-import java.net.URL;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.time.Instant;
 
 import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 
 public class FilesystemCacheVolumeTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    File tempf;
 
     FilesystemCacheVolume makevol(String root) throws IOException {
-        File rootdir = tempf.newFolder(root);
+        File rootdir = new File(tempf, root);
+        rootdir.mkdir();
         return new FilesystemCacheVolume(rootdir.toString(), root);
     }
 
     File makefile(String contents) throws IOException {
-        return _makefile(tempf.newFile(), contents);
+        return _makefile(new File(tempf, "tempfile"), contents);
     }
 
     File _makefile(File target, String contents) throws IOException {
-        PrintWriter w = new PrintWriter(target);
-        try {
+        try (PrintWriter w = new PrintWriter(target)) {
             w.println(contents);
-        }
-        finally {
-            w.close();
         }
         return target;
     }
 
     CacheObject makeobj(FilesystemCacheVolume v, String name, String contents) throws IOException {
-        File out = _makefile(new File(v.getRootDir(), name), contents);
+        _makefile(new File(v.getRootDir(), name), contents);
         return new CacheObject(name, v);
     }
 
     String getFileContents(File f) throws IOException {
         StringBuilder sb = new StringBuilder();
-        FileReader r = new FileReader(f);
-        char[] buf = new char[20];
-        int n = 0;
-        try {
-            while ((n = r.read(buf)) >= 0) 
+        try (FileReader r = new FileReader(f)) {
+            char[] buf = new char[20];
+            int n;
+            while ((n = r.read(buf)) >= 0) {
                 sb.append(buf, 0, n);
-        }
-        finally {
-            r.close();
+            }
         }
         return sb.toString();
     }
-
 
     @Test
     public void testGetName() throws IOException {
@@ -94,82 +89,72 @@ public class FilesystemCacheVolumeTest {
     @Test
     public void testExists() throws StorageVolumeException, IOException {
         CacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
-        tempf.newFile("root/goob");
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
+        File obj = new File(tempf, "root/goob");
+        obj.createNewFile();
+        assertTrue(v.exists("goob"), "Failed to find object in store");
     }
 
     @Test
     public void testInputStreamSaveAs() throws StorageVolumeException, IOException {
-        // create the file to stream
         File obj = makefile("hello world");
 
-        // now stream it to the store
         FilesystemCacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
-        FileInputStream fs = new FileInputStream(obj);
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
         JSONObject md = new JSONObject();
-        try {
+        try (FileInputStream fs = new FileInputStream(obj)) {
             v.saveAs(fs, "goob", md);
-        } finally { fs.close(); }
+        }
         File out = new File(v.getRootDir(), "goob");
         assertTrue(out.exists());
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertTrue(v.exists("goob"), "Failed to find object in store");
         assertEquals("hello world\n", getFileContents(out));
+        assertTrue(md.has("modified"), "Metadata not updated with 'modified'");
         long mod = md.getLong("modified");
-        assertTrue("metadata not updated with 'modified'", md.has("modified"));
-        assertTrue("Mod date not set: "+Long.toString(mod), mod > 0L);
+        assertTrue(mod > 0L, "Mod date not set: " + Long.toString(mod));
     }
 
     @Test
     public void testNoMetadataSaveAs() throws StorageVolumeException, IOException {
-        // create the file to stream
         File obj = makefile("hello world");
 
-        // now stream it to the store
         FilesystemCacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
-        FileInputStream fs = new FileInputStream(obj);
-        try {
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
+        try (FileInputStream fs = new FileInputStream(obj)) {
             v.saveAs(fs, "goob", null);
-        } finally { fs.close(); }
+        }
         File out = new File(v.getRootDir(), "goob");
         assertTrue(out.exists());
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertTrue(v.exists("goob"), "Failed to find object in store");
         assertEquals("hello world\n", getFileContents(out));
     }
 
     @Test
     public void testCacheObjectSaveAs() throws StorageVolumeException, IOException {
-        // create the file to stream
         FilesystemCacheVolume v = makevol("root");
         CacheObject co = makeobj(v, "goob", "hello world");
 
-        // now test transfer
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("hank"));
+        assertFalse(v.exists("hank"), "Mistakenly believes non-existent object exists");
         v.saveAs(co, "hank");
-        assertTrue("Failed to find object in store", v.exists("hank"));
+        assertTrue(v.exists("hank"), "Failed to find object in store");
         assertEquals("hello world\n", getFileContents(new File(v.getRootDir(), "hank")));
     }
 
     @Test
     public void testGetStream() throws StorageVolumeException, IOException {
         FilesystemCacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
-        CacheObject co = makeobj(v, "goob", "hello world");
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
+        makeobj(v, "goob", "hello world");
+        assertTrue(v.exists("goob"), "Failed to find object in store");
 
         StringBuilder sb = new StringBuilder();
-        InputStream is = v.getStream("goob");
-        InputStreamReader r = new InputStreamReader(is);
-        char[] buf = new char[20];
-        int n = 0;
-        try {
-            while ((n = r.read(buf)) >= 0) 
+        try (InputStream is = v.getStream("goob");
+             InputStreamReader r = new InputStreamReader(is)) {
+            char[] buf = new char[20];
+            int n;
+            while ((n = r.read(buf)) >= 0) {
                 sb.append(buf, 0, n);
-        }
-        finally {
-            r.close();
+            }
         }
         assertEquals("hello world\n", sb.toString());
     }
@@ -180,9 +165,9 @@ public class FilesystemCacheVolumeTest {
         long now = nowi.getEpochSecond() * 1000;
         try { Thread.sleep(1000); } catch (InterruptedException ex) { fail("Interrupted!"); }
         FilesystemCacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
         CacheObject co = makeobj(v, "goob", "hello world");
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        assertTrue(v.exists("goob"), "Failed to find object in store");
 
         co = v.get("goob");
         assertEquals("root", co.volname);
@@ -190,39 +175,41 @@ public class FilesystemCacheVolumeTest {
         assertEquals("goob", co.name);
         assertEquals(12, co.getSize());
         long mod = co.getLastModified();
-        assertTrue("Bad mod time: "+Long.toString(mod)+" !> "+Long.toString(now), mod > now);
+        assertTrue(mod > now, "Bad mod time: " + Long.toString(mod) + " !> " + Long.toString(now));
     }
 
     @Test
     public void testRemove() throws StorageVolumeException, IOException {
         FilesystemCacheVolume v = makevol("root");
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
         assertFalse(v.remove("goob"));
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
 
-        CacheObject co = makeobj(v, "goob", "hello world");
-        assertTrue("Failed to find object in store", v.exists("goob"));
+        makeobj(v, "goob", "hello world");
+        assertTrue(v.exists("goob"), "Failed to find object in store");
 
         assertTrue(v.remove("goob"));
-        assertFalse("Mistakenly believes non-existent object exists", v.exists("goob"));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testRedirectForUnsupported()
-        throws StorageVolumeException, UnsupportedOperationException, IOException
-    {
-        FilesystemCacheVolume v = makevol("root");
-        v.getRedirectFor("goober");
+        assertFalse(v.exists("goob"), "Mistakenly believes non-existent object exists");
     }
 
     @Test
-    public void testRedirectFor()
-        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
-    {
+    public void testRedirectForUnsupported() throws StorageVolumeException, IOException {
+        FilesystemCacheVolume v = makevol("root");
+        assertThrows(UnsupportedOperationException.class, () -> v.getRedirectFor("goober"));
+    }
+
+    @Test
+    public void testRedirectFor() throws StorageVolumeException, IOException, MalformedURLException {
         String root = "root";
-        File rootdir = tempf.newFolder(root);
+        File rootdir = new File(tempf, root);
+        rootdir.mkdir();
         FilesystemCacheVolume v = new FilesystemCacheVolume(rootdir.toString(), root, "https://ex.org/");
-        assertEquals(new URL("https://ex.org/goober"), v.getRedirectFor("goober"));
-        assertEquals(new URL("https://ex.org/i%20a/m%20groot"), v.getRedirectFor("i a/m groot"));
+        try {
+            // Use URI instead of URL
+            assertEquals(new URI("https://ex.org/goober"), v.getRedirectFor("goober").toURI());
+            assertEquals(new URI("https://ex.org/i%20a/m%20groot"), v.getRedirectFor("i a/m groot").toURI());
+        } catch (URISyntaxException e) {
+            fail("URI syntax is incorrect: " + e.getMessage());
+        }
     }
 }

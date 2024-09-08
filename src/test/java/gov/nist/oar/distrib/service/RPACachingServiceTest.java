@@ -1,14 +1,14 @@
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
-import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,14 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 
 public class RPACachingServiceTest {
 
@@ -33,7 +35,7 @@ public class RPACachingServiceTest {
     private PDRCacheManager pdrCacheManager;
     private RPAConfiguration rpaConfiguration;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         pdrCacheManager = mock(PDRCacheManager.class);
         rpaConfiguration = mock(RPAConfiguration.class);
@@ -74,16 +76,18 @@ public class RPACachingServiceTest {
         verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testCacheAndGenerateRandomId_invalidDatasetArkID() throws Exception {
+    @Test
+    public void testCacheAndGenerateRandomId_invalidDatasetArkID() {
         String datasetID = "ark:/invalid_ark_id";
         String version = "";
 
-        rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+        assertThrows(IllegalArgumentException.class, () -> {
+            rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+        });
     }
 
     @Test
-    public void testRetrieveMetadata_success() throws Exception  {
+    public void testRetrieveMetadata_success() throws Exception {
         String randomID = "randomId123";
         String aipid = "456";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
@@ -116,7 +120,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
+        when(pdrCacheManager.selectDatasetObjects(randomID, PDRCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "https://testdata.nist.gov";
@@ -158,9 +162,8 @@ public class RPACachingServiceTest {
         assertEquals(expected, actual);
     }
 
-    // This tests if objects with missing filepaths are skipped and not included in metadata
     @Test
-    public void testRetrieveMetadata_withMissingFilepath() throws Exception  {
+    public void testRetrieveMetadata_withMissingFilepath() throws Exception {
         String randomID = "randomId123";
         String aipid = "456";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
@@ -192,7 +195,7 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
+        when(pdrCacheManager.selectDatasetObjects(randomID, PDRCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "https://testdata.nist.gov";
@@ -221,9 +224,8 @@ public class RPACachingServiceTest {
         assertEquals(expected, actual);
     }
 
-    // This should throw MetadataNotFoundException since there is only one object but it's missing filepath
-    @Test(expected = MetadataNotFoundException.class)
-    public void testRetrieveMetadata_withOneObjectMissingFilepath() throws Exception  {
+    @Test
+    public void testRetrieveMetadata_withOneObjectMissingFilepath() throws Exception {
         String randomID = "randomId123";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
                 .put("contentType", "text/plain")
@@ -238,29 +240,29 @@ public class RPACachingServiceTest {
                 .put("sinceDate", "08-05-2023"),
                 "Volume1");
 
-
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
+        when(pdrCacheManager.selectDatasetObjects(randomID, PDRCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
-        rpaCachingService.retrieveMetadata(randomID);
+        assertThrows(MetadataNotFoundException.class, () -> {
+            rpaCachingService.retrieveMetadata(randomID);
+        });
     }
 
-    @Test(expected = MetadataNotFoundException.class)
-    public void testRetrieveMetadata_WithEmptyMetadataList() throws Exception  {
-
+    @Test
+    public void testRetrieveMetadata_WithEmptyMetadataList() throws Exception {
         String randomID = "randomId123";
         List<CacheObject> objects = new ArrayList<>();
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET)).thenReturn(objects);
+        when(pdrCacheManager.selectDatasetObjects(randomID, PDRCacheManager.VOL_FOR_GET)).thenReturn(objects);
 
-        rpaCachingService.retrieveMetadata(randomID);
+        assertThrows(MetadataNotFoundException.class, () -> {
+            rpaCachingService.retrieveMetadata(randomID);
+        });
     }
 
-    @Test(expected = RequestProcessingException.class)
-    public void testRetrieveMetadata_WithMalformedBaseUrl() throws Exception  {
-
-
+    @Test
+    public void testRetrieveMetadata_WithMalformedBaseUrl() throws Exception {
         String randomID = "randomId123";
         CacheObject cacheObject1 = new CacheObject("object1", new JSONObject()
                 .put("filepath", "path/to/file1.txt")
@@ -292,13 +294,15 @@ public class RPACachingServiceTest {
 
         List<CacheObject> cacheObjects = Arrays.asList(cacheObject1, cacheObject2);
 
-        when(pdrCacheManager.selectDatasetObjects(randomID, pdrCacheManager.VOL_FOR_GET))
+        when(pdrCacheManager.selectDatasetObjects(randomID, PDRCacheManager.VOL_FOR_GET))
                 .thenReturn(cacheObjects);
 
         String testBaseDownloadUrl = "htp://testdata.nist.gov/";
         when(rpaConfiguration.getBaseDownloadUrl()).thenReturn(testBaseDownloadUrl);
 
-        rpaCachingService.retrieveMetadata(randomID);
+        assertThrows(RequestProcessingException.class, () -> {
+            rpaCachingService.retrieveMetadata(randomID);
+        });
     }
 
 }

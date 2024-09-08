@@ -12,71 +12,48 @@
  */
 package gov.nist.oar.distrib.storage;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.FileWriter;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
 import java.net.MalformedURLException;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.ClassRule;
-import org.junit.rules.TestRule;
-import static org.junit.Assert.*;
-
-import org.springframework.util.FileSystemUtils;
-
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-
-import gov.nist.oar.RequireWebSite;
-import gov.nist.oar.EnvVarIncludesWords;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import ch.qos.logback.classic.Level;
+import gov.nist.oar.distrib.StorageVolumeException;
 
 public class WebLongTermStorageTest {
 
     Logger log = LoggerFactory.getLogger(getClass());
     String aipbase = "http://archive.apache.org/dist/commons/lang/binaries/";
     WebLongTermStorage lts = null;
+
     public WebLongTermStorageTest() {
         ch.qos.logback.classic.Logger log =
             (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(WebLongTermStorage.class);
         log.setLevel(Level.DEBUG);
     }
-  
-    @ClassRule
-    public static TestRule siterule = new RequireWebSite("http://archive.apache.org/dist/commons/lang/binaries/commons-lang3-3.4-bin.zip.md5");
 
-    @ClassRule
-    public static TestRule envrule = new EnvVarIncludesWords("OAR_TEST_INCLUDE", "net");
-
-    @Before
+    @BeforeEach
     public void setUp() throws MalformedURLException {
         try {
             lts = new WebLongTermStorage(aipbase, "md5");
-        }
-        catch (MalformedURLException ex) {
-            log.error("Bad base URL: "+ex.getMessage());
+        } catch (MalformedURLException ex) {
+            log.error("Bad base URL: " + ex.getMessage());
             throw ex;
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         lts = null;
     }
@@ -91,7 +68,7 @@ public class WebLongTermStorageTest {
         assertEquals(3262287, lts.getSize("commons-lang3-3.2.1-bin.tar.gz"));
         assertTrue(lts.exists("commons-lang3-3.2.1-bin.tar.gz"));
         assertEquals("d103c7d4293c7e4a0cf8a0d5bf534f25",
-                     lts.getChecksum("commons-lang3-3.2.1-bin.tar.gz").hash);
+                lts.getChecksum("commons-lang3-3.2.1-bin.tar.gz").hash);
         assertEquals("md5", lts.getChecksum("commons-lang3-3.2.1-bin.tar.gz").algorithm);
     }
 
@@ -100,8 +77,7 @@ public class WebLongTermStorageTest {
         try {
             sr = new BufferedReader(new InputStreamReader(is));
             return sr.readLine();
-        }
-        finally {
+        } finally {
             if (sr != null) sr.close();
         }
     }
@@ -111,8 +87,7 @@ public class WebLongTermStorageTest {
         InputStream s = lts.openFile("commons-lang3-3.2.1-bin.tar.gz.md5");
         try {
             assertEquals("d103c7d4293c7e4a0cf8a0d5bf534f25", getStringContent(s));
-        }
-        finally {
+        } finally {
             s.close();
         }
     }

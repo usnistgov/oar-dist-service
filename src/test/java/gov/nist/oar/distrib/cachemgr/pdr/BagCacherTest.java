@@ -39,25 +39,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.json.JSONException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class BagCacherTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    public File tempf;
 
     MetadataCache mdcache = null;
     public BagCacher cacher = null;
@@ -66,7 +64,7 @@ public class BagCacherTest {
     BagStorage ltstore = null;
 
     StorageInventoryDB createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
+        File tf = new File(tempf, "testdb.sqlite");
         SQLiteStorageInventoryDB.initializeDB(tf.getAbsolutePath());
 
         StorageInventoryDB out = new SQLiteStorageInventoryDB(tf.getPath());
@@ -79,7 +77,7 @@ public class BagCacherTest {
         throws InventoryException, StorageVolumeException, IOException, CacheManagementException
     {
         cache = null;
-        File cacheroot = tempf.newFolder("cache");
+        File cacheroot = new File(tempf, "cache");
         File voldir = new File(cacheroot, "foobar");
         voldir.mkdir();
         ConfigurableCache out = new ConfigurableCache("test", db);
@@ -88,7 +86,7 @@ public class BagCacherTest {
         CacheVolume cv = new FilesystemCacheVolume(voldir, "foobar");
         int[] sizes = { 229, 9321, 9001, 980, 2230, 100 };
         addDataToVolume(sizes, db, cv);
-        vc.setRoles(BagCacher.ROLE_SMALL_OBJECTS|BagCacher.ROLE_FAST_ACCESS);
+        vc.setRoles(BagCacher.ROLE_SMALL_OBJECTS | BagCacher.ROLE_FAST_ACCESS);
         out.addCacheVolume(cv, 22000, null, vc, true);
 
         voldir = new File(cacheroot, "cranky");
@@ -96,7 +94,7 @@ public class BagCacherTest {
         cv = new FilesystemCacheVolume(voldir, "cranky");
         int[] sizesc = { 229, 6321, 953, 10031, 2230, 100 };
         addDataToVolume(sizesc, db, cv);
-        vc.setRoles(BagCacher.ROLE_GENERAL_PURPOSE|BagCacher.ROLE_LARGE_OBJECTS);
+        vc.setRoles(BagCacher.ROLE_GENERAL_PURPOSE | BagCacher.ROLE_LARGE_OBJECTS);
         out.addCacheVolume(cv, 20000, null, vc, true);
 
         voldir = new File(cacheroot, "old");
@@ -107,54 +105,51 @@ public class BagCacherTest {
 
         return out;
     }
-    
+
     public long addDataToVolume(int[] sizes, StorageInventoryDB db, CacheVolume cv)
         throws InventoryException, IOException, StorageVolumeException
     {
         String volname = cv.getName();
         db.registerVolume(volname, 50000, null);
-        
+
         long now = System.currentTimeMillis();
 
         String nm = null;
         byte[] buf = null;
         JSONObject md = null;
         long total = 0L;
-        for (int i=0; i < sizes.length; i++) {
+        for (int i = 0; i < sizes.length; i++) {
             nm = Integer.toString(i) + ".dat";
             md = new JSONObject();
             md.put("size", sizes[i]);
-            sidb.addObject(volname+":"+nm, volname, nm, md);
+            sidb.addObject(volname + ":" + nm, volname, nm, md);
             total += sizes[i];
 
             buf = new byte[sizes[i]];
             Arrays.fill(buf, Byte.parseByte("4"));
             cv.saveAs(new ByteArrayInputStream(buf), nm, md);
-            
-            md.put("since", now-(sizes[i]*60000));
+
+            md.put("since", now - (sizes[i] * 60000));
             sidb.updateMetadata(volname, nm, md);
         }
 
         return total;
     }
 
-    @Before
-    public void setUp()
-        throws StorageVolumeException, InventoryException, IOException, CacheManagementException
-    {
+    @BeforeEach
+    public void setUp() throws StorageVolumeException, InventoryException, IOException, CacheManagementException {
         String ltsdir = System.getProperty("project.test.resourceDirectory");
         assertNotNull(ltsdir);
         ltstore = new FilesystemLongTermStorage(ltsdir);
-        
-        mdcache = new MetadataCache(tempf.newFolder("mdcache").toPath());
+
+        mdcache = new MetadataCache(tempf.toPath().resolve("mdcache"));
         sidb = createDB();
         cache = createCache(sidb);
         cacher = new BagCacher(cache, ltstore, mdcache, 500L, LoggerFactory.getLogger("testCacher"));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
-        tempf.delete();
         mdcache = null;
         sidb = null;
         cache = null;
@@ -171,12 +166,10 @@ public class BagCacherTest {
     }
 
     @Test
-    public void testCacheAllFromBag()
-        throws StorageVolumeException, IOException, CacheManagementException
-    {
-        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
-        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
-        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+    public void testCacheAllFromBag() throws StorageVolumeException, IOException, CacheManagementException {
+        assertTrue(!cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(!cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(!cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
 
         Set<String> cached = cacher.cacheFromBag("mds1491.1_1_0.mbag0_4-1.zip", null);
         assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
@@ -190,7 +183,7 @@ public class BagCacherTest {
         assertTrue(cached.contains("trial2.json"));
         assertTrue(cached.contains("trial3/trial3a.json"));
 
-        Path croot = tempf.getRoot().toPath().resolve("cache");
+        Path croot = tempf.toPath().resolve("cache");
         assertTrue(Files.isDirectory(croot.resolve("cranky")));
         assertTrue(Files.isRegularFile(croot.resolve("foobar/mds1491/trial1.json")));
         assertTrue(Files.isRegularFile(croot.resolve("foobar/mds1491/trial2.json")));
@@ -200,7 +193,7 @@ public class BagCacherTest {
         assertEquals("foobar", cache.findObject("mds1491/trial2.json#1.1.0").volname);
         assertEquals("cranky", cache.findObject("mds1491/trial3/trial3a.json#1.1.0").volname);
 
-        croot = tempf.getRoot().toPath().resolve("mdcache");
+        croot = tempf.toPath().resolve("mdcache");
         assertFalse(Files.exists(croot.resolve("mds1491/1.1.0")));
     }
 
@@ -232,7 +225,7 @@ public class BagCacherTest {
         assertTrue(! select.contains("trial3/trial3a.json"));
         assertEquals(0, select.size());
 
-        Path croot = tempf.getRoot().toPath().resolve("cache");
+        Path croot = tempf.toPath().resolve("cache");
         assertTrue(Files.isDirectory(croot.resolve("cranky")));
         assertTrue(Files.isRegularFile(croot.resolve("foobar/mds1491/trial1.json")));
         assertTrue(! Files.exists(croot.resolve("foobar/mds1491/trial2.json")));
@@ -242,7 +235,7 @@ public class BagCacherTest {
         assertNull(cache.findObject("mds1491/trial2.json#1.1.0"));
         assertEquals("cranky", cache.findObject("mds1491/trial3/trial3a.json#1.1.0").volname);
 
-        croot = tempf.getRoot().toPath().resolve("mdcache");
+        croot = tempf.toPath().resolve("mdcache");
         assertFalse(Files.exists(croot.resolve("mds1491/1.1.0")));
     }
 
@@ -250,7 +243,7 @@ public class BagCacherTest {
     public void testCacheMetadataFromBag() 
         throws StorageVolumeException, IOException, CacheManagementException
     {
-        Path croot = tempf.getRoot().toPath().resolve("mdcache");
+        Path croot = tempf.toPath().resolve("mdcache");
         assertFalse(Files.exists(croot.resolve("mds1491/1.1.0")));
         assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
         assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
@@ -290,7 +283,7 @@ public class BagCacherTest {
         assertFalse(cache.isCached("mds1491/trial2.json.sha256#1.1.0"));
         assertFalse(cache.isCached("mds1491/trial3/trial3a.json.sha256#1.1.0"));
 
-        Path croot = tempf.getRoot().toPath().resolve("cache");
+        Path croot = tempf.toPath().resolve("cache");
         assertTrue(Files.isDirectory(croot.resolve("cranky")));
         assertTrue(Files.isRegularFile(croot.resolve("foobar/mds1491/trial1.json")));
         assertTrue(Files.isRegularFile(croot.resolve("foobar/mds1491/trial2.json")));
@@ -301,7 +294,7 @@ public class BagCacherTest {
         assertEquals("cranky", cache.findObject("mds1491/trial3/trial3a.json#1.1.0").volname);
 
         List<CacheObject> cos = null;
-        JSONObject md = null;
+        // JSONObject md = null;
         cos = sidb.findObject("mds1491/trial1.json#1.1.0");
         assertEquals(1, cos.size());   // there's only one copy cached
         assertTrue(cos.get(0).getMetadatumString("checksum", "").startsWith("d155d9928"));
@@ -354,7 +347,7 @@ public class BagCacherTest {
         assertFalse(cache.isCached("mds1491/trial2.json.sha256#1.0.0"));
         assertFalse(cache.isCached("mds1491/trial3/trial3a.json.sha256#1.0.0"));
 
-        Path croot = tempf.getRoot().toPath().resolve("cache");
+        Path croot = tempf.toPath().resolve("cache");
         assertTrue(Files.isDirectory(croot.resolve("cranky")));
         assertTrue(Files.isRegularFile(croot.resolve("old/mds1491/trial1-v1.json")));
         assertTrue(Files.isRegularFile(croot.resolve("old/mds1491/trial2-v1.json")));
@@ -365,7 +358,7 @@ public class BagCacherTest {
         assertEquals("old", cache.findObject("mds1491/trial3/trial3a.json#1").volname);
 
         List<CacheObject> cos = null;
-        JSONObject md = null;
+        // JSONObject md = null;
         cos = sidb.findObject("mds1491/trial1.json#1");
         assertEquals(1, cos.size());   // there's only one copy cached
         assertTrue(cos.get(0).getMetadatumString("checksum", "").startsWith("d155d9928"));
@@ -406,9 +399,9 @@ public class BagCacherTest {
                      cacher.getNameForCache("pdr0-goober", "foo/bar/data.txt", "2.0", 0));
         assertEquals("pdr0-goober/foo/bar/data-v2.0.txt",
                      cacher.getNameForCache("pdr0-goober", "foo/bar/data.txt", "2.0",
-                                            cacher.ROLE_OLD_VERSIONS));
+                     PDRCacheRoles.ROLE_OLD_VERSIONS));
         assertEquals("pdr0-goober/foo/bar/data-v2.0.txt.XZ",
                      cacher.getNameForCache("pdr0-goober", "foo/bar/data.txt.XZ", "2.0",
-                                            cacher.ROLE_OLD_VERSIONS));
+                     PDRCacheRoles.ROLE_OLD_VERSIONS));
     }
 }

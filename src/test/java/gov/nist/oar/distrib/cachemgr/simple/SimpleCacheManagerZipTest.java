@@ -11,81 +11,46 @@
  */
 package gov.nist.oar.distrib.cachemgr.simple;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.ClassRule;
-import org.junit.rules.TestRule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
-
-import gov.nist.oar.distrib.storage.WebLongTermStorage;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.DeletionPlan;
-import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
-import gov.nist.oar.distrib.cachemgr.inventory.DefaultDeletionPlanner;
-import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.SelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.CacheManager;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
-import gov.nist.oar.distrib.cachemgr.restore.ZipFileRestorer;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-
-import gov.nist.oar.RequireWebSite;
-import gov.nist.oar.EnvVarIncludesWords;
-
-import org.json.JSONObject;
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.io.File;
-import java.nio.file.Files;
-import java.util.Collection;
-import java.util.List;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
 
-/*
- * tests BasicCache, too
- */
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheManager;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.DefaultDeletionPlanner;
+import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
+import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import gov.nist.oar.distrib.storage.WebLongTermStorage;
+
 public class SimpleCacheManagerZipTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
-
-    @ClassRule
-    public static TestRule siterule = new RequireWebSite("http://archive.apache.org/dist/commons/lang/binaries/commons-lang3-3.4-bin.zip.md5");
-
-    @ClassRule
-    public static TestRule envrule = new EnvVarIncludesWords("OAR_TEST_INCLUDE", "net");
+    @TempDir
+    File tempDir;  // JUnit 5's TempDir for temporary folder
 
     String aipbase = "http://archive.apache.org/dist/commons/lang/";
     Logger log = LoggerFactory.getLogger(getClass());
-    public SimpleCacheManagerZipTest() {
-        ch.qos.logback.classic.Logger log =
-            (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(WebLongTermStorage.class);
-        log.setLevel(Level.DEBUG);
-    }
-  
+
     File dbf = null;
     File repodir = null;
     StorageInventoryDB sidb = null;
@@ -93,18 +58,20 @@ public class SimpleCacheManagerZipTest {
     SimpleCache cache = null;
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
+        File tf = new File(tempDir, "testdb.sqlite");
         String out = tf.getAbsolutePath();
         SQLiteStorageInventoryDB.initializeDB(out);
         return out;
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
-        dbf.delete();
+        if (dbf != null) {
+            dbf.delete();
+        }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException, InventoryException {
         dbf = new File(createDB());
         assertTrue(dbf.exists());
@@ -113,10 +80,10 @@ public class SimpleCacheManagerZipTest {
         sidb.registerAlgorithm("md5");
         sidb.registerAlgorithm("sha256");
 
-        cvlist = new ArrayList<CacheVolume>(2);
-        for(int i=0; i < 3; i++) {
-            String name = "Cache"+Integer.toString(i);
-            File cd = tempf.newFolder(name);
+        cvlist = new ArrayList<>(3);
+        for (int i = 0; i < 3; i++) {
+            String name = "Cache" + i;
+            File cd = new File(tempDir, name);
             CacheVolume cv = new FilesystemCacheVolume(cd.toString(), name);
             sidb.registerVolume(name, 1200000, null);
             cvlist.add(cv);
@@ -131,7 +98,8 @@ public class SimpleCacheManagerZipTest {
     public void testCtor() throws IOException, CacheManagementException {
         LongTermStorage lts = new WebLongTermStorage(aipbase, "md5");
         SimpleCacheManager scm = new SimpleCacheManager(cache, new FileCopyRestorer(lts));
-        for(Long space : sidb.getAvailableSpace().values()) {
+
+        for (Long space : sidb.getAvailableSpace().values()) {
             assertEquals(1200000L, space.longValue());
         }
         assertFalse(scm.isCached("RELEASE-NOTES.txt"));
@@ -169,15 +137,13 @@ public class SimpleCacheManagerZipTest {
         assertTrue(scm.isCached("source/commons-lang3-3.7-src.tar.gz"));
 
         CacheObject co = scm.findObject("source/commons-lang3-3.7-src.tar.gz");
-        assertTrue("Unexpected cache name: "+co.volname, co.volname.startsWith("Cache"));
+        assertTrue(co.volname.startsWith("Cache"), "Unexpected cache name: " + co.volname);
         assertEquals("source/commons-lang3-3.7-src.tar.gz", co.name);
-
         assertEquals(862725, co.getSize());
-        assertEquals("ad3206706dddc694b310630449f6a2f2",
-                     co.getMetadatumString("checksum", "not-set"));
+        assertEquals("ad3206706dddc694b310630449f6a2f2", co.getMetadatumString("checksum", "not-set"));
 
-        File cf = new File(new File(tempf.getRoot(), co.volname), "source/commons-lang3-3.7-src.tar.gz");
-        assertTrue("Can't find cache file", cf.exists());
+        File cf = new File(new File(tempDir, co.volname), "source/commons-lang3-3.7-src.tar.gz");
+        assertTrue(cf.exists(), "Can't find cache file");
     }
 
     @Test
@@ -195,9 +161,7 @@ public class SimpleCacheManagerZipTest {
         testFill(scm, zips);
     }
 
-    
     public void testFill(CacheManager scm, String[] zips) throws IOException, CacheManagementException {
-
         for (String file : zips) {
             CacheObject co = scm.getObject(file);
             assertTrue(scm.isCached(co.id));
@@ -211,15 +175,14 @@ public class SimpleCacheManagerZipTest {
             if (scm.isCached(file)) {
                 ncached++;
                 CacheObject co = scm.findObject(file);
-                File cf = new File(new File(tempf.getRoot(), co.volname), co.name);
-                assertTrue("Can't find cache file", cf.exists());
+                File cf = new File(new File(tempDir, co.volname), co.name);
+                assertTrue(cf.exists(), "Can't find cache file");
             }
         }
         assertEquals(3, ncached);
 
-        for(Long space : sidb.getAvailableSpace().values()) {
+        for (Long space : sidb.getAvailableSpace().values()) {
             assertNotEquals(120000L, space.longValue());
         }
-        
     }
 }

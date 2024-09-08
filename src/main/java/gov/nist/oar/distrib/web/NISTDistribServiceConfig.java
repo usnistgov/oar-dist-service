@@ -41,7 +41,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -330,7 +329,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public WebMvcConfigurer mvcConfigurer() {
-        return new WebMvcConfigurerAdapter() {
+        return new WebMvcConfigurer() { 
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**");
@@ -338,15 +337,16 @@ public class NISTDistribServiceConfig {
 
             @Override
             public void configurePathMatch(PathMatchConfigurer configurer) {
-                UrlPathHelper uhlpr = configurer.getUrlPathHelper();
-                if (uhlpr == null) {
-                    uhlpr = new UrlPathHelper();
-                    configurer.setUrlPathHelper(uhlpr);
+                UrlPathHelper urlPathHelper = configurer.getUrlPathHelper();
+                if (urlPathHelper == null) {
+                    urlPathHelper = new UrlPathHelper();
+                    configurer.setUrlPathHelper(urlPathHelper);
                 }
-                uhlpr.setRemoveSemicolonContent(false);
+                urlPathHelper.setRemoveSemicolonContent(false);
             }
         };
     }
+
 
     @Bean
     public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {

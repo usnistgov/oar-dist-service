@@ -11,41 +11,36 @@
  */
 package gov.nist.oar.distrib.cachemgr.restore;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.Reservation;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-import static org.junit.Assert.*;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.FileNotFoundException;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
-import java.nio.file.FileSystemException;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
 
-import org.json.JSONObject;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
+
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.RestorationException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class ZipFileRestorerTest {
 
@@ -53,7 +48,7 @@ public class ZipFileRestorerTest {
     File storeroot = null;
     LongTermStorage lts = null;
     
-    @Before
+    @BeforeAll
     public void setUp() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
@@ -71,7 +66,7 @@ public class ZipFileRestorerTest {
         lts = new FilesystemLongTermStorage(storeroot.getAbsolutePath());
     }
 
-    @After
+    @AfterAll
     public void tearDown(){
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;

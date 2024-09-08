@@ -13,48 +13,42 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-
-import org.json.JSONObject;
-import org.json.JSONException;
 
 public class ChecksumCheckTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    public File tempDir;
 
     FilesystemCacheVolume vol = null;
     CacheObjectCheck chk = null;
 
     FilesystemCacheVolume makevol(String root) throws IOException {
-        File rootdir = tempf.newFolder(root);
+        File rootdir = new File(tempDir, root);
         return new FilesystemCacheVolume(rootdir.toString(), root);
     }
 
     File _makefile(File target, String contents) throws IOException {
-        PrintWriter w = new PrintWriter(target);
-        try {
+        try (PrintWriter w = new PrintWriter(target)) {
             w.println(contents);
-        }
-        finally {
-            w.close();
         }
         return target;
     }
@@ -66,11 +60,11 @@ public class ChecksumCheckTest {
         return new CacheObject(name, md, v);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         vol = makevol("goob");
         chk = new ChecksumCheck();
-    }        
+    }
 
     @Test
     public void testCheck() throws IOException, CacheManagementException, StorageVolumeException {
@@ -79,7 +73,7 @@ public class ChecksumCheckTest {
             chk.check(co);
             fail("Failed to report missing metadata in CacheObject");
         } catch (CacheManagementException ex) {  }
-        
+
         String hash = "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447";
         JSONObject md = new JSONObject();
         md.put("size", 12L);
@@ -122,14 +116,15 @@ public class ChecksumCheckTest {
             chk.check(co);
             fail("Failed to report missing cache object");
         } catch (ObjectNotFoundException ex) {  }
-    }        
+
+    }
 
     @Test
     public void testModifiedCheck() throws IOException, CacheManagementException, StorageVolumeException {
         CacheObject co = makeobj(vol, "hello.txt", "hello world");
         String hash = "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447";
         long mod = co.getMetadatumLong("modified", -1L);
-        assertTrue("Bad modified time: "+Long.toString(mod), mod > 0L);
+        assertTrue(mod > 0L, "Bad modified time: " + mod);
 
         JSONObject md = co.exportMetadata();
         md.put("size", 12L);
@@ -162,6 +157,8 @@ public class ChecksumCheckTest {
         public HackVolume(File root) throws IOException {
             super(root);
         }
+
+        @Override
         public CacheObject get(String name) throws StorageVolumeException {
             CacheObject out = super.get(name);
             JSONObject md = out.exportMetadata();
@@ -169,7 +166,6 @@ public class ChecksumCheckTest {
             return new CacheObject(out.name, md, this);
         }
     }
-
 
     @Test
     public void testVolChecksumCheck() throws IOException, CacheManagementException, StorageVolumeException {
@@ -219,5 +215,4 @@ public class ChecksumCheckTest {
             assertEquals(12L, ex.size);
         }
     }
-    
 }

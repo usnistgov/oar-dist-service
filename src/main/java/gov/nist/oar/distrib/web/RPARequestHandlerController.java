@@ -39,7 +39,7 @@ import com.amazonaws.services.s3.AmazonS3;
 
 import java.util.Map;
 import java.io.IOException;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).

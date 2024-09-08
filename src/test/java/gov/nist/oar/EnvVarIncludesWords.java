@@ -11,78 +11,77 @@
  */
 package gov.nist.oar;
 
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.net.HttpURLConnection;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-
-import org.junit.rules.TestRule;
-import org.junit.runners.model.Statement;
-import org.junit.runner.Description;
-import org.junit.AssumptionViolatedException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Set;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.Assumptions;
 
 /**
- * a JUnit ClassRule that requires that particular fields be found as words in the 
- * a specified environment variable (like OAR_TEST_INCLUDE)
+ * A JUnit 5 extension that requires that particular fields be found as words in the
+ * a specified environment variable (like OAR_TEST_INCLUDE).
  */
-public class EnvVarIncludesWords implements TestRule {
+public class EnvVarIncludesWords implements BeforeAllCallback {
 
     private String envvar = null;
-    private HashSet<String> need = null;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private Set<String> need = null;
 
     /**
-     * create the rule
+     * Create the rule
      * @param envVarName    the name of the environment variable to look for words in
      * @param neededVals    the values to require for the rule to be satisfied.  Values
      *                      must not contain spaces; values that do will be ignored.
      */
     public EnvVarIncludesWords(String envVarName, String... neededVals) {
-        envvar = envVarName;
-        need = new HashSet<String>(neededVals.length);
+        this.envvar = envVarName;
+        this.need = new HashSet<>(neededVals.length);
         for (String word : neededVals) {
-            need.add(word);
+            this.need.add(word);
         }
     }
 
-    public static Collection<String> wordsInEnv(String envVarName) {
-        String val = System.getenv(envVarName);
-        return wordsInVal(val);
-    }
-
-    public static Collection<String> wordsInVal(String val) {
-        if (val == null)
-            return new HashSet<String>();
-        val = val.trim();
-        if (val.length() == 0)
-            return new HashSet<String>();
-
-        String[] words = val.split(" ");
-        HashSet<String> out = new HashSet<String>(words.length);
-        for (String word : words) 
-            out.add(word);
-        return out;
-    }
-
+    /**
+     * Checks if the environment variable contains the required words.
+     * 
+     * @return true if all required words are found, false otherwise.
+     */
     public boolean satisfied() {
         Collection<String> got = wordsInEnv(envvar);
         return got.containsAll(need);
     }
 
-    public Statement apply(Statement base, Description desc) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                if (! satisfied()) 
-                    throw new AssumptionViolatedException("Site appears unavailable: Skipping test(s)");
-                else
-                    base.evaluate();
-            }
-        };
+    /**
+     * Extracts words from the specified environment variable.
+     */
+    public static Collection<String> wordsInEnv(String envVarName) {
+        String val = System.getenv(envVarName);
+        return wordsInVal(val);
+    }
+
+    /**
+     * Splits the given string into words and returns a collection of them.
+     */
+    public static Collection<String> wordsInVal(String val) {
+        if (val == null) return new HashSet<>();
+        val = val.trim();
+        if (val.isEmpty()) return new HashSet<>();
+
+        String[] words = val.split(" ");
+        Set<String> out = new HashSet<>(words.length);
+        for (String word : words) {
+            out.add(word);
+        }
+        return out;
+    }
+
+    /**
+     * JUnit 5 callback that gets executed before all tests are run.
+     * It assumes the test will be skipped if the required environment variable is not satisfied.
+     */
+    @Override
+    public void beforeAll(ExtensionContext context) throws Exception {
+        Assumptions.assumeTrue(satisfied(), 
+            "Environment variable '" + envvar + "' does not contain required values. Skipping test(s).");
     }
 }

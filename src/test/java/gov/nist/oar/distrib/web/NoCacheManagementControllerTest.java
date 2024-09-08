@@ -11,34 +11,24 @@
  */
 package gov.nist.oar.distrib.web;
 
-import org.springframework.boot.web.server.LocalServerPort;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.json.JSONException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-/**
- * This class tests the CachemanagementController endpoints when no cache manager is in use.
- */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
@@ -50,16 +40,16 @@ import org.slf4j.LoggerFactory;
 })
 public class NoCacheManagementControllerTest {
 
-    Logger logger = LoggerFactory.getLogger(NoCacheManagementControllerTest.class);
-
-    @LocalServerPort
-    int port;
-
-    TestRestTemplate websvc = new TestRestTemplate();
-    HttpHeaders headers = new HttpHeaders();
+    @org.springframework.boot.test.web.server.LocalServerPort
+    private int port;
 
     @Autowired
-    CacheManagerProvider provider;
+    private TestRestTemplate websvc;
+
+    private final HttpHeaders headers = new HttpHeaders();
+
+    @Autowired
+    private CacheManagerProvider provider;
 
     public NoCacheManagementControllerTest() {
         headers.set(HttpHeaders.AUTHORIZATION, "Bearer SECRET");
@@ -72,7 +62,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testGetStatus() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -83,7 +73,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testSummarizeVolumes() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -94,7 +84,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testSummarizeVolume() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/goober", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -104,8 +94,8 @@ public class NoCacheManagementControllerTest {
     }
 
     @Test
-    public void testSummarizeContentss() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+    public void testSummarizeContents() {
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -116,7 +106,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testListObjectsFor() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -127,7 +117,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testListObjectsFor2() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/:checked", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -138,7 +128,7 @@ public class NoCacheManagementControllerTest {
 
     @Test
     public void testListObjectsFor3() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/gurn/1", 
                                                       HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());

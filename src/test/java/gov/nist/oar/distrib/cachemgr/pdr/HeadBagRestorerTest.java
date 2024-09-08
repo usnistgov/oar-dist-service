@@ -1,42 +1,37 @@
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
 
-import org.json.JSONObject;
 import org.json.JSONException;
-import org.junit.BeforeClass;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
+
+import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.RestorationException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class HeadBagRestorerTest {
 
@@ -47,13 +42,13 @@ public class HeadBagRestorerTest {
     HeadBagRestorer restorer = null;
     Path testdir = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws FileNotFoundException {
         publicLtstore = new FilesystemLongTermStorage(ltsdir);
         restrictedLtstore = new FilesystemLongTermStorage(ltsdir + "/restricted");
     }
 
-    @After
+    @AfterAll
     public void tearDown() {
         if (testdir != null)
             FileSystemUtils.deleteRecursively(testdir.toFile());
