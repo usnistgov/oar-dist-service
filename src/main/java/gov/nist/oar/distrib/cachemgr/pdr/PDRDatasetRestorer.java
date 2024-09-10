@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 import java.nio.file.Path;
@@ -384,7 +385,22 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                                     int prefs, String target)
         throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
-        return cacheDatasetFromStore(aipid, version, into, recache, prefs, target, ltstore);
+        CacheOpts opts = new CacheOpts(recache, prefs, null);
+        return cacheDatasetFromStore(aipid, version, into, opts, target, ltstore);
+    }
+
+    /**
+     * cache all data that is part of a the latest version of the archive information package (AIP).
+     * @param aipid    the identifier for the AIP.  
+     * @param version  the version of the AIP to cache.  If null, the latest is cached. 
+     * @param into     the Cache to save the files to 
+     * @param opts     options for caching the data (including "recache", whether to force a recache)
+     * @return Set<String> -- a list of the filepaths for files that were cached
+     */
+    public Set<String> cacheDataset(String aipid, String version, Cache into, CacheOpts opts, String target)
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        return cacheDatasetFromStore(aipid, version, into, opts, target, ltstore);
     }
 
     /**
@@ -392,8 +408,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
      * from a particular store.  Called by {@link cacheDataset}, this is provided to allow alternate 
      * implementations by subclasses.
      */
-    protected Set<String> cacheDatasetFromStore(String aipid, String version, Cache into, boolean recache, 
-                                              int prefs, String target,  BagStorage store)
+    protected Set<String> cacheDatasetFromStore(String aipid, String version, Cache into, CacheOpts opts,
+                                              String target,  BagStorage store)
             throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
     {
         // find the head bag in the bag store
@@ -402,8 +418,8 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             throw new CacheManagementException("Unsupported serialization type on bag: " + headbag);
         String bagname = headbag.substring(0, headbag.length()-4);
         String mbagver = BagUtils.multibagVersionOf(bagname);
-        if (prefs == 0) {
-            prefs = getDefaultPrefs(version != null);
+        if (opts.prefs == 0) {
+            opts.prefs = getDefaultPrefs(version != null);
         }
         // pull out the NERDm resource metadata record
         JSONObject resmd = null;
@@ -442,16 +458,43 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             revlu.get(pair.getValue()).add(pair.getKey().replaceFirst("^data/", ""));
         }
 
+        HashMap<String, Set<String>> uselu = revlu;
+        if (opts.seq != null) {
+            uselu = new HashMap<String, Set<String>>();
+            for (String bagf : revlu.keySet()) {
+                if (bagf.endsWith("-"+opts.seq))
+                    uselu.put(bagf, revlu.get(bagf));
+            }
+            if (uselu.size() == 0) 
+                log.warn("Sequence tag does not match any bag files for requested version");
+        }
+
         // loop through the member bags and extract the data files
         Set<String> cached = new HashSet<String>(lu.size());
         Set<String> missing = new HashSet<String>();
-        for (String bagfile : revlu.keySet()) {
-            Set<String> need = new HashSet<String>(revlu.get(bagfile));
+        for (String bagfile : uselu.keySet()) {
+            Set<String> need = new HashSet<String>(uselu.get(bagfile));
+            if (! opts.recache) {
+                // check to see if we really need to open up this bag
+                Iterator<String> it = need.iterator();
+                while (it.hasNext()) {
+                    String fp = it.next();
+                    if (into.isCached(idForObject(aipid, fp, version, target))) {
+                        it.remove();
+                        cached.add(fp);
+                    }
+                }
+                if (need.size() == 0) {
+                    log.info("Nothing needed from bag, {} (skipping)", bagfile);
+                    continue;
+                }
+            }
+            
             if (! bagfile.endsWith(".zip"))
                 bagfile += ".zip";
             log.info("Caching files from bag, "+bagfile);
             try { 
-               cacheFromBag(bagfile, need, cached, resmd, prefs, version, into, recache, target);
+               cacheFromBag(bagfile, need, cached, resmd, opts.prefs, version, into, opts.recache, target);
             }
             catch (FileNotFoundException ex) {
                 log.error("Member bag not found in store (skipping): "+bagfile);
