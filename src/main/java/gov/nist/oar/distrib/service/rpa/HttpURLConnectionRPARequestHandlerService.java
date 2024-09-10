@@ -177,9 +177,6 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         // Set HttpClient
         this.httpClient = HttpClients.createDefault();
-
-        // Log RPA configuration coming from the config server
-        LOGGER.debug("RPA_CONFIGURATION=" + this.rpaConfiguration.toString());
     }
 
     public RPAConfiguration getConfig() {
