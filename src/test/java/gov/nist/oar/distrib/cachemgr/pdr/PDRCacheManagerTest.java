@@ -428,7 +428,7 @@ public class PDRCacheManagerTest {
         assertTrue(mgr.cath.hasPending());
         assertTrue(mgr.cath.isQueued("mds2-1111"));
         mgr.cath.queue("mds2-2222", false);
-        mgr.cath.queue("mds2-3333", true);
+        mgr.cath.queue("mds2-3333", true, "222");
         assertTrue(mgr.cath.hasPending());
         assertTrue(mgr.cath.isQueued("mds2-1111"));
         assertTrue(mgr.cath.isQueued("mds2-2222"));
@@ -436,8 +436,8 @@ public class PDRCacheManagerTest {
         q = mgr.cath.loadQueue();
         assertEquals(3, q.size());
         assertEquals("mds2-1111\t0", mgr.cath.popQueue());
-        assertEquals("mds2-2222\t0", mgr.cath.popQueue());
-        assertEquals("mds2-3333\t1", mgr.cath.popQueue());
+        assertEquals("mds2-2222\tre=0", mgr.cath.popQueue());
+        assertEquals("mds2-3333\tre=1,seq=222", mgr.cath.popQueue());
         assertTrue(! mgr.cath.hasPending());
         assertTrue(!mgr.cath.isQueued("mds2-1111"));
         assertTrue(!mgr.cath.isQueued("mds2-2222"));

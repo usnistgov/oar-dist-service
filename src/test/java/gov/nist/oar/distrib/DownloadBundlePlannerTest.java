@@ -47,7 +47,7 @@ public class DownloadBundlePlannerTest {
     {
 	FileRequest[] inputfileList = new FileRequest[2];
 	String val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://project-open-data.cio.gov/v1.1/schema/\"}";
+	String val2 = "{\"filePath\":\"/1894/license2.pdf\",\"downloadUrl\":\"https://wikipedia.net/wiki/URL_redirection\"}";
 
 	ObjectMapper mapper = new ObjectMapper();
 	FileRequest testval1 = mapper.readValue(val1, FileRequest.class);
@@ -56,12 +56,12 @@ public class DownloadBundlePlannerTest {
 	inputfileList[1] = testval2;
 	BundleRequest bFL = new BundleRequest("testdownload", inputfileList, 0,2);
 	DownloadBundlePlanner dpl = new DownloadBundlePlanner(bFL, 200000, 3,
-		"s3.amazonaws.com|project-open-data.cio.gov", "testdownload", 1);
+		"s3.amazonaws.com|wikipedia.net", "testdownload", 5);
 	BundleDownloadPlan bundlePlan = dpl.getBundleDownloadPlan();
 	assertEquals(bundlePlan.getPostEachTo(), "_bundle");
 	assertEquals(bundlePlan.getStatus(), "complete");
-	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 1);
-	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 2);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl().length, 2);
+	assertEquals(bundlePlan.getBundleNameFilePathUrl()[0].getIncludeFiles().length, 1);
 
     }
 
