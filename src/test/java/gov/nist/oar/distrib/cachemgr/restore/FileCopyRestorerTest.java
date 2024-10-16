@@ -47,43 +47,42 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class FileCopyRestorerTest {
 
-    Path testdir = null;
-    File storeroot = null;
-    LongTermStorage lts = null;
-    
+    static Path testdir = null;
+    static File storeroot = null;
+    static LongTermStorage lts = null;
+
     public void unzip(ZipInputStream zis, File destDir) throws IOException {
         destDir = destDir.getAbsoluteFile();
-        if (! destDir.isDirectory())
-            throw new IllegalArgumentException(destDir.toString()+": does not exist as a directory");
+        if (!destDir.isDirectory())
+            throw new IllegalArgumentException(destDir.toString() + ": does not exist as a directory");
 
-        Path destp = null;
-        File destf = null;
+        Path destp;
+        File destf;
         try {
-            ZipEntry ze = null;
+            ZipEntry ze;
             while ((ze = zis.getNextEntry()) != null) {
                 String ep = ze.getName();
-                if (ep.startsWith("/")) ep = ep.substring(1);
+                if (ep.startsWith("/"))
+                    ep = ep.substring(1);
                 destf = new File(destDir, ep);
                 destp = destf.toPath();
                 if (ze.isDirectory()) {
                     Files.createDirectory(destp);
-                }
-                else {
-                    if (! destf.getParentFile().exists())
+                } else {
+                    if (!destf.getParentFile().exists())
                         Files.createDirectory(destf.getParentFile().toPath());
                     Files.copy(zis, destp);
                 }
                 Files.setLastModifiedTime(destp, ze.getLastModifiedTime());
             }
-        }
-        catch (FileSystemException ex) {
-            throw new IllegalStateException("Unexpected state in destination directory, "+
-                                            destDir.toString() + ": " + ex.getMessage(), ex);
+        } catch (FileSystemException ex) {
+            throw new IllegalStateException(
+                "Unexpected state in destination directory, " + destDir.toString() + ": " + ex.getMessage(), ex);
         }
     }
 
     @BeforeAll
-    public void setUp() throws IOException {
+    public static void setUp() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
         if (indir.toFile().canWrite())
@@ -91,16 +90,16 @@ public class FileCopyRestorerTest {
         else
             testdir = Files.createTempDirectory("_unittest");
         storeroot = new File(testdir.toFile(), "mds1491.mbag0_2-0");
-        
+
         // setup a little repo
-        ZipInputStream zis = new ZipInputStream(getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip"));
-        unzip(zis, testdir.toFile());
+        ZipInputStream zis = new ZipInputStream(FileCopyRestorerTest.class.getResourceAsStream("/mds1491.mbag0_2-0.zip"));
+        new FileCopyRestorerTest().unzip(zis, testdir.toFile());
 
         lts = new FilesystemLongTermStorage(storeroot.getAbsolutePath());
     }
 
     @AfterAll
-    public void tearDown(){
+    public static void tearDown() {
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;
     }
@@ -122,24 +121,27 @@ public class FileCopyRestorerTest {
         try {
             rest.getSizeOf("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
     public void testGetChecksum() throws StorageVolumeException {
         FileCopyRestorer rest = new FileCopyRestorer(lts);
         assertEquals("d155d99281ace123351a311084cd8e34edda6a9afcddd76eb039bad479595ec9",
-                     rest.getChecksum("data/trial1.json").hash);
+            rest.getChecksum("data/trial1.json").hash);
         try {
             rest.getChecksum("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
     public void testRestoreObject()
-        throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException
-    {
+        throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException {
         File cvdir = new File(testdir.toFile(), "cache");
         cvdir.mkdirs();
         CacheVolume cv = new FilesystemCacheVolume(cvdir.toString());
@@ -161,35 +163,35 @@ public class FileCopyRestorerTest {
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(1562, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
+        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
         assertEquals("3370af43681254b7f44cdcdad8b7dcd40a8c90317630c288e71b2caf84cf685f",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+            db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(0L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
         rest.restoreObject("bag-info.txt", resv, "preservation.log", null);
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(625, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
+        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
         assertEquals("304cafc75856b019d729c2c30ed71898048c445e0e67ffbdbcf2b69cf89b2d8d",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+            db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(937L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
         rest.restoreObject("data/trial3/trial3a.json", resv, "data/trial3::trial3a.json", null);
         assertTrue((new File(cvdir, "data/trial3::trial3a.json")).isFile());
         assertTrue(cv.exists("data/trial3::trial3a.json"));
         assertEquals(70, db.findObject(cv.getName(), "data/trial3::trial3a.json").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority",11));
+        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority", 11));
         assertEquals("7b58010c841b7748a48a7ac6366258d5b5a8d23d756951b6059c0e80daad516b",
-                     db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum",""));
+            db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum", ""));
         assertEquals(1492L, resv.getSize());
         resv.drop();
-        
+
         assertTrue(cv.exists("preservation.log"));
-        assertEquals(20000000-(70+625), db.getAvailableSpaceIn(cv.getName()));
+        assertEquals(20000000 - (70 + 625), db.getAvailableSpaceIn(cv.getName()));
     }
 }

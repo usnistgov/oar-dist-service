@@ -34,7 +34,7 @@ import gov.nist.oar.distrib.StorageVolumeException;
 public class WebLongTermStorageTest {
 
     Logger log = LoggerFactory.getLogger(getClass());
-    String aipbase = "http://archive.apache.org/dist/commons/lang/binaries/";
+    String aipbase = "https://archive.apache.org/dist/commons/lang/binaries/";
     WebLongTermStorage lts = null;
 
     public WebLongTermStorageTest() {

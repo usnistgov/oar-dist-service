@@ -30,7 +30,7 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 public class RestrictedDatasetRestorerTest {
 
     @TempDir
-    File tempDir;
+    public File tempDir; 
 
     final String ltsdir = System.getProperty("project.test.resourceDirectory");
 
@@ -46,15 +46,18 @@ public class RestrictedDatasetRestorerTest {
         throws IOException, CacheManagementException
     {
         File tf = new File(tempDir, "headbags");
+        tf.mkdir();
         File dbf = new File(tf, "inventory.sqlite");
         HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
         HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvd = new File(tf, "cv0"); cvd.mkdir();
+        File cvd = new File(tf, "cv0");
+        cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv0"), 2000000, null, true);
-        cvd = new File(tf, "cv1"); cvd.mkdir();
+        cvd = new File(tf, "cv1");
+        cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
 
         return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(reststore, pubstore), "88434");
@@ -62,24 +65,28 @@ public class RestrictedDatasetRestorerTest {
 
     ConfigurableCache createDataCache() throws CacheManagementException, IOException {
         File croot = new File(tempDir, "data");
+        croot.mkdir();
         File dbf = new File(croot, "inventory.sqlite");
         SQLiteStorageInventoryDB.initializeDB(dbf.getAbsolutePath());
         SQLiteStorageInventoryDB sidb = new SQLiteStorageInventoryDB(dbf.getPath());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvdir = new File(croot, "foobar"); cvdir.mkdir();
+        File cvdir = new File(croot, "foobar");
+        cvdir.mkdir();
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar");
         vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "old"); cvdir.mkdir();
+        cvdir = new File(croot, "old");
+        cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "old");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "rpa"); cvdir.mkdir();
+        cvdir = new File(croot, "rpa");
+        cvdir.mkdir();
         cv = new FilesystemCacheVolume(cvdir, "rpa");
         vc.setRoles(PDRCacheRoles.ROLE_RESTRICTED_DATA);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
@@ -89,12 +96,14 @@ public class RestrictedDatasetRestorerTest {
 
     @BeforeEach
     public void setUp() throws IOException, CacheManagementException {
+
         publicLtstore = new FilesystemLongTermStorage(ltsdir);
         restrictedLtstore = new FilesystemLongTermStorage(ltsdir + "/restricted");
 
         hbcm = createHBCache(restrictedLtstore, publicLtstore);
         cache = createDataCache();
         rstr = new RestrictedDatasetRestorer(publicLtstore, restrictedLtstore, hbcm, 500);
+
     }
 
     @Test

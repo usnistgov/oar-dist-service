@@ -34,14 +34,27 @@ public class RPACachingServiceProviderTest {
     public void setUp() throws IOException {
         cmcfg = new NISTCacheManagerConfig();
         root = new File(tempf, "rpaadm");
+        if (!root.exists()) {
+            root.mkdirs();  // Ensure the directory is created
+        }
         cmcfg.setAdmindir(root.toString());
 
-        rpacfg = (new ObjectMapper()).readValue(getClass().getResourceAsStream("/rpaconfig.json"),
+        File rpaltsDir = new File(tempf, "rpalts");
+        if (!rpaltsDir.exists()) {
+            rpaltsDir.mkdirs();  
+        }
+        rpacfg = (new ObjectMapper()).readValue(getClass().getResourceAsStream("/rpaconfig.json"), 
                                                 RPAConfiguration.class);
-        rpacfg.setBagstoreLocation(new File(tempf, "rpalts").toString());
+        rpacfg.setBagstoreLocation(rpaltsDir.toString());
 
-        Logger logger = LoggerFactory.getLogger("Publts");
-        publts = new FilesystemLongTermStorage(new File(tempf, "publts").toString(), 10000000, logger);
+        // Ensure publts directory is created
+        File publtsDir = new File(tempf, "publts");
+        if (!publtsDir.exists()) {
+            publtsDir.mkdirs();  
+        }
+
+        Logger logger = LoggerFactory.getLogger("publts");
+        publts = new FilesystemLongTermStorage(publtsDir.toString(), 10000000, logger);
 
         prov = new RPACachingServiceProvider(cmcfg, rpacfg, publts, null);
     }

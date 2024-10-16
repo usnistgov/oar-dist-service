@@ -28,7 +28,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
@@ -42,6 +44,13 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 
 public class AWSS3LongTermStorageTest {
 
+    @RegisterExtension
+    static final S3MockExtension S3_MOCK = S3MockExtension.builder()
+            .withSecureConnection(false) 
+            .withHttpPort(9090) // Specify port here
+            .silent()   // Suppress statup banner and reduce logging verbosity
+            .build();
+
     static AmazonS3 s3client = null;
     static final String bucket = "oar-lts-test";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
@@ -49,7 +58,7 @@ public class AWSS3LongTermStorageTest {
 
     @BeforeAll
     public static void setUpClass() throws IOException {
-        s3client = createS3Client();
+        s3client = S3_MOCK.createS3Client();
 
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();

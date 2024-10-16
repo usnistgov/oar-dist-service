@@ -34,7 +34,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-
 public class MetadataCacheTest {
 
     @TempDir
@@ -58,7 +57,7 @@ public class MetadataCacheTest {
             mdcache = new MetadataCache(tempf.resolve("goober"));
             fail("Failed to raise FileNotFoundException");
         } catch (FileNotFoundException ex) {
-            // expected
+            // Expected
         } catch (IOException ex) {
             fail("Unexpected IOException thrown: " + ex.getMessage());
         }
@@ -107,13 +106,22 @@ public class MetadataCacheTest {
 
         mdcache.setLatestVersion("gurn", "1.0.3");
         assertEquals("1.0.3", mdcache.getLatestVersion("gurn"));
+        assertTrue(Files.isDirectory(dsdir), "Missing AIP dir");
         assertTrue(Files.isDirectory(dsdir.resolve("1.0.3")), "Missing version dir");
+        assertTrue(Files.isRegularFile(dsdir.resolve("latest_version")), "Missing latest file");
 
         mdcache.forget("gurn", "1.0.3");
         assertFalse(Files.exists(dsdir.resolve("1.0.3")), "Version dir not removed");
+        assertTrue(Files.isDirectory(dsdir.resolve("1.0")), "Missing version dir");
+        assertTrue(Files.isDirectory(dsdir), "Missing AIP dir");
+        assertTrue(Files.isRegularFile(dsdir.resolve("latest_version")), "Missing latest file");
+        assertEquals("1.0.3", mdcache.getLatestVersion("gurn"));
 
         mdcache.forget("gurn", "1.0");
+        assertFalse(Files.exists(dsdir.resolve("1.0.3")), "Version dir not removed");
         assertFalse(Files.exists(dsdir.resolve("1.0")), "Version dir not removed");
+        assertTrue(Files.isDirectory(dsdir), "Missing AIP dir");
+        assertTrue(Files.isRegularFile(dsdir.resolve("latest_version")), "Missing latest file");
         assertEquals("1.0.3", mdcache.getLatestVersion("gurn"));
     }
 
@@ -189,6 +197,7 @@ public class MetadataCacheTest {
         md.put("filepath", "a/b.txt");
         mdcache.cacheFileMetadata("gary", "1", md);
 
+        md = null;
         md = mdcache.getMetadataForCache("gary", "a/b.txt", "1");
         assertEquals(3, JSONObject.getNames(md).length);
         assertEquals("gary.1.mbag0_4-0", md.getString("bagfile"));
@@ -197,30 +206,51 @@ public class MetadataCacheTest {
 
         fl.map("c.json", "gary.1.mbag0_4-1");
         assertEquals("gary.1.mbag0_4-1", fl.getMemberBagFor("c.json"));
+        assertEquals("gary.1.mbag0_4-0", fl.getMemberBagFor("a/b.txt"));
         md = mdcache.getMetadataForCache("gary", "c.json", "1");
         assertEquals(2, JSONObject.getNames(md).length);
         assertEquals("gary.1.mbag0_4-1", md.getString("bagfile"));
         assertEquals("c.json", md.getString("filepath"));
 
+        fl.map("d.json", "gary.1.mbag0_4-1");
+        assertEquals("gary.1.mbag0_4-1", fl.getMemberBagFor("d.json"));
+        assertEquals("gary.1.mbag0_4-1", fl.getMemberBagFor("c.json"));
+        assertEquals("gary.1.mbag0_4-0", fl.getMemberBagFor("a/b.txt"));
+        md = mdcache.getMetadataForCache("gary", "d.json", "1");
+        assertEquals(2, JSONObject.getNames(md).length);
+        assertEquals("gary.1.mbag0_4-1", md.getString("bagfile"));
+        assertEquals("d.json", md.getString("filepath"));
+
+        // FileLookup.getMemberBags()
         Collection<String> bags = fl.getMemberBags();
         assertEquals(2, bags.size());
-        assertTrue(bags.contains("gary.1.mbag0_4-0"));
-        assertTrue(bags.contains("gary.1.mbag0_4-1"));
+        assertTrue(bags.contains("gary.1.mbag0_4-0"), "Missing bag name: gary.1.mbag0_4-0");
+        assertTrue(bags.contains("gary.1.mbag0_4-1"), "Missing bag name: gary.1.mbag0_4-1");
+        bags = null;
+        bags = mdcache.getMemberBags("gary", "1");
+        assertEquals(2, bags.size());
+        assertTrue(bags.contains("gary.1.mbag0_4-0"), "Missing bag name: gary.1.mbag0_4-0");
+        assertTrue(bags.contains("gary.1.mbag0_4-1"), "Missing bag name: gary.1.mbag0_4-1");
 
+        // FileLookup.getDataFilesInBag()
         Collection<String> files = fl.getDataFilesInBag("gary.1.mbag0_4-1");
         assertEquals(2, files.size());
-        assertTrue(files.contains("c.json"));
-        assertTrue(files.contains("d.json"));
+        assertTrue(files.contains("c.json"), "Missing file name: c.json");
+        assertTrue(files.contains("d.json"), "Missing file name: d.json");
+        files = fl.getDataFilesInBag("gary.1.mbag0_4-0");
+        assertEquals(1, files.size());
+        assertTrue(files.contains("a/b.txt"), "Missing file name: a/b.txt");
 
         files = mdcache.getDataFilesInBag("gary", "1", "gary.1.mbag0_4-1");
         assertEquals(2, files.size());
-        assertTrue(files.contains("c.json"));
-        assertTrue(files.contains("d.json"));
+        assertTrue(files.contains("c.json"), "Missing file name: c.json");
+        assertTrue(files.contains("d.json"), "Missing file name: d.json");
 
+        // test reloading from disk
         mdcache = new MetadataCache(tempf);
         files = mdcache.getDataFilesInBag("gary", "1", "gary.1.mbag0_4-1");
         assertEquals(2, files.size());
-        assertTrue(files.contains("c.json"));
-        assertTrue(files.contains("d.json"));
+        assertTrue(files.contains("c.json"), "Missing file name: c.json");
+        assertTrue(files.contains("d.json"), "Missing file name: d.json");
     }
 }

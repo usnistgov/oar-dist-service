@@ -16,13 +16,12 @@ package gov.nist.oar.distrib.cachemgr.pdr;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,14 +45,14 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 public class HeadBagCacheManagerTest {
 
     @TempDir
-    public Path tempDir;
+    public File tempDir;
 
     HeadBagDB sidb = null;
     HeadBagCacheManager hbcmgr = null;
     final String ltsdir = System.getProperty("project.test.resourceDirectory");
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempDir.resolve("testdb.sqlite").toFile();
+        File tf = new File(tempDir, "testdb.sqlite");
         String out = tf.getAbsolutePath();
         HeadBagDB.initializeSQLiteDB(out);
         return out;
@@ -69,8 +68,9 @@ public class HeadBagCacheManagerTest {
         sidb.registerVolume("cv0", 200000, null);
         sidb.registerVolume("cv1", 200000, null);
 
-        File cdir = tempDir.resolve("cache").toFile();
-        List<CacheVolume> cvs = new ArrayList<>();
+        File cdir = new File(tempDir, "cache");
+        cdir.mkdir();
+        List<CacheVolume> cvs = new ArrayList<CacheVolume>();
         File cvd = new File(cdir, "cv0");
         cvd.mkdir();
         cvs.add(new FilesystemCacheVolume(cvd, "cv0"));
@@ -104,8 +104,8 @@ public class HeadBagCacheManagerTest {
 
     @Test
     public void testResolveAIPID() throws ResourceNotFoundException, CacheManagementException {
-        assertTrue(!hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
-        assertTrue(!hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
         JSONObject resmd = hbcmgr.resolveAIPID("mds1491", null);
         assertNotNull(resmd);
@@ -113,7 +113,7 @@ public class HeadBagCacheManagerTest {
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", resmd.optString("ediid"));
         assertEquals(8, resmd.optJSONArray("components").length());
         assertTrue(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
-        assertTrue(!hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
         resmd = hbcmgr.resolveAIPID("mds1491", "0");
         assertNotNull(resmd);
@@ -123,12 +123,15 @@ public class HeadBagCacheManagerTest {
         assertTrue(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
         assertTrue(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
-        assertTrue(!hbcmgr.isCached("67C783D4BA814C8EE05324570681708A1899.mbag0_3-1.zip"));
+        assertFalse(hbcmgr.isCached("67C783D4BA814C8EE05324570681708A1899.mbag0_3-1.zip"));
         resmd = hbcmgr.resolveAIPID("67C783D4BA814C8EE05324570681708A1899", null);
         assertNotNull(resmd);
         assertTrue(hbcmgr.isCached("67C783D4BA814C8EE05324570681708A1899.mbag0_3-1.zip"));
 
-        assertThrows(ResourceNotFoundException.class, () -> hbcmgr.resolveAIPID("mds1492", null));
+        try {
+            hbcmgr.resolveAIPID("mds1492", null);
+            fail("Found non-existent AIP");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
     }
 
     @Test
@@ -148,21 +151,24 @@ public class HeadBagCacheManagerTest {
 
     @Test
     public void testResolveDistID() throws ResourceNotFoundException, CacheManagementException, FileNotFoundException {
-        assertTrue(!hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
-        assertTrue(!hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
         JSONObject cmpmd = hbcmgr.resolveDistID("ark:/88434/mds1491/trial1.json", null);
         assertNotNull(cmpmd);
         assertEquals("cmps/trial1.json", cmpmd.optString("@id"));
         assertEquals("trial1.json", cmpmd.optString("filepath"));
         assertTrue(hbcmgr.isCached("mds1491.1_1_0.mbag0_4-1.zip"));
-        assertTrue(!hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
+        assertFalse(hbcmgr.isCached("mds1491.mbag0_2-0.zip"));
 
         cmpmd = hbcmgr.resolveDistID("mds1491/trial1.json", "0");
         assertNotNull(cmpmd);
         assertEquals("cmps/trial1.json", cmpmd.optString("@id"));
         assertEquals("trial1.json", cmpmd.optString("filepath"));
 
-        assertThrows(FileNotFoundException.class, () -> hbcmgr.resolveDistID("mds1491/goober", "0"));
+        try {
+            hbcmgr.resolveDistID("mds1491/goober", "0");
+            fail("Found non-existent filepath");
+        } catch (FileNotFoundException ex) { /* success! */ }
     }
 }

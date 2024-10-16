@@ -105,7 +105,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Return the status of the cache manager",
                description="200 is returned if the cache manager is in operation, 404 otherwise.")
-    @GetMapping(value="/")
+    @GetMapping(value="/", produces = "application/json")
     public ErrorInfo getStatus(@Parameter(hidden=true) HttpServletRequest req) throws NotOperatingException {
         _checkForManager();
         return new ErrorInfo(req.getRequestURI(), 200, "Cache Manager in Use");
@@ -116,7 +116,7 @@ public class CacheManagementController {
      */
     @Operation(summary="List summaries of the volumes in the cache", 
                description="Each item in the returned JSON array summarizes the state of a volume within the cache")
-    @GetMapping(value="/volumes/")
+    @GetMapping(value="/volumes/", produces = "application/json")
     public List<Object> summarizeVolumes() throws InventoryException, NotOperatingException {
         _checkForManager();
         return mgr.summarizeVolumes().toList();
@@ -127,7 +127,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Return a summary of a volume in the cache", 
                description="Returns metadata and statistics about a volume and its contents")
-    @GetMapping(value="/volumes/**")
+    @GetMapping(value="/volumes/**", produces = "application/json")
     public Map<String, Object> summarizeVolume(@Parameter(hidden=true) HttpServletRequest request)
         throws VolumeNotFoundException, InventoryException, NotOperatingException
     {
@@ -142,7 +142,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Summarize the contents of the cache", 
                description="Each item describes a dataset, some portion of which is cached")
-    @GetMapping(value="/objects/")
+    @GetMapping(value="/objects/", produces = "application/json")
     public List<Object> summarizeContents()
         throws InventoryException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
@@ -157,7 +157,7 @@ public class CacheManagementController {
      */
     @Operation(summary="List objects from a dataset collection", 
                description="Each item describes a dataset which may or may not currently exist in the cache")
-    @GetMapping(value="/objects/{dsid}")
+    @GetMapping(value="/objects/{dsid}", produces = "application/json")
     public Map<String,Object> summarizeDataset(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
     {
@@ -202,7 +202,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Return a description of an object in the cache", 
                description="The returned object describes what is known about the object, including a flag indicating whether is cached.")
-    @GetMapping(value="/objects/{dsid}/**")
+    @GetMapping(value="/objects/{dsid}/**", produces = "application/json")
     public void describeDatasetComp(@PathVariable("dsid") String dsid, @Parameter(hidden=true) HttpServletRequest request,
                                     @Parameter(hidden=true) HttpServletResponse response)
         throws ResourceNotFoundException, StorageVolumeException, NotOperatingException, CacheManagementException
@@ -292,7 +292,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Ensure all objects from a dataset collection are in the cache",
                description="The list returned is the same as with GET; it may take a while for all objects to be cached.")
-    @PutMapping(value="/objects/{dsid}/**")
+    @PutMapping(value="/objects/{dsid}/**", produces = "application/json")
     public ResponseEntity<String> updateDataFile(@PathVariable("dsid") String dsid,
                                                  @Parameter(hidden=true) HttpServletRequest request)
         throws CacheManagementException, StorageVolumeException, NotOperatingException
@@ -347,7 +347,7 @@ public class CacheManagementController {
      * @param request used to extract the optional file path from the URL
      * @return ResponseEntity with the result of the operation
      */
-    @DeleteMapping(value="/objects/{dsid}/**")
+    @DeleteMapping(value="/objects/{dsid}/**", produces = "application/json")
     public ResponseEntity<String> removeFromCache(@PathVariable("dsid") String dsid, HttpServletRequest request) {
         try {
 
@@ -407,7 +407,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Return status information about the cache queue",
                description="The caching queue is a queue of data items waiting to be cached")
-    @GetMapping(value="/queue/")
+    @GetMapping(value="/queue/", produces = "application/json")
     public ResponseEntity<Map<String,Object>> getCacheQueueStatus() throws CacheManagementException {
         return new ResponseEntity<Map<String,Object>>(mgr.getCachingQueueStatus().toMap(), HttpStatus.OK);
     }
@@ -433,7 +433,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Cache a data item",
                description="The caching process will start to process the data items found in the queue.")
-    @PutMapping(value="/queue/**")
+    @PutMapping(value="/queue/**", produces = "application/json")
     public ResponseEntity<Map<String,Object>> queueCache(@Parameter(hidden=true) HttpServletRequest request)
         throws CacheManagementException, StorageVolumeException
     {
@@ -466,7 +466,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Return status information about cache file integrity checking",
                description="The properties in the returned JSON Object describe results from the last integrity check.")
-    @GetMapping(value="/monitor/")
+    @GetMapping(value="/monitor/", produces = "application/json")
     public ResponseEntity<Map<String,Object>> getMonitorStatus() throws CacheManagementException {
         return new ResponseEntity<Map<String,Object>>(mgr.getMonitorStatus().toMap(), HttpStatus.OK);
     }
@@ -477,7 +477,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Starts integrity monitoring",
                description="Use repeat=true to check repeatably on configured schedule")
-    @PutMapping(value="/monitor/running")
+    @PutMapping(value="/monitor/running", produces = "application/json")
     public ResponseEntity<String> startMonitor(@Parameter(hidden=true) HttpServletRequest request)
         throws CacheManagementException
     {
@@ -499,7 +499,7 @@ public class CacheManagementController {
      * continuously on the configured schedule.
      */
     @Operation(summary="Report whether integrity monitoring is currently running")
-    @GetMapping(value="/monitor/running")
+    @GetMapping(value="/monitor/running", produces = "application/json")
     public ResponseEntity<String> isMonitorRunning()
         throws CacheManagementException
     {
@@ -515,7 +515,7 @@ public class CacheManagementController {
      */
     @Operation(summary="Stops integrity monitoring", 
                description="If running, the monitor will stop after the current cycle")
-    @DeleteMapping(value="/monitor/running")
+    @DeleteMapping(value="/monitor/running", produces = "application/json")
     public ResponseEntity<String> stopMonitor() {
         PDRCacheManager.MonitorThread mt = mgr.getMonitorThread();
         if (mt.isAlive()) {

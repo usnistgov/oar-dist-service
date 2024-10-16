@@ -21,11 +21,12 @@ import java.io.IOException;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
@@ -34,12 +35,19 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class AWSS3ClientProviderTest {
 
+    @RegisterExtension
+    static final S3MockExtension S3_MOCK = S3MockExtension.builder()
+            .withSecureConnection(false) 
+            .withHttpPort(9090) // Specify port here
+            .silent()   // Suppress statup banner and reduce logging verbosity
+            .build();
+
     static AmazonS3 s3client = null;
     static final String bucket = "oar-lts-test";
 
     @BeforeAll
     public static void setUpClass() throws IOException {
-        s3client = createS3Client();
+        s3client = S3_MOCK.createS3Client();
 
         if (s3client.doesBucketExistV2(bucket))
             destroyBucket();
@@ -59,11 +67,6 @@ public class AWSS3ClientProviderTest {
                 .build();
     }
 
-    @AfterAll
-    public static void tearDownClass() {
-        destroyBucket();
-    }
-
     public static void destroyBucket() {
         List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
         for (S3ObjectSummary f : files) 
@@ -76,9 +79,9 @@ public class AWSS3ClientProviderTest {
         s3client = createS3Client();
     }
 
-    @AfterEach
-    public void tearDown() {
-        s3client.shutdown();
+    @AfterAll
+    public static void tearDownClass() {
+        destroyBucket();
     }
 
     @Test

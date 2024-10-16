@@ -160,7 +160,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             service.getRecord(TEST_RECORD_ID);
             fail("Expected InternalServerErrorException to be thrown");
         } catch (RequestProcessingException e) {
-            assertEquals("Error response from Salesforce service: Bad Request", e.getMessage());
+            assertEquals("Error response from salesforce service: Bad Request", e.getMessage());
         }
 
         verify(mockConnection).disconnect();

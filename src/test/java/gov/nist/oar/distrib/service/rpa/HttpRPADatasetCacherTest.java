@@ -19,11 +19,13 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPut;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
@@ -31,26 +33,27 @@ import gov.nist.oar.distrib.web.RPAConfiguration;
 
 @ExtendWith(MockitoExtension.class)
 public class HttpRPADatasetCacherTest {
+
+    @InjectMocks
     private HttpRPADatasetCacher httpRPADatasetCacher;
+
+    @Mock
     private RPAConfiguration rpaConfiguration;
-    HttpClient httpClient;
+
+    @Mock
+    private HttpClient httpClient;
+
     @Captor
     private ArgumentCaptor<HttpPut> httpPutCaptor;
-    String datasetId;
 
+    private String datasetId;
     private static final String BASE_URL = "https://oardev.nist.gov";
     private static final String CACHE_PATH = "/od/ds/rpa/cache/";
 
-
-    @BeforeAll
+    @BeforeEach
     public void setUp() {
-        rpaConfiguration = mock(RPAConfiguration.class);
         when(rpaConfiguration.getPdrCachingUrl()).thenReturn(BASE_URL);
-
-        httpRPADatasetCacher = new HttpRPADatasetCacher(rpaConfiguration);
-        httpClient = mock(HttpClient.class);
         httpRPADatasetCacher.setHttpClient(httpClient);
-
         datasetId = "mds2-2909";
     }
 

@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,13 +38,13 @@ import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 public class ChecksumCheckTest {
 
     @TempDir
-    public File tempDir;
+    public Path tempDir;  // Updated to Path for directory creation
 
     FilesystemCacheVolume vol = null;
     CacheObjectCheck chk = null;
 
     FilesystemCacheVolume makevol(String root) throws IOException {
-        File rootdir = new File(tempDir, root);
+        Path rootdir = Files.createDirectory(tempDir.resolve(root));  // Ensure the directory is created
         return new FilesystemCacheVolume(rootdir.toString(), root);
     }
 

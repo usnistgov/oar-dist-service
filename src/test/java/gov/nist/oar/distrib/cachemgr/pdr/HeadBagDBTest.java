@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -34,16 +33,13 @@ import org.junit.jupiter.api.io.TempDir;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 
-/**
- * This test also tests the PDRStorageInventoryDB implementation
- */
 public class HeadBagDBTest {
 
     @TempDir
-    public Path tempDir;
+    public File tempDir;
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempDir.resolve("testdb.sqlite").toFile();
+        File tf = new File(tempDir, "testdb.sqlite");
         String out = tf.getAbsolutePath();
         HeadBagDB.initializeSQLiteDB(out);
         return out;
@@ -72,11 +68,11 @@ public class HeadBagDBTest {
         Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbf.toString());
         DatabaseMetaData dmd = conn.getMetaData();
 
-        // Check that we have tables defined
+        // check that we have tables defined
         List<String> svals = getStringColumn(dmd.getTableTypes(), 1);
         assertTrue(svals.contains("TABLE"));
 
-        // Check that our tables are defined
+        // check that our tables are defined
         String[] ss = { "TABLE" };
         svals = getStringColumn(dmd.getTables(null, null, null, ss), "TABLE_NAME");
         assertTrue(svals.contains("volumes"));

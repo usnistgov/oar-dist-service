@@ -29,6 +29,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
@@ -49,7 +50,9 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = { "distrib.bagstore.mode=local",
+@TestPropertySource(properties = { 
+	"server.servlet.context-path=/od",
+	"distrib.bagstore.mode=local",
 	"distrib.bagstore.location=./src/test/resources", "distrib.baseurl=http://localhost/od/ds",
 	"logging.path=./target/surefire-reports", "distrib.packaging.maxpackagesize = 100000",
 	"distrib.packaging.maxfilecount = 2", "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas"
@@ -85,8 +88,11 @@ public class DataBundleAccessControllerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	BundleRequest bFL = new BundleRequest("testdownload-1", inputfileList,0,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
-   
+	headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> request = RequestEntity
+											.post(new URI(getBaseURL() + "/ds/_bundle"))
+											.headers(headers)
+											.body(bFL);
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders():"
 		+ response.getHeaders() + "\n response.getBody().length():" + response.getBody().length());
@@ -114,13 +120,18 @@ public class DataBundleAccessControllerTest {
 	inputfileList[2] = testval3;
 
 	BundleRequest bFL = new BundleRequest("testdownload-2", inputfileList,0,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle")).body(bFL);
+	headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> request = RequestEntity
+											.post(new URI(getBaseURL() + "/ds/_bundle"))
+											.headers(headers)
+											.body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 	System.out.println("response.getStatusCode():" + response.getStatusCode() + " \n resp.getHeaders() :"
 		+ response.getHeaders() + "\n resp.getBody():" + response.getBody());
 
 	 assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+	 System.out.println("Response Headers: " + response.getHeaders());
 	 assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/json"));
 	// assertEquals(22, response.getBody().length());
 

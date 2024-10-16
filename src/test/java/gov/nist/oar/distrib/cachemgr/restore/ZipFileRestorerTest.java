@@ -44,12 +44,12 @@ import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class ZipFileRestorerTest {
 
-    Path testdir = null;
-    File storeroot = null;
-    LongTermStorage lts = null;
-    
+    static Path testdir = null;
+    static File storeroot = null;
+    static LongTermStorage lts = null;
+
     @BeforeAll
-    public void setUp() throws IOException {
+    public static void setUp() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
         if (indir.toFile().canWrite())
@@ -58,16 +58,16 @@ public class ZipFileRestorerTest {
             testdir = Files.createTempDirectory("_unittest");
         storeroot = new File(testdir.toFile(), "ltstore");
         storeroot.mkdirs();
-        
+
         // setup a little repo
-        Files.copy(getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip"),
-                   (new File(storeroot, "mds1491.mbag0_2-0.zip")).toPath());
+        Files.copy(ZipFileRestorerTest.class.getResourceAsStream("/mds1491.mbag0_2-0.zip"),
+                (new File(storeroot, "mds1491.mbag0_2-0.zip")).toPath());
 
         lts = new FilesystemLongTermStorage(storeroot.getAbsolutePath());
     }
 
     @AfterAll
-    public void tearDown(){
+    public static void tearDown() {
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;
     }
@@ -90,24 +90,26 @@ public class ZipFileRestorerTest {
         try {
             rest.getSizeOf("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
     public void testGetChecksum() throws StorageVolumeException {
         ZipFileRestorer rest = new ZipFileRestorer(lts, "mds1491.mbag0_2-0.zip", "");
         assertEquals("ab671096", rest.getChecksum("mds1491.mbag0_2-0/data/trial1.json").hash);
-                     
+
         try {
             rest.getChecksum("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
-    public void testRestoreObject()
-        throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException
-    {
+    public void testRestoreObject() throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException {
         File cvdir = new File(testdir.toFile(), "cache");
         cvdir.mkdirs();
         CacheVolume cv = new FilesystemCacheVolume(cvdir.toString());
@@ -116,7 +118,7 @@ public class ZipFileRestorerTest {
         String dbf = (new File(testdir.toFile(), "sidb.sqlite3")).toString();
         SQLiteStorageInventoryDB.initializeDB(dbf);
         StorageInventoryDB db = new SQLiteStorageInventoryDB(dbf);
-        db.registerVolume(cv.getName(), 20000000, null);  // 20 MB capacity
+        db.registerVolume(cv.getName(), 20000000, null); // 20 MB capacity
         db.registerAlgorithm(Checksum.CRC32);
         db.registerAlgorithm(Checksum.SHA256);
 
@@ -130,36 +132,32 @@ public class ZipFileRestorerTest {
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(1562, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
-        assertEquals("77237883",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
+        assertEquals("77237883", db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(0L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
         rest.restoreObject("mds1491.mbag0_2-0/bag-info.txt", resv, "preservation.log", null);
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(625, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
-        assertEquals("cb1bc46f",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
+        assertEquals("cb1bc46f", db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(937L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
-        rest.restoreObject("mds1491.mbag0_2-0/data/trial3/trial3a.json", resv,
-                           "data/trial3::trial3a.json", null);
+        rest.restoreObject("mds1491.mbag0_2-0/data/trial3/trial3a.json", resv, "data/trial3::trial3a.json", null);
         assertTrue((new File(cvdir, "data/trial3::trial3a.json")).isFile());
         assertTrue(cv.exists("data/trial3::trial3a.json"));
         assertEquals(70, db.findObject(cv.getName(), "data/trial3::trial3a.json").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority",11));
-        assertEquals("c6723c3a",
-                     db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum",""));
+        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority", 11));
+        assertEquals("c6723c3a", db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum", ""));
         assertEquals(1492L, resv.getSize());
         resv.drop();
-        
+
         assertTrue(cv.exists("preservation.log"));
-        assertEquals(20000000-(70+625), db.getAvailableSpaceIn(cv.getName()));
+        assertEquals(20000000 - (70 + 625), db.getAvailableSpaceIn(cv.getName()));
     }
 }

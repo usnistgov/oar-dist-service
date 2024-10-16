@@ -28,7 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -113,7 +116,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "List descriptions of available AIP files",
                description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @GetMapping(value = "/{dsid}/_aip")
+    @GetMapping(value = "/{dsid}/_aip", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<FileDescription> describeAIPs(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -151,7 +154,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "List the AIP versions available for a dataset",
                description = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
-    @GetMapping(value = "/{dsid}/_aip/_v")
+    @GetMapping(value = "/{dsid}/_aip/_v", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -178,7 +181,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "List descriptions of AIP files available for a particular version of the dataset",
                description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
-    @GetMapping(value = "/{dsid}/_aip/_v/{ver}")
+    @GetMapping(value = "/{dsid}/_aip/_v/{ver}", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<FileDescription> describeAIPsForVersion(@PathVariable("dsid") String dsid,
                                                         @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
@@ -234,7 +237,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head")
+    @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head", produces = MediaType.APPLICATION_JSON_VALUE)
     public FileDescription describeHeadAIPForVersion(@PathVariable("dsid") String dsid, @PathVariable("ver") String ver)
         throws ResourceNotFoundException, DistributionException
     {
@@ -273,7 +276,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
                description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
-    @GetMapping(value = "/{dsid}/_aip/_head")
+    @GetMapping(value = "/{dsid}/_aip/_head", produces = MediaType.APPLICATION_JSON_VALUE)
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
         throws ResourceNotFoundException, DistributionException
     {
@@ -312,7 +315,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "stream the data product with the given name",
                description = "This supports using the full ARK ID as the dataset identifier")
-    @GetMapping(value = "/ark:/{naan:\\d+}/{dsid}/**")
+    @GetMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", produces = MediaType.APPLICATION_JSON_VALUE)
     public void downloadFileViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
                                    @Parameter(hidden = true) HttpServletRequest request,
                                    @Parameter(hidden = true) HttpServletResponse response,
@@ -353,7 +356,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given ARK ID",
                description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
-    @RequestMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", method = RequestMethod.HEAD)
+    @RequestMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", method = RequestMethod.HEAD , produces = MediaType.APPLICATION_JSON_VALUE)
     public void downloadFileInfoViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
                                        @Parameter(hidden = true) HttpServletRequest request,
                                        @Parameter(hidden = true) HttpServletResponse response)
@@ -392,7 +395,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "stream the data product with the given name",
                description = "This is the primary way to download a data file")
-    @GetMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**")
+    @GetMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**", produces = MediaType.APPLICATION_JSON_VALUE)
     public void downloadFile(@PathVariable("dsid") String dsid, @Parameter(hidden = true) HttpServletRequest request,
                              @Parameter(hidden = true) HttpServletResponse response,
                              @RequestParam Optional<String> requestId)
@@ -569,7 +572,7 @@ public class DatasetAccessController {
      */
     @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given name",
                description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
-    @RequestMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**", method = RequestMethod.HEAD)
+    @RequestMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**", method = RequestMethod.HEAD, produces = MediaType.APPLICATION_JSON_VALUE)
     public void downloadFileInfo(@PathVariable("dsid") String dsid, @Parameter(hidden = true) HttpServletRequest request,
                                  @Parameter(hidden = true) HttpServletResponse response)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException
@@ -657,59 +660,76 @@ public class DatasetAccessController {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        
+        ErrorInfo errorInfo;
         if (ex.version == null) {
-            return createErrorInfo(req, 404, "Resource ID not found", "Non-existent resource requested: ",
-                                   ex.getMessage());
-
+            errorInfo = createErrorInfo(req, 404, "Resource ID not found", "Non-existent resource requested: ", ex.getMessage());
         } else {
-            // error is not specific to a version
-            return createErrorInfo(req, 404, "Requested version of resource not found", 
-                                   "Non-existent resource version requested: ", ex.getMessage());
-
+            errorInfo = createErrorInfo(req, 404, "Requested version of resource not found", 
+                                        "Non-existent resource version requested: ", ex.getMessage());
         }
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(FileNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleFileNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleFileNotFoundException(FileNotFoundException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        return createErrorInfo(req, 404, "File not found in requested dataset", 
-                               "Non-existent file requested from resource: ", ex.getMessage());
-
+        ErrorInfo errorInfo = createErrorInfo(req, 404, "File not found in requested dataset", 
+                                            "Non-existent file requested from resource: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(DistributionException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleInternalError(DistributionException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); 
 
-        return createErrorInfo(req, 500, "Internal Server Error", "Failure processing request:", ex.getMessage());
-
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error", 
+                                            "Failure processing request:", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(ServiceSyntaxException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorInfo handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); 
+        
         logger.info("Malformed input detected in " + req.getRequestURI() + "\n  " + ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 400, "Malformed input");
+
+        ErrorInfo errorInfo = createErrorInfo(req, 400, "Malformed input", "Invalid syntax: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IOException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
-
-        return createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
-                               ex.getMessage());
+    public ResponseEntity<ErrorInfo> handleStreamingError(IOException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); 
+        
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error", 
+                                            "Streaming failure during request: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
-
-        return createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
-                               ex.getMessage());
-
+    public ResponseEntity<ErrorInfo> handleUnexpectedError(RuntimeException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); 
+        
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Unexpected Server Error", 
+                                            "Unexpected failure during request: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 
     /**
      * Create Error Information object to be returned to the client as a result of failed request

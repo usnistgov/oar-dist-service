@@ -106,49 +106,49 @@ public class PDRDatasetRestorerTest {
     @Test
     public void testParseId() {
         String[] parts = rstr.parseId("mds2-8888");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("", parts[1]);
         Assertions.assertNull(parts[2]);
 
         parts = rstr.parseId("mds2-8888/");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("", parts[1]);
         Assertions.assertNull(parts[2]);
 
         parts = rstr.parseId("mds2-8888#");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "");
-        Assertions.assertEquals(parts[2], "");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("", parts[1]);
+        Assertions.assertEquals("", parts[2]);
 
         parts = rstr.parseId("mds2-8888/#");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "");
-        Assertions.assertEquals(parts[2], "");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("", parts[1]);
+        Assertions.assertEquals("", parts[2]);
 
         parts = rstr.parseId("mds2-8888/goob");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "goob");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("goob", parts[1]);
         Assertions.assertNull(parts[2]);
 
         parts = rstr.parseId("mds2-8888/goob/gurn.json");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "goob/gurn.json");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("goob/gurn.json", parts[1]);
         Assertions.assertNull(parts[2]);
 
         parts = rstr.parseId("mds2-8888/goob/gurn.json#");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "goob/gurn.json");
-        Assertions.assertEquals(parts[2], "");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("goob/gurn.json", parts[1]);
+        Assertions.assertEquals("", parts[2]);
 
         parts = rstr.parseId("mds2-8888/goob/gurn.json#2");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "goob/gurn.json");
-        Assertions.assertEquals(parts[2], "2");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("goob/gurn.json", parts[1]);
+        Assertions.assertEquals("2", parts[2]);
 
         parts = rstr.parseId("mds2-8888/goob/gurn.json#1.45.21-rc1");
-        Assertions.assertEquals(parts[0], "mds2-8888");
-        Assertions.assertEquals(parts[1], "goob/gurn.json");
-        Assertions.assertEquals(parts[2], "1.45.21-rc1");
+        Assertions.assertEquals("mds2-8888", parts[0]);
+        Assertions.assertEquals("goob/gurn.json", parts[1]);
+        Assertions.assertEquals("1.45.21-rc1", parts[2]);
     }
 
     @Test
@@ -164,12 +164,9 @@ public class PDRDatasetRestorerTest {
     public void testGetSize() throws StorageVolumeException, CacheManagementException {
         Assertions.assertEquals(69, rstr.getSizeOf("mds1491/trial1.json"));
         Assertions.assertEquals(553, rstr.getSizeOf("mds1491/trial3/trial3a.json"));
-        try {
+        Assertions.assertThrows(ObjectNotFoundException.class, () -> {
             rstr.getSizeOf("goober/file.json");
-            Assertions.fail("found non-existent file");
-        } catch (ObjectNotFoundException ex) {
-            // Success!
-        }
+        });
     }
 
     @Test
@@ -182,12 +179,9 @@ public class PDRDatasetRestorerTest {
         Assertions.assertEquals("ccf6d9df969ab2ef6873f1d3125eac2fbdc082784b446be4c44d8bab148f5396", cksm.hash);
         Assertions.assertEquals("sha256", cksm.algorithm);
 
-        try {
+        Assertions.assertThrows(ObjectNotFoundException.class, () -> {
             rstr.getChecksum("goober/file.json");
-            Assertions.fail("found non-existent file");
-        } catch (ObjectNotFoundException ex) {
-            // Success!
-        }
+        });
     }
 
     @Test

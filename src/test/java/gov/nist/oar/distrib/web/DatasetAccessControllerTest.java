@@ -29,6 +29,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -38,6 +39,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+	    "server.servlet.context-path=/od",
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
@@ -375,7 +377,11 @@ public class DatasetAccessControllerTest {
 
     @Test
     public void testDownloadFileInfoViaBadARK() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        // Set the Accept header to request JSON
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/mds1491/goob/trial1.json",
                                                       HttpMethod.HEAD, req, String.class);
 

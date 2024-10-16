@@ -13,16 +13,18 @@
  */
 package gov.nist.oar.distrib.service;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -65,77 +67,78 @@ public class CacheEnabledFileDownloadServiceTest {
     HeadBagCacheManager hbcm = null;
     PDRCacheManager mgr = null;
 
+    Path ltsroot, mtltsroot;
     FilesystemLongTermStorage lts = null;
     CacheEnabledFileDownloadService svc = null;
-
+    
     HeadBagCacheManager createHBCache(BagStorage ltstore) throws IOException, CacheManagementException {
-        File tf = new File(tempDir.toFile(), "headbags");
-        File dbf = new File(tf, "inventory.sqlite");
+        Path headbagsDir = tempDir.resolve("headbags");
+        Path dbFile = headbagsDir.resolve("inventory.sqlite");
         // boolean needinit = false;
-        if (!tf.exists()) {
+        if (! Files.exists(headbagsDir)) {
             // needinit = true;
-            tf.mkdir();
-            HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
+            Files.createDirectory(headbagsDir);
+            HeadBagDB.initializeSQLiteDB(dbFile.toString());
         }
-        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbFile.toString());
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
         sidb.registerAlgorithm("sha256");
-        File cvd = new File(tf, "cv0");
-        if (!cvd.exists()) cvd.mkdir();
-        cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv0"), 2000000, null, true);
-        cvd = new File(tf, "cv1");
-        if (!cvd.exists()) cvd.mkdir();
-        cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
+        Path cvDir = headbagsDir.resolve("cv0");  
+        if (! Files.exists(cvDir)) Files.createDirectory(cvDir);
+        cache.addCacheVolume(new FilesystemCacheVolume(cvDir.toFile(), "cv0"), 2000000, null, true);
+        cvDir = headbagsDir.resolve("cv1");  
+        if (! Files.exists(cvDir)) Files.createDirectory(cvDir);
+        cache.addCacheVolume(new FilesystemCacheVolume(cvDir.toFile(), "cv1"), 2000000, null, true);
 
         return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), "88434");
     }
 
-    ConfigurableCache createDataCache(File croot) throws CacheManagementException, IOException {
-        File dbf = new File(croot, "inventory.sqlite");
-        PDRStorageInventoryDB.initializeSQLiteDB(dbf.getAbsolutePath());
-        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+    ConfigurableCache createDataCache(Path croot) throws CacheManagementException, IOException {
+        Path dbFile = croot.resolve("inventory.sqlite");
+        PDRStorageInventoryDB.initializeSQLiteDB(dbFile.toString());
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbFile.toString());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvdir = new File(croot, "foobar");
-        cvdir.mkdir();
+        Path cvDir = croot.resolve("foobar");  
+        Files.createDirectory(cvDir);
         VolumeConfig vc = new VolumeConfig();
-        CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar", "https://goob.net/c/foobar/");
+        CacheVolume cv = new FilesystemCacheVolume(cvDir.toFile(), "foobar", "https://goob.net/c/foobar/");
         vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS | PDRCacheRoles.ROLE_FAST_ACCESS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "cranky");
-        cvdir.mkdir();
-        cv = new FilesystemCacheVolume(cvdir, "cranky", "https://goob.net/c/cranky/");
+        cvDir = croot.resolve("cranky");  
+        Files.createDirectory(cvDir);
+        cv = new FilesystemCacheVolume(cvDir.toFile(), "cranky", "https://goob.net/c/cranky/");
         vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE | PDRCacheRoles.ROLE_LARGE_OBJECTS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "old");
-        cvdir.mkdir();
-        cv = new FilesystemCacheVolume(cvdir, "old", "https://goob.net/c/old/");
+        cvDir = croot.resolve("old");  
+        Files.createDirectory(cvDir);
+        cv = new FilesystemCacheVolume(cvDir.toFile(), "old", "https://goob.net/c/old/");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
         return cache;
     }
 
-    private BagStorage createBagStorage(boolean empty) throws IOException {
-        return new FilesystemLongTermStorage((empty) ? mtltsdir : ltsdir);
+    private BagStorage createBagStorage(boolean empty) throws FileNotFoundException {
+        return new FilesystemLongTermStorage(empty ? mtltsdir : ltsdir);
     }
-
     private void setupFileDownloadService(boolean empty) throws IOException, CacheManagementException {
         BagStorage ltstore = createBagStorage(empty);
         hbcm = createHBCache(ltstore);
 
-        File croot = new File(tempDir.toFile(), "data");
-        if (!croot.exists()) {
-            croot.mkdir();
+        Path croot = tempDir.resolve("data");
+        if (! Files.exists(croot)) {
+            Files.createDirectory(croot);
             cache = createDataCache(croot);
         }
         rstr = new PDRDatasetRestorer(ltstore, hbcm, 500);
 
-        List<CacheObjectCheck> checks = List.of(new ChecksumCheck());
-        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot, null);
+        List<CacheObjectCheck> checks = new ArrayList<>();
+        checks.add(new ChecksumCheck());
+        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot.toFile(), null);
 
         DefaultPreservationBagService pres = new DefaultPreservationBagService(ltstore);
         FileDownloadService srcsvc = new FromBagFileDownloadService(pres);
@@ -144,47 +147,131 @@ public class CacheEnabledFileDownloadServiceTest {
 
     @BeforeEach
     public void setUp() throws IOException, CacheManagementException {
-        mtltsdir = tempDir.resolve("mtlts").toString();
+        mtltsdir = Files.createDirectory(tempDir.resolve("mtlts")).toString();
         setupFileDownloadService(false);
     }
 
     @Test
-    public void testGetDataFileInfo() throws ResourceNotFoundException, DistributionException, IOException {
+    public void testGetDataFileInfo() 
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
         FileDescription fd = null;
 
-        // Cache is empty; test fallback functionality (latest version)
+        // Cache is empty; test fall back functionality (latest version)
+        // Retrieving data/info does not trigger caching. 
+
+        // Start with Disconnected long-term storage; confirm that data file cache does not produce info
         setupFileDownloadService(true);
-        assertThrows(ResourceNotFoundException.class, () -> {
-            svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
-        });
+        try {
+            fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
+            fail("Found data in empty storage?");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
+
+        try {
+            fd = svc.getDataFileInfo("mds1491", "trial1.json.sha256", null);
+            fail("Found data in empty storage?");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
 
         // Reconnect long-term storage
         setupFileDownloadService(false);
+        
+        // version specified
         fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
         assertEquals("trial3/trial3a.json", fd.name);
         assertEquals(70, fd.contentLength);
+        assertNotNull(fd.checksum);
+        assertEquals("application/json", fd.contentType);
+        assertEquals(0, svc.compcache.size());
+
+        // latest requested
+        fd = svc.getDataFileInfo("mds1491", "trial1.json.sha256", null);
+        assertEquals("trial1.json.sha256", fd.name);
+        assertEquals(90, fd.contentLength);
+        assertEquals("application/octet-stream", fd.contentType);
+        // logger.info("in-memory metadata cache contains: "+svc.compcache.idSet().toString());
+        assertEquals(6, svc.compcache.size());
+
+        fd = svc.getDataFileInfo("mds1491", "sim++.json", null);
+        assertEquals("sim++.json", fd.name);
+        assertEquals(2900000, fd.contentLength);
+        assertNull(fd.checksum);
+        assertEquals("application/json", fd.contentType);
+        assertEquals(6, svc.compcache.size());
+
+        // Now cache some data
+        mgr.cache("mds1491/trial3/trial3a.json#0");
+        mgr.cache("mds1491/trial1.json.sha256");
+
+        // Disconnet long-term storage again: head bags are now cached, so info is available
+        // a ResourceNotFoundException indicates that the cache was not leveraged as it should have been
+        setupFileDownloadService(true);
+        fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
+        assertEquals("trial3/trial3a-v0.json", fd.name);
+        assertEquals(70, fd.contentLength);
+
+        fd = svc.getDataFileInfo("mds1491", "trial1.json.sha256", null);
+        assertEquals("trial1.json.sha256", fd.name);
+        assertEquals(90, fd.contentLength);
     }
 
     @Test
-    public void testGetDataFile() throws ResourceNotFoundException, DistributionException, IOException {
+    public void testGetDataFile() 
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
         byte[] buf = new byte[200];
+        
+        // Cache is empty; test fall back functionality (latest version)
+        // Retrieving data/info does not trigger caching. 
+
+        // Start with Disconnected long-term storage; confirm that data file cache does not find file
         setupFileDownloadService(true);
+        try {
+            StreamHandle sh = svc.getDataFile("mds1491", "trial3/trial3a.json", "0");
+            if (sh != null) sh.dataStream.close();
+            fail("Found data in empty storage?");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
 
-        assertThrows(ResourceNotFoundException.class, () -> {
-            svc.getDataFile("mds1491", "trial3/trial3a.json", "0");
-        });
+        try {
+            StreamHandle sh = svc.getDataFile("mds1491", "trial1.json.sha256", null);
+            if (sh != null) sh.dataStream.close();
+            fail("Found data in empty storage?");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
 
+        // Reconnect long-term storage
         setupFileDownloadService(false);
+        
+        // version specified
         try (StreamHandle sh = svc.getDataFile("mds1491", "trial3/trial3a.json", "0")) {
             assertEquals(70, sh.dataStream.read(buf));
-        }
+        } 
+
+        // latest requested
+        try (StreamHandle sh = svc.getDataFile("mds1491", "trial1.json.sha256", null)) {
+            assertEquals(90, sh.dataStream.read(buf));
+        } 
+
+        // Now cache some data
+        mgr.cache("mds1491/trial3/trial3a.json#0");
+        mgr.cache("mds1491/trial1.json.sha256");
+
+        // Disconnet long-term storage again: head bags are now cached, so info is available
+        // a ResourceNotFoundException indicates that the cache was not leveraged as it should have been
+        setupFileDownloadService(true);
+        try (StreamHandle sh = svc.getDataFile("mds1491", "trial3/trial3a.json", "0")) {
+            assertEquals(70, sh.dataStream.read(buf));
+        } 
+        try (StreamHandle sh = svc.getDataFile("mds1491", "trial1.json.sha256", null)) {
+            assertEquals(90, sh.dataStream.read(buf));
+        } 
     }
 
     @Test
-    public void testGetDataFileRedirect() throws ResourceNotFoundException, DistributionException, IOException {
+    public void testGetDataFileRedirect() 
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
         URL redir = null;
-
-        // Start with nothing in the cache; redirect request should return null;
+        
+        // start with nothing in the cache; redirect request should return null;
         redir = svc.getDataFileRedirect("mds1491", "trial3/trial3a.json", "0");
         assertNull(redir);
         redir = svc.getDataFileRedirect("mds1491", "trial1.json.sha256", null);
@@ -197,10 +284,11 @@ public class CacheEnabledFileDownloadServiceTest {
         redir = svc.getDataFileRedirect("mds1491", "trial3/trial3a.json", "0");
         assertEquals("https://goob.net/c/old/mds1491/trial3/trial3a-v0.json", redir.toString());
 
+        // check also that the access time gets updated transparently
         CacheObject co = svc.findCachedObject("mds1491", "trial1.json.sha256", null);
         long accesstime = co.getMetadatumLong("since", -1L);
         assertTrue(accesstime > 0);
-
+        
         redir = svc.getDataFileRedirect("mds1491", "trial1.json.sha256", null);
         assertEquals("https://goob.net/c/foobar/mds1491/trial1.json.sha256", redir.toString());
         co = svc.findCachedObject("mds1491", "trial1.json.sha256", null);
@@ -210,11 +298,16 @@ public class CacheEnabledFileDownloadServiceTest {
     @Test
     public void testListDataFiles() throws ResourceNotFoundException, DistributionException {
         List<String> files = null;
-
-        // Look for non-existent resource
-        assertThrows(ResourceNotFoundException.class, () -> {
+        
+        // look for non-existent resource
+        try {
             svc.listDataFiles("goober", null);
-        });
+            fail("Found non-existent resource");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
+        try {
+            svc.listDataFiles("mds1491", "10.4");
+            fail("Found non-existent version");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
 
         files = svc.listDataFiles("mds1491", "0");
         assertTrue(files.contains("trial1.json"));
@@ -232,26 +325,30 @@ public class CacheEnabledFileDownloadServiceTest {
     }
 
     @Test
-    public void testEfficientAccess() throws ResourceNotFoundException, DistributionException, IOException {
+    public void testEfficientAccess()
+        throws ResourceNotFoundException, DistributionException, IOException
+    {
         URL redir = null;
         CacheObject co = null;
         byte[] buf = new byte[200];
 
-        // Try non-existent file
+        // try non-existent file
         co = svc.findCachedObject("goober", "gurn.txt", null);
         assertNull(co);
-        assertThrows(ResourceNotFoundException.class, () -> {
-            svc.getDataFile("goober", "gurn.txt", null);
-        });
+        try (StreamHandle sh = svc.getDataFile("goober", "gurn.txt", null)) {
+            if (sh != null) sh.dataStream.close();
+            fail("Found non-existent file");
+        } catch (ResourceNotFoundException ex) { /* success! */ }
 
-        // Try file not in cache
+        // try file not in cache
         co = svc.findCachedObject("mds1491", "trial1.json", null);
         assertNull(co);
         try (StreamHandle sh = svc.getDataFile("mds1491", "trial1.json.sha256", null)) {
             assertEquals(90, sh.dataStream.read(buf));
         }
 
-        // Now a file in the cache
+        // now a file in the cache
+        // check also that the access time gets updated transparently
         mgr.cache("mds1491/trial3/trial3a.json#0");
         co = svc.findCachedObject("mds1491", "trial3/trial3a.json", "0");
         assertNotNull(co);

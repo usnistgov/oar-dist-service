@@ -20,6 +20,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -32,6 +33,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+    "server.servlet.context-path=/od",
     "distrib.bagstore.mode=local",
     "distrib.bagstore.location=${basedir}/src/test/resources",
     "distrib.baseurl=http://localhost/oar-distrb-service",
@@ -40,7 +42,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 })
 public class NoCacheManagementControllerTest {
 
-    @org.springframework.boot.test.web.server.LocalServerPort
+    @LocalServerPort
     private int port;
 
     @Autowired

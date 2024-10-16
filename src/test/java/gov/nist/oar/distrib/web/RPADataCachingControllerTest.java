@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,7 +35,7 @@ public class RPADataCachingControllerTest {
 
     MockMvc mockMvc;
 
-    @BeforeAll
+    @BeforeEach
     public void setUp() {
         controller = new RPADataCachingController(rpaCachingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();

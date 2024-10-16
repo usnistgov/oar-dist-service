@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -40,7 +42,7 @@ import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 public class SQLiteStorageInventoryDBTest {
 
     @TempDir
-    public File tempDir;
+    public Path tempDir;
 
     class TestSQLiteStorageInventoryDB extends SQLiteStorageInventoryDB {
         public TestSQLiteStorageInventoryDB(String fn) { super(fn); }
@@ -51,8 +53,8 @@ public class SQLiteStorageInventoryDBTest {
     }
 
     String createDB() throws IOException, InventoryException {
-        File tf = new File(tempDir, "testdb.sqlite");
-        String out = tf.getAbsolutePath();
+        Path dbPath = Files.createFile(tempDir.resolve("testdb.sqlite"));
+        String out = dbPath.toAbsolutePath().toString();
         SQLiteStorageInventoryDB.initializeDB(out);
         return out;
     }

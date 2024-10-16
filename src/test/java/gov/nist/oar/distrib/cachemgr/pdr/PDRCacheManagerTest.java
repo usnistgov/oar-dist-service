@@ -249,6 +249,7 @@ public class PDRCacheManagerTest {
         Assertions.assertEquals(3, vols.length());
 
         info = vols.toList().stream()
+                .filter(v -> v instanceof Map<?, ?>)
                 .map(v -> new JSONObject((Map<String, Object>) v))
                 .filter(v -> "old".equals(v.getString("name")))
                 .findFirst()
@@ -366,4 +367,3 @@ public class PDRCacheManagerTest {
         Assertions.assertEquals(0, waiting.length());
     }
 }
-

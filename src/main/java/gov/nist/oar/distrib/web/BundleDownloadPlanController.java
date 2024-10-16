@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -110,11 +111,14 @@ public class BundleDownloadPlanController {
      */
 
     @ExceptionHandler(JsonProcessingException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorInfo handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleServiceSyntaxException(JsonProcessingException ex, HttpServletRequest req) {
 
-        return this.createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ",
-                ex.getMessage());
+        ErrorInfo errorInfo = this.createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     /**
@@ -125,41 +129,63 @@ public class BundleDownloadPlanController {
      * @return
      **/
     @ExceptionHandler(InvalidInputException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorInfo handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleStreamingError(InvalidInputException ex, HttpServletRequest req) {
 
-        return this.createErrorInfo(req, 400, "Invalid input error", 
-                                    "There is an error processing input data: ", ex.getMessage());
+        ErrorInfo errorInfo = this.createErrorInfo(req, 400, "Invalid input error", 
+                                                "There is an error processing input data: ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
-        return this.createErrorInfo(req, 404, "AIP file not found", "Non-existent bag file requested: ",
-                ex.getMessage());
+    public ResponseEntity<ErrorInfo> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
+        
+        ErrorInfo errorInfo = this.createErrorInfo(req, 404, "AIP file not found", 
+                                                "Non-existent bag file requested: ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     @ExceptionHandler(DistributionException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleInternalError(DistributionException ex, HttpServletRequest req) {
 
-        return this.createErrorInfo(req, 500, "Internal Server Error", "Failure processing request: ",
-                ex.getMessage());
+        ErrorInfo errorInfo = this.createErrorInfo(req, 500, "Internal Server Error", 
+                                                "Failure processing request: ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     @ExceptionHandler(IOException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
-        return this.createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
-                ex.getMessage());
+    public ResponseEntity<ErrorInfo> handleStreamingError(IOException ex, HttpServletRequest req) {
+        
+        ErrorInfo errorInfo = this.createErrorInfo(req, 500, "Internal Server Error", 
+                                                "Streaming failure during request: ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleStreamingError(RuntimeException ex, HttpServletRequest req) {
 
-        return this.createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
-                ex.getMessage());
+        ErrorInfo errorInfo = this.createErrorInfo(req, 500, "Unexpected Server Error", 
+                                                "Unexpected failure during request: ", ex.getMessage());
+        
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .header("Content-Type", "application/json")
+                .body(errorInfo);
     }
 
     /**

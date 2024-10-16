@@ -46,9 +46,9 @@ import gov.nist.oar.distrib.storage.WebLongTermStorage;
 public class SimpleCacheManagerZipTest {
 
     @TempDir
-    File tempDir;  // JUnit 5's TempDir for temporary folder
+    public File tempDir;  // JUnit 5's TempDir for temporary folder
 
-    String aipbase = "http://archive.apache.org/dist/commons/lang/";
+    String aipbase = "https://archive.apache.org/dist/commons/lang/";
     Logger log = LoggerFactory.getLogger(getClass());
 
     File dbf = null;
@@ -59,14 +59,13 @@ public class SimpleCacheManagerZipTest {
 
     String createDB() throws IOException, InventoryException {
         File tf = new File(tempDir, "testdb.sqlite");
-        String out = tf.getAbsolutePath();
-        SQLiteStorageInventoryDB.initializeDB(out);
-        return out;
+        SQLiteStorageInventoryDB.initializeDB(tf.getAbsolutePath());
+        return tf.getAbsolutePath();
     }
 
     @AfterEach
     public void tearDown() {
-        if (dbf != null) {
+        if (dbf != null && dbf.exists()) {
             dbf.delete();
         }
     }
@@ -84,7 +83,10 @@ public class SimpleCacheManagerZipTest {
         for (int i = 0; i < 3; i++) {
             String name = "Cache" + i;
             File cd = new File(tempDir, name);
-            CacheVolume cv = new FilesystemCacheVolume(cd.toString(), name);
+            if (!cd.exists()) {
+                cd.mkdirs(); // Ensure the directory is created
+            }
+            CacheVolume cv = new FilesystemCacheVolume(cd.getAbsolutePath(), name);
             sidb.registerVolume(name, 1200000, null);
             cvlist.add(cv);
         }
@@ -97,6 +99,7 @@ public class SimpleCacheManagerZipTest {
     @Test
     public void testCtor() throws IOException, CacheManagementException {
         LongTermStorage lts = new WebLongTermStorage(aipbase, "md5");
+
         SimpleCacheManager scm = new SimpleCacheManager(cache, new FileCopyRestorer(lts));
 
         for (Long space : sidb.getAvailableSpace().values()) {
@@ -168,7 +171,7 @@ public class SimpleCacheManagerZipTest {
         }
 
         /*
-         * we're over filling, so some files will be knocked out
+         * we're overfilling, so some files will be knocked out
          */
         int ncached = 0;
         for (String file : zips) {

@@ -1,18 +1,11 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.rpa.exceptions.InternalServerErrorException;
-import gov.nist.oar.distrib.service.rpa.model.JWTToken;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.apache.http.client.utils.URIBuilder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -27,10 +20,22 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.apache.http.client.utils.URIBuilder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class) // Enable Mockito integration with JUnit 5
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gov.nist.oar.distrib.service.rpa.exceptions.InternalServerErrorException;
+import gov.nist.oar.distrib.service.rpa.model.JWTToken;
+import gov.nist.oar.distrib.web.RPAConfiguration;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+@ExtendWith(MockitoExtension.class)
 public class JWTHelperTest {
 
     @Mock
@@ -45,19 +50,18 @@ public class JWTHelperTest {
     @Mock
     private HttpURLConnectionFactory mockConnectionFactory;
 
-    @InjectMocks
-    private JWTHelper jwtHelper; // Inject the mocks into the JWTHelper instance
-
+    private JWTHelper jwtHelper;
     private Key testPrivateKey;
 
     @BeforeEach
-    public void setup() {
-        try {
-            testPrivateKey = generateFakePrivateKey();
-            mockCreateAssertion();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+    public void setup() throws NoSuchAlgorithmException {
+        jwtHelper = JWTHelper.getInstance();
+        jwtHelper.setKeyRetriever(keyRetriever);
+        jwtHelper.setConfig(mockConfig);
+        jwtHelper.setHttpURLConnectionFactory(mockConnectionFactory);
+
+        testPrivateKey = generateFakePrivateKey();
+        mockCreateAssertion();
     }
 
     // Generate a fake private key for testing
@@ -109,7 +113,6 @@ public class JWTHelperTest {
 
     @Test
     public void testGetToken_success() throws Exception {
-        mockCreateAssertion();
         String expectedUrl = createTestUrl(createTestAssertion());
         when(mockConnectionFactory.createHttpURLConnection(new URI(expectedUrl).toURL()))
                 .thenReturn(mockConnection);
@@ -133,7 +136,6 @@ public class JWTHelperTest {
 
     @Test
     public void testGetToken_badRequest() throws Exception {
-        mockCreateAssertion();
         String testUrl = createTestUrl(createTestAssertion());
         when(mockConnectionFactory.createHttpURLConnection(new URI(testUrl).toURL()))
                 .thenReturn(mockConnection);
@@ -149,7 +151,6 @@ public class JWTHelperTest {
 
     @Test
     public void testGetToken_failure_malformedURL() throws Exception {
-        mockCreateAssertion();
         when(mockConfig.getSalesforceInstanceUrl()).thenReturn("https://login.salesforce.com:BUG_HERE");
 
         Exception exception = assertThrows(InternalServerErrorException.class, () -> jwtHelper.getToken());

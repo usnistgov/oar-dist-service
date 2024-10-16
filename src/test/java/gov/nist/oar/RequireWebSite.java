@@ -32,6 +32,11 @@ public class RequireWebSite implements BeforeAllCallback {
     private String testUrl;
     private Logger log = LoggerFactory.getLogger(getClass());
 
+    // Default constructor required by JUnit 5
+    public RequireWebSite() {
+        this.testUrl = "https://oardev3.nist.gov"; // default URL
+    }
+
     public RequireWebSite(String testUrl) {
         this.testUrl = testUrl;
     }

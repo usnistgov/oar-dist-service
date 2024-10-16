@@ -48,7 +48,7 @@ public class BasicIntegrityMonitorTest {
 
     @BeforeEach
     public void setUp() throws StorageVolumeException, ResourceNotFoundException, CacheManagementException, IOException {
-        cachert.tempf = tempDir.toFile();  // Use the temporary directory
+        cachert.tempDir = tempDir;  // tempDir is already a Path
         cachert.setUp();
         cachert.cacher.cacheDataset("mds1491");
     }

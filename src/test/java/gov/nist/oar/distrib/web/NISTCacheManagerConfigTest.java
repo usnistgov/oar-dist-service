@@ -33,26 +33,28 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 
 public class NISTCacheManagerConfigTest {
 
     @TempDir
-    File tempf;
+    Path tempf;
 
     NISTCacheManagerConfig cfg = null;
     File rootdir = null;
 
     @BeforeEach
     public void setUp() throws IOException {
-        rootdir = new File(tempf, "cache");
-        rootdir.mkdirs();
+        rootdir = Files.createDirectory(tempf.resolve("cache")).toFile();
         cfg = new NISTCacheManagerConfig();
         cfg.setAdmindir(rootdir.toString());
 
-        List<NISTCacheManagerConfig.CacheVolumeConfig> vols = new ArrayList<>();
-
+        List<NISTCacheManagerConfig.CacheVolumeConfig> vols = 
+            new ArrayList<NISTCacheManagerConfig.CacheVolumeConfig>();
+        
         NISTCacheManagerConfig.CacheVolumeConfig vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         vcfg.setCapacity(2000L);
         File vdir = new File(rootdir, "vols/king");
@@ -124,7 +126,7 @@ public class NISTCacheManagerConfigTest {
     }
 
     BagStorage makeBagStorage() throws IOException {
-        return new FilesystemLongTermStorage(new File(tempf, "lts").toString());
+        return new FilesystemLongTermStorage(Files.createDirectory(tempf.resolve("lts")).toString());
     }
 
     @Test
@@ -132,7 +134,7 @@ public class NISTCacheManagerConfigTest {
         BagStorage bags = makeBagStorage();
         HeadBagCacheManager hbcmgr = cfg.createHeadBagManager(bags);
         assertEquals("88434", hbcmgr.getARKNAAN());
-        File root = new File(tempf, "cache/headbags");
+        File root = Files.createDirectories(tempf.resolve("cache/headbags")).toFile();
         assertTrue(root.isDirectory());
         File inv = new File(root, "inventory.sqlite");
         assertTrue(inv.isFile());
@@ -153,7 +155,7 @@ public class NISTCacheManagerConfigTest {
 
         HeadBagCacheManager hbcmgr = cfg.createHeadBagManager(makeBagStorage());
         assertEquals("88888", hbcmgr.getARKNAAN());
-        File root = new File(tempf, "cache/headbags");
+        File root = Files.createDirectories(tempf.resolve("cache/headbags")).toFile();
         assertTrue(root.isDirectory());
         File inv = new File(root, "inventory.sqlite");
         assertTrue(inv.isFile());
@@ -182,9 +184,10 @@ public class NISTCacheManagerConfigTest {
 
     @Test
     public void testCreateDefaultCache() throws ConfigurationException, IOException, CacheManagementException {
-        // BasicCache cache = cfg.createDefaultCache(null);
-
+        cfg.createDefaultCache(null);
         File inv = new File(rootdir, "data.sqlite");
+        assertTrue(rootdir.isDirectory());
+        assertEquals(rootdir.toString() +"/data.sqlite" , inv.toString());
         assertTrue(inv.isFile());
         assertTrue(new File(rootdir, "vols/king").isDirectory());
         assertTrue(new File(rootdir, "vols/pratt").isDirectory());

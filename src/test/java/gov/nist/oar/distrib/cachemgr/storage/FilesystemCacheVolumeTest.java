@@ -30,7 +30,6 @@ import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.time.Instant;
 
 import org.json.JSONObject;

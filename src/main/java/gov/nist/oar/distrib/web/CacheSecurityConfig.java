@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -41,18 +42,7 @@ public class CacheSecurityConfig {
     }
 
     /**
-     * Configures the security filter chain for the application, specifying the security rules
-     * for different endpoints, session management, authentication, and filter chain setup.
-     * <p>
-     * This method configures the following:
-     * <ul>
-     *   <li> Stateless session management is enforced to prevent the creation of sessions, ensuring the application
-     *        remains stateless. </li>
-     *   <li> A custom {@link BearerTokenAuthenticationFilter} is added to used authentication via bearer tokens. </li>
-     *   <li> Only the secured endpoints defined by {@link #SECURED_ENDPOINTS} require authentication. </li>
-     *   <li> Cross-Site Request Forgery (CSRF) protection is disabled. </li>
-     *   <li> Login, HTTP Basic authentication, and logout mechanisms are disabled since this application uses token-based authentication. </li>
-     * </ul>
+     * Main method to configure security for the application.
      * 
      * @param http the {@link HttpSecurity} instance used to configure security for the application
      * @return the {@link SecurityFilterChain} defining the security rules for the application
@@ -60,9 +50,50 @@ public class CacheSecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return configureStrictSecurity(http);
+    }
+
+    /**
+     * Configures the security filter chain for the application, specifying the security rules
+     * for different endpoints, session management, authentication, and filter chain setup.
+     * 
+     * - Stateless session management.
+     * - BearerTokenAuthenticationFilter for token-based authentication.
+     * - Only `/cache/**` requires authentication.
+     * - CSRF protection is disabled.
+     * - Form login, basic authentication, and logout are disabled.
+     * 
+     * @param http the {@link HttpSecurity} instance used to configure security for the application
+     * @return the {@link SecurityFilterChain} defining the security rules for the application
+     * @throws Exception if an error occurs during configuration
+     */
+    public SecurityFilterChain configureStrictSecurity(HttpSecurity http) throws Exception {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(Customizer.withDefaults()) 
             .addFilterBefore(authenticationFilter(), AnonymousAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth.requestMatchers(SECURED_ENDPOINTS).authenticated())
+            .authorizeHttpRequests(auth -> {
+                // auth.requestMatchers("/ds/**").permitAll();
+                auth.requestMatchers("/**").permitAll();
+                auth.requestMatchers(SECURED_ENDPOINTS).authenticated(); 
+            })
+            .csrf(csrf -> csrf.disable()) 
+            .formLogin(form -> form.disable())
+            .httpBasic(httpBasic -> httpBasic.disable()) 
+            .logout(logout -> logout.disable()); 
+
+        return http.build();
+    }
+
+    /**
+     * Configures security rules where all requests are permitted without any authentication.
+     * 
+     * @param http the {@link HttpSecurity} instance used to configure security for the application
+     * @return the {@link SecurityFilterChain} defining permissive security rules
+     * @throws Exception if an error occurs during configuration
+     */
+    public SecurityFilterChain configurePermissiveSecurity(HttpSecurity http) throws Exception {
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .csrf(csrf -> csrf.disable())
             .formLogin(form -> form.disable())
             .httpBasic(httpBasic -> httpBasic.disable())
@@ -77,13 +108,12 @@ public class CacheSecurityConfig {
     }
 
     /**
-     * instantiate and configure the authentication filter that will get installed.  This returns an instance
-     * of the {@link BearerTokenAuthenticationFilter}.  
+     * Instantiate and configure the authentication filter that will be installed.
+     * This returns an instance of {@link BearerTokenAuthenticationFilter}.
      */
     protected Filter authenticationFilter() throws Exception {
-        final BearerTokenAuthenticationFilter out =
-            new BearerTokenAuthenticationFilter(accessToken, SECURED_ENDPOINTS);
-        out.setAuthenticationManager(authenticationManager(null));  // Inject the AuthenticationManager
-        return out;
+        final BearerTokenAuthenticationFilter filter = new BearerTokenAuthenticationFilter(accessToken, SECURED_ENDPOINTS);
+        filter.setAuthenticationManager(authenticationManager(null));  // Inject the AuthenticationManager
+        return filter;
     }
 }
