@@ -11,6 +11,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -30,7 +31,7 @@ public class DefaultRPADatasetCacherTest {
         MockitoAnnotations.initMocks(this);
         rpaDatasetCacher = new DefaultRPADatasetCacher(rpaCachingService);
         datasetId = "mds2-2909";
-        version = "";
+        version = null;
     }
 
     @Test
@@ -65,7 +66,7 @@ public class DefaultRPADatasetCacherTest {
         String invalidDatasetId = "ark:/invalid_id";
 
          // Throw an IllegalArgumentException for the invalid datasetId when the cacheAndGenerateRandomId method is called
-        when(rpaCachingService.cacheAndGenerateRandomId(eq(invalidDatasetId), anyString()))
+        when(rpaCachingService.cacheAndGenerateRandomId(eq(invalidDatasetId), any()))
                 .thenThrow(new IllegalArgumentException("Invalid dataset ID format: " + invalidDatasetId));
 
         rpaDatasetCacher.cache(invalidDatasetId);

@@ -29,7 +29,10 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
     public String cache(String datasetId) throws RequestProcessingException {
         String randomId;
         try {
-            randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, "");
+            // Replaced "" with null because passing an empty string would break the logic downstream. 
+            // An empty string would match the first version available, while in this scenario, 
+            // when the version is not provided, we want to select the latest version. Passing null achieves this.
+            randomId = rpaCachingService.cacheAndGenerateRandomId(datasetId, null);
         } catch (Exception e) {
             this.logCachingException(e);
             throw new RequestProcessingException(e.getMessage());
