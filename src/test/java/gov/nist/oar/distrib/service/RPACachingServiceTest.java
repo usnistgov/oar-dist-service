@@ -29,58 +29,92 @@ import static org.mockito.Mockito.when;
 
 public class RPACachingServiceTest {
 
-    private RPACachingService rpaCachingService;
-    private PDRCacheManager pdrCacheManager;
-    private RPAConfiguration rpaConfiguration;
-
-    @Before
-    public void setUp() {
-        pdrCacheManager = mock(PDRCacheManager.class);
-        rpaConfiguration = mock(RPAConfiguration.class);
-        rpaCachingService = new RPACachingService(pdrCacheManager, rpaConfiguration);
-    }
-
-    @Test
-    public void testCacheAndGenerateRandomId_validDatasetID() throws Exception {
-        String datasetID = "mds2-2909";
-
-        String version = "";
-        Set<String> dummyFiles = new HashSet<>();
-        when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
-                .thenReturn(dummyFiles);
-
-        String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
-
-        assertNotNull(result);
-        assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
-        assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
-        verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
-    }
-
-    @Test
-    public void testCacheAndGenerateRandomId_validDatasetArkID() throws Exception {
-        String datasetID = "ark:/12345/mds2-2909";
-
-        String version = "";
-        Set<String> dummyFiles = new HashSet<>();
-        when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
-                .thenReturn(dummyFiles);
-
-        String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
-
-        assertNotNull(result);
-        assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
-        assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
-        verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testCacheAndGenerateRandomId_invalidDatasetArkID() throws Exception {
-        String datasetID = "ark:/invalid_ark_id";
-        String version = "";
-
-        rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
-    }
+        private RPACachingService rpaCachingService;
+        private PDRCacheManager pdrCacheManager;
+        private RPAConfiguration rpaConfiguration;
+    
+        @Before
+        public void setUp() {
+            pdrCacheManager = mock(PDRCacheManager.class);
+            rpaConfiguration = mock(RPAConfiguration.class);
+            rpaCachingService = new RPACachingService(pdrCacheManager, rpaConfiguration);
+        }
+    
+        @Test
+        public void testCacheAndGenerateRandomId_validDatasetID_withEmptyVersion() throws Exception {
+            String datasetID = "mds2-2909";
+    
+            String version = ""; // empty version
+            Set<String> dummyFiles = new HashSet<>();
+            when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
+                    .thenReturn(dummyFiles);
+    
+            String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+    
+            assertNotNull(result);
+            assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+            assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
+            verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
+        }
+    
+        @Test
+        public void testCacheAndGenerateRandomId_validDatasetID_withNullVersion() throws Exception {
+            String datasetID = "mds2-2909";
+    
+            String version = null; // null version
+            Set<String> dummyFiles = new HashSet<>();
+            when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
+                    .thenReturn(dummyFiles);
+    
+            String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+    
+            assertNotNull(result);
+            assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+            assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
+            verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
+        }
+    
+        @Test
+        public void testCacheAndGenerateRandomId_validDatasetArkID_withEmptyVersion() throws Exception {
+            String datasetID = "ark:/12345/mds2-2909";
+    
+            String version = ""; // empty version
+            Set<String> dummyFiles = new HashSet<>();
+            when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
+                    .thenReturn(dummyFiles);
+    
+            String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+    
+            assertNotNull(result);
+            assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+            assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
+            verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
+        }
+    
+        @Test
+        public void testCacheAndGenerateRandomId_validDatasetArkID_withNullVersion() throws Exception {
+            String datasetID = "ark:/12345/mds2-2909";
+    
+            String version = null; // null version
+            Set<String> dummyFiles = new HashSet<>();
+            when(pdrCacheManager.cacheDataset(anyString(), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), anyString()))
+                    .thenReturn(dummyFiles);
+    
+            String result = rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+    
+            assertNotNull(result);
+            assertEquals(RPACachingService.RANDOM_ID_LENGTH + 4, result.length()); // 4 for the 'rpa-' prefix
+            assertTrue(result.matches("^rpa-[a-zA-Z0-9]+$")); // Check that the ID starts with 'rpa-' followed by alphanumeric chars
+            verify(pdrCacheManager).cacheDataset(eq("mds2-2909"), eq(version), eq(true), eq(RPACachingService.ROLE_RESTRICTED_DATA), eq(result));
+        }
+    
+        @Test(expected = IllegalArgumentException.class)
+        public void testCacheAndGenerateRandomId_invalidDatasetArkID() throws Exception {
+            String datasetID = "ark:/invalid_ark_id";
+            String version = "";
+    
+            rpaCachingService.cacheAndGenerateRandomId(datasetID, version);
+        }    
 
     @Test
     public void testRetrieveMetadata_success() throws Exception  {
