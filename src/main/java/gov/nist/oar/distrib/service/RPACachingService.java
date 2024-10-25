@@ -5,6 +5,7 @@ import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetCacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
@@ -79,7 +80,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
 
         int prefs = ROLE_RESTRICTED_DATA;
-        if (!version.isEmpty())
+        if (version != null && !version.isEmpty())
             prefs = ROLE_OLD_RESTRICTED_DATA;
 
         // cache dataset
