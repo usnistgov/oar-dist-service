@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
@@ -397,9 +398,58 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
     
 
-    private boolean isPreApprovedDataset(String datasetId) {
-        List<RPAConfiguration.Approver.ApproverData> approvers = rpaConfiguration.getApprovers().get(datasetId);
-        return approvers == null || approvers.isEmpty();
+    // Method to check if a dataset is pre-approved
+    public boolean isPreApprovedDataset(String datasetId) {
+        String datasetUrl = constructDatasetUrl(datasetId);
+
+        JsonNode metadata = fetchDatasetMetadata(datasetUrl);
+        if (metadata == null) {
+            LOGGER.info("Failed to retrieve metadata or metadata is empty.");
+            return false;
+        }
+
+        return checkForPreApproval(metadata, datasetId);
+    }
+
+    private String constructDatasetUrl(String datasetId) {
+        String baseUrl = rpaConfiguration.getBaseDownloadUrl().replace("/ds/", "/id/");
+        return baseUrl + datasetId;
+    }
+
+    private JsonNode fetchDatasetMetadata(String datasetUrl) {
+        try {
+            URL url = new URL(datasetUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
+
+            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    return new ObjectMapper().readTree(in);
+                }
+            } else {
+                LOGGER.debug("Failed to retrieve metadata, HTTP response code: " + connection.getResponseCode());
+            }
+        } catch (IOException e) {
+            LOGGER.debug("Error retrieving metadata: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private boolean checkForPreApproval(JsonNode metadata, String datasetId) {
+        JsonNode components = metadata.path("components");
+        for (JsonNode component : components) {
+            JsonNode typeNode = component.path("@type");
+            if (typeNode.isArray() && typeNode.toString().contains("nrdp:RestrictedAccessPage")) {
+                JsonNode accessProfile = component.path("pdr:accessProfile");
+                if (!accessProfile.isMissingNode() && "rpa:rp0".equals(accessProfile.path("@type").asText())) {
+                    LOGGER.info("Dataset (ID =" + datasetId + ")  is pre-approved.");
+                    return true;
+                }
+            }
+        }
+        LOGGER.info("Dataset (ID =" + datasetId + ") requires SME approval.");
+        return false;
     }
     
      
