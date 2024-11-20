@@ -417,12 +417,13 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
 
     private JsonNode fetchDatasetMetadata(String datasetUrl) {
+        HttpURLConnection connection = null; 
         try {
             URL url = new URL(datasetUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept", "application/json");
-
+    
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     return new ObjectMapper().readTree(in);
@@ -432,9 +433,14 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             }
         } catch (IOException e) {
             LOGGER.debug("Error retrieving metadata: " + e.getMessage());
+        } finally {
+            if (connection != null) {
+                connection.disconnect(); // Close connection
+            }
         }
-        return null;
+        return null; // Return null if metadata fetch fails
     }
+    
 
     private boolean checkForPreApproval(JsonNode metadata, String datasetId) {
         JsonNode components = metadata.path("components");
