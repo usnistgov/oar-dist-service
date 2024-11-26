@@ -109,23 +109,31 @@ public class DefaultDataPackager implements DataPackager {
 			 * This section is added to improve logs for each dowload request through bundles.
 			 */
 			String recordid ="", filedir ="";
-			if(filepath.contains("/") && filepath.contains("ark")) {
-			   int in = filepath.indexOf('/', 1 + filepath.indexOf('/', 1 + filepath.indexOf('/')));
-			   
-			    recordid = filepath.substring(0, in);
-			    filedir = filepath.substring(in+1);
+			if (filepath.contains("/") && filepath.contains("ark")) {
+				// Process `ark/...` format
+				int in = filepath.indexOf('/', 1 + filepath.indexOf('/', 1 + filepath.indexOf('/')));
+				recordid = filepath.substring(filepath.indexOf('/', filepath.indexOf('/') + 1) + 1, in);
+				filedir = filepath.substring(in + 1);
+			} else if (filepath.contains("/")) {
+				// Process 32/34-character `resId` format
+				int in = filepath.indexOf('/');
+				recordid = filepath.substring(0, in);
+				filedir = filepath.substring(in + 1);
+
+				if (recordid.matches("[a-zA-Z0-9]{32,34}")) {
+					String lastPart = recordid.substring(30); // Strip of the first 30 chars and keep the last part
+					recordid = "mds-" + lastPart; // Prepend "mds-"
+				}
 			}
-			else if(filepath.contains("/")) {
-			    int in = filepath.indexOf('/');
-			   
-			    recordid = filepath.substring(0, in);
-			    filedir = filepath.substring(in+1);
-			}
+
 			writeLog +=recordid+","+filepath+","+jobject.getFileSize()+","+downloadurl+",";
 			
 			/*
 			 *End of part for logs
 			*/
+
+			// The modified file path
+			String modifiedFilePath = recordid + "/" + filedir;
 			
 			if (this.validateUrl(downloadurl)) {
 				
@@ -141,7 +149,7 @@ public class DefaultDataPackager implements DataPackager {
 						fstream = con.getInputStream();
 						int len;
 						byte[] buf = new byte[100000];
-						zout.putNextEntry(new ZipEntry(filepath));
+						zout.putNextEntry(new ZipEntry(modifiedFilePath));
 						while ((len = fstream.read(buf)) != -1) {
 							zout.write(buf, 0, len);
 						}
@@ -260,7 +268,7 @@ public class DefaultDataPackager implements DataPackager {
 			if (bundlelogfile.length() != 0) {
 				bundleInfo.append("\n Following files are not included in the bundle for the reasons given: \n");
 				bundleInfo.append(this.bundlelogfile);
-				filename = "/PackagingErrors.txt";
+				filename = "/DownloadErrors.txt";
 				bundlerequestStatus += ": partial";
 //				logger.info(bundlerequestStatus + "This bundle request is not completely successful. ");
 			}
@@ -268,14 +276,14 @@ public class DefaultDataPackager implements DataPackager {
 			if (bundlelogError.length() != 0) {
 				bundleInfo.append(
 						"\n Following files are not included in the bundle because of errors: \n" + bundlelogError);
-				filename = "/PackagingErrors.txt";
+				filename = "/DownloadErrors.txt";
 				bundlerequestStatus += ": errors";
 //				logger.info(bundlerequestStatus + "There are errors getting data in this bundle request. ");
 			}
 
 			if ((bundlelogfile.length() == 0 && bundlelogError.length() == 0) && !listUrlsStatusSize.isEmpty()) {
 				bundleInfo.append("\n All requested files are successfully added to this bundle.");
-				filename = "/PackagingSuccessful.txt";
+				filename = "/DownloadSuccessful.txt";
 				bundlerequestStatus += ": complete";
 //				logger.info(bundlerequestStatus +" This bundle request is successful.");
 			}
