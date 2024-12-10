@@ -132,8 +132,13 @@ public class DefaultDataPackager implements DataPackager {
 			 *End of part for logs
 			*/
 
+			logger.info("Original filepath: {}", filepath);
+			logger.info("Extracted record ID: {}", recordid);
+			logger.info("Extracted filename: {}", filedir);
+	
 			// The modified file path
 			String modifiedFilePath = recordid + "/" + filedir;
+			logger.info("Modified file path for zip entry: {}", modifiedFilePath);
 			
 			if (this.validateUrl(downloadurl)) {
 				
