@@ -1,9 +1,9 @@
 #FROM eclipse-temurin:8-jdk-focal 
-FROM eclipse-temurin:21-jdk
+FROM maven:3.9.9-eclipse-temurin-21
 
 RUN mkdir -p /usr/share/man/man1
 RUN apt-get update && apt-get install -y netcat-openbsd zip git less \
-                                            ca-certificates python3 curl maven gnupg
+                                            ca-certificates python3 curl gnupg
 RUN cd /usr/bin && ln -s python3 python
 
 COPY cacerts/README.md cacerts/*.crt /usr/local/share/ca-certificates/
