@@ -9,6 +9,7 @@ import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.Record;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -90,6 +91,43 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         LOGGER.debug("Failed to create record, status_code=" + statusCode);
         throw new RequestProcessingException("Failed to create record, status_code=" + statusCode);
     }
+    
+    /**
+     * Called when a pre-approved record creation operation succeeds.
+     * Handles caching and sends both confirmation and download emails immediately.
+     * @param record The newly created pre-approved record
+     * @param randomId The unique identifier for the cached dataset associated with the record
+     */
+    @Override
+    public void onPreApprovedRecordCreationSuccess(Record record, String randomId) throws RequestProcessingException {
+        LOGGER.debug("Handling success for pre-approved record with ID: " + record.getId());
+
+        // Send confirmation email to the user
+        if (this.emailSender.sendConfirmationEmailToEndUser(record)) {
+            LOGGER.debug("Confirmation email sent successfully for pre-approved record (RecordID=" + record.getId() + ")");
+        } else {
+            throw new RequestProcessingException("Failed to send confirmation email for pre-approved record");
+        }
+
+        // Generate the download URL
+        String downloadUrl;
+        try {
+            downloadUrl = new URIBuilder(this.rpaConfiguration.getDatacartUrl())
+                    .setParameter("id", randomId)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
+            throw new RequestProcessingException("Error building URI: " + e.getMessage());
+        }
+        
+        // Send download email to the user
+        if (this.emailSender.sendDownloadEmailToEndUser(record, downloadUrl)) {
+            LOGGER.debug("Download email sent successfully for pre-approved record (RecordID=" + record.getId() + ")");
+        } else {
+            throw new RequestProcessingException("Failed to send download email for pre-approved record");
+        }
+    }
+
 
     /**
      * Called when a record update operation has been approved.
@@ -320,4 +358,5 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             return responseCode;
         }
     }
+
 }

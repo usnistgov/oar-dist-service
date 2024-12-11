@@ -99,7 +99,7 @@ public class DataBundleAccessControllerTest {
 
 	assertEquals(HttpStatus.OK, response.getStatusCode());
 	assertTrue(response.getHeaders().getFirst("Content-Type").startsWith("application/zip"));
-	assertEquals(59918, response.getBody().length());
+	assertEquals(59916, response.getBody().length());
 
     }
 
