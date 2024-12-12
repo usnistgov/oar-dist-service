@@ -340,7 +340,7 @@ public class CacheManagementControllerTest {
     public void testStartMonitor() throws ConfigurationException {
         JSONObject status = null;
         ResponseEntity<String> resp = null;
-        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        HttpEntity<String> req = new HttpEntity<String>(null, headers);
 
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
@@ -379,6 +379,7 @@ public class CacheManagementControllerTest {
         assertNotEquals("(never)", status.getString("lastRanDate"));
         assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
     }
+
 
     @Test
     public void testRemoveFromCache() {
