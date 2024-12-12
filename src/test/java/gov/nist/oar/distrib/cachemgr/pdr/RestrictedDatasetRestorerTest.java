@@ -7,9 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,12 +24,15 @@ import org.junit.jupiter.api.io.TempDir;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
@@ -187,7 +197,7 @@ public class RestrictedDatasetRestorerTest {
         rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertEquals("rpa", resv.getVolumeName());
-        assertTrue((new File(tempf.getRoot(),
+        assertTrue((new File(tempDir,
                 "data/"+resv.getVolumeName()+"/mds1491/trial1.json")).exists());
 
         // this file is only found in the restricted store
@@ -196,7 +206,7 @@ public class RestrictedDatasetRestorerTest {
         rstr.restoreObject("mds1491/README.txt", resv, "mds1491/README.txt", null);
         assertTrue(cache.isCached("mds1491/README.txt"));
         assertEquals("rpa", resv.getVolumeName());
-        assertTrue((new File(tempf.getRoot(),
+        assertTrue((new File(tempDir,
                 "data/"+resv.getVolumeName()+"/mds1491/README.txt")).exists());
 
         assertTrue(! cache.isCached("mds1491/trial2.json"));
@@ -204,7 +214,7 @@ public class RestrictedDatasetRestorerTest {
         rstr.restoreObject("mds1491/trial2.json", resv, "mds1491/trial2.json", null);
         assertTrue(cache.isCached("mds1491/trial2.json"));
         assertEquals("rpa", resv.getVolumeName());
-        File t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        File t2file = new File(tempDir, "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
         assertTrue(t2file.exists());
 
         // confirm that we got the one from the restricted store
@@ -218,7 +228,7 @@ public class RestrictedDatasetRestorerTest {
         rstr.restoreObject("mds1491/trial2.json#1.1.0", resv, "mds1491/trial2.json", null);
         assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
         assertEquals("old", resv.getVolumeName());
-        t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        t2file = new File(tempDir, "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
         assertTrue(t2file.exists());
 
         // confirm that we got the one from the public store
@@ -330,7 +340,7 @@ public class RestrictedDatasetRestorerTest {
                         VolumeStatus.VOL_FOR_GET);
         assertEquals(1, found.size());
         long since = found.get(0).getMetadatumLong("since", 0L);
-        assertTrue("Missing since metadatum", since > 0L);
+        assertTrue(since > 0L, "Missing since metadatum");
         cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
         assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
@@ -338,10 +348,10 @@ public class RestrictedDatasetRestorerTest {
                 cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
                         VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("File appears not to have been recached", since < found.get(0).getMetadatumLong("since", 0L));
+        assertTrue(since < found.get(0).getMetadatumLong("since", 0L), "File appears not to have been recached");
 
         // test when file might get cached to different volume
-        File croot = new File(tempf.getRoot(),"data");
+        File croot = new File(tempDir,"data");
         File cvdir = new File(croot, "crunchy");  cvdir.mkdir();
         VolumeConfig vc = new VolumeConfig();
         CacheVolume cv = new FilesystemCacheVolume(cvdir, "crunchy");
@@ -363,7 +373,7 @@ public class RestrictedDatasetRestorerTest {
 
         // test optional recache
         since = found.get(0).getMetadatumLong("since", 0L);
-        assertTrue("Missing since metadatum", since > 0L);
+        assertTrue(since > 0L, "Missing since metadatum");
         cache.uncache("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf");
         assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, false);
@@ -372,7 +382,7 @@ public class RestrictedDatasetRestorerTest {
                 cache.getInventoryDB()
                         .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
                                 VolumeStatus.VOL_FOR_GET);
-        assertEquals("File appears to have been recached:", since, found.get(0).getMetadatumLong("since", 0L));
+        assertEquals(since, found.get(0).getMetadatumLong("since", 0L), "File appears to have been recached:");
 
     }
 
@@ -399,34 +409,31 @@ public class RestrictedDatasetRestorerTest {
 
         List<CacheObject> found = cache.getInventoryDB().findObject("mds1491/trial1.json", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+        assertTrue(found.get(0).hasMetadatum("expires"), "CacheObject should contain expires metadata");
 
         // Verify the "expires" value is approximately 2 weeks from the current time
         long TWO_WEEKS_MILLIS = 14L * 24 * 60 * 60 * 1000;
         long expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         long actualExpires = found.get(0).getMetadatumLong("expires", 0);
         // Check that the absolute difference between the expected and actual expires values is less than 1000ms
-        assertTrue("expires field should be set to 2 weeks from the current time (diff="+
-                   Long.toString(Math.abs(expectedExpires - actualExpires)) + ")",
-                   Math.abs(expectedExpires - actualExpires) < 5000);
+        assertTrue(Math.abs(expectedExpires - actualExpires) < 5000, "expires field should be set to 2 weeks from the current time (diff="+
+                   Long.toString(Math.abs(expectedExpires - actualExpires)) + ")");
 
         found = cache.getInventoryDB().findObject("mds1491/trial2.json", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+        assertTrue(found.get(0).hasMetadatum("expires"), "CacheObject should contain expires metadata");
 
         expectedExpires= System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         actualExpires = found.get(0).getMetadatumLong("expires", 0);
-        assertTrue("expires field should be set to 2 weeks from the current time",
-                Math.abs(expectedExpires - actualExpires) < 5000);
+        assertTrue(Math.abs(expectedExpires - actualExpires) < 5000, "expires field should be set to 2 weeks from the current time");
 
         found = cache.getInventoryDB().findObject("mds1491/README.txt", VolumeStatus.VOL_FOR_INFO);
         assertEquals(1, found.size());
-        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+        assertTrue(found.get(0).hasMetadatum("expires"), "CacheObject should contain expires metadata");
 
         expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
         actualExpires = found.get(0).getMetadatumLong("expires", 0);
-        assertTrue("expires field should be set to 2 weeks from the current time",
-                Math.abs(expectedExpires - actualExpires) < 5000);
+        assertTrue(Math.abs(expectedExpires - actualExpires) < 5000, "expires field should be set to 2 weeks from the current time");
 
     }
 }

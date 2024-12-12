@@ -298,9 +298,8 @@ public class CacheManagementControllerTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("mds1491/trial1.json", file.getString("name"));
-        assertTrue("Cache object's since date is too old: "+Long.toString(file.optLong("since", 0L))+" <= "+
-                   Long.toString(since),
-                   since < file.optLong("since", 0L));
+        assertTrue( since < file.optLong("since", 0L), "Cache object's since date is too old: " + 
+                    file.optLong("since", 0L) + " <= " + since);
     }
 
     @Test

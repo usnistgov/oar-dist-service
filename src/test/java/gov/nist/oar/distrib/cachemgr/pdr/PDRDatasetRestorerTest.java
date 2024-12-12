@@ -14,7 +14,11 @@
 package gov.nist.oar.distrib.cachemgr.pdr;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.junit.jupiter.api.Assertions;
@@ -25,12 +29,15 @@ import org.junit.jupiter.api.io.TempDir;
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
@@ -191,21 +198,21 @@ public class PDRDatasetRestorerTest {
         rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
         Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
         Assertions.assertEquals("foobar", resv.getVolumeName());
-        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial1.json").exists());
+        Assertions.assertTrue(new File(tempDir, "data/" + resv.getVolumeName() + "/mds1491/trial1.json").exists());
 
         Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1"));
         resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_OLD_VERSIONS);
         rstr.restoreObject("mds1491/trial3/trial3a.json#1", resv, "mds1491/trial3/trial3a-v1.json", null);
         Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
         Assertions.assertEquals("old", resv.getVolumeName());
-        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-v1.json").exists());
+        Assertions.assertTrue(new File(tempDir, "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-v1.json").exists());
 
         Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
         resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_GENERAL_PURPOSE);
         rstr.restoreObject("mds1491/trial3/trial3a.json#1.1.0", resv, "mds1491/trial3/trial3a-X.json", null);
         Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
         Assertions.assertEquals("cranky", resv.getVolumeName());
-        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-X.json").exists());
+        Assertions.assertTrue(new File(tempDir, "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-X.json").exists());
 
         Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
         Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
@@ -213,7 +220,7 @@ public class PDRDatasetRestorerTest {
         rstr.restoreObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256", resv, "NMRRVocab20171102.rdf.sha256", null);
         Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
         Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
-        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/NMRRVocab20171102.rdf.sha256").exists());
+        Assertions.assertTrue(new File(tempDir, "data/" + resv.getVolumeName() + "/NMRRVocab20171102.rdf.sha256").exists());
     }
 
     @Test
@@ -331,7 +338,7 @@ public class PDRDatasetRestorerTest {
         Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
         Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#8"));
 
-        ArrayList<String> need = new ArrayList<>();
+        ArrayList<String> need = new ArrayList<String>();
         need.add("trial1.json");
         need.add("trial3/trial3a.json");
 
@@ -394,7 +401,7 @@ public class PDRDatasetRestorerTest {
                               "File appears not to have been recached");
 
         // test when file might get cached to different volume
-        File croot = new File(tempf.getRoot(), "data");
+        File croot = new File(tempDir, "data");
         File cvdir = new File(croot, "crunchy");
         cvdir.mkdir();
         VolumeConfig vc = new VolumeConfig();
@@ -431,18 +438,18 @@ public class PDRDatasetRestorerTest {
   
     @Test
     void testGetPreferencesFor() {
-        Assertions.assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0", 200L, -1));
-        Assertions.assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0",
+        Assertions.assertEquals(PDRCacheRoles.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0", 200L, -1));
+        Assertions.assertEquals(PDRCacheRoles.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0",
                                                                                rstr.getSmallSizeLimit() + 10, -1));
-        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+        Assertions.assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
                                                                                   rstr.getSmallSizeLimit() + 10, -1));
-        Assertions.assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, -1));
-        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", 0, -1));
-        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", -1, -1));
-        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+        Assertions.assertEquals(PDRCacheRoles.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, -1));
+        Assertions.assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", 0, -1));
+        Assertions.assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", -1, -1));
+        Assertions.assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
                                                                                   rstr.getSmallSizeLimit() + 10, 3));
-        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+        Assertions.assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
                                                                                   rstr.getSmallSizeLimit() + 10, 10));
-        Assertions.assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, 2));
+        Assertions.assertEquals(PDRCacheRoles.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, 2));
     }
 }
