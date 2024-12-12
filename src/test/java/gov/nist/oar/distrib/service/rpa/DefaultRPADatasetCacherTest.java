@@ -32,7 +32,7 @@ public class DefaultRPADatasetCacherTest {
     public void setUp() {
         rpaDatasetCacher = new DefaultRPADatasetCacher(rpaCachingService);
         datasetId = "mds2-2909";
-        version = "";
+        version = null;
     }
 
     @Test

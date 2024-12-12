@@ -182,11 +182,251 @@ public class RestrictedDatasetRestorerTest {
     public void testRestoreObject()
         throws CacheManagementException, StorageVolumeException, JSONException, IOException
     {
-        assertFalse(cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
         Reservation resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_RESTRICTED_DATA);
         rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
         assertTrue(cache.isCached("mds1491/trial1.json"));
         assertEquals("rpa", resv.getVolumeName());
-        assertTrue(new File(tempDir, "data/" + resv.getVolumeName() + "/mds1491/trial1.json").exists());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/trial1.json")).exists());
+
+        // this file is only found in the restricted store
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+        resv = cache.reserveSpace(15, PDRCacheRoles.ROLE_RESTRICTED_DATA);
+        rstr.restoreObject("mds1491/README.txt", resv, "mds1491/README.txt", null);
+        assertTrue(cache.isCached("mds1491/README.txt"));
+        assertEquals("rpa", resv.getVolumeName());
+        assertTrue((new File(tempf.getRoot(),
+                "data/"+resv.getVolumeName()+"/mds1491/README.txt")).exists());
+
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        resv = cache.reserveSpace(68, PDRCacheRoles.ROLE_RESTRICTED_DATA);
+        rstr.restoreObject("mds1491/trial2.json", resv, "mds1491/trial2.json", null);
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertEquals("rpa", resv.getVolumeName());
+        File t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        assertTrue(t2file.exists());
+
+        // confirm that we got the one from the restricted store
+        String trial2 = new String(Files.readAllBytes(Paths.get(t2file.toURI())));
+        JSONObject data = new JSONObject(trial2);
+        assertTrue(data.getBoolean("result"));
+        assertEquals("2024-01-06", data.getString("date"));
+
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_OLD_VERSIONS);
+        rstr.restoreObject("mds1491/trial2.json#1.1.0", resv, "mds1491/trial2.json", null);
+        assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertEquals("old", resv.getVolumeName());
+        t2file = new File(tempf.getRoot(), "data/"+resv.getVolumeName()+"/mds1491/trial2.json");
+        assertTrue(t2file.exists());
+
+        // confirm that we got the one from the public store
+        trial2 = new String(Files.readAllBytes(Paths.get(t2file.toURI())));
+        data = new JSONObject(trial2);
+        assertFalse(data.getBoolean("result"));
+        assertEquals("2017-02-02", data.getString("date"));
+    }
+
+    @Test
+    public void testCacheDataset()
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true,
+                                               PDRCacheRoles.ROLE_RESTRICTED_DATA, null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("README.txt"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(4, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/README.txt"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/trial1.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial2.json#1"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true,
+                                   PDRCacheRoles.ROLE_OLD_VERSIONS, null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertFalse(cached.contains("README.txt"));
+        assertEquals(3, cached.size());
+        assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        assertTrue(! cache.isCached("mds1491/README.txt#1.1.0"));
+    }
+
+    @Test
+    public void testCacheFromBagSelect()
+            throws StorageVolumeException, ResourceNotFoundException, CacheManagementException,
+            FileNotFoundException
+    {
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+
+        ArrayList<String> need = new ArrayList<String>();
+        need.add("trial1.json");
+        need.add("trial3/trial3a.json");
+
+        Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache, true);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(! cached.contains("trial2.json"));
+        assertTrue(! cached.contains("README.txt"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(2, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+
+        need.add("README.txt");
+        cached = rstr.cacheFromBag("mds1491.1_2_0.mbag0_4-2.zip", need, null, cache, true);
+        assertTrue(cached.contains("README.txt"));
+        assertEquals(1, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/README.txt"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+    }
+
+    @Test
+    public void testCacheFromBag()
+            throws StorageVolumeException, FileNotFoundException, CacheManagementException
+    {
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        Set<String> cached =
+                rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        assertEquals(2, cached.size());
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+
+        // test what happens when attempting recache
+        List<CacheObject> found =
+                cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                        VolumeStatus.VOL_FOR_GET);
+        assertEquals(1, found.size());
+        long since = found.get(0).getMetadatumLong("since", 0L);
+        assertTrue("Missing since metadatum", since > 0L);
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        assertTrue(! cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        found =
+                cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                        VolumeStatus.VOL_FOR_INFO);
+        assertEquals(1, found.size());
+        assertTrue("File appears not to have been recached", since < found.get(0).getMetadatumLong("since", 0L));
+
+        // test when file might get cached to different volume
+        File croot = new File(tempf.getRoot(),"data");
+        File cvdir = new File(croot, "crunchy");  cvdir.mkdir();
+        VolumeConfig vc = new VolumeConfig();
+        CacheVolume cv = new FilesystemCacheVolume(cvdir, "crunchy");
+        cv = new FilesystemCacheVolume(cvdir, "crunchy");
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
+
+        assertTrue(
+                cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        assertTrue(
+                cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        found =
+                cache.getInventoryDB()
+                        .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                                VolumeStatus.VOL_FOR_GET);
+        assertEquals(1, found.size());
+        assertEquals("rpa", found.get(0).volname);
+
+        // test optional recache
+        since = found.get(0).getMetadatumLong("since", 0L);
+        assertTrue("Missing since metadatum", since > 0L);
+        cache.uncache("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf");
+        assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, false);
+        assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        found =
+                cache.getInventoryDB()
+                        .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                                VolumeStatus.VOL_FOR_GET);
+        assertEquals("File appears to have been recached:", since, found.get(0).getMetadatumLong("since", 0L));
+
+    }
+
+    @Test
+    public void testExpires() throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+
+        assertTrue(! cache.isCached("mds1491/trial1.json"));
+        assertTrue(! cache.isCached("mds1491/trial2.json"));
+        assertTrue(! cache.isCached("mds1491/trial3/trial3a.json"));
+        assertTrue(! cache.isCached("mds1491/README.txt"));
+
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true,
+                PDRCacheRoles.ROLE_RESTRICTED_DATA, null);
+        assertTrue(cached.contains("trial1.json"));
+        assertTrue(cached.contains("trial2.json"));
+        assertTrue(cached.contains("README.txt"));
+        assertTrue(cached.contains("trial3/trial3a.json"));
+        assertEquals(4, cached.size());
+
+        assertTrue(cache.isCached("mds1491/trial1.json"));
+        assertTrue(cache.isCached("mds1491/trial2.json"));
+        assertTrue(cache.isCached("mds1491/README.txt"));
+        assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+
+        List<CacheObject> found = cache.getInventoryDB().findObject("mds1491/trial1.json", VolumeStatus.VOL_FOR_INFO);
+        assertEquals(1, found.size());
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+
+        // Verify the "expires" value is approximately 2 weeks from the current time
+        long TWO_WEEKS_MILLIS = 14L * 24 * 60 * 60 * 1000;
+        long expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        long actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        // Check that the absolute difference between the expected and actual expires values is less than 1000ms
+        assertTrue("expires field should be set to 2 weeks from the current time (diff="+
+                   Long.toString(Math.abs(expectedExpires - actualExpires)) + ")",
+                   Math.abs(expectedExpires - actualExpires) < 5000);
+
+        found = cache.getInventoryDB().findObject("mds1491/trial2.json", VolumeStatus.VOL_FOR_INFO);
+        assertEquals(1, found.size());
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+
+        expectedExpires= System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        assertTrue("expires field should be set to 2 weeks from the current time",
+                Math.abs(expectedExpires - actualExpires) < 5000);
+
+        found = cache.getInventoryDB().findObject("mds1491/README.txt", VolumeStatus.VOL_FOR_INFO);
+        assertEquals(1, found.size());
+        assertTrue("CacheObject should contain expires metadata", found.get(0).hasMetadatum("expires"));
+
+        expectedExpires = System.currentTimeMillis() + TWO_WEEKS_MILLIS;
+        actualExpires = found.get(0).getMetadatumLong("expires", 0);
+        assertTrue("expires field should be set to 2 weeks from the current time",
+                Math.abs(expectedExpires - actualExpires) < 5000);
+
     }
 }

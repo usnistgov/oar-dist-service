@@ -250,11 +250,16 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/objects/67C783D4BA814C8EE05324570681708A1899/:cached", 
                                HttpMethod.PUT, req, String.class);
         assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
-        try { Thread.sleep(1000); } catch (InterruptedException ex) { }
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf", 
-                               HttpMethod.GET, req, String.class);
+        for(int i=0; i < 10; i++) {
+            try { Thread.sleep(200); } catch (InterruptedException ex) { }
+            resp = websvc.exchange(getBaseURL() +
+                                "/cache/objects/67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf", 
+                                   HttpMethod.GET, req, String.class);
+            if (! HttpStatus.NOT_FOUND.equals(resp.getStatusCode())) break;
+        }
         assertEquals(HttpStatus.OK, resp.getStatusCode());
+        
         JSONObject file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf", file.getString("name"));
 
@@ -281,14 +286,21 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:cached?recache=true", 
                                HttpMethod.PUT, req, String.class);
         assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
-        try { Thread.sleep(200); } catch (InterruptedException ex) { }
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json", 
-                               HttpMethod.GET, req, String.class);
+        for(int i=0; i < 10; i++) {
+            try { Thread.sleep(200); } catch (InterruptedException ex) { }
+            resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json", 
+                                   HttpMethod.GET, req, String.class);
+            if (! HttpStatus.OK.equals(resp.getStatusCode())) break;
+            file = new JSONObject(new JSONTokener(resp.getBody()));
+            if (since < file.optLong("since", 0L)) break;
+        }
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("mds1491/trial1.json", file.getString("name"));
-        assertTrue(since < file.optLong("since", 0L));
+        assertTrue("Cache object's since date is too old: "+Long.toString(file.optLong("since", 0L))+" <= "+
+                   Long.toString(since),
+                   since < file.optLong("since", 0L));
     }
 
     @Test

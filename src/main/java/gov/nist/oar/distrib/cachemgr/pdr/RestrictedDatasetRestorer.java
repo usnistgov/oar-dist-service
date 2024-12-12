@@ -253,13 +253,12 @@ public class RestrictedDatasetRestorer extends PDRDatasetRestorer {
             throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
 
         Set<String> cachedFiles;
+        CacheOpts opts = new CacheOpts(recache, prefs, null);
 
         try {
-            cachedFiles = cacheDatasetFromStore(aipid, version, into, recache, prefs, target,
-                                                restrictedLtstore);
+            cachedFiles = cacheDatasetFromStore(aipid, version, into, opts, target, restrictedLtstore);
         } catch (ResourceNotFoundException ex) {
-            cachedFiles = cacheDatasetFromStore(aipid, version, into, recache, prefs, target,
-                                                ltstore);
+            cachedFiles = cacheDatasetFromStore(aipid, version, into, opts, target, ltstore);
         }
 
         return cachedFiles;

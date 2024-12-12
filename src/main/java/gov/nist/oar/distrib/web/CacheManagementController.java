@@ -17,6 +17,7 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
+import gov.nist.oar.distrib.cachemgr.pdr.CacheOpts;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
@@ -318,12 +319,13 @@ public class CacheManagementController {
         if (version != null)
             id += "#"+version;
         String recachep = request.getParameter("recache");
-        boolean recache = ! ("0".equals(recachep) || "false".equals(recachep));
+        boolean recache = ! (recachep == null || "0".equals(recachep) || "false".equals(recachep));
+        String seq = request.getParameter("seq");
         
         if (":cached".equals(selector)) {
             try {
-                mgr.queueCache(id, recache);
-                log.info("Queued for caching: {}", id);
+                mgr.queueCache(id, recache, seq);
+                log.info("Queued for caching: {} {}", id, ((seq==null) ? "" : "seq="+seq));
                 return new ResponseEntity<String>("Cache target queued", HttpStatus.ACCEPTED);
             } catch (ResourceNotFoundException ex) {
                 return new ResponseEntity<String>("Resource not found", HttpStatus.NOT_FOUND);

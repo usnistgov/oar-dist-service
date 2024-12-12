@@ -191,6 +191,258 @@ public class PDRDatasetRestorerTest {
         rstr.restoreObject("mds1491/trial1.json", resv, "mds1491/trial1.json", null);
         Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
         Assertions.assertEquals("foobar", resv.getVolumeName());
-        Assertions.assertTrue((new File(tempDir, "data/" + resv.getVolumeName() + "/mds1491/trial1.json")).exists());
+        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial1.json").exists());
+
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1"));
+        resv = cache.reserveSpace(70, PDRCacheRoles.ROLE_OLD_VERSIONS);
+        rstr.restoreObject("mds1491/trial3/trial3a.json#1", resv, "mds1491/trial3/trial3a-v1.json", null);
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+        Assertions.assertEquals("old", resv.getVolumeName());
+        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-v1.json").exists());
+
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        resv = cache.reserveSpace(553, PDRCacheRoles.ROLE_GENERAL_PURPOSE);
+        rstr.restoreObject("mds1491/trial3/trial3a.json#1.1.0", resv, "mds1491/trial3/trial3a-X.json", null);
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertEquals("cranky", resv.getVolumeName());
+        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/mds1491/trial3/trial3a-X.json").exists());
+
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        resv = cache.reserveSpace(64);
+        rstr.restoreObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256", resv, "NMRRVocab20171102.rdf.sha256", null);
+        Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertTrue(new File(tempf.getRoot(), "data/" + resv.getVolumeName() + "/NMRRVocab20171102.rdf.sha256").exists());
+    }
+
+    @Test
+    void testCacheDataset() 
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException {
+        
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        Set<String> cached = rstr.cacheDataset("mds1491", null, cache, true, 0 , null);
+        Assertions.assertTrue(cached.contains("trial1.json"));
+        Assertions.assertTrue(cached.contains("trial2.json"));
+        Assertions.assertTrue(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(3, cached.size());
+
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1", cache, true, 0 , null);
+        Assertions.assertTrue(cached.contains("trial1.json"));
+        Assertions.assertTrue(cached.contains("trial2.json"));
+        Assertions.assertTrue(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(3, cached.size());
+
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json#1"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json#1"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, true, 0 , null);
+        Assertions.assertTrue(cached.contains("trial1.json"));
+        Assertions.assertTrue(cached.contains("trial2.json"));
+        Assertions.assertTrue(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(3, cached.size());
+
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json#1"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json#1"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#1"));
+
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        cached = rstr.cacheDataset("67C783D4BA814C8EE05324570681708A1899", null, cache, true, 0 , null);
+        Assertions.assertEquals(2, cached.size());
+        Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+    }
+
+    @Test
+    void testCacheWithCacheOpts() 
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException,
+               FileNotFoundException {
+        
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#8"));
+
+        CacheOpts opts = new CacheOpts(false, 0, "0");
+
+        Set<String> cached = rstr.cacheDataset("mds1491", "1.1.0", cache, opts, null);
+
+        Assertions.assertFalse(cached.contains("trial1.json"));
+        Assertions.assertTrue(cached.contains("trial2.json"));
+        Assertions.assertFalse(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(1, cached.size());
+
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#1.1.0"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial2.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#1.1.0"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#8"));
+
+        opts = new CacheOpts(false, 0, "99");
+        cached = rstr.cacheDataset("mds1491", "1.1.0", cache, opts, null);
+        Assertions.assertEquals(0, cached.size());
+    }
+  
+    @Test
+    void testCacheFromBagSelect() 
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException,
+               FileNotFoundException {
+        
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#8"));
+
+        ArrayList<String> need = new ArrayList<>();
+        need.add("trial1.json");
+        need.add("trial3/trial3a.json");
+
+        Set<String> cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, null, cache, true);
+        Assertions.assertTrue(cached.contains("trial1.json"));
+        Assertions.assertFalse(cached.contains("trial2.json"));
+        Assertions.assertTrue(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(2, cached.size());
+
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial1.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial3/trial3a.json#8"));
+
+        need.add("trial1.json");
+        need.add("trial3/trial3a.json");
+        cached = rstr.cacheFromBag("mds1491.mbag0_2-0.zip", need, "8", cache, true);
+        Assertions.assertTrue(cached.contains("trial1.json"));
+        Assertions.assertFalse(cached.contains("trial2.json"));
+        Assertions.assertTrue(cached.contains("trial3/trial3a.json"));
+        Assertions.assertEquals(2, cached.size());
+
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json#8"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json#8"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json#8"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial1.json"));
+        Assertions.assertFalse(cache.isCached("mds1491/trial2.json"));
+        Assertions.assertTrue(cache.isCached("mds1491/trial3/trial3a.json"));
+    }
+  
+    @Test
+    void testCacheFromBag() 
+        throws StorageVolumeException, FileNotFoundException, CacheManagementException {
+        
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        Set<String> cached =
+            rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        Assertions.assertEquals(2, cached.size());
+        Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+
+        // test what happens when attempting recache
+        List<CacheObject> found =
+            cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                                              VolumeStatus.VOL_FOR_GET);
+        Assertions.assertEquals(1, found.size());
+        long since = found.get(0).getMetadatumLong("since", 0L);
+        Assertions.assertTrue(since > 0L, "Missing since metadatum");
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf.sha256"));
+        found =
+            cache.getInventoryDB().findObject("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf",
+                                              VolumeStatus.VOL_FOR_INFO);
+        Assertions.assertEquals(1, found.size());
+        Assertions.assertTrue(since < found.get(0).getMetadatumLong("since", 0L), 
+                              "File appears not to have been recached");
+
+        // test when file might get cached to different volume
+        File croot = new File(tempf.getRoot(), "data");
+        File cvdir = new File(croot, "crunchy");
+        cvdir.mkdir();
+        VolumeConfig vc = new VolumeConfig();
+        CacheVolume cv = new FilesystemCacheVolume(cvdir, "crunchy");
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE | PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        cache.addCacheVolume(cv, 2000000, null, vc, true);
+        
+        Assertions.assertTrue(
+            cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, true);
+        Assertions.assertTrue(
+            cache.isCached("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx"));
+        found =
+            cache.getInventoryDB()
+                 .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                             VolumeStatus.VOL_FOR_GET);
+        Assertions.assertEquals(1, found.size());
+        Assertions.assertEquals("crunchy", found.get(0).volname);
+
+        // test optional recache
+        since = found.get(0).getMetadatumLong("since", 0L);
+        Assertions.assertTrue(since > 0L, "Missing since metadatum");
+        cache.uncache("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf");
+        Assertions.assertFalse(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        cached = rstr.cacheFromBag("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip", null, null, cache, false);
+        Assertions.assertTrue(cache.isCached("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf"));
+        found =
+            cache.getInventoryDB()
+                 .findObject("67C783D4BA814C8EE05324570681708A1899/Materials_Registry_vocab_20180418.xlsx",
+                             VolumeStatus.VOL_FOR_GET);
+        Assertions.assertEquals(since, found.get(0).getMetadatumLong("since", 0L), 
+                                "File appears to have been recached:");
+    }
+  
+    @Test
+    void testGetPreferencesFor() {
+        Assertions.assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0", 200L, -1));
+        Assertions.assertEquals(rstr.ROLE_OLD_VERSIONS, rstr.getPreferencesFor("mds1214/readme.txt#1.0",
+                                                                               rstr.getSmallSizeLimit() + 10, -1));
+        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                                  rstr.getSmallSizeLimit() + 10, -1));
+        Assertions.assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, -1));
+        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", 0, -1));
+        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt", -1, -1));
+        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                                  rstr.getSmallSizeLimit() + 10, 3));
+        Assertions.assertEquals(rstr.ROLE_GENERAL_PURPOSE, rstr.getPreferencesFor("mds1214/readme.txt",
+                                                                                  rstr.getSmallSizeLimit() + 10, 10));
+        Assertions.assertEquals(rstr.ROLE_SMALL_OBJECTS, rstr.getPreferencesFor("mds1214/readme.txt", 200L, 2));
     }
 }

@@ -200,13 +200,30 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
     /**
      * queue up a dataset or file object to be cached asynchronously via a separate thread
      * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH][#VERSION])
+     * @param recache  if true, request that files already in the cache be recached from scratch; 
+     *                 if false, such files will not be updated.
      */
     public void queueCache(String id, boolean recache)
         throws ResourceNotFoundException, StorageVolumeException, CacheManagementException
     {
+        queueCache(id, recache, null);
+    }
+
+    /**
+     * queue up a dataset or file object to be cached asynchronously via a separate thread
+     * @param id   the full aipid for the dataset or object (of the form DSID[/FILEPATH][#VERSION])
+     * @param recache  if true, request that files already in the cache be recached from scratch; 
+     *                 if false, such files will not be updated.
+     * @param sequence a string for restricting the files from the dataset that get restored.  The 
+     *                 value is matched against the bagfile sequence number; only those files contained
+     *                 in that bag will be restored.  
+     */
+    public void queueCache(String id, boolean recache, String sequence)
+        throws ResourceNotFoundException, StorageVolumeException, CacheManagementException
+    {
         if (restorer.doesNotExist(id))
             throw new ResourceNotFoundException(id);
-        cath.queue(id, recache);
+        cath.queue(id, recache, sequence);
         if (! cath.isAlive())
             cath.start();
     }
@@ -614,6 +631,23 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
     }
 
     /**
+     * cache all of the files from the given dataset
+     * @param dsid     the AIP identifier for the dataset; this is either the old-style EDI-ID or 
+     *                   local portion of the PDR ARK identifier (e.g., <code>"mds2-2119"</code>).  
+     * @param version  the desired version of the dataset or null for the latest version
+     * @param recache  if false and a file is already in the cache, the file will not be rewritten;
+     *                    otherwise, all current cached files from the dataset will be replaced with a 
+     *                    fresh copy.
+     * @param prefs    any ANDed preferences for how to cache the data (particularly, where).  
+     * @param target   a prefix collection name to insert the data files into within the cache
+     */
+    public Set<String> cacheDataset(String dsid, String version, CacheOpts opts, String target)
+        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException
+    {
+        return ((PDRDatasetRestorer) restorer).cacheDataset(dsid, version, theCache, opts, target);
+    }
+
+    /**
      * a thread that will cache data in order of their IDs in an internal queue.  Objects can be added 
      * to the queue via {@link #queue(String)}.
      * <p>
@@ -670,8 +704,13 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
             return _queue;
         }
 
-        public synchronized void queue(String aipid, boolean recache) throws CacheManagementException {
-            aipid += "\t"+((recache) ? "1" : "0");
+        public void queue(String aipid, boolean recache) throws CacheManagementException {
+            queue(aipid, recache, null);
+        }
+
+        public synchronized void queue(String aipid, boolean recache, String seq) throws CacheManagementException {
+            CacheOpts opts = new CacheOpts(recache, 0, seq);
+            aipid += "\t"+opts.serialize();
             try {
                 BufferedWriter out = new BufferedWriter(new FileWriter(_queuef, true));
                 try {
@@ -697,7 +736,7 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
         public boolean isQueued(String aipid) {
             try {
                 Queue<String> _queue = loadQueue();
-                return _queue.contains(aipid+"\t0") || _queue.contains(aipid+"\t1");
+                return ! _queue.stream().noneMatch(e -> e.startsWith(aipid+"\t"));
             } catch (IOException ex) {
                 log.error("isQueued: status of "+aipid+" unknown; "+
                           "Can't access queue's persistent cache: "+ ex.getMessage());
@@ -725,12 +764,14 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
         }
 
         protected String cacheQueueItem(String qitem) throws CacheManagementException {
-            boolean recache = true;
             String[] parts = qitem.split("\\s*\\t\\s*");
             String nextid = parts[0];
             inprocess = nextid;
-            if (parts.length > 1 && "0".equals(parts[1]))
-                recache = false;
+
+            CacheOpts opts = new CacheOpts();
+            if (parts.length > 1) 
+                opts = CacheOpts.parse(parts[1]);
+
             String version = null;
             if (parts.length > 2) version = parts[2];
             
@@ -738,8 +779,8 @@ public class PDRCacheManager extends PDRDatasetCacheManager implements PDRConsta
             try {
                 if (parts[1].length() == 0) 
                     // dataset identifier
-                    cacheDataset(parts[0], version, recache, 0, null);
-                else if (recache || ! isCached(nextid))
+                    cacheDataset(parts[0], version, opts, null);
+                else if (opts.recache || ! isCached(nextid))
                     // data file identifier
                     cache(nextid, true);
             }
