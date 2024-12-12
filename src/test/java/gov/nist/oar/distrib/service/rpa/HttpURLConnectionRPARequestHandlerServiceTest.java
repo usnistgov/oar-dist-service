@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -136,6 +137,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         service.setRecordResponseHandler(recordResponseHandler);
         service.seRPADatasetCacher(rpaDatasetCacher);
         service.setHttpClient(mockHttpClient);
+
+        // Set up mock behavior for rpaConfiguration
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
 
         // Set up mock behavior for mockJwtHelper
         testToken = new JWTToken(TEST_ACCESS_TOKEN, TEST_INSTANCE_URL);
