@@ -1,4 +1,3 @@
-#FROM eclipse-temurin:8-jdk-focal 
 FROM eclipse-temurin:21-jdk
 
 RUN mkdir -p /usr/share/man/man1
@@ -28,11 +27,11 @@ RUN cd /usr/bin && ln -s python3 python
 # launching the container.
 #
 RUN sed --in-place -e '/CREATE_MAIL_SPOOL/ s/=yes/=no/' /etc/default/useradd
-ARG devuser=developer
+ARG devuser=ubuntu
 ARG devuid=1000
 RUN grep -qs :${devuid}: /etc/group || \
     groupadd --gid $devuid $devuser
-RUN grep -qs ":${devuid}:[[:digit:]]+:" /etc/passwd || \
+RUN grep -Eqs ":${devuid}:[[:digit:]]+:" /etc/passwd || \
     useradd -m --comment "OAR Developer" --shell /bin/bash \
             --gid $devuid --uid $devuid $devuser
 RUN mkdir /home/$devuser/.m2
