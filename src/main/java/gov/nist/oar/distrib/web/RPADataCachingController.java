@@ -8,6 +8,8 @@ import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import software.amazon.awssdk.services.s3.S3Client;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.amazonaws.services.s3.AmazonS3;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
@@ -50,7 +51,7 @@ public class RPADataCachingController {
     RPACachingService restrictedSrvc = null;
 
     @Autowired
-    public RPADataCachingController(RPACachingServiceProvider provider, AmazonS3 s3)
+    public RPADataCachingController(RPACachingServiceProvider provider, S3Client s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         if (provider != null && provider.canCreateService())

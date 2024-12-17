@@ -12,136 +12,162 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import java.io.IOException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
-
-import org.junit.Before;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.AfterClass;
-import org.junit.ClassRule;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 public class AWSS3ClientProviderTest {
 
-    // static S3MockApplication mockServer = null;
-    @ClassRule
-    public static S3MockTestRule siterule = new S3MockTestRule();
+    private static final String bucket = "oar-lts-test";
+    private AWSS3ClientProvider s3Provider = null;
 
-    AWSS3ClientProvider s3 = null;
-    static final String bucket = "oar-lts-test";
-    
     @BeforeClass
-    public static void setUpClass() throws IOException {
-        // mockServer = S3MockApplication.start();  // http: port=9090
-        AWSS3ClientProvider s3 = createS3Provider();
+    public static void setUpClass() {
+        S3Client s3client = createS3Provider().client();
 
-        AmazonS3 s3client = s3.client();
-        if (s3client.doesBucketExistV2(bucket))
-            destroyBucket();
-        s3client.createBucket(bucket);
-        // populateBucket(s3client);
+        if (bucketExists(s3client, bucket)) {
+            destroyBucket(s3client);
+        }
+
+        // Create bucket
+        s3client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
     }
 
     public static AWSS3ClientProvider createS3Provider() {
-        // import credentials from the EC2 machine we are running on
-        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
+        final AwsBasicCredentials credentials = AwsBasicCredentials.create("foo", "bar");
         final String endpoint = "http://localhost:9090/";
         final String region = "us-east-1";
 
-        return new AWSS3ClientProvider(new AWSStaticCredentialsProvider(credentials), region, 2, endpoint);
+        return new AWSS3ClientProvider(StaticCredentialsProvider.create(credentials), region, 2, endpoint);
+    }
+
+    private static boolean bucketExists(S3Client s3client, String bucketName) {
+        try {
+            s3client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            return true;
+        } catch (NoSuchBucketException e) {
+            return false;
+        }
+    }
+
+    private static void destroyBucket(S3Client s3client) {
+        ListObjectsV2Response listResponse = s3client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .build());
+
+        // Delete all objects
+        List<String> keys = listResponse.contents().stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
+        for (String key : keys) {
+            s3client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+        }
+
+        // Delete the bucket
+        s3client.deleteBucket(DeleteBucketRequest.builder()
+                .bucket(bucket)
+                .build());
     }
 
     @AfterClass
     public static void tearDownClass() {
-        destroyBucket();
-        // mockServer.stop();
-    }
-
-    public static void destroyBucket() {
-        AWSS3ClientProvider s3 = createS3Provider();
-        AmazonS3 s3client = s3.client();
-        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
-        for (S3ObjectSummary f : files) 
-            s3client.deleteObject(bucket, f.getKey());
-        s3client.deleteBucket(bucket);
+        S3Client s3client = createS3Provider().client();
+        destroyBucket(s3client);
     }
 
     @Before
     public void setUp() {
-        s3 = createS3Provider();
+        s3Provider = createS3Provider();
     }
 
     @Test
     public void testClient() {
-        assertNotNull(s3);
-        assertEquals(2, s3.accessesLeft());
+        assertNotNull(s3Provider);
+        assertEquals(2, s3Provider.accessesLeft());
 
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
+        S3Client client1 = s3Provider.client();
+        assertNotNull(client1);
+        assertEquals(1, s3Provider.accessesLeft());
 
-        AmazonS3 cli2 = s3.client();
-        assertNotNull(cli2);
-        assertEquals(cli, cli2);
-        assertEquals(0, s3.accessesLeft());
+        S3Client client2 = s3Provider.client();
+        assertNotNull(client2);
+        assertSame(client1, client2);
+        assertEquals(0, s3Provider.accessesLeft());
 
-        cli2 = s3.client();
-        assertNotNull(cli2);
-        assertNotEquals(cli, cli2);
-        assertEquals(1, s3.accessesLeft());
+        // Client should reset after limit is exceeded
+        S3Client client3 = s3Provider.client();
+        assertNotNull(client3);
+        assertNotSame(client1, client3);
+        assertEquals(1, s3Provider.accessesLeft());
 
-        // make sure the original is still usable
-        assertTrue(cli.doesBucketExistV2(bucket));
+        // Validate bucket existence
+        assertTrue(bucketExists(client3, bucket));
     }
 
     @Test
     public void testShutdown() {
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
+        S3Client client = s3Provider.client();
+        assertNotNull(client);
+        assertEquals(1, s3Provider.accessesLeft());
 
-        s3.shutdown();
-        assertEquals(0, s3.accessesLeft());
+        s3Provider.shutdown();
+        assertEquals(0, s3Provider.accessesLeft());
 
         try {
-            cli.doesBucketExistV2(bucket);
-            fail("Failed to fail on disabled client");
-        } catch (IllegalStateException ex) {
-            // okay!
+            client.listBuckets();
+            fail("Expected IllegalStateException after shutdown");
+        } catch (IllegalStateException e) {
+            // Expected
         }
 
-        cli = s3.client();
-        assertEquals(1, s3.accessesLeft());
-        assertTrue(cli.doesBucketExistV2(bucket));
+        // Create a new client after shutdown
+        S3Client newClient = s3Provider.client();
+        assertNotNull(newClient);
+        assertTrue(bucketExists(newClient, bucket));
     }
 
     @Test
     public void testClone() {
-        assertNotNull(s3);
-        assertEquals(2, s3.accessesLeft());
+        assertNotNull(s3Provider);
+        assertEquals(2, s3Provider.accessesLeft());
 
-        AmazonS3 cli = s3.client();
-        assertNotNull(cli);
-        assertEquals(1, s3.accessesLeft());
+        S3Client client1 = s3Provider.client();
+        assertNotNull(client1);
+        assertEquals(1, s3Provider.accessesLeft());
 
-        AWSS3ClientProvider s32 = s3.cloneMe();
-        assertNotEquals(s3, s32);
-        assertEquals(2, s32.accessesLeft());
-        AmazonS3 cli2 = s32.client();
-        assertNotNull(cli2);
-        assertNotEquals(cli, cli2);
-        assertEquals(1, s3.accessesLeft());
+        AWSS3ClientProvider clonedProvider = s3Provider.cloneMe();
+        assertNotSame(s3Provider, clonedProvider);
+        assertEquals(2, clonedProvider.accessesLeft());
+
+        S3Client client2 = clonedProvider.client();
+        assertNotNull(client2);
+        assertNotSame(client1, client2);
+        assertEquals(1, clonedProvider.accessesLeft());
     }
 }

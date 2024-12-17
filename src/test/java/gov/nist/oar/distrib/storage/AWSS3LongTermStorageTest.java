@@ -12,11 +12,10 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,26 +26,23 @@ import org.junit.BeforeClass;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.bags.preservation.BagUtils;
+import gov.nist.oar.distrib.StorageVolumeException;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 // import com.adobe.testing.s3mock.S3MockApplication;
 // import gov.nist.oar.RequireWebSite;
@@ -63,7 +59,7 @@ public class AWSS3LongTermStorageTest {
     @ClassRule
     public static S3MockTestRule siterule = new S3MockTestRule();
     
-    static AmazonS3 s3client = null;
+    static S3Client s3client = null;
   
     // private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorageTest.class);
 
@@ -74,33 +70,52 @@ public class AWSS3LongTermStorageTest {
   
     @BeforeClass
     public static void setUpClass() throws IOException {
-        // mockServer = S3MockApplication.start();  // http: port=9090
+        // Start S3Mock and initialize the S3 client
         s3client = createS3Client();
-        
-        if (s3client.doesBucketExistV2(bucket))
+
+        // Destroy the bucket if it already exists
+        if (bucketExists(bucket)) {
             destroyBucket();
-        s3client.createBucket(bucket);
+        }
+
+        // Create the bucket
+        s3client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
+
+        // Populate the bucket
         populateBucket();
     }
 
-    public static AmazonS3 createS3Client() {
-        // import credentials from the EC2 machine we are running on
-        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
-        final String endpoint = "http://localhost:9090/";
-        final String region = "us-east-1";
-        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
+    public static boolean bucketExists(String bucketName) {
+        try {
+            s3client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            return true;
+        } catch (NoSuchBucketException e) {
+            return false; // Bucket does not exist
+        } catch (S3Exception e) {
+            throw new RuntimeException("Failed to check bucket existence: " + e.getMessage(), e);
+        }
+    }
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                                        .withEndpointConfiguration(epconfig)
-                                        .enablePathStyleAccess()
-                                        .build();
-        return client;
+    public static S3Client createS3Client() {
+        // Static credentials and mock endpoint configuration
+        AwsBasicCredentials credentials = AwsBasicCredentials.create("foo", "bar");
+        String endpoint = "http://localhost:9090/";
+
+        return S3Client.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .region(Region.US_EAST_1)
+                .endpointOverride(URI.create(endpoint)) // Override to point to mock server
+                .forcePathStyle(true) // Enable path-style access
+                .build();
     }
 
     @Before
     public void setUp() throws IOException {
-        s3Storage = new AWSS3LongTermStorage(bucket, s3client);
+        try {
+            s3Storage = new AWSS3LongTermStorage(bucket, s3client);
+        } catch (FileNotFoundException | StorageVolumeException ex) {
+            throw new IllegalStateException("Failed to initialize AWSS3LongTermStorage for test setup: " + ex.getMessage(), ex);
+        }
     }
 
     @After
@@ -115,13 +130,13 @@ public class AWSS3LongTermStorageTest {
     }
 
     public static void destroyBucket() {
-        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
-        for (S3ObjectSummary f : files) 
-            s3client.deleteObject(bucket, f.getKey());
-        s3client.deleteBucket(bucket);
+        // List and delete all objects in the bucket, then delete the bucket
+        s3client.listObjectsV2(builder -> builder.bucket(bucket).build())
+                .contents()
+                .forEach(obj -> s3client.deleteObject(builder -> builder.bucket(bucket).key(obj.key()).build()));
     }
 
-    public static void populateBucket() throws IOException {
+    public static void populateBucket() {
         String[] bases = {
             "mds013u4g.1_0_0.mbag0_4-", "mds013u4g.1_0_1.mbag0_4-", "mds013u4g.1_1.mbag0_4-",
             "mds088kd2.mbag0_3-", "mds088kd2.mbag0_3-", "mds088kd2.1_0_1.mbag0_4-"
@@ -129,33 +144,63 @@ public class AWSS3LongTermStorageTest {
 
         int j = 0;
         for (String base : bases) {
-            for(int i=0; i < 3; i++) {
-                String bag = base + Integer.toString(j++) + ((i > 1) ? ".7z" : ".zip");
-                String baghash = hash+" "+bag;
+            for (int i = 0; i < 3; i++) {
+                String bag = base + j++ + ((i > 1) ? ".7z" : ".zip");
+                String baghash = hash + " " + bag;
 
-                if (! s3client.doesObjectExist(bucket, bag)) {
-                    ObjectMetadata md = new ObjectMetadata();
-                    md.setContentLength(1);
-                    // md.setContentMD5("1B2M2Y8AsgTpgAmY7PhCfg==");
-                    md.setContentType("text/plain");
+                // Check if the object already exists
+                if (!objectExists(bucket, bag)) {
+                    // Upload the empty "bag" file
                     try (InputStream ds = new ByteArrayInputStream("0".getBytes())) {
-                        s3client.putObject(bucket, bag, ds, md);
+                        s3client.putObject(PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(bag)
+                                .contentType("text/plain")
+                                .contentLength(1L)
+                                .build(), RequestBody.fromInputStream(ds, 1L));
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to upload file: " + bag, e);
                     }
 
-                    md.setContentLength(baghash.length());
-                    // md.setContentMD5(null);
+                    // Upload the "baghash" file
                     try (InputStream ds = new ByteArrayInputStream(baghash.getBytes())) {
-                        s3client.putObject(bucket, bag+".sha256", ds, md);
+                        s3client.putObject(PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(bag + ".sha256")
+                                .contentType("text/plain")
+                                .contentLength((long) baghash.length())
+                                .build(), RequestBody.fromInputStream(ds, baghash.length()));
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to upload hash file: " + bag + ".sha256", e);
                     }
                 }
             }
         }
-        
+    }
+
+    private static boolean objectExists(String bucket, String key) {
+        try {
+            s3client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+            return true;
+        } catch (S3Exception e) {
+            if (e instanceof NoSuchKeyException || e.statusCode() == 404) {
+                return false; // Object does not exist
+            }
+            throw new RuntimeException("Error checking object existence: " + key, e);
+        }
     }
 
     @Test
-    public void testCtor() throws FileNotFoundException {
-        assert(s3client.doesBucketExistV2(bucket));
+    public void testCtor() {
+        try {
+            s3client.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
+            assertTrue(true);
+        } catch (NoSuchBucketException e) {
+            fail("Bucket does not exist: " + bucket);
+        }
     }
 
     @Test

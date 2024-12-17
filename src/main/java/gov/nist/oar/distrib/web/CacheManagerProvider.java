@@ -16,6 +16,7 @@ import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
 import gov.nist.oar.distrib.service.NerdmDrivenFromBagFileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
+import software.amazon.awssdk.services.s3.S3Client;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
@@ -28,7 +29,6 @@ import javax.activation.MimetypesFileTypeMap;
 import org.springframework.lang.Nullable;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
-import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * A factory for creating the PDR's CacheManager that can work with the Spring framework's configuration 
@@ -44,14 +44,14 @@ public class CacheManagerProvider {
     private BagStorage bagstore = null;
     private HeadBagCacheManager hbcmgr = null;
     private PDRCacheManager cmgr = null;
-    private AmazonS3 s3client = null;
+    private S3Client s3client = null;
 
     /**
      * create the factory.
      * @param config      the cache configuration data 
      * @param bagstorage  the long-term bag storage
      */
-    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage, AmazonS3 s3c) {
+    public CacheManagerProvider(NISTCacheManagerConfig config, BagStorage bagstorage, S3Client s3c) {
         cfg = config;
         bagstore = bagstorage;
         s3client = s3c;

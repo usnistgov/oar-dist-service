@@ -19,6 +19,7 @@ import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import software.amazon.awssdk.services.s3.S3Client;
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
 import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
@@ -55,7 +56,6 @@ import java.net.MalformedURLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * The configuration for an application's use of a data cache.
@@ -313,7 +313,7 @@ public class NISTCacheManagerConfig {
         /**
          * create a CacheVolume as prescribed by this configuration
          */
-        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg, AmazonS3 s3client)
+        public CacheVolume createCacheVolume(NISTCacheManagerConfig mgrcfg, S3Client s3client)
             throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
         {
             if (location == null || location.length() == 0)
@@ -371,7 +371,7 @@ public class NISTCacheManagerConfig {
         }
     }
 
-    public BasicCache getCache(AmazonS3 s3)
+    public BasicCache getCache(S3Client s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         if (theCache == null)
@@ -379,7 +379,7 @@ public class NISTCacheManagerConfig {
         return theCache;
     }
 
-    public BasicCache createDefaultCache(AmazonS3 s3)
+    public BasicCache createDefaultCache(S3Client s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         // establish the base directory
