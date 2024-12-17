@@ -11,7 +11,7 @@
  * 
  * @author: Raymond Plante
  */
-package gov.nist.oar.distrib.cachemgr.inventory;
+package gov.nist.oar.distrib.cachemgr.storage;
 
 import org.junit.Test;
 import org.junit.Before;
