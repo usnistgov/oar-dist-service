@@ -59,7 +59,9 @@ import java.io.File;
         "distrib.rpa.authorized[0]=AUTHORIZED.1",
         "distrib.rpa.authorized[1]=AUTHORIZED.2",
         "distrib.rpa.bagstore-location=${basedir}/src/test/resources/restricted",
-        "distrib.rpa.bagstore-mode=local"
+        "distrib.rpa.bagstore-mode=local",
+        "cloud.aws.region=us-east-1"
+        
 })
 public class NISTDistribServiceConfigTest {
 

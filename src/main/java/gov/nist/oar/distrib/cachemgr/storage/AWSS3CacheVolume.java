@@ -13,6 +13,25 @@
  */
 package gov.nist.oar.distrib.cachemgr.storage;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageStateException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -21,36 +40,23 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.StorageStateException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.net.URL;
-import java.time.Duration;
-import java.net.MalformedURLException;
-
-import org.json.JSONObject;
 
 /**
- * an implementation of the CacheVolume interface that stores its data 
- * in a folder of an Amazon Web Services S3 bucket.  
+ * an implementation of the CacheVolume interface that stores its data
+ * in a folder of an Amazon Web Services S3 bucket.
  *
- * The storage model has all data stored under a single folder within the bucket.  Within that 
- * folder, objects are stored with paths matching the name as given via addObject().
- * When that name includes a slash, the object file is stored in a subdirectory 
- * consistent with directory path implied by the name.  
+ * The storage model has all data stored under a single folder within the
+ * bucket. Within that
+ * folder, objects are stored with paths matching the name as given via
+ * addObject().
+ * When that name includes a slash, the object file is stored in a subdirectory
+ * consistent with directory path implied by the name.
  */
 public class AWSS3CacheVolume implements CacheVolume {
 
@@ -62,56 +68,80 @@ public class AWSS3CacheVolume implements CacheVolume {
 
     /**
      * create the storage instance
-     * @param bucketname    the name of the S3 bucket that provides the storage for this interface
-     * @param folder        the name of the folder within the bucket where objects will be stored.  If null
-     *                      or an empty string, it will be assumed that the objects should reside at the 
-     *                      root of the bucket.  
-     * @param s3            the AmazonS3 client instance to use to access the bucket
-     * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
-     *                            when {@link #getRedirectFor(String)} is called.  This 
-     *                            implementation will form the URL by appending the object 
-     *                            name to this base URL.  Note that a delimiting slash will 
-     *                            <i>not</i> be automatically inserted; if a slash is needed, 
-     *                            it should be included as part of this base URL.  
-     * @throws FileNotFoundException    if the specified bucket does not exist
-     * @throws SdkServiceException   if there is a problem accessing the S3 service.  While 
-     *                                  this is a runtime exception that does not have to be caught 
-     *                                  by the caller, catching it is recommended to address 
-     *                                  connection problems early.
-     * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
-     *                            legal URLs
+     * 
+     * @param bucketname      the name of the S3 bucket that provides the storage
+     *                        for this interface
+     * @param folder          the name of the folder within the bucket where objects
+     *                        will be stored. If null
+     *                        or an empty string, it will be assumed that the
+     *                        objects should reside at the
+     *                        root of the bucket.
+     * @param s3              the AmazonS3 client instance to use to access the
+     *                        bucket
+     * @param redirectBaseURL a base URL to use to form redirect URLs based on
+     *                        object names
+     *                        when {@link #getRedirectFor(String)} is called. This
+     *                        implementation will form the URL by appending the
+     *                        object
+     *                        name to this base URL. Note that a delimiting slash
+     *                        will
+     *                        <i>not</i> be automatically inserted; if a slash is
+     *                        needed,
+     *                        it should be included as part of this base URL.
+     * @throws FileNotFoundException if the specified bucket does not exist
+     * @throws SdkServiceException   if there is a problem accessing the S3 service.
+     *                               While
+     *                               this is a runtime exception that does not have
+     *                               to be caught
+     *                               by the caller, catching it is recommended to
+     *                               address
+     *                               connection problems early.
+     * @throws MalformedURLException if the given <code>redirectBaseURL</code>
+     *                               cannot be used to form
+     *                               legal URLs
      */
     public AWSS3CacheVolume(String bucketname, String folder, S3Client s3, String redirectBaseURL)
-        throws FileNotFoundException, SdkServiceException, MalformedURLException
-    {
+            throws FileNotFoundException, SdkServiceException, MalformedURLException {
         this(bucketname, folder, null, s3, redirectBaseURL);
     }
 
     /**
      * create the storage instance
-     * @param bucketname    the name of the S3 bucket that provides the storage for this interface
-     * @param folder        the name of the folder within the bucket where objects will be stored.  If null
-     *                      or an empty string, it will be assumed that the objects should reside at the 
-     *                      root of the bucket.  
-     * @param name          a name to refer to this volume by
-     * @param s3            the AmazonS3 client instance to use to access the bucket
-     * @param redirectBaseURL  a base URL to use to form redirect URLs based on object names
-     *                            when {@link #getRedirectFor(String)} is called.  This 
-     *                            implementation will form the URL by appending the object 
-     *                            name to this base URL.  Note that a delimiting slash will 
-     *                            <i>not</i> be automatically inserted; if a slash is needed, 
-     *                            it should be included as part of this base URL.  
-     * @throws FileNotFoundException    if the specified bucket does not exist
-     * @throws SdkServiceException   if there is a problem accessing the S3 service.  While 
-     *                                  this is a runtime exception that does not have to be caught 
-     *                                  by the caller, catching it is recommended to address 
-     *                                  connection problems early.
-     * @throws MalformedURLException  if the given <code>redirectBaseURL</code> cannot be used to form
-     *                            legal URLs
+     * 
+     * @param bucketname      the name of the S3 bucket that provides the storage
+     *                        for this interface
+     * @param folder          the name of the folder within the bucket where objects
+     *                        will be stored. If null
+     *                        or an empty string, it will be assumed that the
+     *                        objects should reside at the
+     *                        root of the bucket.
+     * @param name            a name to refer to this volume by
+     * @param s3              the AmazonS3 client instance to use to access the
+     *                        bucket
+     * @param redirectBaseURL a base URL to use to form redirect URLs based on
+     *                        object names
+     *                        when {@link #getRedirectFor(String)} is called. This
+     *                        implementation will form the URL by appending the
+     *                        object
+     *                        name to this base URL. Note that a delimiting slash
+     *                        will
+     *                        <i>not</i> be automatically inserted; if a slash is
+     *                        needed,
+     *                        it should be included as part of this base URL.
+     * @throws FileNotFoundException if the specified bucket does not exist
+     * @throws SdkServiceException   if there is a problem accessing the S3 service.
+     *                               While
+     *                               this is a runtime exception that does not have
+     *                               to be caught
+     *                               by the caller, catching it is recommended to
+     *                               address
+     *                               connection problems early.
+     * @throws MalformedURLException if the given <code>redirectBaseURL</code>
+     *                               cannot be used to form
+     *                               legal URLs
      */
     public AWSS3CacheVolume(String bucketname, String folder, String name, S3Client s3, String redirectBaseURL)
-        throws FileNotFoundException, S3Exception, MalformedURLException
-    {
+            throws FileNotFoundException, S3Exception, MalformedURLException {
         this(bucketname, folder, name, s3);
 
         baseurl = redirectBaseURL;
@@ -120,43 +150,54 @@ public class AWSS3CacheVolume implements CacheVolume {
             new URL(baseurl + "test");
     }
 
-
     /**
      * create the storage instance
-     * @param bucketname    the name of the S3 bucket that provides the storage for this interface
-     * @param folder        the name of the folder within the bucket where objects will be stored.  If null
-     *                      or an empty string, it will be assumed that the objects should reside at the 
-     *                      root of the bucket.  
-     * @param s3            the AmazonS3 client instance to use to access the bucket
-     * @throws FileNotFoundException    if the specified bucket does not exist
-     * @throws SdkServiceException   if there is a problem accessing the S3 service.  While 
-     *                                  this is a runtime exception that does not have to be caught 
-     *                                  by the caller, catching it is recommended to address 
-     *                                  connection problems early.
+     * 
+     * @param bucketname the name of the S3 bucket that provides the storage for
+     *                   this interface
+     * @param folder     the name of the folder within the bucket where objects will
+     *                   be stored. If null
+     *                   or an empty string, it will be assumed that the objects
+     *                   should reside at the
+     *                   root of the bucket.
+     * @param s3         the AmazonS3 client instance to use to access the bucket
+     * @throws FileNotFoundException if the specified bucket does not exist
+     * @throws SdkServiceException   if there is a problem accessing the S3 service.
+     *                               While
+     *                               this is a runtime exception that does not have
+     *                               to be caught
+     *                               by the caller, catching it is recommended to
+     *                               address
+     *                               connection problems early.
      */
     public AWSS3CacheVolume(String bucketname, String folder, S3Client s3)
-        throws FileNotFoundException, SdkServiceException
-    {
+            throws FileNotFoundException, SdkServiceException {
         this(bucketname, folder, null, s3);
     }
 
-
     /**
      * create the storage instance
-     * @param bucketname    the name of the S3 bucket that provides the storage for this interface
-     * @param folder        the name of the folder within the bucket where objects will be stored.  If null
-     *                      or an empty string, it will be assumed that the objects should reside at the 
-     *                      root of the bucket.  
-     * @param name          a name to refer to this volume by
-     * @param s3            the AmazonS3 client instance to use to access the bucket
-     * @throws FileNotFoundException    if the specified bucket does not exist
-     * @throws SdkServiceException   if there is a problem accessing the S3 service.  While 
-     *                                  this is a runtime exception that does not have to be caught 
-     *                                  by the caller, catching it is recommended to address 
-     *                                  connection problems early.
+     * 
+     * @param bucketname the name of the S3 bucket that provides the storage for
+     *                   this interface
+     * @param folder     the name of the folder within the bucket where objects will
+     *                   be stored. If null
+     *                   or an empty string, it will be assumed that the objects
+     *                   should reside at the
+     *                   root of the bucket.
+     * @param name       a name to refer to this volume by
+     * @param s3         the AmazonS3 client instance to use to access the bucket
+     * @throws FileNotFoundException if the specified bucket does not exist
+     * @throws SdkServiceException   if there is a problem accessing the S3 service.
+     *                               While
+     *                               this is a runtime exception that does not have
+     *                               to be caught
+     *                               by the caller, catching it is recommended to
+     *                               address
+     *                               connection problems early.
      */
     public AWSS3CacheVolume(String bucketname, String folder, String name, S3Client s3)
-        throws FileNotFoundException {
+            throws FileNotFoundException {
         bucket = bucketname;
 
         if (folder != null && folder.length() == 0) {
@@ -202,21 +243,25 @@ public class AWSS3CacheVolume implements CacheVolume {
     }
 
     /**
-     * return the identifier or name assigned to this volume.  If null is returned, 
+     * return the identifier or name assigned to this volume. If null is returned,
      * the name is not known.
      */
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
     private String s3name(String name) {
         if (folder == null)
             return name;
-        return folder+"/"+name;
+        return folder + "/" + name;
     }
 
     /**
      * return True if an object with a given name exists in this storage volume
-     * @param name  the name of the object
-     * @throws StorageVolumeException   if there is an error accessing the underlying storage system.
+     * 
+     * @param name the name of the object
+     * @throws StorageVolumeException if there is an error accessing the underlying
+     *                                storage system.
      */
     public boolean exists(String name) throws StorageVolumeException {
         try {
@@ -237,39 +282,46 @@ public class AWSS3CacheVolume implements CacheVolume {
     }
 
     /**
-     * save a copy of the named object to this storage volume.  If an object 
-     * already exists in the volume with this name, it will be replaced.  
+     * save a copy of the named object to this storage volume. If an object
+     * already exists in the volume with this name, it will be replaced.
      * <p>
-     * This implementation will look for three metadata properties that will be incorporated into 
+     * This implementation will look for three metadata properties that will be
+     * incorporated into
      * the S3 transfer request for robustness:
      * <ul>
-     *  <li> <code>size</code> -- this will be set as the content-length header property for the file stream;
-     *                            if this number of bytes is not transfered successfully, an exception will 
-     *                            occur. </li>
-     *  <li> <code>contentMD5</code> -- a base-64 encoding of the MD5 hash of the file which will be checked 
-     *                            against the server-side value calculated by the AWS server; a mismatch will
-     *                            result in an error.  Note that if this is not provided the AWS SDK will 
-     *                            calculate and verify a value automatically; thus, it should not be necessary 
-     *                            to set this.  </li>
-     *  <li> <code>contentType</code> -- the MIME-type to associate with this file.  This is stored as 
-     *                            associated AWS object metadata and will be used if the file is downloaded 
-     *                            via an AWS public GET URL (and perhaps other download frontends). </li>
+     * <li><code>size</code> -- this will be set as the content-length header
+     * property for the file stream;
+     * if this number of bytes is not transfered successfully, an exception will
+     * occur.</li>
+     * <li><code>contentMD5</code> -- a base-64 encoding of the MD5 hash of the file
+     * which will be checked
+     * against the server-side value calculated by the AWS server; a mismatch will
+     * result in an error. Note that if this is not provided the AWS SDK will
+     * calculate and verify a value automatically; thus, it should not be necessary
+     * to set this.</li>
+     * <li><code>contentType</code> -- the MIME-type to associate with this file.
+     * This is stored as
+     * associated AWS object metadata and will be used if the file is downloaded
+     * via an AWS public GET URL (and perhaps other download frontends).</li>
      * </ul>
-     * @param from   an InputStream that contains the bytes the make up object to save
-     * @param name   the name to assign to the object within the storage.  
-     * @param md     the metadata to be associated with that object.  This parameter cannot be null
-     *                 and must include the object size.  
-     * @throws StorageVolumeException  if the method fails to save the object correctly.
+     * 
+     * @param from an InputStream that contains the bytes the make up object to save
+     * @param name the name to assign to the object within the storage.
+     * @param md   the metadata to be associated with that object. This parameter
+     *             cannot be null
+     *             and must include the object size.
+     * @throws StorageVolumeException if the method fails to save the object
+     *                                correctly.
      */
     public void saveAs(InputStream from, String name, JSONObject md) throws StorageVolumeException {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("AWSS3CacheVolume.saveAs(): must provide name");
         }
-    
+
         long size = -1L;
         String contentType = null;
         String contentMD5 = null;
-    
+
         // Extract metadata
         if (md != null) {
             try {
@@ -280,35 +332,47 @@ public class AWSS3CacheVolume implements CacheVolume {
             contentType = md.optString("contentType", null);
             contentMD5 = md.optString("contentMD5", null);
         }
-    
+
         if (size <= 0) {
             throw new IllegalArgumentException("AWSS3CacheVolume.saveAs(): metadata must include size property");
         }
-    
+
         try {
+            // Validate MD5 checksum if provided
+            if (contentMD5 != null) {
+                InputStream markableInputStream = from.markSupported() ? from : new BufferedInputStream(from);
+                markableInputStream.mark((int) size); // Mark the stream for reset
+                String calculatedMD5 = calculateMD5(markableInputStream, size);
+                if (!calculatedMD5.equals(contentMD5)) {
+                    throw new StorageVolumeException("MD5 checksum mismatch for object: " + s3name(name));
+                }
+                markableInputStream.reset(); // Reset the stream for the actual upload
+                from = markableInputStream; // Ensure the validated stream is used
+            }
+
             // Prepare the PutObjectRequest
             PutObjectRequest.Builder putRequestBuilder = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(s3name(name))
                     .contentLength(size);
-    
+
             if (contentType != null) {
                 putRequestBuilder.contentType(contentType);
             }
             if (contentMD5 != null) {
                 putRequestBuilder.contentMD5(contentMD5);
             }
-    
+
             // Add Content-Disposition header (e.g., file name for web servers)
             if (name.endsWith("/")) {
                 name = name.substring(0, name.length() - 1);
             }
             String[] nameFields = name.split("/");
             putRequestBuilder.contentDisposition(nameFields[nameFields.length - 1]);
-    
+
             // Perform the upload
             s3client.putObject(putRequestBuilder.build(), RequestBody.fromInputStream(from, size));
-    
+
             // Update metadata if provided
             if (md != null) {
                 CacheObject co = get(name);
@@ -324,53 +388,81 @@ public class AWSS3CacheVolume implements CacheVolume {
             if (e.awsErrorDetails() != null && e.awsErrorDetails().errorCode().equals("InvalidDigest")) {
                 throw new StorageVolumeException("MD5 checksum mismatch for object: " + s3name(name), e);
             }
-            throw new StorageVolumeException("Failed to upload object: " + s3name(name) + " (" + e.getMessage() + ")", e);
+            throw new StorageVolumeException("Failed to upload object: " + s3name(name) + " (" + e.getMessage() + ")",
+                    e);
         } catch (Exception e) {
-            throw new StorageVolumeException("Unexpected error saving object " + s3name(name) + ": " + e.getMessage(), e);
+            throw new StorageVolumeException("Unexpected error saving object " + s3name(name) + ": " + e.getMessage(),
+                    e);
         }
     }
-    
+
+    // Helper method to calculate MD5 checksum
+    private String calculateMD5(InputStream is, long size) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        long totalRead = 0;
+
+        while ((bytesRead = is.read(buffer)) != -1) {
+            md.update(buffer, 0, bytesRead);
+            totalRead += bytesRead;
+            if (totalRead > size) {
+                throw new IllegalArgumentException("InputStream size exceeds specified size");
+            }
+        }
+
+        if (totalRead != size) {
+            throw new IllegalArgumentException("InputStream size does not match specified size");
+        }
+
+        byte[] digest = md.digest();
+        return Base64.getEncoder().encodeToString(digest);
+    }
+
     /**
-     * save a copy of an object currently stored in another volume.  If an object 
-     * already exists in the volume with this name, it will be replaced.  This 
-     * allows for an implementation to invoke special optimizations for certain 
-     * kinds of copies (e.g. S3 to S3).  
-     * @param obj    an object in another storage volume.
-     * @param name   the name to assign to the object within the storage.  
-     * @throws ObjectNotFoundException  if the object does not exist in specified
-     *                                     volume
-     * @throws StorageVolumeException   if method fails to save the object correctly 
-     *               or if the request calls for copying an object to itself or 
-     *               if the given CacheObject is not sufficiently specified. 
+     * save a copy of an object currently stored in another volume. If an object
+     * already exists in the volume with this name, it will be replaced. This
+     * allows for an implementation to invoke special optimizations for certain
+     * kinds of copies (e.g. S3 to S3).
+     * 
+     * @param obj  an object in another storage volume.
+     * @param name the name to assign to the object within the storage.
+     * @throws ObjectNotFoundException if the object does not exist in specified
+     *                                 volume
+     * @throws StorageVolumeException  if method fails to save the object correctly
+     *                                 or if the request calls for copying an object
+     *                                 to itself or
+     *                                 if the given CacheObject is not sufficiently
+     *                                 specified.
      */
     public synchronized void saveAs(CacheObject obj, String name) throws StorageVolumeException {
         if (obj.name == null)
-            throw new StorageVolumeException("name for cache object (in volume, "+obj.volname+
-                                           ") not set.");
+            throw new StorageVolumeException("name for cache object (in volume, " + obj.volname +
+                    ") not set.");
         if (obj.volume == null)
-            throw new StorageVolumeException("Unable to locate volume, "+obj.volname+
-                                           ", for cache object, "+obj.name);
+            throw new StorageVolumeException("Unable to locate volume, " + obj.volname +
+                    ", for cache object, " + obj.name);
         if (this.name.equals(obj.volname) && name.equals(obj.name))
-            throw new StorageVolumeException("Request to copy "+obj.volname+":"+obj.name+
-                                           " onto itself");
-        if (! obj.volume.exists(obj.name))
+            throw new StorageVolumeException("Request to copy " + obj.volname + ":" + obj.name +
+                    " onto itself");
+        if (!obj.volume.exists(obj.name))
             throw new ObjectNotFoundException(obj.name, obj.volname);
 
         try (InputStream is = obj.volume.getStream(obj.name)) {
             this.saveAs(is, name, obj.exportMetadata());
-        }
-        catch (IOException ex) {
-            throw new StorageVolumeException("Trouble closing source stream while reading object "+obj.name);
+        } catch (IOException ex) {
+            throw new StorageVolumeException("Trouble closing source stream while reading object " + obj.name);
         }
     }
 
     /**
      * return an open InputStream to the object with the given name
-     * @param name   the name of the object to get
-     * @throws ObjectNotFoundException  if the named object does not exist in this 
-     *                                     volume
-     * @throws StorageVolumeException     if there is any other problem opening the 
-     *                                     named object
+     * 
+     * @param name the name of the object to get
+     * @throws ObjectNotFoundException if the named object does not exist in this
+     *                                 volume
+     * @throws StorageVolumeException  if there is any other problem opening the
+     *                                 named object
      */
     public InputStream getStream(String name) throws StorageVolumeException {
         String key = s3name(name);
@@ -397,9 +489,10 @@ public class AWSS3CacheVolume implements CacheVolume {
 
     /**
      * return a reference to an object in the volume given its name
-     * @param name   the name of the object to get
-     * @throws ObjectNotFoundException  if the named object does not exist in this 
-     *                                     volume
+     * 
+     * @param name the name of the object to get
+     * @throws ObjectNotFoundException if the named object does not exist in this
+     *                                 volume
      */
     public CacheObject get(String name) throws StorageVolumeException {
         String key = s3name(name);
@@ -431,14 +524,14 @@ public class AWSS3CacheVolume implements CacheVolume {
         }
     }
 
-
-    /** 
+    /**
      * remove the object with the give name from this storage volume
-     * @param name       the name of the object to get
-     * @return boolean  True if the object existed in the volume; false if it was 
-     *                       not found in this volume
-     * @throws StorageVolumeException     if there is an internal error while trying to 
-     *                                     remove the Object
+     * 
+     * @param name the name of the object to get
+     * @return boolean True if the object existed in the volume; false if it was
+     *         not found in this volume
+     * @throws StorageVolumeException if there is an internal error while trying to
+     *                                remove the Object
      */
     public boolean remove(String name) throws StorageVolumeException {
         String key = s3name(name);
@@ -448,7 +541,7 @@ public class AWSS3CacheVolume implements CacheVolume {
                     .bucket(bucket)
                     .key(key)
                     .build();
-    
+
             // Delete the object
             s3client.deleteObject(deleteRequest);
             return true; // If no exception, the object was successfully deleted
@@ -463,19 +556,21 @@ public class AWSS3CacheVolume implements CacheVolume {
     }
 
     /**
-     * return a URL that th eobject with the given name can be alternatively 
-     * read from.  This allows for a potentially faster way to deliver a file
-     * to web clients than via a Java stream copy.  Not all implementations may
-     * support this. 
+     * return a URL that th eobject with the given name can be alternatively
+     * read from. This allows for a potentially faster way to deliver a file
+     * to web clients than via a Java stream copy. Not all implementations may
+     * support this.
      *
-     * This implementation throws an UnsupportedOperationException if 
-     * {@linkplain #AWSS3CacheVolume(String,String,AmazonS3,String) the constructor} 
+     * This implementation throws an UnsupportedOperationException if
+     * {@linkplain #AWSS3CacheVolume(String,String,AmazonS3,String) the constructor}
      * was not provided with a <code>redirectBaseURL</code> argument.
      *
-     * @param name       the name of the object to get
-     * @return URL      a URL where the object can be streamed from
-     * @throws UnsupportedOperationException     always as this function is not supported
+     * @param name the name of the object to get
+     * @return URL a URL where the object can be streamed from
+     * @throws UnsupportedOperationException always as this function is not
+     *                                       supported
      */
+    @Override
     public URL getRedirectFor(String name) throws StorageVolumeException, UnsupportedOperationException {
         if (baseurl == null) {
             throw new UnsupportedOperationException("AWSS3CacheVolume: getRedirectFor not supported");
@@ -483,25 +578,16 @@ public class AWSS3CacheVolume implements CacheVolume {
 
         if (exists(name)) {
             try {
-                // Generate a presigned URL using S3Presigner
-                // S3Presigner replaces getUrl for presigned URL generation
-                try (S3Presigner presigner = S3Presigner.create()) {
-                    GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                            .bucket(bucket)
-                            .key(s3name(name))
-                            .build();
+                // New way is to use S3Utilities to get the object URL
+                GetUrlRequest request = GetUrlRequest.builder()
+                        .bucket(bucket)
+                        .key(s3name(name))
+                        .build();
 
-                    GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                            .signatureDuration(Duration.ofMinutes(15)) // URL validity duration
-                            .getObjectRequest(getObjectRequest)
-                            .build();
-
-                    URL presignedUrl = presigner.presignGetObject(presignRequest).url();
-                    return presignedUrl;
-                }
+                return s3client.utilities().getUrl(request);
             } catch (S3Exception ex) {
                 throw new StorageVolumeException("Failed to determine redirect URL for name=" + name + ": " +
-                                                ex.getMessage(), ex);
+                        ex.awsErrorDetails().errorMessage(), ex);
             }
         } else {
             try {
@@ -512,19 +598,19 @@ public class AWSS3CacheVolume implements CacheVolume {
         }
     }
 
-
     /**
      * create a folder/subdirectory in a bucket if it already doesn't exist
      *
-     * @param bucketname  the name of the bucket where the folder should exist
-     * @param folder      the name of the folder to ensure exists
-     * @param s3          the authenticated <code>AmazonS3</code> client to use to access the bucket
+     * @param bucketname the name of the bucket where the folder should exist
+     * @param folder     the name of the folder to ensure exists
+     * @param s3         the authenticated <code>AmazonS3</code> client to use to
+     *                   access the bucket
      */
     public static boolean ensureBucketFolder(S3Client s3, String bucketname, String folder) throws S3Exception {
         if (!folder.endsWith("/")) {
             folder += "/";
         }
-    
+
         try {
             // Check if the folder exists by calling headObject
             s3.headObject(HeadObjectRequest.builder()
@@ -537,14 +623,14 @@ public class AWSS3CacheVolume implements CacheVolume {
                 throw ex; // Re-throw exception if it's not a 404 (Not Found) error
             }
         }
-    
+
         // Folder does not exist, create it as a zero-byte object
         try (InputStream emptyContent = new ByteArrayInputStream(new byte[0])) {
             s3.putObject(PutObjectRequest.builder()
-                            .bucket(bucketname)
-                            .key(folder)
-                            .contentLength(0L)
-                            .build(),
+                    .bucket(bucketname)
+                    .key(folder)
+                    .contentLength(0L)
+                    .build(),
                     RequestBody.fromInputStream(emptyContent, 0));
             return true; // Folder created successfully
         } catch (Exception e) {

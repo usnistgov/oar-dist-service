@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -40,6 +41,9 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 public class AWSS3ClientProviderTest {
+
+    @ClassRule
+    public static S3MockTestRule siterule = new S3MockTestRule();
 
     private static final String bucket = "oar-lts-test";
     private AWSS3ClientProvider s3Provider = null;

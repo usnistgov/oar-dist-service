@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.distrib.Checksum;
@@ -39,9 +40,9 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-
 /**
- * An implementation of the LongTermStorage interface for accessing files from an AWS-S3 storage bucket.
+ * An implementation of the LongTermStorage interface for accessing files from
+ * an AWS-S3 storage bucket.
  * 
  * @author Deoyani Nandrekar-Heinis
  */
@@ -51,13 +52,33 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
 
     public final String bucket;
     protected S3Client s3client;
-    protected Integer pagesz = null;  // null means use default page size
+    protected Integer pagesz = null; // null means use default page size
     private long checksumSizeLim = defaultChecksumSizeLimit;
 
+    /**
+     * set the number of objects returned in a page of listing results. This can be
+     * used for testing.
+     * A null value means use the AWS default.
+     */
     public void setPageSize(Integer sz) {
-        this.pagesz = sz;
+        pagesz = sz;
     }
 
+    /**
+     * create the storage instance
+     * 
+     * @param bucketname the name of the S3 bucket that provides the storage for
+     *                   this interface
+     * @param s3         the AmazonS3 client instance to use to access the bucket
+     * @throws FileNotFoundException  if the specified bucket does not exist
+     * @throws AmazonServiceException if there is a problem accessing the S3
+     *                                service. While
+     *                                this is a runtime exception that does not have
+     *                                to be caught
+     *                                by the caller, catching it is recommended to
+     *                                address
+     *                                connection problems early.
+     */
     public AWSS3LongTermStorage(String bucketname, S3Client s3Client)
             throws FileNotFoundException, StorageVolumeException {
         super(bucketname);
@@ -75,6 +96,14 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         logger.info("Initialized AWSS3LongTermStorage for bucket: {}", bucket);
     }
 
+    /**
+     * return true if a file with the given name exists in the storage
+     * 
+     * @param filename The name of the desired file. Note that this does not refer
+     *                 to files that
+     *                 may reside inside a serialized bag or other archive (e.g.
+     *                 zip) file.
+     */
     @Override
     public boolean exists(String filename) throws StorageVolumeException {
         try {
@@ -87,6 +116,18 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         }
     }
 
+    /**
+     * Given an exact file name in the storage, return an InputStream open at the
+     * start of the file
+     * 
+     * @param filename The name of the desired file. Note that this does not refer
+     *                 to files that
+     *                 may reside inside a serialized bag or other archive (e.g.
+     *                 zip) file.
+     * @return InputStream - open at the start of the file
+     * @throws FileNotFoundException if the file with the given filename does not
+     *                               exist
+     */
     @Override
     public InputStream openFile(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
@@ -100,27 +141,76 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         }
     }
 
+    /**
+     * return the checksum for the given file
+     * 
+     * @param filename The name of the desired file. Note that this does not refer
+     *                 to files that
+     *                 may reside inside a serialized bag or other archive (e.g.
+     *                 zip) file.
+     * @return Checksum, a container for the checksum value
+     * @throws FileNotFoundException if the file with the given filename does not
+     *                               exist
+     */
     @Override
     public Checksum getChecksum(String filename) throws FileNotFoundException, StorageVolumeException {
         String checksumKey = filename + ".sha256";
-        try (InputStream is = openFile(checksumKey);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            String checksumValue = reader.readLine();
-            return Checksum.sha256(checksumValue);
-        } catch (FileNotFoundException ex) {
+        ResponseInputStream<GetObjectResponse> s3ObjectStream = null;
+
+        try {
+            // Try to retrieve the checksum file from S3
+            s3ObjectStream = s3client.getObject(GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(checksumKey)
+                    .build());
+
+            try (InputStreamReader reader = new InputStreamReader(s3ObjectStream)) {
+                // Read and return the checksum from the file
+                return Checksum.sha256(readHash(reader));
+            } catch (IOException e) {
+                throw new StorageStateException("Failed to read cached checksum value from " + checksumKey, e);
+            }
+        } catch (NoSuchKeyException e) {
+            // Handle missing checksum file
+            if (!filename.endsWith(".sha256")) {
+                logger.warn("No cached checksum available for " + filename);
+            }
+
             if (getSize(filename) > checksumSizeLim) {
                 throw new StorageStateException("No cached checksum for large file: " + filename);
             }
+
+            // Calculate checksum on the fly for small files
             try (InputStream fileStream = openFile(filename)) {
                 return Checksum.calcSHA256(fileStream);
-            } catch (IOException e) {
-                throw new StorageStateException("Unable to calculate checksum: " + filename, e);
+            } catch (IOException ex) {
+                throw new StorageStateException("Unable to calculate checksum for small file: " + filename, ex);
             }
-        } catch (IOException ex) {
-            throw new StorageStateException("Error reading checksum for " + filename, ex);
+        } catch (S3Exception ex) {
+            throw new StorageStateException(
+                    "Trouble accessing " + checksumKey + ": " + ex.awsErrorDetails().errorMessage(), ex);
+        } finally {
+            if (s3ObjectStream != null) {
+                try {
+                    s3ObjectStream.close();
+                } catch (IOException e) {
+                    logger.warn("Trouble closing S3Object stream: " + e.getMessage());
+                }
+            }
         }
     }
 
+    /**
+     * Return the size of the named file in bytes
+     * 
+     * @param filename The name of the desired file. Note that this does not refer
+     *                 to files that
+     *                 may reside inside a serialized bag or other archive (e.g.
+     *                 zip) file.
+     * @return long, the size of the file in bytes
+     * @throws FileNotFoundException if the file with the given filename does not
+     *                               exist
+     */
     @Override
     public long getSize(String filename) throws FileNotFoundException, StorageVolumeException {
         try {
@@ -144,6 +234,14 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         return builder.build();
     }
 
+    /**
+     * Return all the bags associated with the given ID
+     * 
+     * @param identifier the AIP identifier for the desired data collection
+     * @return List<String>, the file names for all bags associated with given ID
+     * @throws ResourceNotFoundException if there exist no bags with the given
+     *                                   identifier
+     */
     @Override
     public List<String> findBagsFor(String identifier)
             throws ResourceNotFoundException, StorageVolumeException {
@@ -163,6 +261,7 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
                 request = request.toBuilder().continuationToken(response.nextContinuationToken()).build();
             } while (response.isTruncated());
         } catch (S3Exception ex) {
+            logger.error("Error accessing bucket {}: {}", bucket, ex.getMessage(), ex);
             throw new StorageStateException("Error accessing bucket: " + bucket, ex);
         }
 
@@ -173,13 +272,46 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
         return filenames;
     }
 
+    /**
+     * Return the head bag associated with the given ID
+     * 
+     * @param identifier the AIP identifier for the desired data collection
+     * @return String, the head bag's file name
+     * @throws ResourceNotFoundException if there exist no bags with the given
+     *                                   identifier
+     */
+    @Override
+    public String findHeadBagFor(String identifier)
+            throws ResourceNotFoundException, StorageStateException {
+        return findHeadBagFor(identifier, null);
+    }
+
+    /**
+     * Return the name of the head bag for the identifier for given version
+     * 
+     * @param identifier the AIP identifier for the desired data collection
+     * @param version    the desired version of the AIP; if null, assume the latest
+     *                   version.
+     *                   If the version is an empty string, the head bag for bags
+     *                   without a
+     *                   version designation will be selected.
+     * @return String, the head bag's file name, or null if version is not found
+     * @throws ResourceNotFoundException if there exist no bags with the given
+     *                                   identifier or version
+     */
     @Override
     public String findHeadBagFor(String identifier, String version)
             throws ResourceNotFoundException, StorageStateException {
+        // Prefix handling with pattern matching for version
         String prefix = identifier + ".";
         if (version != null) {
-            version = version.replace(".", "_");
-            prefix += version.replaceAll("(_0)+$", "");
+            // Replace dots in version with underscores
+            version = Pattern.compile("\\.").matcher(version).replaceAll("_");
+
+            // Remove trailing "_0" for efficiency
+            if (!Pattern.compile("^[01](_0)*$").matcher(version).find()) {
+                prefix += Pattern.compile("(_0)+$").matcher(version).replaceAll("");
+            }
         }
 
         String selected = null;
@@ -192,7 +324,15 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
                 response = s3client.listObjectsV2(request);
                 for (S3Object obj : response.contents()) {
                     String name = obj.key();
+
+                    // Filter out ".sha256" files and ensure legal bag names
                     if (!name.endsWith(".sha256") && BagUtils.isLegalBagName(name)) {
+                        // Check version match if provided
+                        if (version != null && !BagUtils.matchesVersion(name, version)) {
+                            continue;
+                        }
+
+                        // Determine sequence number and update selected file
                         int seq = BagUtils.sequenceNumberIn(name);
                         if (seq > maxSeq) {
                             maxSeq = seq;
@@ -200,16 +340,20 @@ public class AWSS3LongTermStorage extends PDRBagStorageBase {
                         }
                     }
                 }
+
+                // Update continuation token for the next page
                 request = request.toBuilder().continuationToken(response.nextContinuationToken()).build();
             } while (response.isTruncated());
         } catch (S3Exception ex) {
             throw new StorageStateException("Error accessing bucket: " + bucket, ex);
         }
 
+        // Handle case where no matching file is found
         if (selected == null) {
             throw ResourceNotFoundException.forID(identifier, version);
         }
 
         return selected;
     }
+
 }

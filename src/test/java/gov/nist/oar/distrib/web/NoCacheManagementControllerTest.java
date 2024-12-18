@@ -46,7 +46,8 @@ import org.slf4j.LoggerFactory;
     "distrib.bagstore.location=${basedir}/src/test/resources",
     "distrib.baseurl=http://localhost/oar-distrb-service",
     "distrib.cachemgr.restapi.accesstoken=SECRET",
-    "logging.path=${basedir}/target/surefire-reports"
+    "logging.path=${basedir}/target/surefire-reports",
+    "cloud.aws.region=us-east-1"
 })
 public class NoCacheManagementControllerTest {
 

@@ -83,7 +83,8 @@ import org.slf4j.LoggerFactory;
         // "logging.level.org.springframework.web=DEBUG"
         "logging.level.gov.nist.oar.distrib=DEBUG",
         "logging.path=${basedir}/target",
-        "logging.file=tst.log"
+        "logging.file=tst.log",
+        "cloud.aws.region=us-east-1"
 })
 public class DatasetAccessControllerWithCacheTest {
 
