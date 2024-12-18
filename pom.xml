@@ -50,19 +50,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-aws-context</artifactId>
-        </dependency>
-          -->
-        <!-- AWS SDK v2 S3 -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3</artifactId>
-            <version>2.25.16</version> <!-- Replace with the latest stable version -->
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/aws-sdk-java -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
