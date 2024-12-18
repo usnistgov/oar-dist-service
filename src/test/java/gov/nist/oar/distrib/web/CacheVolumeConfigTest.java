@@ -15,12 +15,10 @@ package gov.nist.oar.distrib.web;
 
 import org.junit.Test;
 import org.junit.Before;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.*;
 
-import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
@@ -29,7 +27,6 @@ import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BigOldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -39,7 +36,6 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.net.MalformedURLException;
-import com.amazonaws.services.s3.AmazonS3;
 
 public class CacheVolumeConfigTest {
 

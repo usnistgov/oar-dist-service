@@ -12,14 +12,16 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
+import java.net.URI;
 
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.S3Configuration;
 
 /**
  * A wrapper for an AmazonS3Client that regulates is resource usage.  
@@ -33,103 +35,99 @@ import org.slf4j.Logger;
  */
 public class AWSS3ClientProvider implements Cloneable {
 
-    protected AmazonS3 s3 = null;
-    protected String reg = null;
-    protected AWSCredentialsProvider credpro = null;
-    protected int acclim = 25;
+    protected S3Client s3 = null;
+    protected String region = null;
+    protected AwsCredentialsProvider credProvider = null;
+    protected int accessLimit = 25;
     protected int accesses = 0;
-    private String ep = null;
+    private String endpoint = null;
+
     static Logger log = LoggerFactory.getLogger(AWSS3ClientProvider.class);
 
     /**
-     * create the provider
-     * @param creds        the credentials to use when recreating the client
-     * @param region       the AWS region to connect to
-     * @param accessLimit  the maximum number of accesses allowed before the client is recreated;
-     *                     a non-positive number will result in a new client with every access.
+     * Create the provider.
+     * @param creds       The credentials to use for S3.
+     * @param region      The AWS region to connect to.
+     * @param accessLimit Maximum number of accesses before recreating the client.
      */
-    public AWSS3ClientProvider(AWSCredentialsProvider creds, String region, int accessLimit) {
+    public AWSS3ClientProvider(AwsCredentialsProvider creds, String region, int accessLimit) {
         this(creds, region, accessLimit, null);
     }
 
     /**
-     * create the provider.  This constructor is intended for use with an mock S3 service for 
-     * testing purposes.
-     * @param creds        the credentials to use when recreating the client
-     * @param region       the AWS region to connect to
-     * @param accessLimit  the maximum number of accesses allowed before the client is recreated;
-     *                     a non-positive number will result in a new client with every access.
-     * @param endpoint     the endpoint to use for the AWS s3 service
+     * Create the provider with a custom endpoint (e.g., for testing with a mock S3 service).
+     * @param creds       The credentials to use for S3.
+     * @param region      The AWS region to connect to.
+     * @param accessLimit Maximum number of accesses before recreating the client.
+     * @param endpoint    The custom endpoint URL.
      */
-    public AWSS3ClientProvider(AWSCredentialsProvider creds, String region,
-                               int accessLimit, String endpoint)
-    {
-        credpro = creds;
-        reg = region;
-        acclim = accessLimit;
-        ep = endpoint;
+    public AWSS3ClientProvider(AwsCredentialsProvider creds, String region, int accessLimit, String endpoint) {
+        this.credProvider = creds;
+        this.region = region;
+        this.accessLimit = accessLimit;
+        this.endpoint = endpoint;
         refresh();
     }
-    
-    /**
-     * return the maximum number of accesses allowed before the client is recreated
-     */
-    public int getAccessLimit() { return acclim; }
 
     /**
-     * return the S3 client
+     * Return the S3 client.
      */
-    public synchronized AmazonS3 client() {
-        if (accesses >= acclim || s3 == null)
+    public synchronized S3Client client() {
+        if (accesses >= accessLimit || s3 == null) {
             refresh();
+        }
         accesses++;
         return s3;
     }
 
     /**
-     * free up the client resources and recreate the client
+     * Refresh the S3 client (recreate it).
      */
     public synchronized void refresh() {
-        /*
-        if (s3 != null)
-            s3.shutdown();
-        */
-        log.info("FYI: Refreshing the S3 client");
-        AmazonS3ClientBuilder bldr = AmazonS3Client.builder().standard()
-                                                             .withCredentials(credpro);
-        if (ep == null)
-            bldr.withRegion(reg);
-        else 
-            bldr.withEndpointConfiguration(new EndpointConfiguration(ep, reg))
-                .enablePathStyleAccess();
-        s3 = bldr.build();
+        log.info("Refreshing the S3 client");
+        S3ClientBuilder builder = S3Client.builder()
+                .credentialsProvider(credProvider)
+                .region(Region.of(region));
 
+        if (endpoint != null) {
+            builder.endpointOverride(URI.create(endpoint))
+                   .serviceConfiguration(S3Configuration.builder()
+                           .pathStyleAccessEnabled(true)
+                           .build());
+        }
+
+        if (s3 != null) {
+            s3.close();
+        }
+
+        s3 = builder.build();
         accesses = 0;
     }
 
     /**
-     * return the number of accesses are left before the client is refreshed
-     */
-    public int accessesLeft() {
-        if (s3 == null)
-            return 0;
-        return acclim - accesses;
-    }
-
-    /**
-     * free up resources by shutting down the client
+     * Shut down the S3 client and free resources.
      */
     public synchronized void shutdown() {
         if (s3 != null) {
-            s3.shutdown();
+            s3.close();
             s3 = null;
         }
         accesses = 0;
     }
 
-    public Object clone() {
-        return new AWSS3ClientProvider(credpro, reg, acclim, ep);
+    /**
+     * Return the number of accesses left before a refresh is triggered.
+     */
+    public int accessesLeft() {
+        if (s3 == null) return 0;
+        return accessLimit - accesses;
     }
+
+    @Override
+    public Object clone() {
+        return new AWSS3ClientProvider(credProvider, region, accessLimit, endpoint);
+    }
+
     public AWSS3ClientProvider cloneMe() {
         return (AWSS3ClientProvider) clone();
     }

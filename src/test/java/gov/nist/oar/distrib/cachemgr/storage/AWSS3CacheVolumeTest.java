@@ -13,152 +13,203 @@
 package gov.nist.oar.distrib.cachemgr.storage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ByteArrayInputStream;
-import java.io.Reader;
-import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.json.JSONException;
-
-import org.junit.Before;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
-
 // import io.findify.s3mock.S3Mock;
 import gov.nist.oar.distrib.storage.S3MockTestRule;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.waiters.WaiterResponse;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 
 public class AWSS3CacheVolumeTest {
 
-    // static S3Mock api = new S3Mock.Builder().withPort(port).withInMemoryBackend().build();
+    // static S3Mock api = new
+    // S3Mock.Builder().withPort(port).withInMemoryBackend().build();
     @ClassRule
     public static S3MockTestRule siterule = new S3MockTestRule();
 
-    private static Logger logger = LoggerFactory.getLogger(AWSS3CacheVolumeTest.class);
-
-    static int port = 9001;
     static final String bucket = "oar-cv-test";
     static final String folder = "cach";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
-    static AmazonS3 s3client = null;
+    static S3Client s3client = null;
     AWSS3CacheVolume s3cv = null;
-  
-    @BeforeClass
-    public static void setUpClass() throws IOException {
-        s3client = createS3Client();
-        
-        if (s3client.doesBucketExistV2(bucket))
-            destroyBucket();
-        s3client.createBucket(bucket);
 
-        // create folder
-        ObjectMetadata md = new ObjectMetadata();
-        md.setContentLength(0);
-        InputStream mt = new ByteArrayInputStream(new byte[0]);
+    @BeforeClass
+    public static void setUpClass() {
+        s3client = createS3Client();
+
+        // Check if bucket exists and destroy it if necessary
+        if (bucketExists(bucket)) {
+            destroyBucket();
+        }
+
+        // Create the bucket
+        s3client.createBucket(CreateBucketRequest.builder()
+                .bucket(bucket)
+                .build());
+
+        // Create the folder using the updated logic
+        createFolder(bucket, folder, s3client);
+    }
+
+    public static void createFolder(String bucketName, String folderName, S3Client client) {
+        // Ensure folder name ends with a trailing slash
+        folderName = folderName.endsWith("/") ? folderName : folderName + "/";
+
+        // Create the folder as an empty object
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(folderName)
+                .build();
+        client.putObject(putRequest, RequestBody.empty());
+
+        // Wait for the folder to exist
+        S3Waiter waiter = client.waiter();
+        HeadObjectRequest headRequest = HeadObjectRequest.builder()
+                .bucket(bucketName)
+                .key(folderName)
+                .build();
+
+        WaiterResponse<HeadObjectResponse> waiterResponse = waiter.waitUntilObjectExists(headRequest);
+        waiterResponse.matched().response()
+                .ifPresent(response -> System.out.println("Folder creation confirmed: " + response));
+
+        System.out.println("Folder " + folderName + " is ready.");
+    }
+
+    public static S3Client createS3Client() {
+        final AwsBasicCredentials credentials = AwsBasicCredentials.create("foo", "bar");
+        final String endpoint = "http://localhost:9090/";
+        return S3Client.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .region(Region.of("us-east-1"))
+                .endpointOverride(URI.create(endpoint))
+                .forcePathStyle(true) // Required for S3Mock
+                .build();
+    }
+
+    private static boolean bucketExists(String bucketName) {
         try {
-            s3client.putObject(bucket, folder+"/", mt, md);
-        } finally {
-            try { mt.close(); } catch (IOException ex) { }
+            s3client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            return true;
+        } catch (NoSuchBucketException e) {
+            return false;
         }
     }
 
-    public static AmazonS3 createS3Client() {
-        // import credentials from the EC2 machine we are running on
-        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
-        final String endpoint = "http://localhost:9090/";
-        final String region = "us-east-1";
-        EndpointConfiguration epconfig = new EndpointConfiguration(endpoint, region);
+    private static void destroyBucket() {
+        ListObjectsV2Response listResponse = s3client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .build());
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                                        .withEndpointConfiguration(epconfig)
-                                        .enablePathStyleAccess()
-                                        .build();
-        return client;
+        // Delete all objects
+        List<String> keys = listResponse.contents().stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
+
+        for (String key : keys) {
+            s3client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+        }
+
+        // Delete the bucket
+        s3client.deleteBucket(DeleteBucketRequest.builder()
+                .bucket(bucket)
+                .build());
     }
 
     @Before
-    public void setUp() throws IOException {
-        // confirm that our bucket folder exists
-        //
-        // Note that adobe/s3mock behaves differently than the real AWS service when listing objects:
-        // in the latter, a prefix with a trailing slash will match an AWS "folder" with whose
-        // name matches the prefix.
-        // 
-        String prefix = folder;
-        for (S3ObjectSummary os : s3client.listObjectsV2(bucket, prefix).getObjectSummaries())
-            if (os.getKey().equals(prefix+"/"))
-                prefix = null;   // we found the folder
-        assertNull(prefix);
-        
-        s3cv = new AWSS3CacheVolume(bucket, "cach", s3client);
+    public void setUp() {
+        // Verify folder exists in the bucket
+        String folderKey = folder + "/";
+        assertTrue("Folder does not exist: " + folder, folderExists(bucket, folderKey));
+
+        // Initialize AWSS3CacheVolume
+        try {
+            s3cv = new AWSS3CacheVolume(bucket, folder, s3client);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize AWSS3CacheVolume", e);
+        }
     }
 
     @After
     public void tearDown() {
         s3cv = null;
-        // delete contents of bucket
         depopulateFolder();
     }
 
-    @AfterClass
-    public static void tearDownClass() {
-        destroyBucket();
-        // api.shutdown();
-    }
+    private void depopulateFolder() {
+        String folderKey = folder + "/";
+        List<String> keysToDelete = s3client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(folderKey)
+                .build())
+                .contents()
+                .stream()
+                .filter(obj -> !obj.key().equals(folderKey)) // Skip the folder itself
+                .map(S3Object::key)
+                .collect(Collectors.toList());
 
-    public static void destroyBucket() {
-        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
-        for (S3ObjectSummary f : files) 
-            s3client.deleteObject(bucket, f.getKey());
-        s3client.deleteBucket(bucket);
-    }
+        if (!keysToDelete.isEmpty()) {
+            DeleteObjectsRequest deleteRequest = DeleteObjectsRequest.builder()
+                    .bucket(bucket)
+                    .delete(Delete.builder()
+                            .objects(keysToDelete.stream()
+                                    .map(key -> ObjectIdentifier.builder().key(key).build())
+                                    .collect(Collectors.toList()))
+                            .build())
+                    .build();
 
-    public void depopulateFolder() throws AmazonServiceException {
-        List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<DeleteObjectsRequest.KeyVersion>();
-        String prefix = folder+"/";
-        for (S3ObjectSummary os : s3client.listObjectsV2(bucket, prefix).getObjectSummaries()) {
-            if (! os.getKey().equals(prefix))
-                keys.add(new DeleteObjectsRequest.KeyVersion(os.getKey()));
+            s3client.deleteObjects(deleteRequest);
         }
-        DeleteObjectsRequest dor = new DeleteObjectsRequest(bucket).withKeys(keys);
-        if (dor.getKeys().size() > 0)
-            s3client.deleteObjects(dor);
     }
 
     @Test
@@ -178,76 +229,121 @@ public class AWSS3CacheVolumeTest {
     }
 
     @Test
-    public void testEnsureFolder() throws AmazonServiceException {
-        String subdir = folder+"/goob";
-        assertTrue(! s3client.doesObjectExist(bucket, subdir+"/"));
+    public void testEnsureFolder() {
+        String subdir = folder + "/goob";
+        String folderKey = subdir + "/";
+
+        // Ensure the folder doesn't exist initially
+        assertTrue(!folderExists(bucket, folderKey));
         assertTrue(AWSS3CacheVolume.ensureBucketFolder(s3client, bucket, subdir));
-        assertTrue(s3client.doesObjectExist(bucket, subdir+"/"));
+        assertTrue(folderExists(bucket, folderKey));
 
-        String subobj = subdir+"/gurn";
-        ObjectMetadata md = new ObjectMetadata();
+        // Add an object to the folder
+        String subobj = subdir + "/gurn";
         byte[] obj = "1".getBytes();
-        md.setContentLength(obj.length);
-        InputStream is = new ByteArrayInputStream(obj);
-        try {
-            s3client.putObject(bucket, subobj, is, md);
-        } finally {
-            try { is.close(); } catch (IOException ex) { }
-        }
-        assertTrue(s3client.doesObjectExist(bucket, subobj));
 
-        assertTrue(! AWSS3CacheVolume.ensureBucketFolder(s3client, bucket, subdir));
-        assertTrue(s3client.doesObjectExist(bucket, subdir+"/"));
-        assertTrue(s3client.doesObjectExist(bucket, subobj));
+        try (InputStream is = new ByteArrayInputStream(obj)) {
+            s3client.putObject(PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(subobj)
+                    .contentLength((long) obj.length)
+                    .build(),
+                    RequestBody.fromInputStream(is, obj.length));
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to upload object", ex);
+        }
+
+        assertTrue(objectExists(bucket, subobj));
+
+        // Ensuring the folder again should return false
+        assertTrue(!AWSS3CacheVolume.ensureBucketFolder(s3client, bucket, subdir));
+        assertTrue(folderExists(bucket, folderKey));
+        assertTrue(objectExists(bucket, subobj));
     }
 
     @Test
     public void testExists() throws StorageVolumeException {
         String objname = String.format("%s/goob", folder);
-        assertTrue(! s3cv.exists("goob"));
-        
-        ObjectMetadata md = new ObjectMetadata();
+        assertTrue(!s3cv.exists("goob"));
+
         byte[] obj = "1".getBytes();
-        md.setContentLength(obj.length);
-        InputStream is = new ByteArrayInputStream(obj);
-        try {
-            s3client.putObject(bucket, objname, is, md);
-        } finally {
-            try { is.close(); } catch (IOException ex) { }
+        try (InputStream is = new ByteArrayInputStream(obj)) {
+            s3client.putObject(PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objname)
+                    .contentLength((long) obj.length)
+                    .build(),
+                    RequestBody.fromInputStream(is, obj.length));
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to upload object", ex);
         }
-        assertTrue(s3client.doesObjectExist(bucket, objname));
+
+        assertTrue(objectExists(bucket, objname));
         assertTrue(s3cv.exists("goob"));
 
+        // Remove the object
         s3cv.remove("goob");
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("goob"));
+        assertTrue(!objectExists(bucket, objname));
+        assertTrue(!s3cv.exists("goob"));
     }
 
     @Test
     public void testSaveAs() throws StorageVolumeException {
         String objname = folder + "/test.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
+        assertTrue(!objectExists(bucket, objname));
+        assertTrue(!s3cv.exists("test.txt"));
 
         byte[] obj = "hello world.\n".getBytes();
         JSONObject md = new JSONObject();
         md.put("size", obj.length);
         md.put("contentType", "text/plain");
-        InputStream is = new ByteArrayInputStream(obj);
 
-        try {
+        try (InputStream is = new ByteArrayInputStream(obj)) {
             s3cv.saveAs(is, "test.txt", md);
-        } finally {
-            try { is.close(); } catch (IOException ex) { }
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to upload object", ex);
         }
-        assertTrue(s3client.doesObjectExist(bucket, objname));
+
+        assertTrue(objectExists(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
         assertTrue("metadata not updated with 'modified'", md.has("modified"));
+
         long mod = md.getLong("modified");
-        assertTrue("Bad mod date: "+Long.toString(mod), mod > 0L);
+        assertTrue("Bad mod date: " + Long.toString(mod), mod > 0L);
         String vcs = md.getString("volumeChecksum");
-        assertTrue("Bad volume checksum: "+vcs,
-                   vcs.startsWith("etag ") && vcs.length() > 36);
+        assertTrue("Bad volume checksum: " + vcs,
+                vcs.startsWith("etag ") && vcs.length() > 36);
+    }
+
+    // Helper method to check if an object exists
+    private boolean objectExists(String bucket, String key) {
+        try {
+            s3client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+            return true;
+        } catch (S3Exception e) {
+            return false;
+        }
+    }
+
+    // Helper method to check if a folder exists
+    public boolean folderExists(String bucketName, String folderName) {
+        try {
+            HeadObjectRequest request = HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(folderName)
+                    .build();
+
+            s3client.headObject(request);
+            return true;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw e;
+        }
     }
 
     @Test
@@ -257,15 +353,15 @@ public class AWSS3CacheVolumeTest {
         CacheObject co = s3cv.get("test.txt");
         assertEquals(co.getSize(), obj.length);
         long mod = co.getLastModified();
-        assertTrue("Bad mod time: "+Long.toString(mod), mod > 0L);
-        assertEquals(co.getMetadatumString("contentType",""), "text/plain");
+        assertTrue("Bad mod time: " + Long.toString(mod), mod > 0L);
+        assertEquals(co.getMetadatumString("contentType", ""), "text/plain");
     }
 
     @Test
     public void testSaveAsWithMD5() throws StorageVolumeException {
         String objname = folder + "/test.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
+        assertTrue(!objectExists(bucket, objname));
+        assertTrue(!s3cv.exists("test.txt"));
 
         byte[] obj = "hello world.\n".getBytes();
         JSONObject md = new JSONObject();
@@ -277,47 +373,52 @@ public class AWSS3CacheVolumeTest {
         try {
             s3cv.saveAs(is, "test.txt", md);
         } finally {
-            try { is.close(); } catch (IOException ex) { }
+            try {
+                is.close();
+            } catch (IOException ex) {
+            }
         }
-        assertTrue(s3client.doesObjectExist(bucket, objname));
+        assertTrue(objectExists(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
         assertEquals(md.getString("contentMD5"), "JjJWGp65Tg0F4+AyzFre7Q==");
 
         // the etag should be an MD5 sum, but for some reason it is not
-        // assertEquals(md.getString("volumeChecksum"), "etag JjJWGp65Tg0F4+AyzFre7Q==");
+        // assertEquals(md.getString("volumeChecksum"), "etag
+        // JjJWGp65Tg0F4+AyzFre7Q==");
     }
 
     /*
      * this test is unreliable with S3Mock
      *
-    @Test
-    public void testSaveAsWithBadSize() throws StorageVolumeException {
-        String objname = folder + "/test.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
-
-        byte[] obj = "hello world.\n".getBytes();
-        JSONObject md = new JSONObject();
-        md.put("size", 5);
-        md.put("contentType", "text/plain");
-        InputStream is = new ByteArrayInputStream(obj);
-
-        try {
-            s3cv.saveAs(is, "test.txt", md);
-            fail("Failed to detect bad size");
-        } catch (StorageVolumeException ex) {
-            // Expected!
-            assertTrue("Failed for the wrong reason: "+ex.getMessage(),
-                       ex.getMessage().contains("correct number of bytes"));
-        } finally {
-            try { is.close(); } catch (IOException ex) { }
-        }
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        //
-        // NOTE!  That this assert sometimes fails is believed to be an issue with S3Mock
-        // assertTrue(! s3cv.exists("test.txt"));
-    }
-    */
+     * @Test
+     * public void testSaveAsWithBadSize() throws StorageVolumeException {
+     * String objname = folder + "/test.txt";
+     * assertTrue(! s3client.doesObjectExist(bucket, objname));
+     * assertTrue(! s3cv.exists("test.txt"));
+     * 
+     * byte[] obj = "hello world.\n".getBytes();
+     * JSONObject md = new JSONObject();
+     * md.put("size", 5);
+     * md.put("contentType", "text/plain");
+     * InputStream is = new ByteArrayInputStream(obj);
+     * 
+     * try {
+     * s3cv.saveAs(is, "test.txt", md);
+     * fail("Failed to detect bad size");
+     * } catch (StorageVolumeException ex) {
+     * // Expected!
+     * assertTrue("Failed for the wrong reason: "+ex.getMessage(),
+     * ex.getMessage().contains("correct number of bytes"));
+     * } finally {
+     * try { is.close(); } catch (IOException ex) { }
+     * }
+     * assertTrue(! s3client.doesObjectExist(bucket, objname));
+     * //
+     * // NOTE! That this assert sometimes fails is believed to be an issue with
+     * S3Mock
+     * // assertTrue(! s3cv.exists("test.txt"));
+     * }
+     */
 
     /*
      * S3Mock apparently does not check contentMD5 values
@@ -326,8 +427,8 @@ public class AWSS3CacheVolumeTest {
     @Test
     public void testSaveAsWithBadMD5() throws StorageVolumeException {
         String objname = folder + "/test.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
+        assertTrue(!objectExists(bucket, objname));
+        assertTrue(!s3cv.exists("test.txt"));
 
         byte[] obj = "hello world.\n".getBytes();
         JSONObject md = new JSONObject();
@@ -341,26 +442,30 @@ public class AWSS3CacheVolumeTest {
             fail("Failed to detect bad MD5 sum");
         } catch (StorageVolumeException ex) {
             // Expected!
-            assertTrue("Failed for the wrong reason: "+ex.getMessage(),
-                       ex.getMessage().contains("md5 transfer"));
+            assertTrue("Failed for the wrong reason: " + ex.getMessage(),
+                ex.getMessage().contains("MD5 checksum mismatch for object"));
         } finally {
-            try { is.close(); } catch (IOException ex) { }
+            try {
+                is.close();
+            } catch (IOException ex) {
+            }
         }
         assertTrue("Failed transfered object not deleted from bucket",
-                   ! s3client.doesObjectExist(bucket, objname));
+                !objectExists(bucket, objname));
         assertTrue("Failed transfered object not deleted from volume",
-                   ! s3cv.exists("test.txt"));
+                !s3cv.exists("test.txt"));
     }
 
     @Test
     public void testGetStream() throws StorageVolumeException, IOException {
         String objname = folder + "/test.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
+        assertTrue(!objectExists(bucket, objname));
 
         try {
             s3cv.getStream("test.txt");
             fail("Missing object did not throw ObjectNotFoundException");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+        }
 
         testSaveAs();
         InputStream is = s3cv.getStream("test.txt");
@@ -369,27 +474,30 @@ public class AWSS3CacheVolumeTest {
         try {
             assertEquals(rdr.readLine(), "hello world.");
             assertNull(rdr.readLine());
-        }
-        finally {
-            try { rdr.close(); } catch (IOException ex) { }
+        } finally {
+            try {
+                rdr.close();
+            } catch (IOException ex) {
+            }
         }
 
         s3cv.remove("test.txt");
-        assertTrue(! s3client.doesObjectExist(bucket, objname));
-        assertTrue(! s3cv.exists("test.txt"));
+        assertTrue(!objectExists(bucket, objname));
+        assertTrue(!s3cv.exists("test.txt"));
     }
 
     @Test
     public void getSaveObject() throws StorageVolumeException {
         String objname1 = folder + "/test.txt";
         String objname2 = folder + "/gurn.txt";
-        assertTrue(! s3client.doesObjectExist(bucket, objname1));
-        assertTrue(! s3client.doesObjectExist(bucket, objname2));
+        assertTrue(!objectExists(bucket, objname1));
+        assertTrue(!objectExists(bucket, objname2));
 
         try {
             s3cv.get("test.txt");
             fail("Missing object did not throw ObjectNotFoundException");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+        }
 
         testSaveAs();
         CacheObject co = s3cv.get("test.txt");
@@ -402,21 +510,19 @@ public class AWSS3CacheVolumeTest {
         assertEquals(co.score, 0.0, 0.0);
 
         s3cv.saveAs(co, "gurn.txt");
-        assertTrue(s3client.doesObjectExist(bucket, objname1));
-        assertTrue(s3client.doesObjectExist(bucket, objname2));
+        assertTrue(objectExists(bucket, objname1));
+        assertTrue(objectExists(bucket, objname2));
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testRedirectForUnsupported()
-        throws StorageVolumeException, UnsupportedOperationException, IOException
-    {
+            throws StorageVolumeException, UnsupportedOperationException, IOException {
         s3cv.getRedirectFor("goober");
     }
 
     @Test
     public void testRedirectFor()
-        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
-    {
+            throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException {
         s3cv = new AWSS3CacheVolume(bucket, "cach", s3client, "https://ex.org/");
         assertEquals(new URL("https://ex.org/goober"), s3cv.getRedirectFor("goober"));
         assertEquals(new URL("https://ex.org/i%20a/m%20groot"), s3cv.getRedirectFor("i a/m groot"));
@@ -424,11 +530,10 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testRedirectFor2()
-        throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException
-    {
+            throws StorageVolumeException, UnsupportedOperationException, IOException, MalformedURLException {
         s3cv = new AWSS3CacheVolume(bucket, "cach", s3client, "https://ex.org/");
         testSaveAs();
-        String burl = "http://localhost:9090//"+bucket+"/"+folder+"/";
-        assertEquals(new URL(burl+"test.txt"), s3cv.getRedirectFor("test.txt"));
+        String burl = "http://localhost:9090/" + bucket + "/" + folder + "/";
+        assertEquals(new URL(burl + "test.txt"), s3cv.getRedirectFor("test.txt"));
     }
 }

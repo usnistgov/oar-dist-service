@@ -11,7 +11,31 @@
  */
 package gov.nist.oar.distrib.web;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.activation.MimetypesFileTypeMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.util.UrlPathHelper;
+
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
@@ -24,33 +48,10 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import javax.activation.MimetypesFileTypeMap;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
-import org.springframework.web.util.UrlPathHelper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
     
 
 /**
@@ -172,7 +173,7 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired AmazonS3             s3client;    // set via getter below
+    @Autowired S3Client             s3client;    // set via getter below
     @Autowired BagStorage                lts;    // set via getter below
     @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
     @Autowired CacheManagerProvider cmgrprov;    // set via getter below
@@ -183,17 +184,20 @@ public class NISTDistribServiceConfig {
     @Bean
     public BagStorage getLongTermStorage() throws ConfigurationException {
         try {
-            if (mode.equals("aws") || mode.equals("remote")) 
+            if (mode.equals("aws") || mode.equals("remote")) {
                 return new AWSS3LongTermStorage(bagstore, s3client);
-            else if (mode.equals("local")) 
+            } else if (mode.equals("local")) {
                 return new FilesystemLongTermStorage(bagstore);
-            else
+            } else {
                 throw new ConfigurationException("distrib.bagstore.mode",
-                                                 "Unsupported storage mode: "+ mode);
-        }
-        catch (FileNotFoundException ex) {
+                        "Unsupported storage mode: " + mode);
+            }
+        } catch (FileNotFoundException ex) {
             throw new ConfigurationException("distrib.bagstore.location",
-                                             "Storage Location not found: "+ex.getMessage(), ex);
+                    "Storage Location not found: " + ex.getMessage(), ex);
+        } catch (StorageVolumeException ex) {
+            throw new ConfigurationException("distrib.bagstore.aws",
+                    "Storage volume exception: " + ex.getMessage(), ex);
         }
     }
 
@@ -202,22 +206,29 @@ public class NISTDistribServiceConfig {
      * the client for access S3 storage
      */
     @Bean
-    public AmazonS3 getAmazonS3() throws ConfigurationException {
+    public S3Client getAmazonS3() throws ConfigurationException {
         logger.info("Creating S3 client");
 
-        if (mode.equals("remote"))
+        // Check if "remote" mode is supported
+        if ("remote".equalsIgnoreCase(mode)) {
             throw new ConfigurationException("Remote credentials not supported yet");
+        }
 
-        // import credentials from the EC2 machine we are running on
-        InstanceProfileCredentialsProvider provider = InstanceProfileCredentialsProvider.getInstance();
+        try {
+            // Use default credential provider chain (supports EC2 instance profiles)
+            S3Client client = S3Client.builder()
+                    .credentialsProvider(InstanceProfileCredentialsProvider.create())
+                    .region(Region.of(region))
+                    .build();
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .standard()                 
-                                        .withCredentials(provider)
-                                        .withRegion(region)
-                                        .build();
-        return client;
+            logger.info("S3 client created successfully for region: {}", region);
+            return client;
+        } catch (Exception e) {
+            logger.error("Failed to create S3 client: {}", e.getMessage(), e);
+            throw new ConfigurationException("Error creating S3 client: " + e.getMessage(), e);
+        }
     }
+
 
     /**
      * the MIME type assignments to use when setting content types
@@ -274,7 +285,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public CacheManagerProvider getCacheManagerProvider(NISTCacheManagerConfig config,
-                                                        BagStorage bagstor, AmazonS3 s3client)
+                                                        BagStorage bagstor, S3Client s3client)
     {
         return new CacheManagerProvider(config, bagstor, s3client);
     }
@@ -296,7 +307,7 @@ public class NISTDistribServiceConfig {
     @Bean
     public RPACachingServiceProvider getRPACachingServiceProvider(NISTCacheManagerConfig cmConfig,
                                                                   RPAConfiguration rpaConfig,
-                                                                  BagStorage bagstor, AmazonS3 s3client)
+                                                                  BagStorage bagstor, S3Client s3client)
     {
         return new RPACachingServiceProvider(cmConfig, rpaConfig, bagstor, s3client);
     }
