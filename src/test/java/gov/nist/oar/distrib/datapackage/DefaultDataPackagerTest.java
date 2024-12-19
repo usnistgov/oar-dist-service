@@ -126,16 +126,38 @@ public class DefaultDataPackagerTest {
 
     @Test
     public void testGetData() throws DistributionException, MalformedURLException, IOException, InputLimitException {
-	val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/404\"}";
-	createBundleRequest();
-	int countBefore = 2;
-	this.createBundleStream();
-	dp.getData(zos);
-	zos.close();
-	int countAfter = this.checkFilesinZip(path);
-	assertNotEquals(countBefore, countAfter);
+        val1 = "{\"filePath\":\"/1894/license.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+        val2 = "{\"filePath\":\"/file.txt\",\"downloadUrl\":\"https://httpstat.us/404\"}";
+        createBundleRequest();
+        int expectedCount = 1;
+        this.createBundleStream();
+        dp.getData(zos);
+        zos.close();
+        // Initialize file count and process ZIP entries
+        int actualCount = 0;
+        try (ZipFile zipFile = new ZipFile(path.toString())) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                System.out.println("entryname: " + entry.getName());
 
+                // Validate the transformed file paths
+                if (entry.getName().contains("license.pdf")) {
+                    assertEquals("/1894/license.pdf", entry.getName()); // No transformation for short recordid
+                } else if (entry.getName().equalsIgnoreCase("/DownloadErrors.txt")) {
+                    continue; // Skip error file, if present
+                }
+
+                actualCount++; // Increment the count for valid entries
+            }
+        } catch (IOException ixp) {
+            logger.error(
+                    "There is an error while reading zip file contents in the getBundleZip test." + ixp.getMessage());
+            throw ixp;
+        }
+
+        // Assert the number of valid entries in the ZIP file
+        assertEquals(expectedCount, actualCount); // Expect exactly 2 valid files
     }
 
     @Rule
@@ -199,7 +221,7 @@ public class DefaultDataPackagerTest {
 
 		ZipEntry entry = entries.nextElement();
 		System.out.println("entryname:" + entry.getName());
-		if (!entry.getName().equalsIgnoreCase("/PackagingErrors.txt"))
+		if (!entry.getName().equalsIgnoreCase("/DownloadErrors.txt"))
 		    count++;
 
 	    }
