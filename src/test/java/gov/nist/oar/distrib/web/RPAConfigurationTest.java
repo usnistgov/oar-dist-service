@@ -31,5 +31,14 @@ public class RPAConfigurationTest {
         assertTrue(config.getDisallowedCountries().contains("Cuba"));
         assertTrue(config.getDisallowedCountries().contains("North Korea"));
         assertEquals(1209600000L, config.getExpiresAfterMillis());
+
+        // Validate pre-approved email template
+        RPAConfiguration.EmailTemplate preApprovedEmail = config.preApprovedEmail();
+        assertNotNull(preApprovedEmail);
+        assertEquals("Your Data is Ready for Download", preApprovedEmail.getSubject());
+        assertEquals(
+            "<p>Hello ${FULL_NAME},<br><br>Your request for data related to <strong>${DATASET_NAME}</strong> has been processed.",
+            preApprovedEmail.getContent()
+        );
     }
 }

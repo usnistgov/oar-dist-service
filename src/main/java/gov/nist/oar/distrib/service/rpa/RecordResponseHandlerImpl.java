@@ -94,20 +94,13 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
     
     /**
      * Called when a pre-approved record creation operation succeeds.
-     * Handles caching and sends both confirmation and download emails immediately.
+     * Sends download email to user.
      * @param record The newly created pre-approved record
      * @param randomId The unique identifier for the cached dataset associated with the record
      */
     @Override
     public void onPreApprovedRecordCreationSuccess(Record record, String randomId) throws RequestProcessingException {
         LOGGER.debug("Handling success for pre-approved record with ID: " + record.getId());
-
-        // Send confirmation email to the user
-        if (this.emailSender.sendConfirmationEmailToEndUser(record)) {
-            LOGGER.debug("Confirmation email sent successfully for pre-approved record (RecordID=" + record.getId() + ")");
-        } else {
-            throw new RequestProcessingException("Failed to send confirmation email for pre-approved record");
-        }
 
         // Generate the download URL
         String downloadUrl;
@@ -119,14 +112,15 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        
-        // Send download email to the user
-        if (this.emailSender.sendDownloadEmailToEndUser(record, downloadUrl)) {
-            LOGGER.debug("Download email sent successfully for pre-approved record (RecordID=" + record.getId() + ")");
+
+        // Send combined email for pre-approved record
+        if (this.emailSender.sendPreApprovedEmailToEndUser(record, downloadUrl)) {
+            LOGGER.debug("Pre-approved email sent successfully (RecordID=" + record.getId() + ")");
         } else {
-            throw new RequestProcessingException("Failed to send download email for pre-approved record");
+            throw new RequestProcessingException("Failed to send pre-approved email");
         }
     }
+
 
 
     /**
@@ -255,6 +249,20 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             LOGGER.debug("EMAIL_INFO=" + emailInfo);
             return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
         }
+
+        /**
+         * Sends a combined email for pre-approved records.
+         *
+         * @param record - the record for which to send the email
+         * @param downloadUrl - the download URL to include in the email
+         * @return true if the email was sent successfully, false otherwise
+         */
+        private boolean sendPreApprovedEmailToEndUser(Record record, String downloadUrl) throws InvalidRequestException, RequestProcessingException {
+            EmailInfo emailInfo = EmailHelper.getEndUserPreApprovedEmailInfo(record, this.rpaConfiguration, downloadUrl);
+            LOGGER.debug("EMAIL_INFO=" + emailInfo);
+            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+        }
+
 
         /**
          * Sends a declined email to the end user for the given record.
