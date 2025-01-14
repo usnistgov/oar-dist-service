@@ -13,34 +13,33 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.bags.preservation.BagUtils;
-
-import java.io.File;
-import java.io.FileReader;
 import java.io.BufferedReader;
-import java.io.FileWriter;
 import java.io.BufferedWriter;
-import java.io.IOException;
+import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Path;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
-import java.util.Collection;
-import java.util.Deque;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Comparator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.json.JSONException;
+
+import gov.nist.oar.bags.preservation.BagUtils;
 
 /**
  * An interface for caching metadata information about datasets as part saving data file to the 

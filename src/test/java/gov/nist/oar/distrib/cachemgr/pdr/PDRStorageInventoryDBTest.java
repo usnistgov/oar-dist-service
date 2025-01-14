@@ -13,72 +13,67 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 
-import java.io.IOException;
-import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.HashMap;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import java.sql.DriverManager;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
-
-/**
- * this test also tests the PDRStorageInventoryDB implementation
- */
 public class PDRStorageInventoryDBTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    File tempDir;
 
     class TestPDRStorageInventoryDB extends PDRStorageInventoryDB {
         protected String dbfile = null;
         public TestPDRStorageInventoryDB(String filepath) {
-            // we're allowing the file path to include the jdbc URL prefix.
-            super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
-            dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length())
-                                                           : filepath;
+            super((filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:" + filepath);
+            dbfile = (filepath.startsWith("jdbc:sqlite:")) ? filepath.substring("jdbc:sqlite:".length()) : filepath;
         }
-        public int do_getVolumeID(String name) throws InventoryException { return getVolumeID(name); }
+        public int do_getVolumeID(String name) throws InventoryException {
+            return getVolumeID(name);
+        }
         public int do_getAlgorithmID(String name) throws InventoryException {
             return getAlgorithmID(name);
         }
     }
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
+        File tf = new File(tempDir, "testdb.sqlite");
         String out = tf.getAbsolutePath();
         PDRStorageInventoryDB.initializeSQLiteDB(out);
         return out;
     }
 
     List<String> getStringColumn(ResultSet rs, int colindex) throws SQLException {
-        ArrayList<String> out = new ArrayList<String>();
-        // rs.first();
+        ArrayList<String> out = new ArrayList<>();
         while (rs.next()) {
             out.add(rs.getString(colindex));
         }
@@ -86,8 +81,7 @@ public class PDRStorageInventoryDBTest {
     }
 
     List<String> getStringColumn(ResultSet rs, String colname) throws SQLException {
-        ArrayList<String> out = new ArrayList<String>();
-        // rs.first();
+        ArrayList<String> out = new ArrayList<>();
         while (rs.next()) {
             out.add(rs.getString(colname));
         }
@@ -108,9 +102,9 @@ public class PDRStorageInventoryDBTest {
         // check that our tables are defined
         String[] ss = { "TABLE" };
         svals = getStringColumn(dmd.getTables(null, null, null, ss), "TABLE_NAME");
-        assertTrue("Missing volumes table", svals.contains("volumes"));
-        assertTrue("Missing algorithms table", svals.contains("algorithms"));
-        assertTrue("Missing objects table", svals.contains("objects"));
+        assertTrue(svals.contains("volumes"), "Missing volumes table");
+        assertTrue(svals.contains("algorithms"), "Missing algorithms table");
+        assertTrue(svals.contains("objects"), "Missing objects table");
     }
 
     @Test
@@ -151,8 +145,8 @@ public class PDRStorageInventoryDBTest {
 
         sidb.registerVolume("foobar", 450000, md);
         Collection<String> got = sidb.volumes();
-        assertTrue("foobar not included in volumes", got.contains("foobar"));
-        assertTrue("fundrum not included in volumes", got.contains("foobar"));
+        assertTrue(got.contains("foobar"),"foobar not included in volumes");
+        assertTrue(got.contains("foobar"), "fundrum not included in volumes");
         assertEquals(2, got.size());
         md = sidb.getVolumeInfo("fundrum");
         assertEquals(200000, md.getInt("capacity"));
@@ -169,10 +163,10 @@ public class PDRStorageInventoryDBTest {
 
         PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
         sidb.registerVolume("fundrum", 150000, null);
-        assertEquals(sidb.VOL_FOR_UPDATE, sidb.getVolumeStatus("fundrum"));
+        assertEquals(VolumeStatus.VOL_FOR_UPDATE, sidb.getVolumeStatus("fundrum"));
 
         sidb.setVolumeStatus("fundrum", 0);
-        assertEquals(sidb.VOL_DISABLED, sidb.getVolumeStatus("fundrum"));
+        assertEquals(VolumeStatus.VOL_DISABLED, sidb.getVolumeStatus("fundrum"));
 
         sidb.setVolumeStatus("fundrum", 8);
         assertEquals(8, sidb.getVolumeStatus("fundrum"));
@@ -191,10 +185,8 @@ public class PDRStorageInventoryDBTest {
             fail("setVolumeStatus() failed to detect unregistered volume");
         }
         catch (InventoryException ex) {
-            assertTrue("Unexpected message: "+ex.getMessage(),
-                       ex.getMessage().contains("goober"));
-            assertTrue("Unexpected message: "+ex.getMessage(),
-                       ex.getMessage().contains("registered"));
+            assertTrue(ex.getMessage().contains("goober"), "Unexpected message: "+ex.getMessage());
+            assertTrue(ex.getMessage().contains("registered"), "Unexpected message: "+ex.getMessage());
         }
     }
 
@@ -213,34 +205,31 @@ public class PDRStorageInventoryDBTest {
         assertEquals("1234_goober.json", cob.name);
         assertEquals(-1L, cob.getSize());
         assertEquals(4, cob.metadatumNames().size());
-        assertTrue("size not in metadata properties",
-                   cob.metadatumNames().contains("size"));
-        assertTrue("priority not in metadata properties",
-                   cob.metadatumNames().contains("priority"));
-        assertTrue("since not in metadata properties",
-                   cob.metadatumNames().contains("since"));
-        assertTrue("sinceDate not in metadata properties",
-                   cob.metadatumNames().contains("sinceDate"));
+        assertTrue(cob.metadatumNames().contains("size"), "size not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("priority"), "priority not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("since"),"since not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("sinceDate"), "sinceDate not in metadata properties");
         long since = cob.getMetadatumLong("since", -1L);
-        assertTrue("unexpected since value: "+Long.toString(since), since > 0);
+        assertTrue(since > 0, "unexpected since value: "+Long.toString(since));
         
         List<CacheObject> cos = sidb.findObject("1234/goober.json");
         assertEquals(1, cos.size());
         assertEquals("1234_goober.json", cos.get(0).name);
         assertEquals(-1L, cos.get(0).getSize());
         assertEquals(5, cos.get(0).metadatumNames().size());
-        assertTrue("size not in metadata properties",
-                   cos.get(0).metadatumNames().contains("size"));
-        assertTrue("priority not in metadata properties",
-                   cos.get(0).metadatumNames().contains("priority"));
-        assertTrue("checked not in metadata properties",
-                   cos.get(0).metadatumNames().contains("checked"));
-        assertTrue("since not in metadata properties",
-                   cos.get(0).metadatumNames().contains("since"));
-        assertTrue("sinceDate not in metadata properties",
-                   cos.get(0).metadatumNames().contains("sinceDate"));
+        assertTrue(cos.get(0).metadatumNames().contains("size"), 
+            "size not in metadata properties");
+        assertTrue(cos.get(0).metadatumNames().contains("priority"), 
+            "priority not in metadata properties");
+        assertTrue(cos.get(0).metadatumNames().contains("checked"), 
+            "checked not in metadata properties");
+        assertTrue(cos.get(0).metadatumNames().contains("since"), 
+            "since not in metadata properties");
+        assertTrue(cos.get(0).metadatumNames().contains("sinceDate"), 
+            "sinceDate not in metadata properties");
         since = cos.get(0).getMetadatumLong("since", -1L);
-        assertTrue("unexpected since value: "+Long.toString(since), since > 0);
+        assertTrue(since > 0, "unexpected since value: " + Long.toString(since));
+
 
         sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", null);
         cos = sidb.findObject("1234/goober.json");
@@ -261,24 +250,25 @@ public class PDRStorageInventoryDBTest {
         cob = sidb.addObject("1234/goober.json", "fundrum", "1234_goober_2.json", md);
         assertEquals(456L, cob.getSize());
         assertEquals(9, cob.metadatumNames().size());
-        assertTrue("size not in metadata properties",
-                   cob.metadatumNames().contains("size"));
-        assertTrue("priority not in metadata properties",
-                   cob.metadatumNames().contains("priority"));
-        assertTrue("since not in metadata properties",
-                   cob.metadatumNames().contains("since"));
-        assertTrue("sinceDate not in metadata properties",
-                   cob.metadatumNames().contains("sinceDate"));
-        assertTrue("color not in metadata properties",
-                   cob.metadatumNames().contains("color"));
-        assertTrue("checksum not in metadata properties",
-                   cob.metadatumNames().contains("checksum"));
-        assertTrue("checksumAlgorithm not in metadata properties",
-                   cob.metadatumNames().contains("checksumAlgorithm"));
-        assertTrue("pdrid not in metadata properties",
-                   cob.metadatumNames().contains("pdrid"));
-        assertTrue("ediid not in metadata properties",
-                   cob.metadatumNames().contains("ediid"));
+        assertTrue(cob.metadatumNames().contains("size"), 
+           "size not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("priority"), 
+                "priority not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("since"), 
+                "since not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("sinceDate"), 
+                "sinceDate not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("color"), 
+                "color not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("checksum"), 
+                "checksum not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("checksumAlgorithm"), 
+                "checksumAlgorithm not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("pdrid"), 
+                "pdrid not in metadata properties");
+        assertTrue(cob.metadatumNames().contains("ediid"), 
+                "ediid not in metadata properties");
+
         assertEquals("md5", cob.getMetadatumString("checksumAlgorithm", null));
         assertEquals(4, cob.getMetadatumInt("priority", 0));
         assertEquals(456L, cob.getMetadatumLong("size", -1L));
@@ -292,26 +282,26 @@ public class PDRStorageInventoryDBTest {
             else if (co.name.equals("1234_goober_2.json"))
                 second = co;
         }
-        assertNotNull("Failed to find first registered object", first);
-        assertNotNull("Failed to find 2nd (updated) registered object", second);
+        assertNotNull(first, "Failed to find first registered object");
+        assertNotNull(second, "Failed to find 2nd (updated) registered object");
         assertEquals(456L, second.getSize());
         assertEquals(10, second.metadatumNames().size());
-        assertTrue("size not in metadata properties",
-                   second.metadatumNames().contains("size"));
-        assertTrue("priority not in metadata properties",
-                   second.metadatumNames().contains("priority"));
-        assertTrue("checked not in metadata properties",
-                   second.metadatumNames().contains("checked"));
-        assertTrue("since not in metadata properties",
-                   second.metadatumNames().contains("since"));
-        assertTrue("sinceDate not in metadata properties",
-                   second.metadatumNames().contains("sinceDate"));
-        assertTrue("color not in metadata properties",
-                   second.metadatumNames().contains("color"));
-        assertTrue("checksum not in metadata properties",
-                   second.metadatumNames().contains("checksum"));
-        assertTrue("checksumAlgorithm not in metadata properties",
-                   second.metadatumNames().contains("checksumAlgorithm"));
+        assertTrue(second.metadatumNames().contains("size"), 
+        "size not in metadata properties");
+        assertTrue(second.metadatumNames().contains("priority"), 
+                "priority not in metadata properties");
+        assertTrue(second.metadatumNames().contains("checked"), 
+                "checked not in metadata properties");
+        assertTrue(second.metadatumNames().contains("since"), 
+                "since not in metadata properties");
+        assertTrue(second.metadatumNames().contains("sinceDate"), 
+                "sinceDate not in metadata properties");
+        assertTrue(second.metadatumNames().contains("color"), 
+                "color not in metadata properties");
+        assertTrue(second.metadatumNames().contains("checksum"), 
+                "checksum not in metadata properties");
+        assertTrue(second.metadatumNames().contains("checksumAlgorithm"), 
+                "checksumAlgorithm not in metadata properties");
         assertEquals("md5", second.getMetadatumString("checksumAlgorithm", null));
         assertEquals(-1L, first.getSize());
         assertEquals(5, first.metadatumNames().size());
@@ -324,9 +314,9 @@ public class PDRStorageInventoryDBTest {
         assertEquals("foobar", cos.get(0).volname);
         assertEquals(3196429990L, cos.get(0).getSize());
         assertEquals(4, cos.get(0).getMetadatumInt("priority", 10));
-        assertTrue("unexpected since value: "+Long.toString(cos.get(0).getMetadatumLong("since", -1L))+
-                   "!>"+Long.toString(since),
-                   cos.get(0).getMetadatumLong("since", -1L) > since);
+        assertTrue(cos.get(0).getMetadatumLong("since", -1L) > since,
+            "unexpected since value: "+Long.toString(cos.get(0).getMetadatumLong("since", -1L))+
+            "!>"+Long.toString(since));
 
         sidb.removeObject("fundrum", "a9ej_gurn.fits");
         cos = sidb.findObject("gurn.fits");
@@ -466,21 +456,21 @@ public class PDRStorageInventoryDBTest {
 
     }
 
-    private <T extends Object> void assertIn(T el, T[] ary) {
-        int i=0;
-        for(i=0; i < ary.length; i++) {
-            if (el.equals(ary[i])) return;
-        }
-        StringBuilder msg = new StringBuilder("\"");
-        msg.append(el.toString()).append('"').append(" is not in {");
-        for(i=0; i < ary.length && i < 3; i++) {
-            msg.append('"').append(ary[i].toString()).append('"');
-            if (i < ary.length-1) msg.append(", ");
-        }
-        if (i < ary.length) msg.append("...");
-        msg.append("}");
-        fail(msg.toString());
-    }
+    // private <T extends Object> void assertIn(T el, T[] ary) {
+    //     int i=0;
+    //     for(i=0; i < ary.length; i++) {
+    //         if (el.equals(ary[i])) return;
+    //     }
+    //     StringBuilder msg = new StringBuilder("\"");
+    //     msg.append(el.toString()).append('"').append(" is not in {");
+    //     for(i=0; i < ary.length && i < 3; i++) {
+    //         msg.append('"').append(ary[i].toString()).append('"');
+    //         if (i < ary.length-1) msg.append(", ");
+    //     }
+    //     if (i < ary.length) msg.append("...");
+    //     msg.append("}");
+    //     fail(msg.toString());
+    // }
             
 
     @Test
@@ -500,8 +490,8 @@ public class PDRStorageInventoryDBTest {
         assertEquals(2, sidb.do_getAlgorithmID("md5"));
 
         Collection<String> algs = sidb.checksumAlgorithms();
-        assertTrue("Missing algorithm: sha256", algs.contains("sha256"));
-        assertTrue("Missing algorithm: md5", algs.contains("md5"));
+        assertTrue(algs.contains("sha256"), "Missing algorithm: sha256");
+        assertTrue(algs.contains("md5"), "Missing algorithm: md5");
     }
 
     @Test
@@ -643,8 +633,8 @@ public class PDRStorageInventoryDBTest {
                          0 : (("foobar".equals(cos.get(1).volname)) ? 1 : -1);
 
         // foobar updated
-        assertTrue("access time not updated",
-                   cos.get(foobar).getMetadatumLong("since", -1) > fbmd.getLong("since"));
+        assertTrue(cos.get(foobar).getMetadatumLong("since", -1) > fbmd.getLong("since"), 
+            "access time not updated");
         assertNotEquals("access date not updated", fbmd.getString("sinceDate"), 
                         cos.get(foobar).getMetadatumString("sinceDate", fbmd.getString("sinceDate")));
 
@@ -710,8 +700,8 @@ public class PDRStorageInventoryDBTest {
         assertEquals(0L, cos.get(foobar).getMetadatumLong("checked", -1L));
         assertFalse(cos.get(fundrum).hasMetadatum("job"));
 
-        JSONObject fbmd = cos.get(foobar).exportMetadata();
-        JSONObject fdmd = cos.get(fundrum).exportMetadata();
+        // JSONObject fbmd = cos.get(foobar).exportMetadata();
+        // JSONObject fdmd = cos.get(fundrum).exportMetadata();
 
         sidb.updateCheckedTime("foobar", "1234_goober.json", 50*31415927);
 
@@ -764,8 +754,7 @@ public class PDRStorageInventoryDBTest {
             sidb.getAvailableSpaceIn("goober!");
             fail("Expected an InventoryException when asking for space in unknown volume");
         } catch (InventoryException ex) {
-            assertTrue("Unexpected InventoryException message",
-                       ex.getMessage().contains("not registered"));
+            assertTrue(ex.getMessage().contains("not registered"), "Unexpected InventoryException message");
         }
 
         sidb.registerVolume("fundrum", 250000, null);
@@ -1045,7 +1034,7 @@ public class PDRStorageInventoryDBTest {
             map.put(o.getString("aipid"), o);
         }
 
-        assertTrue("Missing dataset: 1234", map.containsKey("1234"));
+        assertTrue(map.containsKey("1234"), "Missing dataset: 1234");
         md = map.get("1234");
         assertEquals(1000L, md.getLong("totalsize"));
         assertEquals(2L, md.getLong("filecount"));
@@ -1054,7 +1043,7 @@ public class PDRStorageInventoryDBTest {
         assertEquals(0L, md.getLong("checked"));
         assertEquals("(never)", md.getString("checkedDate"));
         
-        assertTrue("Missing dataset: 2345", map.containsKey("2345"));
+        assertTrue(map.containsKey("2345"), "Missing dataset: 2345");
         md = map.get("2345");
         assertEquals(544L, md.getLong("totalsize"));
         assertEquals(1L, md.getLong("filecount"));
@@ -1082,7 +1071,7 @@ public class PDRStorageInventoryDBTest {
             map.put(o.getString("aipid"), o);
         }
 
-        assertTrue("Missing dataset: 1234", map.containsKey("1234"));
+        assertTrue(map.containsKey("1234"), "Missing dataset: 1234");
         md = map.get("1234");
         assertEquals(544L, md.getLong("totalsize"));
         assertEquals(1L, md.getLong("filecount"));
@@ -1091,7 +1080,7 @@ public class PDRStorageInventoryDBTest {
         assertEquals(0L, md.getLong("checked"));
         assertEquals("(never)", md.getString("checkedDate"));
         
-        assertTrue("Missing dataset: 2345", map.containsKey("2345"));
+        assertTrue(map.containsKey("2345"), "Missing dataset: 2345");
         md = map.get("2345");
         assertEquals(544L, md.getLong("totalsize"));
         assertEquals(1L, md.getLong("filecount"));

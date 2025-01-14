@@ -13,10 +13,8 @@
  */
 package gov.nist.oar.distrib;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DistributionExceptionTest {
 
@@ -24,7 +22,7 @@ public class DistributionExceptionTest {
     public void testCtorMsg() {
         Exception ex = new DistributionException("Oops!");
         assertEquals("Oops!", ex.getMessage());
-        assertEquals(null, ex.getCause());
+        assertNull(ex.getCause());
 
         Exception cause = new RuntimeException("whoa!");
         ex = new DistributionException("Oops!", cause);
@@ -36,9 +34,7 @@ public class DistributionExceptionTest {
     public void testCtorAutoMessage() {
         Exception cause = new RuntimeException("whoa!");
         Exception ex = new DistributionException(cause);
-        assertEquals("Data Distribution exception encountered: (RuntimeException) whoa!",
-                     ex.getMessage());
-        assertEquals(cause, ex.getCause());
+        assertEquals("Data Distribution exception encountered: (RuntimeException) whoa!", ex.getMessage());
+        assertSame(cause, ex.getCause());
     }
-
 }

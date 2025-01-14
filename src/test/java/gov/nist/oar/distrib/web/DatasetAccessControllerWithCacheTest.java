@@ -11,57 +11,43 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.CacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
-
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpMethod;
-import org.springframework.util.FileSystemUtils;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.Collection;
-import java.util.ArrayList;
-import javax.servlet.http.HttpServletResponseWrapper;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.json.JSONException;
-
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.util.FileSystemUtils;
 
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = NISTDistribServiceConfig.class,
-                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+        "server.servlet.context-path=/od",
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
@@ -80,7 +66,6 @@ import org.slf4j.LoggerFactory;
         "distrib.cachemgr.volumes[1].roles[0]=large",
         "distrib.cachemgr.volumes[1].roles[1]=general",
         "distrib.cachemgr.volumes[1].redirectBase=https://pdr.net/gen/",
-        // "logging.level.org.springframework.web=DEBUG"
         "logging.level.gov.nist.oar.distrib=DEBUG",
         "logging.path=${basedir}/target",
         "logging.file=tst.log"
@@ -108,8 +93,6 @@ public class DatasetAccessControllerWithCacheTest {
     DatasetAccessController ctrlr;
 
     public void cleanTestDir(File testdir) throws IOException, ConfigurationException {
-        /*
-        */
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
@@ -118,25 +101,24 @@ public class DatasetAccessControllerWithCacheTest {
         provider.createPDRCacheManager(hbcm);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
         String tmpdir = System.getProperty("java.io.tmpdir");
         if (tmpdir == null)
             throw new RuntimeException("java.io.tmpdir property not set");
         File tmp = new File(tmpdir);
-        if (! tmp.exists())
+        if (!tmp.exists())
             tmp.mkdir();
         testdir = new File(tmp, "testcmgr");
         testdir.mkdirs();
-        // cleanTestDir(testdir);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() throws IOException {
         testdir.delete();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException, ConfigurationException {
         cleanTestDir(testdir);
     }
@@ -148,9 +130,8 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testDescribeAIPs() throws JSONException {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
         String expect = "[{ name:mds1491.mbag0_2-0.zip, contentLength:9841 }," +
@@ -163,21 +144,19 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testListAIPVersions() throws JSONException {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_aip/_v", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
         String expect = "[\"1.1.0\", \"0\"]";
         JSONAssert.assertEquals(expect, resp.getBody(), false);
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
     }
-    
+
     @Test
     public void testDownloadFile() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
@@ -186,14 +165,11 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testDownloadFileViaRedirect() throws CacheManagementException, ConfigurationException {
-        // this file is a "large" file that will get put into the large volume which has a
-        // redirect capability configured in
         CacheManager cm = provider.getPDRCacheManager();
         cm.cache("mds1491/trial3/trial3a.json");
 
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial3/trial3a.json",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial3/trial3a.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.FOUND, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Location").equals("https://pdr.net/gen/mds1491/trial3/trial3a.json"));
@@ -201,14 +177,11 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testDownloadFileFromCache() throws CacheManagementException, ConfigurationException {
-        // this file is a "small" file that will get put into the small volume which has no
-        // redirect capability configured in
         CacheManager cm = provider.getPDRCacheManager();
         cm.cache("mds1491/trial1.json");
 
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
@@ -220,9 +193,8 @@ public class DatasetAccessControllerWithCacheTest {
         CacheManager cm = provider.getPDRCacheManager();
         cm.cache("mds1491/trial1.json");
 
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/1212/mds1491/trial1.json",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/1212/mds1491/trial1.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
@@ -231,17 +203,15 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testDownloadFileFromVersion() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/0/trial1.json",
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/0/trial1.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertEquals(69, resp.getBody().length());
 
-        req = new HttpEntity<String>(null, headers);
-        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/1.1.0/trial1.json",
-                               HttpMethod.GET, req, String.class);
+        req = new HttpEntity<>(null, headers);
+        resp = websvc.exchange(getBaseURL() + "/ds/mds1491/_v/1.1.0/trial1.json", HttpMethod.GET, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
@@ -250,13 +220,11 @@ public class DatasetAccessControllerWithCacheTest {
 
     @Test
     public void testDownloadFileInfo() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json",
-                                                      HttpMethod.HEAD, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/mds1491/trial1.json", HttpMethod.HEAD, req, String.class);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertNull(resp.getBody());
     }
-
 }

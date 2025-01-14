@@ -1,20 +1,25 @@
 package gov.nist.oar.distrib.web;
 
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 public class JwtTokenValidatorTest {
 
@@ -23,9 +28,9 @@ public class JwtTokenValidatorTest {
 
     private JwtTokenValidator jwtTokenValidator;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         when(mockRpaConfiguration.getJwtSecretKey()).thenReturn("a-secret-key");
         jwtTokenValidator = new JwtTokenValidator(mockRpaConfiguration);
     }
@@ -64,7 +69,6 @@ public class JwtTokenValidatorTest {
         }
     }
 
-
     @Test
     public void testMissingRequiredClaimException() {
         // Generate a token without a required claim (e.g., "user_id")
@@ -78,7 +82,6 @@ public class JwtTokenValidatorTest {
             assertTrue(e instanceof MissingRequiredClaimException);
         }
     }
-
 
     @Test
     public void testMissingNonRequiredClaimException() {
@@ -97,7 +100,6 @@ public class JwtTokenValidatorTest {
         assertNotNull(tokenDetails);
     }
 
-
     private String generateTokenWithMissingRequiredClaim() {
         long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
 
@@ -108,7 +110,7 @@ public class JwtTokenValidatorTest {
 
         // Generate token without the "user_id" claim
         return Jwts.builder()
-//                .setSubject("john.doe") // Omit this claim to trigger the exception
+                // .setSubject("john.doe") // Omit this claim to trigger the exception
                 .claim("userName", "John")
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
@@ -118,7 +120,7 @@ public class JwtTokenValidatorTest {
     }
 
     private String generateTokenWithMissingNonRequiredClaim() {
-        long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
+        // long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
 
         // Generate SecretKey
         String secretKeyString = mockRpaConfiguration.getJwtSecretKey();
@@ -131,12 +133,11 @@ public class JwtTokenValidatorTest {
                 .claim("userName", "John")
                 .claim("userLastName", "Doe")
                 .claim("userEmail", "john.doe@example.com")
-//                .claim("exp", expirationTimeMillis)
-                 .claim("user_id", 12345)
+                // .claim("exp", expirationTimeMillis)
+                .claim("user_id", 12345)
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
-
 
     private String generateValidToken() {
         long expirationTimeMillis = System.currentTimeMillis() + 3600000; // 1 hour from now
@@ -157,6 +158,4 @@ public class JwtTokenValidatorTest {
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
-
 }
-

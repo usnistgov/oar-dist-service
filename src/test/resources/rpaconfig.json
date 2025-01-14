@@ -12,5 +12,11 @@
     "Cuba",
     "North Korea"
   ],
-  "expiresAfterMillis": 1209600000
+  "expiresAfterMillis": 1209600000,
+  "emailTemplates": {
+    "pre-approved-user": {
+      "subject": "Your Data is Ready for Download",
+      "content": "<p>Hello ${FULL_NAME},<br><br>Your request for data related to <strong>${DATASET_NAME}</strong> has been processed."
+    }
+  }
 }

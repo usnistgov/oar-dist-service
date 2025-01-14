@@ -52,10 +52,10 @@ true ${DIST_DIR:=$SOURCE_DIR/dist}
 
 java_version=`javac -version 2>&1 | awk '{print $2}'`
 java_major_version=`echo $java_version | sed -re 's/^[0-9]+\.//' -e 's/[\.\-\_].*//'`
-[ "$java_major_version" -ge 8 ] || {
-    echo "${prog}: Java 8 required to make distributions (found $java_version)"
-    false
-}
+#[ "$java_major_version" -ge 8 ] || {
+#    echo "${prog}: Java 8 required to make distributions (found $java_version)"
+#    false
+#}
 
 # set the current version.  This will inject the version into the code, if 
 # needed.

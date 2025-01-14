@@ -79,6 +79,28 @@ public class EmailHelper {
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
 
+    /**
+     * Get email to be sent to the End User for pre-approved records.
+     * Combines confirmation and download details into one email.
+     * 
+     * @param record - the record this email is related to
+     * @param rpaConfiguration - the RPA configuration
+     * @param downloadUrl - the URL where the End User will download their data
+     *
+     * @return EmailInfo - email information (recipient, content, subject)
+     */
+    public static EmailInfo getEndUserPreApprovedEmailInfo(Record record, RPAConfiguration rpaConfiguration, String downloadUrl) {
+        String recordId = record.getId();
+        String endUserEmailAddress = record.getUserInfo().getEmail();
+        String subject = rpaConfiguration.preApprovedEmail().getSubject();
+        String content = StringSubstitutor.replace(
+                rpaConfiguration.preApprovedEmail().getContent(),
+                getNamedPlaceholders(record, downloadUrl, getDateInXDays(14), null),
+                "${", "}");
+        return new EmailInfo(recordId, endUserEmailAddress, subject, content);
+    }
+
+
     public static String getDateInXDays(int days) {
         String datePattern = "EEEE, MM/dd/yyyy 'at' hh:mm aa z";
         DateFormat dateFormat = new SimpleDateFormat(datePattern);

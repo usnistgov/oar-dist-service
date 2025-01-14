@@ -11,16 +11,16 @@
  */
 package gov.nist.oar;
 
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.Collection;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
+import org.junit.jupiter.api.Test;
+
 
 public class EnvVarIncludesWordsTest {
 
@@ -30,15 +30,15 @@ public class EnvVarIncludesWordsTest {
     public void testWordsInVal() {
         String val = "quick brown fox";
         Collection<String> words = EnvVarIncludesWords.wordsInVal(val);
-        assertTrue("words missing quick", words.contains("quick"));
-        assertTrue("words missing brown", words.contains("brown"));
-        assertTrue("words missing fox", words.contains("fox"));
+        assertTrue(words.contains("quick"), () -> "words missing quick");
+        assertTrue(words.contains("brown"), () -> "words missing brown");
+        assertTrue(words.contains("fox"), () -> "words missing fox");
 
         words = EnvVarIncludesWords.wordsInVal(null);
         assertEquals(0, words.size());
 
         words = EnvVarIncludesWords.wordsInVal("");
-        assertFalse("contains empty string", words.contains(""));
+        assertFalse(words.contains(""), () -> "contains empty string");
         assertEquals(0, words.size());
     }
 

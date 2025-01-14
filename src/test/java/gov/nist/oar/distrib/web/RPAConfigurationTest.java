@@ -3,11 +3,8 @@ package gov.nist.oar.distrib.web;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RPAConfigurationTest {
 
@@ -34,5 +31,14 @@ public class RPAConfigurationTest {
         assertTrue(config.getDisallowedCountries().contains("Cuba"));
         assertTrue(config.getDisallowedCountries().contains("North Korea"));
         assertEquals(1209600000L, config.getExpiresAfterMillis());
+
+        // Validate pre-approved email template
+        RPAConfiguration.EmailTemplate preApprovedEmail = config.preApprovedEmail();
+        assertNotNull(preApprovedEmail);
+        assertEquals("Your Data is Ready for Download", preApprovedEmail.getSubject());
+        assertEquals(
+            "<p>Hello ${FULL_NAME},<br><br>Your request for data related to <strong>${DATASET_NAME}</strong> has been processed.",
+            preApprovedEmail.getContent()
+        );
     }
 }

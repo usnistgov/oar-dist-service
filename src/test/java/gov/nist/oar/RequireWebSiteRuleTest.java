@@ -11,22 +11,13 @@
  */
 package gov.nist.oar;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.ClassRule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import org.junit.jupiter.api.Test;
 
 public class RequireWebSiteRuleTest {
 
     RequireWebSite rule = null;
-
-    @ClassRule
-    public static RequireWebSite siterule = new RequireWebSite("https://google.com/");
 
     @Test
     public void testCheckDownSite() {
@@ -40,5 +31,3 @@ public class RequireWebSiteRuleTest {
         assertFalse(rule.checkSite());
     }
 }
-
-

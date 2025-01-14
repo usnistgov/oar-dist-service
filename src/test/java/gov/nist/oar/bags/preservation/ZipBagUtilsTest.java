@@ -14,30 +14,30 @@
 package gov.nist.oar.bags.preservation;
 
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
 
-import gov.nist.oar.bags.preservation.BagUtils;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.zip.ZipInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
 
 public class ZipBagUtilsTest {
     
-    Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
+    // Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
     public ZipBagUtilsTest() {}
 
     @Test
@@ -196,12 +196,14 @@ public class ZipBagUtilsTest {
         }
     }
 
-    @Test(expected = FileNotFoundException.class)
-    public void testGetFileMetadataNotFound() throws IOException, JSONException {
+    @Test
+public void testGetFileMetadataNotFound() throws IOException, JSONException {
+    assertThrows(FileNotFoundException.class, () -> {
         try (InputStream zis = getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip")) {
-            JSONObject cmp = ZipBagUtils.getFileMetadata("goober.json", zis, "mds1491.mbag0_2-0");
+            ZipBagUtils.getFileMetadata("goober.json", zis, "mds1491.mbag0_2-0");
         }
-    }
+    });
+}
 
     @Test
     public void testgetResourceMetadata() throws IOException, JSONException {

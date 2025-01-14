@@ -614,7 +614,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
             version = "1";
         String id = null;
 
-        int errcnt = 0, errlim = 5;
+        // int errcnt = 0, errlim = 5;
         Path fname = null;
         int prefs = defprefs;
         CacheObject co = null;
@@ -677,7 +677,7 @@ public class PDRDatasetRestorer implements Restorer, PDRConstants, PDRCacheRoles
                 }
                 
                 // extract the file's metadata; convert it for storage in cache
-                JSONObject md = hbcm.findComponentByFilepath(resmd, filepath);
+                JSONObject md = HeadBagCacheManager.findComponentByFilepath(resmd, filepath);
                 if (md == null) {
                     log.warn("Unable to find metadata for filepath: {}", filepath);
                     md = new JSONObject();

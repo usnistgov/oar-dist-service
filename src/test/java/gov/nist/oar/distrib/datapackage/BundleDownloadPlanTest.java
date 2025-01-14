@@ -12,11 +12,13 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 /**
  * @author Deoyani Nandrekar-Heinis This is the test class for java object

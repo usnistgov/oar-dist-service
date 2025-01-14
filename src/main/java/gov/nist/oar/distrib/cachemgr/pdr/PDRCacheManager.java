@@ -13,53 +13,39 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.BasicCache;
-import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.InventorySearchException;
-import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.VolumeStatus;
-import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
-
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.Collection;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.FileNotFoundException;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.SQLException;
-import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
+
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.BasicCache;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
+import gov.nist.oar.distrib.cachemgr.IntegrityMonitor;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.VolumeStatus;
+import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 
 /**
  * A CacheManager that is specialized for use with the NIST Public Data Repository (PDR) and its 

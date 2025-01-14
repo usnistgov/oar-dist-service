@@ -12,70 +12,65 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import gov.nist.oar.RequireWebSite;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import gov.nist.oar.distrib.datapackage.ValidationHelper;
 
 public class ValidationHelperTest {
 
     RequireWebSite required = new RequireWebSite("http://httpstat.us/200");
 
+    @BeforeEach
+    public void setUp() {
+        // Initialization if needed before each test
+    }
+
     @Test
     public void testIsAllowedURL() throws IOException {
-	// this is what is currently set in production
-	String allowed = "nist.gov|s3.amazonaws.com/nist-midas";
+        String allowed = "nist.gov|s3.amazonaws.com/nist-midas";
 
-	assertTrue(ValidationHelper.isAllowedURL("https://nist.gov/datafile.dat", allowed));
-	assertTrue(ValidationHelper.isAllowedURL("http://srd.nist.gov/srd13/datafile.dat", allowed));
-	assertTrue(ValidationHelper.isAllowedURL("https://s3.amazonaws.com/nist-midas/bigbag.zip", allowed));
-	assertTrue(ValidationHelper.isAllowedURL("http://srdnist.gov/srd13/datafile.dat", allowed));
+        assertTrue(ValidationHelper.isAllowedURL("https://nist.gov/datafile.dat", allowed));
+        assertTrue(ValidationHelper.isAllowedURL("http://srd.nist.gov/srd13/datafile.dat", allowed));
+        assertTrue(ValidationHelper.isAllowedURL("https://s3.amazonaws.com/nist-midas/bigbag.zip", allowed));
+        assertTrue(ValidationHelper.isAllowedURL("http://srdnist.gov/srd13/datafile.dat", allowed));
 
-	assertFalse("Don't allow the domain part appear anywhere in the URL path",
-		ValidationHelper.isAllowedURL("http://example.com/nist.gov/anyolfile.exe", allowed));
-	assertFalse("Pay attention to field boundaries",
-		ValidationHelper.isAllowedURL("https://s3.amazonaws.com/nist-midas-games/doom.zip", allowed));
+        assertFalse(ValidationHelper.isAllowedURL("http://example.com/nist.gov/anyolfile.exe", allowed),
+			"Don't allow the domain part appear anywhere in the URL path");
+        assertFalse(ValidationHelper.isAllowedURL("https://s3.amazonaws.com/nist-midas-games/doom.zip", allowed),
+			"Pay attention to field boundaries");
     }
 
     @Test
     public void testGetUrlStatus() throws IOException {
         assumeTrue(required.checkSite());
 
-	String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
-	String testurlError = "http://httpstat.us/404";
-	String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";
-//	ValidationHelper validationHelper = new ValidationHelper();
-	URLStatusLocation urlLoc = ValidationHelper.getFileURLStatusSize(testurlError, domains,1);
-	assertEquals(urlLoc.getStatus(), 404);
+        String domains = "nist.gov|s3.amazonaws.com/nist-midas|httpstat.us";
+        String testurlError = "http://httpstat.us/404";
+        String testUrlRedirect = "http://www.nist.gov/srd/srd_data/srd13_B-049.json";
 
-	urlLoc = ValidationHelper.getFileURLStatusSize(testUrlRedirect, domains,1);
-	assertEquals(urlLoc.getStatus(), 301);
+        URLStatusLocation urlLoc = ValidationHelper.getFileURLStatusSize(testurlError, domains, 1);
+        assertEquals(404, urlLoc.getStatus());
 
+        urlLoc = ValidationHelper.getFileURLStatusSize(testUrlRedirect, domains, 1);
+        assertEquals(301, urlLoc.getStatus());
     }
 
     @Test
     public void testUrlCode() {
-	String expectedMessage = "The requested file by given URL is not found on server.";
-	String message = ValidationHelper.getStatusMessage(404);
-	assertEquals(message, expectedMessage);
-	expectedMessage = "The given URL is malformed.";
-	message = ValidationHelper.getStatusMessage(400);
-	assertEquals(message, expectedMessage);
-    }
+        String expectedMessage = "The requested file by given URL is not found on server.";
+        String message = ValidationHelper.getStatusMessage(404);
+        assertEquals(expectedMessage, message);
 
+        expectedMessage = "The given URL is malformed.";
+        message = ValidationHelper.getStatusMessage(400);
+        assertEquals(expectedMessage, message);
+    }
 }

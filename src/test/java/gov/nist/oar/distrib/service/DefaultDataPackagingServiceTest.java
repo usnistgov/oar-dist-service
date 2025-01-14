@@ -12,18 +12,15 @@
  */
 package gov.nist.oar.distrib.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
-import gov.nist.oar.RequireWebSite;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
@@ -31,11 +28,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +38,12 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.RequireWebSite;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.datapackage.InputLimitException;
-import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
+import gov.nist.oar.distrib.datapackage.DataPackager;
 import gov.nist.oar.distrib.datapackage.FileRequest;
+import gov.nist.oar.distrib.datapackage.InputLimitException;
 
 /**
  * @author Deoyani Nandrekar-Heinis
@@ -80,18 +76,15 @@ public class DefaultDataPackagingServiceTest {
 	bundleRequest = new BundleRequest("testdatabundle", requestedUrls,0,2);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
 	createRequest();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
 	ddp = new DefaultDataPackagingService(domains, maxFileSize, numOfFiles, redirectURLTrials);
     }
-
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void getBundledZip() throws DistributionException, InputLimitException, IOException {
@@ -120,7 +113,7 @@ public class DefaultDataPackagingServiceTest {
     public void checkFilesinZip(Path filepath) throws IOException {
 	int count = 0;
 	try (ZipFile file = new ZipFile(filepath.toString())) {
-	    FileSystem fileSystem = FileSystems.getDefault();
+	    // FileSystem fileSystem = FileSystems.getDefault();
 	    // Get file entries
 	    Enumeration<? extends ZipEntry> entries = file.entries();
 
@@ -178,7 +171,7 @@ public class DefaultDataPackagingServiceTest {
 	zos.close();
 
 	try (ZipFile file = new ZipFile(path.toString())) {
-	    FileSystem fileSystem = FileSystems.getDefault();
+	    // FileSystem fileSystem = FileSystems.getDefault();
 	    // Get file entries
 	    Enumeration<? extends ZipEntry> entries = file.entries();
 	    ZipEntry entry1 = entries.nextElement();

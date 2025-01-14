@@ -11,18 +11,13 @@
  */
 package gov.nist.oar.distrib;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-
-import gov.nist.oar.distrib.Checksum;
+import org.junit.jupiter.api.Test;
 
 public class ChecksumTest {
 
@@ -65,7 +60,7 @@ public class ChecksumTest {
     public void testCalcSHA256bigger() throws IOException {
         String line = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n";
         StringBuilder data = new StringBuilder();
-        for(int i=0; i < 800; i++) {  // need more than buffer size of 50k
+        for (int i = 0; i < 800; i++) {  // need more than buffer size of 50k
             data.append(line);
         }
         InputStream is = new ByteArrayInputStream(data.toString().getBytes());

@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'pom.xml'
+      - '.github/workflows/source.yml'
 jobs:
   buildtest:
     runs-on: ubuntu-20.04
@@ -14,7 +15,7 @@ jobs:
 #        java: [ '8' ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Cache Maven packages
         uses: actions/cache@v2
@@ -26,7 +27,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '21'
           distribution: 'adopt'
 
       - name: Test with Maven

@@ -11,23 +11,15 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import gov.nist.oar.clients.ResourceResolver;
-import gov.nist.oar.clients.OARServiceException;
-import gov.nist.oar.clients.OARWebServiceException;
-import gov.nist.oar.clients.AmbiguousIDException;
-
-import gov.nist.oar.distrib.cachemgr.CacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.VolumeStatus;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONTokener;
-import org.json.JSONException;
 
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import gov.nist.oar.clients.AmbiguousIDException;
+import gov.nist.oar.clients.OARServiceException;
+import gov.nist.oar.clients.ResourceResolver;
+import gov.nist.oar.distrib.cachemgr.CacheManager;
 
 /**
  * A client for accessing resource metadata from an archive of "head-bag" preserservation bag files.
@@ -78,10 +70,10 @@ public class HeadBagCacheResourceResolver implements ResourceResolver, PDRConsta
      * @throws OARServiceException  if something goes wrong with the interaction with resolving service.
      */
     public JSONObject resolveEDIID(String ediid) throws OARServiceException {
-        String aipid = ediid;
+        // String aipid = ediid;
         Matcher mat = ARK_ID_PAT.matcher(ediid);
         if (mat.matches())
-            aipid = mat.replaceFirst("");
+            mat.replaceFirst("");
 
         // List<CacheObject> hbs = hbdb.findHeadBag(aipid);
         return null;

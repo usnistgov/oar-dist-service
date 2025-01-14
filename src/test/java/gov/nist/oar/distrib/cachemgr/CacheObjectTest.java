@@ -13,16 +13,12 @@
  */
 package gov.nist.oar.distrib.cachemgr;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
 
-import gov.nist.oar.distrib.cachemgr.CacheObject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.util.Set;
 import org.json.JSONObject;
-import org.json.JSONException;
+import org.junit.jupiter.api.Test;
 
 public class CacheObjectTest {
 

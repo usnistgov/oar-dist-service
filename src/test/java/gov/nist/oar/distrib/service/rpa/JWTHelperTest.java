@@ -1,28 +1,17 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.rpa.exceptions.InternalServerErrorException;
-import gov.nist.oar.distrib.service.rpa.model.JWTToken;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -31,28 +20,22 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.apache.http.client.utils.URIBuilder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Unit tests for the {@link JWTHelper} class.
- * These tests verify the behavior of the {@link JWTHelper} class and its methods.
- * <p>
- * The {@link JWTHelper} class is responsible for creating and sending JWT tokens for Salesforce authentication.
- * <p>
- * These unit tests mock the dependencies of the {@link JWTHelper} class, such as the {@link KeyRetriever}
- * and {@link RPAConfiguration} {@link CloseableHttpClient} objects, to isolate the class and test its behavior
- * in a controlled environment.
- * <p>
- * Note: This class relies on the Mockito testing framework and the JUnit 4 test runner to perform the unit tests.
- */
-@RunWith(MockitoJUnitRunner.class)
+import gov.nist.oar.distrib.service.rpa.exceptions.InternalServerErrorException;
+import gov.nist.oar.distrib.service.rpa.model.JWTToken;
+import gov.nist.oar.distrib.web.RPAConfiguration;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+@ExtendWith(MockitoExtension.class)
 public class JWTHelperTest {
 
     @Mock
@@ -68,38 +51,28 @@ public class JWTHelperTest {
     private HttpURLConnectionFactory mockConnectionFactory;
 
     private JWTHelper jwtHelper;
-
     private Key testPrivateKey;
 
-    @Before
-    public void setup() {
-        MockitoAnnotations.initMocks(this);
+    @BeforeEach
+    public void setup() throws NoSuchAlgorithmException {
         jwtHelper = JWTHelper.getInstance();
         jwtHelper.setKeyRetriever(keyRetriever);
         jwtHelper.setConfig(mockConfig);
         jwtHelper.setHttpURLConnectionFactory(mockConnectionFactory);
-        try {
-            testPrivateKey = generateFakePrivateKey();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            mockCreateAssertion();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+
+        testPrivateKey = generateFakePrivateKey();
+        mockCreateAssertion();
     }
 
-    // generate a fake private key for testing
+    // Generate a fake private key for testing
     private Key generateFakePrivateKey() throws NoSuchAlgorithmException {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(1024);
         KeyPair kp = kpg.genKeyPair();
-        Key privateKey = kp.getPrivate();
-        return privateKey;
+        return kp.getPrivate();
     }
 
-    // setup mocks to create a test assertion inside the JWTHelper object
+    // Setup mocks to create a test assertion inside the JWTHelper object
     private void mockCreateAssertion() throws NoSuchAlgorithmException {
         when(mockConfig.getSalesforceJwt()).thenReturn(mock(RPAConfiguration.SalesforceJwt.class));
         when(mockConfig.getSalesforceJwt().getExpirationInMinutes()).thenReturn(3);
@@ -107,7 +80,6 @@ public class JWTHelperTest {
         when(mockConfig.getSalesforceJwt().getAudience()).thenReturn("test_audience");
         when(mockConfig.getSalesforceJwt().getSubject()).thenReturn("test_subject");
         when(keyRetriever.getKey(mockConfig)).thenReturn(testPrivateKey);
-
     }
 
     private String createTestAssertion() {
@@ -139,30 +111,17 @@ public class JWTHelperTest {
         return url;
     }
 
-
-    /**
-     * Test for method {@link JWTHelper#getToken()}.
-     * Verify that the correct request properties are set on the HttpURLConnection
-     * and that the response InputStream is correctly parsed and returned as a JWTToken.
-     *
-     * @throws IOException                  if there is an issue sending the request or parsing the response
-     * @throws InternalServerErrorException if there is an issue building the request URL or handling the response
-     */
     @Test
-    public void testGetToken_success() throws Exception, InternalServerErrorException {
-        mockCreateAssertion();
-        // Create a testUrl
+    public void testGetToken_success() throws Exception {
         String expectedUrl = createTestUrl(createTestAssertion());
-        when(mockConnectionFactory.createHttpURLConnection(new URL(expectedUrl))).thenReturn(mockConnection);
-        // Set expected dummy response
+        when(mockConnectionFactory.createHttpURLConnection(new URI(expectedUrl).toURL()))
+                .thenReturn(mockConnection);
+
         String expectedResponseData = "{\"access_token\":\"DUMMY_TOKEN\",\"instance_url\":\"https://instanceUrl.com\"}";
-        // Create an input stream with some dummy data
         InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
-        // When getInputStream() is called on the mockConnection, return the dummy input stream
         when(mockConnection.getInputStream()).thenReturn(inputStream);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
 
-        // Call the sendTokenRequest method
         JWTToken actualToken = jwtHelper.getToken();
 
         ObjectMapper mapper = new ObjectMapper();
@@ -170,49 +129,31 @@ public class JWTHelperTest {
         assertEquals(expectedToken.getAccessToken(), actualToken.getAccessToken());
         assertEquals(expectedToken.getInstanceUrl(), actualToken.getInstanceUrl());
 
-        // Verify that the request method and headers were set correctly
         verify(mockConnection).setRequestMethod("POST");
         verify(mockConnection).setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-        // Verify that the connection was closed
         verify(mockConnection).disconnect();
     }
 
     @Test
     public void testGetToken_badRequest() throws Exception {
-        mockCreateAssertion();
         String testUrl = createTestUrl(createTestAssertion());
-        when(mockConnectionFactory.createHttpURLConnection(new URL(testUrl))).thenReturn(mockConnection);
+        when(mockConnectionFactory.createHttpURLConnection(new URI(testUrl).toURL()))
+                .thenReturn(mockConnection);
+
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
         when(mockConnection.getResponseMessage()).thenReturn("Bad Request");
 
-        // Verify InternalServerErrorException exception is thrown
-        try {
-            // Call method to test
-            JWTToken token = jwtHelper.getToken();
-            fail("Expected InternalServerErrorException to be thrown");
-        } catch (InternalServerErrorException e) {
-            // Verify exception message is correct
-            assertEquals("Access token request is invalid: Bad Request", e.getMessage());
-        }
-        // Verify that the connection was closed
+        Exception exception = assertThrows(InternalServerErrorException.class, () -> jwtHelper.getToken());
+        assertEquals("Access token request is invalid: Bad Request", exception.getMessage());
+
         verify(mockConnection).disconnect();
     }
 
     @Test
     public void testGetToken_failure_malformedURL() throws Exception {
-        mockCreateAssertion();
-        // Introduce bug in URL here, we inject the JWTHelper with an invalid Salesforce Instance Url
         when(mockConfig.getSalesforceInstanceUrl()).thenReturn("https://login.salesforce.com:BUG_HERE");
 
-        // Verify InternalServerErrorException exception is thrown
-        try {
-            // Call method to test
-            JWTToken token = jwtHelper.getToken();
-            fail("Expected InternalServerErrorException to be thrown");
-        } catch (InternalServerErrorException e) {
-            // Verify exception message is correct
-            assertThat(e.getMessage(), containsString("Invalid URL: "));
-        }
+        Exception exception = assertThrows(InternalServerErrorException.class, () -> jwtHelper.getToken());
+        assertTrue(exception.getMessage().contains("Invalid URL:"));
     }
 }

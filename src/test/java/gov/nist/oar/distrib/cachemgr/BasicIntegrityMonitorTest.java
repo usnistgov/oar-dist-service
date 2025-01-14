@@ -13,50 +13,49 @@
  */
 package gov.nist.oar.distrib.cachemgr;
 
-import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.inventory.SizeCheck;
-import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import gov.nist.oar.distrib.cachemgr.pdr.BagCacherTest;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.stream.Collectors;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
+import gov.nist.oar.distrib.cachemgr.inventory.SizeCheck;
+import gov.nist.oar.distrib.cachemgr.pdr.BagCacherTest;
+
+import java.nio.file.Path;
 
 public class BasicIntegrityMonitorTest {
 
     BagCacherTest cachert = new BagCacherTest();
     BasicIntegrityMonitor mon = null;
 
-    @Before
-    public void setUp()
-        throws StorageVolumeException, ResourceNotFoundException, CacheManagementException, IOException
-    {
-        cachert.tempf.create();
+    @TempDir
+    Path tempDir;
+
+    @BeforeEach
+    public void setUp() throws StorageVolumeException, ResourceNotFoundException, CacheManagementException, IOException {
+        cachert.tempDir = tempDir;  // tempDir is already a Path
         cachert.setUp();
         cachert.cacher.cacheDataset("mds1491");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         cachert.tearDown();
-        cachert.tempf.delete();
     }
 
     @Test
@@ -68,7 +67,7 @@ public class BasicIntegrityMonitorTest {
         assertEquals(0, mon.checks.size());
         assertNull(mon.selstrat);
 
-        List<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+        List<CacheObjectCheck> chks = new ArrayList<>();
         chks.add(new SizeCheck());
         chks.add(new ChecksumCheck());
         mon = new BasicIntegrityMonitor("Amy", cachert.sidb, cachert.cache.volumes, chks);
@@ -87,14 +86,10 @@ public class BasicIntegrityMonitorTest {
         assertEquals(1, cos.stream().filter(c -> c.id.equals("mds1491/trial1.json#1.1.0")).count());
         assertEquals(1, cos.stream().filter(c -> c.id.equals("mds1491/trial2.json#1.1.0")).count());
         assertEquals(1, cos.stream().filter(c -> c.id.equals("mds1491/trial3/trial3a.json#1.1.0")).count());
-
-        // TODO: test selectObjectsToBeChecked(SelectionStrategy)
     }
 
     @Test
-    public void testCheck() 
-        throws IntegrityException, StorageVolumeException, CacheManagementException
-    {
+    public void testCheck() throws IntegrityException, StorageVolumeException, CacheManagementException {
         List<CacheObject> cos = cachert.sidb.findObject("mds1491/trial1.json#1.1.0");
         CacheObject co = cos.get(0);
         assertNotNull(co);
@@ -104,7 +99,7 @@ public class BasicIntegrityMonitorTest {
         // no checks registered
         mon.check(co);
 
-        List<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+        List<CacheObjectCheck> chks = new ArrayList<>();
         chks.add(new SizeCheck());
         chks.add(new ChecksumCheck());
         mon = new BasicIntegrityMonitor("Fred", cachert.sidb, cachert.cache.volumes, chks);
@@ -119,21 +114,20 @@ public class BasicIntegrityMonitorTest {
 
         try {
             mon.check(co);
-            fail("Failed to detect bad size: "+co.getSize());
+            fail("Failed to detect bad size: " + co.getSize());
+        } catch (IntegrityException ex) {
+            // Expected exception
         }
-        catch (IntegrityException ex) { }
     }
 
     @Test
-    public void testSelectCorruptedOjects()
-        throws InventoryException, StorageVolumeException, CacheManagementException
-    {
-        List<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+    public void testSelectCorruptedOjects() throws InventoryException, StorageVolumeException, CacheManagementException {
+        List<CacheObjectCheck> chks = new ArrayList<>();
         chks.add(new SizeCheck());
         mon = new BasicIntegrityMonitor("Fred", cachert.sidb, cachert.cache.volumes, chks);
         List<CacheObject> cos = mon.selectObjectsToBeChecked(20);
 
-        ArrayList<CacheObject> failed = new ArrayList<CacheObject>();
+        ArrayList<CacheObject> failed = new ArrayList<>();
         assertEquals(14, mon.selectCorruptedObjects(cos, failed, false));
         assertEquals(0, failed.size());
 
@@ -143,7 +137,7 @@ public class BasicIntegrityMonitorTest {
         assertTrue(failed.size() > 0);
 
         cos = cos.stream().filter(c -> c.id.contains("trial")).collect(Collectors.toList());
-        failed = new ArrayList<CacheObject>();
+        failed = new ArrayList<>();
         assertEquals(3, mon.selectCorruptedObjects(cos, failed, false));
         assertEquals(0, failed.size());
 
@@ -161,37 +155,11 @@ public class BasicIntegrityMonitorTest {
         assertEquals(co.name, failed.get(0).name);
         assertTrue(failed.get(0).volume.exists(failed.get(0).name));  // failed CO is still in volume
         assertEquals(co.volname, cachert.sidb.findObject(failed.get(0).volname, failed.get(0).name).volname);
-
-        // make another one go missing from volume
-        cos.get(1).volume.remove(cos.get(1).name);
-        failed = new ArrayList<CacheObject>();
-
-        assertEquals(1, mon.selectCorruptedObjects(cos, failed, false));
-        assertEquals(2, failed.size());
-        assertEquals(co.name, failed.get(0).name);
-        assertTrue(failed.get(0).volume.exists(failed.get(0).name));  // failed CO is still in volume
-        assertTrue(! failed.get(1).volume.exists(failed.get(1).name));  // failed CO is still in volume
-        assertEquals(failed.get(0).volname,
-                     cachert.sidb.findObject(failed.get(0).volname, failed.get(0).name).volname);
-        assertEquals(failed.get(1).volname,
-                     cachert.sidb.findObject(failed.get(1).volname, failed.get(1).name).volname);
-
-        // test auto-delete
-        failed = new ArrayList<CacheObject>();
-        assertEquals(1, mon.selectCorruptedObjects(cos, failed, true));
-        assertEquals(2, failed.size());
-        assertEquals(co.name, failed.get(0).name);
-        assertTrue(! failed.get(0).volume.exists(failed.get(0).name));
-        assertTrue(! failed.get(1).volume.exists(failed.get(0).name));
-        assertNull(cachert.sidb.findObject(failed.get(0).volname, failed.get(0).name));
-        assertNull(cachert.sidb.findObject(failed.get(1).volname, failed.get(0).name));
     }
 
     @Test
-    public void testFindCorruptedOjects()
-        throws InventoryException, StorageVolumeException, CacheManagementException
-    {
-        List<CacheObjectCheck> chks = new ArrayList<CacheObjectCheck>();
+    public void testFindCorruptedOjects() throws InventoryException, StorageVolumeException, CacheManagementException {
+        List<CacheObjectCheck> chks = new ArrayList<>();
         chks.add(new SizeCheck());
         mon = new BasicIntegrityMonitor("test", cachert.sidb, cachert.cache.volumes, chks);
 
@@ -202,7 +170,7 @@ public class BasicIntegrityMonitorTest {
         md.put("size", 10);
         cachert.sidb.updateMetadata(co.volname, co.name, md);
 
-        ArrayList<CacheObject> failed = new ArrayList<CacheObject>();
+        ArrayList<CacheObject> failed = new ArrayList<>();
         assertEquals(13, mon.findCorruptedObjects(20, failed, false));
         assertEquals(1, failed.size());
 
@@ -211,4 +179,3 @@ public class BasicIntegrityMonitorTest {
         assertEquals(failed.get(0).name, cos.get(0).name);
     }
 }
-

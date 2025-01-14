@@ -1,42 +1,36 @@
 package gov.nist.oar.distrib.cachemgr.pdr;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.BagStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.restore.FileCopyRestorer;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
 
-import org.json.JSONObject;
 import org.json.JSONException;
-import org.junit.BeforeClass;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
+
+import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.RestorationException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class HeadBagRestorerTest {
 
@@ -47,13 +41,13 @@ public class HeadBagRestorerTest {
     HeadBagRestorer restorer = null;
     Path testdir = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws FileNotFoundException {
         publicLtstore = new FilesystemLongTermStorage(ltsdir);
         restrictedLtstore = new FilesystemLongTermStorage(ltsdir + "/restricted");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (testdir != null)
             FileSystemUtils.deleteRecursively(testdir.toFile());
@@ -66,7 +60,7 @@ public class HeadBagRestorerTest {
 
         assertFalse(rest.doesNotExist("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip"));
         assertFalse(rest.doesNotExist("mds1491.1_1_0.mbag0_4-1.zip"));
-        assertFalse(! rest.doesNotExist("mds1491.1_2_0.mbag0_4-2.zip"));
+        assertFalse(!rest.doesNotExist("mds1491.1_2_0.mbag0_4-2.zip"));
 
         rest = new HeadBagRestorer(restrictedLtstore, publicLtstore);
 
@@ -76,8 +70,8 @@ public class HeadBagRestorerTest {
 
         rest = new HeadBagRestorer(restrictedLtstore);
 
-        assertFalse(! rest.doesNotExist("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip"));
-        assertFalse(! rest.doesNotExist("mds1491.1_1_0.mbag0_4-1.zip"));
+        assertFalse(!rest.doesNotExist("67C783D4BA814C8EE05324570681708A1899.mbag0_3-0.zip"));
+        assertFalse(!rest.doesNotExist("mds1491.1_1_0.mbag0_4-1.zip"));
         assertFalse(rest.doesNotExist("mds1491.1_2_0.mbag0_4-2.zip"));
     }
 
@@ -97,7 +91,6 @@ public class HeadBagRestorerTest {
             fail("Mistakenly found hidden bag: mds1491.1_1_0.mbag0_4-1.zip");
         } catch (ObjectNotFoundException ex) { /* success! */ }
     }
-
 
     @Test
     public void testGetChecksum() throws StorageVolumeException {
@@ -128,7 +121,6 @@ public class HeadBagRestorerTest {
     }
 
     public void setUpTestdir() throws IOException {
-        // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
         if (indir.toFile().canWrite())
             testdir = Files.createTempDirectory(indir, "_unittest");
@@ -163,7 +155,7 @@ public class HeadBagRestorerTest {
         assertTrue(new File(cvdir, "mds1491.1_2_0.zip").isFile());
         assertTrue(cv.exists("mds1491.1_2_0.zip"));
         assertEquals(13746, db.findObject(cv.getName(), "mds1491.1_2_0.zip").getSize());
-        assertEquals(5, db.findObject(cv.getName(), "mds1491.1_2_0.zip").getMetadatumInt("priority",11));
+        assertEquals(5, db.findObject(cv.getName(), "mds1491.1_2_0.zip").getMetadatumInt("priority", 11));
         assertEquals(0L, resv.getSize());
         resv.drop();
         
@@ -174,14 +166,14 @@ public class HeadBagRestorerTest {
         assertTrue(new File(cvdir, bag).isFile());
         assertTrue(cv.exists(bag));
         assertEquals(14077, db.findObject(cv.getName(), bag).getSize());
-        assertEquals(5, db.findObject(cv.getName(), bag).getMetadatumInt("priority",11));
+        assertEquals(5, db.findObject(cv.getName(), bag).getMetadatumInt("priority", 11));
         assertEquals(0L, resv.getSize());
         resv.drop();
         
         rest = new HeadBagRestorer(restrictedLtstore);
         try {
             rest.restoreObject(bag, resv, rest.nameForObject(bag), md);
-            fail("Mistakenly found hidden bag: "+bag);
+            fail("Mistakenly found hidden bag: " + bag);
         } catch (ObjectNotFoundException ex) { /* success! */ }
     }
 
@@ -198,7 +190,7 @@ public class HeadBagRestorerTest {
 
         try {
             rest.findHeadBagFor("mds1491", "1.2.0");
-            fail("Unexpectedly found hiddent 1.2.0 version");
+            fail("Unexpectedly found hidden 1.2.0 version");
         } catch (ResourceNotFoundException ex) { /* success! */ }
     }
 }

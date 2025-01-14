@@ -11,14 +11,11 @@
  */
 package gov.nist.oar;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import org.junit.jupiter.api.Test;
 
 public class RequireWebSiteTest {
 

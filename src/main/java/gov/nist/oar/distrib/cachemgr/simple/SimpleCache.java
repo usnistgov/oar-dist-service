@@ -13,23 +13,16 @@
  */
 package gov.nist.oar.distrib.cachemgr.simple;
 
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.BasicCache;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
-import gov.nist.oar.distrib.cachemgr.inventory.DefaultDeletionPlanner;
-import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
-
-import java.util.List;
 import java.util.Collection;
-import java.util.HashMap;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import org.json.JSONObject;
-import org.json.JSONException;
+import gov.nist.oar.distrib.cachemgr.BasicCache;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.DefaultDeletionPlanner;
+import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
 
 /**
  * a simple implementation of a {@link gov.nist.oar.distrib.cachemgr.Cache}.  

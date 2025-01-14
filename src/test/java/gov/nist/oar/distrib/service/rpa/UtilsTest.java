@@ -1,8 +1,9 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import gov.nist.oar.distrib.service.rpa.utils.Utils;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -11,10 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.jupiter.api.Test;
+
+import gov.nist.oar.distrib.service.rpa.utils.Utils;
 
 /**
  * Tests for the {@link Utils} class.
@@ -37,7 +37,7 @@ public class UtilsTest {
         String expectedUrl = "https://example.com/test?param1=value1&param2=value2";
         String actualUrl = Utils.buildUrl(baseUrl, path, queryParams);
 
-        Assert.assertEquals(expectedUrl, actualUrl);
+        assertEquals(expectedUrl, actualUrl);
     }
 
     /**
@@ -53,7 +53,7 @@ public class UtilsTest {
         String expectedUrl = "https://example.com/test";
         String actualUrl = Utils.buildUrl(baseUrl, path, null);
 
-        Assert.assertEquals(expectedUrl, actualUrl);
+        assertEquals(expectedUrl, actualUrl);
     }
 
     /**

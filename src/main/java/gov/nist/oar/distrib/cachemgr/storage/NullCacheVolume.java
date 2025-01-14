@@ -13,22 +13,18 @@
  */
 package gov.nist.oar.distrib.cachemgr.storage;
 
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-
-import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.HashSet;
 
 import org.json.JSONObject;
-import org.json.JSONException;
+
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
 
 /**
  * an implementation of the CacheVolume interface throws away all data put into it.  The 

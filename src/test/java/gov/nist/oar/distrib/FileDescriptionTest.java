@@ -13,10 +13,9 @@
  */
 package gov.nist.oar.distrib;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,49 +25,47 @@ public class FileDescriptionTest {
     @Test
     public void testCtorNull() {
         FileDescription d = new FileDescription();
-        assertEquals(null, d.name          );
-        assertEquals(null, d.contentType   );
-        assertEquals(null, d.checksum      );
-        assertEquals(null, d.aipid         );
-        assertEquals( -1L, d.contentLength );
-        assertEquals(   0, d.getProperties().size());
+        assertNull(d.name);
+        assertNull(d.contentType);
+        assertNull(d.checksum);
+        assertNull(d.aipid);
+        assertEquals(-1L, d.contentLength);
+        assertEquals(0, d.getProperties().size());
 
         d = new FileDescription(null, -3L);
-        assertEquals(null, d.name          );
-        assertEquals(null, d.contentType   );
-        assertEquals(null, d.checksum      );
-        assertEquals(null, d.aipid         );
-        assertEquals( -3L, d.contentLength );
-        assertEquals(   0, d.getProperties().size());
+        assertNull(d.name);
+        assertNull(d.contentType);
+        assertNull(d.checksum);
+        assertNull(d.aipid);
+        assertEquals(-3L, d.contentLength);
+        assertEquals(0, d.getProperties().size());
     }
 
     @Test
     public void testCtorFull() {
-
         String data = "Hello world";
 
         FileDescription d = new FileDescription(null, -3, null, (String) null);
-        assertEquals(null, d.name         );
-        assertEquals(null, d.contentType  );
-        assertEquals(null, d.checksum     );
-        assertEquals( -3L, d.contentLength);
-        assertEquals(   0, d.getProperties().size());
+        assertNull(d.name);
+        assertNull(d.contentType);
+        assertNull(d.checksum);
+        assertEquals(-3L, d.contentLength);
+        assertEquals(0, d.getProperties().size());
 
-        d = new FileDescription("greeting.txt", data.length(), "text/plain",
-                               Checksum.sha256("abcdef12345"));
+        d = new FileDescription("greeting.txt", data.length(), "text/plain", Checksum.sha256("abcdef12345"));
         assertEquals("greeting.txt", d.name);
-        assertEquals("text/plain",   d.contentType);
-        assertEquals("abcdef12345",  d.checksum.hash);
+        assertEquals("text/plain", d.contentType);
+        assertEquals("abcdef12345", d.checksum.hash);
         assertEquals("sha256", d.checksum.algorithm);
         assertEquals(11L, d.contentLength);
-        assertEquals(   0, d.getProperties().size());
+        assertEquals(0, d.getProperties().size());
 
         d = new FileDescription("greeting.txt", data.length());
         assertEquals("greeting.txt", d.name);
-        assertEquals( 11L, d.contentLength);
-        assertEquals(null, d.contentType );
-        assertEquals(null, d.checksum    );
-        assertEquals(   0, d.getProperties().size());
+        assertEquals(11L, d.contentLength);
+        assertNull(d.contentType);
+        assertNull(d.checksum);
+        assertEquals(0, d.getProperties().size());
     }
 
     @Test
@@ -83,31 +80,21 @@ public class FileDescriptionTest {
         assertEquals(5, d.getIntProp("size"));
         assertEquals(5L, d.getLongProp("size"));
         assertTrue(d.getBooleanProp("ishead"));
-        assertEquals(null, d.getProperties().get("goober"));
+        assertNull(d.getProperties().get("goober"));
     }
 
     @Test
     public void testPropCastExc() {
         FileDescription d = new FileDescription("greeting.txt", 11);
         d.setProp("goober", "gurn");
-        try {
-            d.getIntProp("goober");
-            fail("ClassCastException not thrown");
-        } catch(ClassCastException ex) { }
-        try {
-            d.getLongProp("goober");
-            fail("ClassCastException not thrown");
-        } catch(ClassCastException ex) { }
-        try {
-            d.getBooleanProp("goober");
-            fail("ClassCastException not thrown");
-        } catch(ClassCastException ex) { }
+        assertThrows(ClassCastException.class, () -> d.getIntProp("goober"));
+        assertThrows(ClassCastException.class, () -> d.getLongProp("goober"));
+        assertThrows(ClassCastException.class, () -> d.getBooleanProp("goober"));
     }
 
     @Test
     public void testJSON() throws Exception {
-        FileDescription d = new FileDescription("greeting.txt", 45098L, "text/plain",
-                                              Checksum.sha256("abcdef12345"));
+        FileDescription d = new FileDescription("greeting.txt", 45098L, "text/plain", Checksum.sha256("abcdef12345"));
         String json = new ObjectMapper().writeValueAsString(d);
         assertThat(json, containsString("\"name\":"));
         assertThat(json, containsString("\"contentLength\":"));

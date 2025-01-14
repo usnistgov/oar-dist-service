@@ -11,21 +11,17 @@
  */
 package gov.nist.oar.clients.rmm;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Iterator;
 import java.util.Arrays;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
 
 public class ComponentInfoCacheTest {
 
@@ -74,7 +70,7 @@ public class ComponentInfoCacheTest {
     public void testWeed() {
         ComponentInfoCache cache = new ComponentInfoCache(5, -1L, 3);
         
-        JSONObject got = null;
+        // JSONObject got = null;
         assertEquals(0, cache.size());
 
         JSONObject jo = makeComp();

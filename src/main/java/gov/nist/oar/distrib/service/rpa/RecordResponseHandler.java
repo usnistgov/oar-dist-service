@@ -20,6 +20,13 @@ public interface RecordResponseHandler {
     void onRecordCreationFailure(int statusCode);
 
     /**
+     * Called when a pre-approved record creation operation succeeds.
+     * @param record The newly created pre-approved record
+     * @param randomId The unique identifier for the cached dataset associated with the record
+     */
+    void onPreApprovedRecordCreationSuccess(Record record, String randomId);
+
+    /**
      * This method is called when a record update operation is successful and user was approved.
      * @param record The record that was the user approved for.
      */

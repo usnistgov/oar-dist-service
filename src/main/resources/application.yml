@@ -6,7 +6,9 @@ spring:
   cloud:
     config:
       uri: http://localhost:8087
-       
+  config:
+    import: "optional:configserver:"
+    
 server:
     port: 8083
     servlet:

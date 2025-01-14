@@ -14,26 +14,22 @@
 package gov.nist.oar.bags.preservation;
 
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import gov.nist.oar.bags.preservation.BagUtils;
-
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
+
+import org.junit.jupiter.api.Test;
 
 public class BagUtilsTest {
     
-    Logger logger = LoggerFactory.getLogger(BagUtilsTest.class);
+    // Logger logger = LoggerFactory.getLogger(BagUtilsTest.class);
     public BagUtilsTest() {}
 
     @Test
@@ -196,32 +192,32 @@ public class BagUtilsTest {
     public void testVersionComparater() {
         Comparator<String> vc = BagUtils.versionComparator();
         assertEquals( 0, vc.compare("0_2", "0_2"));
-        assertTrue("Compare not negative", vc.compare("0_2", "0_3") < 0);
-        assertTrue("Compare not positive", vc.compare("0_3", "0_2") > 0);
+        assertTrue(vc.compare("0_2", "0_3") < 0, "Compare not negative");
+        assertTrue(vc.compare("0_3", "0_2") > 0, "Compare not positive");
+        assertTrue(vc.compare("1.2.3", "1.2.4") < 0, "Compare not negative");
+        assertTrue(vc.compare("1.5.3", "1.2.3") > 0, "Compare not positive");
+        assertTrue(vc.compare("1.5.3", "2.2.3") < 0, "Compare not negative");
+        assertTrue(vc.compare("0", "3") < 0, "Compare not negative");
+        assertTrue(vc.compare("3", "0") > 0, "Compare not positive");
+        assertTrue(vc.compare("3", "3_1") < 0, "Compare not negative");
+        assertTrue(vc.compare("3", "") > 0, "Compare not positive");
+        assertTrue(vc.compare("", "3_1") < 0, "Compare not negative");
+        assertTrue(vc.compare("3_0", "3") == 0, "Compare equal");
+        assertTrue(vc.compare("3", "3_0_0") == 0, "Compare equal");
+        assertTrue(vc.compare("", "") == 0, "Compare equal");
 
-        assertTrue("Compare not negative", vc.compare("1.2.3", "1.2.4") < 0);
-        assertTrue("Compare not positive", vc.compare("1.5.3", "1.2.3") > 0);
-        assertTrue("Compare not negative", vc.compare("1.5.3", "2.2.3") < 0);
-        assertTrue("Compare not negative", vc.compare("0", "3") < 0);
-        assertTrue("Compare not positive", vc.compare("3", "0") > 0);
-        assertTrue("Compare not negative", vc.compare("3", "3_1") < 0);
-        assertTrue("Compare not positive", vc.compare("3", "") > 0);
-        assertTrue("Compare not negative", vc.compare("", "3_1") < 0);
-        assertTrue("Compare equal", vc.compare("3_0", "3") == 0);
-        assertTrue("Compare equal", vc.compare("3", "3_0_0") == 0);
-        assertTrue("Compare equal", vc.compare("", "") == 0);
     }
 
   
     @Test
     public void testNameCompare() {
         Comparator<String> vc = BagUtils.bagNameComparator();
-        assertTrue("Compare not positive", vc.compare("goober.mbag0_2-4", "goober.mbag0_2-0") > 0);
-        assertTrue("Compare not negative", vc.compare("goober.mbag0_2-0", "goober.mbag0_3-0") < 0);
-        assertTrue("Compare not negative", vc.compare("goober.mbag0_2-4", "gurn.mbag0_2-0") < 0);
-        assertTrue("Compare not positive", vc.compare("goober.mbag0_2-1", "goober.mbag0_3-0") > 0);
-        assertTrue("Compare not negative",
-                   vc.compare("goober.mbag0_2-0.7z", "goober.mbag0_2-0.zip") < 0);
+        assertTrue(vc.compare("goober.mbag0_2-4", "goober.mbag0_2-0") > 0, "Compare not positive");
+        assertTrue(vc.compare("goober.mbag0_2-0", "goober.mbag0_3-0") < 0, "Compare not negative");
+        assertTrue(vc.compare("goober.mbag0_2-4", "gurn.mbag0_2-0") < 0, "Compare not negative");
+        assertTrue(vc.compare("goober.mbag0_2-1", "goober.mbag0_3-0") > 0, "Compare not positive");
+        assertTrue(vc.compare("goober.mbag0_2-0.7z", "goober.mbag0_2-0.zip") < 0, "Compare not negative");
+
         assertEquals( 0, vc.compare("goober.mbag0_2-0.7z", "goober.mbag0_2-0.7z"));
     }
 
@@ -349,47 +345,47 @@ public class BagUtilsTest {
         names.add("go-ober.4_0.mbag0_2-1");
 
         List<String> mtchd = BagUtils.selectVersion(names, "0.1");
-        assertTrue("Failed to match a version: 0.1", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 0.1");
         assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
         assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
         assertEquals(2, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "0_1");
-        assertTrue("Failed to match a version: 0_1", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 0_1");
         assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
         assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
         assertEquals(2, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "0.1.0");
-        assertTrue("Failed to match a version: 0.1.0", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 0.1.0");
         assertEquals("go-ober.0_1.mbag0_2-0", mtchd.get(0));
         assertEquals("go-ober.0_1.mbag0_2-1", mtchd.get(1));
         assertEquals(2, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "2.0.0");
-        assertTrue("Failed to match a version: 2.0.0", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 2.0.0");
         assertEquals("go-ober.2.mbag0_2-1", mtchd.get(0));
         assertEquals(1, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "0");
-        assertTrue("Failed to match a the unspecified version: (0)", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a the unspecified version: (0)");
         assertEquals("go-ober.mbag0_2-0", mtchd.get(0));
         assertEquals(1, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "1");
-        assertTrue("Failed to match a version: 1", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 1");
         assertEquals("go-ober.mbag0_2-0", mtchd.get(0));
         assertEquals(1, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "3.1.15");
-        assertTrue("Failed to match a version: 3.1.15", mtchd.size() > 0);
+        assertTrue( mtchd.size() > 0, "Failed to match a version: 3.1.15");
         assertEquals("go-ober.3_1_15.mbag0_2-1", mtchd.get(0));
         assertEquals("go-ober.3_1_15.mbag0_2-2", mtchd.get(1));
         assertEquals("go-ober.3_1_15.mbag0_4-3", mtchd.get(2));
         assertEquals(3, mtchd.size());
 
         mtchd = BagUtils.selectVersion(names, "3.1");
-        assertEquals("Matched a non-existent version", 0, mtchd.size());
+        assertEquals(0, mtchd.size(), "Matched a non-existent version");
     }
 }
 

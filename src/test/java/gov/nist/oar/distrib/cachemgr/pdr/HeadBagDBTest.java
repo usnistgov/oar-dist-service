@@ -13,53 +13,40 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 
-import java.io.IOException;
-import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashSet;
-
-import org.json.JSONObject;
-import org.json.JSONException;
-
-import java.sql.DriverManager;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
-
-/**
- * this test also tests the PDRStorageInventoryDB implementation
- */
 public class HeadBagDBTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    public File tempDir;
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
+        File tf = new File(tempDir, "testdb.sqlite");
         String out = tf.getAbsolutePath();
         HeadBagDB.initializeSQLiteDB(out);
         return out;
     }
 
     List<String> getStringColumn(ResultSet rs, int colindex) throws SQLException {
-        ArrayList<String> out = new ArrayList<String>();
-        // rs.first();
+        ArrayList<String> out = new ArrayList<>();
         while (rs.next()) {
             out.add(rs.getString(colindex));
         }
@@ -67,8 +54,7 @@ public class HeadBagDBTest {
     }
 
     List<String> getStringColumn(ResultSet rs, String colname) throws SQLException {
-        ArrayList<String> out = new ArrayList<String>();
-        // rs.first();
+        ArrayList<String> out = new ArrayList<>();
         while (rs.next()) {
             out.add(rs.getString(colname));
         }
@@ -79,7 +65,7 @@ public class HeadBagDBTest {
     public void testInit() throws IOException, SQLException, InventoryException {
         File dbf = new File(createDB());
         assertTrue(dbf.exists());
-        Connection conn = DriverManager.getConnection("jdbc:sqlite:"+dbf.toString());
+        Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbf.toString());
         DatabaseMetaData dmd = conn.getMetaData();
 
         // check that we have tables defined
@@ -89,9 +75,9 @@ public class HeadBagDBTest {
         // check that our tables are defined
         String[] ss = { "TABLE" };
         svals = getStringColumn(dmd.getTables(null, null, null, ss), "TABLE_NAME");
-        assertTrue("Missing volumes table", svals.contains("volumes"));
-        assertTrue("Missing algorithms table", svals.contains("algorithms"));
-        assertTrue("Missing objects table", svals.contains("objects"));
+        assertTrue(svals.contains("volumes"));
+        assertTrue(svals.contains("algorithms"));
+        assertTrue(svals.contains("objects"));
     }
 
     @Test
@@ -170,6 +156,4 @@ public class HeadBagDBTest {
         cos = sidb.findHeadBag("888888833333", "1.0.0", 0);
         assertEquals(0, cos.size());
     }
-
-
 }

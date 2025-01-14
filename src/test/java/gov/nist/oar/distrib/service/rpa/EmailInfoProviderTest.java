@@ -1,22 +1,22 @@
 package gov.nist.oar.distrib.service.rpa;
-import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
-import gov.nist.oar.distrib.service.rpa.model.Record;
-import gov.nist.oar.distrib.service.rpa.model.UserInfo;
-import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
+import gov.nist.oar.distrib.service.rpa.model.Record;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 
 /**
  * Unit tests for the EmailInfoProvider class.
@@ -53,12 +53,19 @@ public class EmailInfoProviderTest {
     @Mock
     private RPAConfiguration.EmailTemplate smeApprovalEmailInfo;
 
-    @Before
+    private AutoCloseable closeable;  // For closing open mocks
+
+    @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);  // Use openMocks instead of initMocks
         emailInfoProvider = new EmailInfoProvider(rpaConfiguration);
         prepareMockRecord();
         prepareMockRPAConfiguration();
+    }
+
+    @AfterEach
+    public void tearDown() throws Exception {
+        closeable.close();  // Ensure mocks are closed after each test
     }
 
     private void prepareMockRecord() {

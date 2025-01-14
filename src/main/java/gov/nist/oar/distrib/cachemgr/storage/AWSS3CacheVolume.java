@@ -13,34 +13,32 @@
  */
 package gov.nist.oar.distrib.cachemgr.storage;
 
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.StorageStateException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-
-import java.io.InputStream;
-import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
-import java.net.URL;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
 
-import org.json.JSONObject;
 import org.json.JSONException;
-import org.slf4j.LoggerFactory;
+import org.json.JSONObject;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
+
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageStateException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
 
 /**
  * an implementation of the CacheVolume interface that stores its data 

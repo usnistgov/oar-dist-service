@@ -13,67 +13,50 @@
  */
 package gov.nist.oar.distrib.service;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.Checksum;
 import gov.nist.oar.distrib.FileDescription;
+import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
-import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagRestorer;
-import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.io.File;
-import java.net.URL;
-import java.nio.file.Path;
 
 public class CacheEnabledFileDownloadServiceTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    Path tempDir;
 
     static Path tmpltsroot = null;
 
@@ -84,50 +67,55 @@ public class CacheEnabledFileDownloadServiceTest {
     HeadBagCacheManager hbcm = null;
     PDRCacheManager mgr = null;
 
-    File ltsroot = null, mtltsroot = null;
+    Path ltsroot, mtltsroot;
     FilesystemLongTermStorage lts = null;
     CacheEnabledFileDownloadService svc = null;
     
     HeadBagCacheManager createHBCache(BagStorage ltstore) throws IOException, CacheManagementException {
-        File tf = new File(tempf.getRoot(), "headbags");
-        File dbf = new File(tf, "inventory.sqlite");
-        boolean needinit = false;
-        if (! tf.exists()) {
-            needinit = true;
-            tempf.newFolder("headbags");
-            HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
+        Path headbagsDir = tempDir.resolve("headbags");
+        Path dbFile = headbagsDir.resolve("inventory.sqlite");
+        // boolean needinit = false;
+        if (! Files.exists(headbagsDir)) {
+            // needinit = true;
+            Files.createDirectory(headbagsDir);
+            HeadBagDB.initializeSQLiteDB(dbFile.toString());
         }
-        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbFile.toString());
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
         sidb.registerAlgorithm("sha256");
-        File cvd = new File(tf, "cv0");  if (! cvd.exists()) cvd.mkdir();
-        cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv0"), 2000000, null, true);
-        cvd = new File(tf, "cv1");  if (! cvd.exists()) cvd.mkdir();
-        cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"), 2000000, null, true);
+        Path cvDir = headbagsDir.resolve("cv0");  
+        if (! Files.exists(cvDir)) Files.createDirectory(cvDir);
+        cache.addCacheVolume(new FilesystemCacheVolume(cvDir.toFile(), "cv0"), 2000000, null, true);
+        cvDir = headbagsDir.resolve("cv1");  
+        if (! Files.exists(cvDir)) Files.createDirectory(cvDir);
+        cache.addCacheVolume(new FilesystemCacheVolume(cvDir.toFile(), "cv1"), 2000000, null, true);
 
         return new HeadBagCacheManager(cache, sidb, new HeadBagRestorer(ltstore), "88434");
     }
 
-    ConfigurableCache createDataCache(File croot) throws CacheManagementException, IOException {
-        File dbf = new File(croot, "inventory.sqlite");
-        PDRStorageInventoryDB.initializeSQLiteDB(dbf.getAbsolutePath());
-        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+    ConfigurableCache createDataCache(Path croot) throws CacheManagementException, IOException {
+        Path dbFile = croot.resolve("inventory.sqlite");
+        PDRStorageInventoryDB.initializeSQLiteDB(dbFile.toString());
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbFile.toString());
         sidb.registerAlgorithm("sha256");
         ConfigurableCache cache = new ConfigurableCache("headbags", sidb, 2, null);
 
-        File cvdir = new File(croot, "foobar");  cvdir.mkdir();
+        Path cvDir = croot.resolve("foobar");  
+        Files.createDirectory(cvDir);
         VolumeConfig vc = new VolumeConfig();
-        CacheVolume cv = new FilesystemCacheVolume(cvdir, "foobar", "https://goob.net/c/foobar/");
-        vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS|PDRCacheRoles.ROLE_FAST_ACCESS);
+        CacheVolume cv = new FilesystemCacheVolume(cvDir.toFile(), "foobar", "https://goob.net/c/foobar/");
+        vc.setRoles(PDRCacheRoles.ROLE_SMALL_OBJECTS | PDRCacheRoles.ROLE_FAST_ACCESS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "cranky");  cvdir.mkdir();
-        cv = new FilesystemCacheVolume(cvdir, "cranky", "https://goob.net/c/cranky/");
-        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS);
+        cvDir = croot.resolve("cranky");  
+        Files.createDirectory(cvDir);
+        cv = new FilesystemCacheVolume(cvDir.toFile(), "cranky", "https://goob.net/c/cranky/");
+        vc.setRoles(PDRCacheRoles.ROLE_GENERAL_PURPOSE | PDRCacheRoles.ROLE_LARGE_OBJECTS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
-        cvdir = new File(croot, "old");  cvdir.mkdir();
-        cv = new FilesystemCacheVolume(cvdir, "old", "https://goob.net/c/old/");
+        cvDir = croot.resolve("old");  
+        Files.createDirectory(cvDir);
+        cv = new FilesystemCacheVolume(cvDir.toFile(), "old", "https://goob.net/c/old/");
         vc.setRoles(PDRCacheRoles.ROLE_OLD_VERSIONS);
         cache.addCacheVolume(cv, 2000000, null, vc, true);
 
@@ -135,31 +123,31 @@ public class CacheEnabledFileDownloadServiceTest {
     }
 
     private BagStorage createBagStorage(boolean empty) throws FileNotFoundException {
-        return new FilesystemLongTermStorage((empty) ? mtltsdir : ltsdir);
+        return new FilesystemLongTermStorage(empty ? mtltsdir : ltsdir);
     }
     private void setupFileDownloadService(boolean empty) throws IOException, CacheManagementException {
         BagStorage ltstore = createBagStorage(empty);
         hbcm = createHBCache(ltstore);
 
-        File croot = new File(tempf.getRoot(), "data");
-        if (! croot.exists()) {
-            tempf.newFolder("data");
+        Path croot = tempDir.resolve("data");
+        if (! Files.exists(croot)) {
+            Files.createDirectory(croot);
             cache = createDataCache(croot);
         }
         rstr = new PDRDatasetRestorer(ltstore, hbcm, 500);
 
-        List<CacheObjectCheck> checks = new ArrayList<CacheObjectCheck>();
+        List<CacheObjectCheck> checks = new ArrayList<>();
         checks.add(new ChecksumCheck());
-        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot, null);
+        mgr = new PDRCacheManager(cache, rstr, checks, 5000, -1, -1, croot.toFile(), null);
 
         DefaultPreservationBagService pres = new DefaultPreservationBagService(ltstore);
         FileDownloadService srcsvc = new FromBagFileDownloadService(pres);
         svc = new CacheEnabledFileDownloadService(srcsvc, pres, mgr, hbcm, false);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException, CacheManagementException {
-        mtltsdir = tempf.newFolder("mtlts").toString();
+        mtltsdir = Files.createDirectory(tempDir.resolve("mtlts")).toString();
         setupFileDownloadService(false);
     }
 

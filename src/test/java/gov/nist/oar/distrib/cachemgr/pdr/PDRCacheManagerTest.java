@@ -13,49 +13,42 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.stream.Collectors;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
-import org.junit.After;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.VolumeConfig;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.simple.SimpleCache;
-import gov.nist.oar.distrib.cachemgr.BasicCacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.ChecksumCheck;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Queue;
-import java.util.stream.Collectors;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.io.File;
 
 public class PDRCacheManagerTest {
 

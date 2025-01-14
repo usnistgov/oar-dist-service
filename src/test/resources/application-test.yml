@@ -1,0 +1,18 @@
+spring:
+  cloud:
+    config:
+      enabled: false   # Disables Spring Cloud Config during tests
+
+server:
+  port: 8083
+  servlet:
+    context-path: /od
+
+distrib:
+  bagstore:
+    mode: local
+    location: ${basedir}/src/test/resources
+  baseurl: http://localhost/oar-distrb-service
+
+logging:
+  path: ${basedir}/target/surefire-reports

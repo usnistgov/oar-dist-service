@@ -19,35 +19,31 @@ import gov.nist.oar.distrib.cachemgr.inventory.BigOldSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
 import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.json.JSONObject;
-import org.json.JSONException;
 
 import java.io.IOException;
 import java.io.File;
-import java.io.ByteArrayInputStream;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /*
  * tests BasicCache, too
  */
 public class ConfigurableCacheTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    Path tempDir;
 
     File dbf = null;
     StorageInventoryDB sidb = null;
@@ -55,7 +51,7 @@ public class ConfigurableCacheTest {
     ConfigurableCache cache = null;
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
+        File tf = new File(tempDir.toFile(), "testdb.sqlite");
         String out = tf.getAbsolutePath();
         SQLiteStorageInventoryDB.initializeDB(out);
         return out;
@@ -67,12 +63,12 @@ public class ConfigurableCacheTest {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         dbf.delete();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException, InventoryException {
         cache = null;
         dbf = new File(createDB());
@@ -82,20 +78,20 @@ public class ConfigurableCacheTest {
         sidb.registerAlgorithm("md5");
         sidb.registerAlgorithm("sha256");
 
-        cvlist = new ArrayList<CacheVolume>(2);
+        cvlist = new ArrayList<>(2);
         NullCacheVolume cv = new NullCacheVolume("foobar");
         cvlist.add(cv);
         sidb.registerVolume("foobar", 22000, null);
         cv = new NullCacheVolume("cranky");
         cvlist.add(cv);
         sidb.registerVolume("cranky", 20000, null);
-        
-        int[] sizes = { 229, 9321, 9001, 980, 2230, 100 };
+
+        int[] sizes = {229, 9321, 9001, 980, 2230, 100};
         addDataToVolume(sizes, (NullCacheVolume) cvlist.get(0));
-        int[] sizesc = { 229, 6321, 953, 10031, 2230, 100 };
+        int[] sizesc = {229, 6321, 953, 10031, 2230, 100};
         addDataToVolume(sizesc, (NullCacheVolume) cvlist.get(1));
     }
-    
+
     public long addDataToVolume(int[] sizes, NullCacheVolume cv) throws InventoryException {
         long now = System.currentTimeMillis();
         String volname = cv.getName();
@@ -103,13 +99,13 @@ public class ConfigurableCacheTest {
         String nm = null;
         JSONObject md = null;
         long total = 0L;
-        for (int i=0; i < sizes.length; i++) {
+        for (int i = 0; i < sizes.length; i++) {
             nm = Integer.toString(i);
             md = new JSONObject();
             md.put("size", sizes[i]);
-            sidb.addObject(volname+nm, volname, nm, md);
+            sidb.addObject(volname + nm, volname, nm, md);
             total += sizes[i];
-            md.put("since", now-(sizes[i]*60000));
+            md.put("since", now - (sizes[i] * 60000));
             sidb.updateMetadata(volname, nm, md);
             cv.addObjectName(nm);
         }
@@ -118,15 +114,14 @@ public class ConfigurableCacheTest {
     }
 
     ConfigurableCache createCache() {
-        ConfigurableCache out = new ConfigurableCacheForTesting("test", sidb);
-        return out;
+        return new ConfigurableCacheForTesting("test", sidb);
     }
 
     @Test
     public void testCtor() throws CacheManagementException {
         cache = createCache();
         DeletionPlanner ds = cache.getDeletionPlanner(0);
-        assertNotNull("No planner!", ds);
+        assertNotNull(ds, "No planner!");
     }
 
     @Test
@@ -135,7 +130,8 @@ public class ConfigurableCacheTest {
         try {
             cache.reserveSpace(100);
             fail("Found space in cache without volumes");
-        } catch (DeletionFailureException ex) { }
+        } catch (DeletionFailureException ex) {
+        }
 
         // test normal use of attached volumes
         VolumeConfig vcfg = new VolumeConfig();
@@ -163,7 +159,8 @@ public class ConfigurableCacheTest {
         try {
             cache.reserveSpace(100);
             fail("Found space in unavailable caches");
-        } catch (DeletionFailureException ex) { }
+        } catch (DeletionFailureException ex) {
+        }
 
         // This will fail because you can't upgrade status via addCacheVolume()
         vcfg = (new VolumeConfig()).withStatus(VolumeStatus.VOL_FOR_UPDATE);
@@ -173,7 +170,8 @@ public class ConfigurableCacheTest {
         try {
             cache.reserveSpace(100);
             fail("Found space in unavailable caches");
-        } catch (DeletionFailureException ex) { }
+        } catch (DeletionFailureException ex) {
+        }
 
         // reset status on one volume and confirm it works
         cache.getInventoryDB().setVolumeStatus(cvlist.get(0).getName(), VolumeStatus.VOL_FOR_UPDATE);
@@ -189,14 +187,15 @@ public class ConfigurableCacheTest {
         try {
             cache.reserveSpace(100);
             fail("Found space in unavailable caches");
-        } catch (DeletionFailureException ex) { }
+        } catch (DeletionFailureException ex) {
+        }
 
         // add a new volume
         CacheVolume vol = new NullCacheVolume("noobie");
         vcfg = (new VolumeConfig()).withRoles(1);
         cache.addCacheVolume(vol, 30000, null, vcfg, false);
         vnames = cache.volumeNames();
-        assertTrue("new volume not added to cache", vnames.contains("noobie"));
+        assertTrue(vnames.contains("noobie"), () -> "new volume not added to cache");
         JSONObject md = sidb.getVolumeInfo("noobie");
         assertEquals(md.optInt("status", 100), VolumeStatus.VOL_FOR_UPDATE);
         assertEquals(md.optLong("capacity", 0L), 30000);
@@ -223,64 +222,64 @@ public class ConfigurableCacheTest {
 
         cvs = cache.selectVolumes(0);
         assertEquals(3, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
         assertTrue(nms.contains("foobar"));
         assertTrue(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(1);
         assertEquals(1, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
         assertTrue(nms.contains("foobar"));
-        assertTrue(! nms.contains("goofy"));
-        assertTrue(! nms.contains("noobie"));
+        assertFalse(nms.contains("goofy"));
+        assertFalse(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(2);
         assertEquals(2, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
-        assertTrue(! nms.contains("foobar"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
+        assertFalse(nms.contains("foobar"));
         assertTrue(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(3);
         assertEquals(3, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
         assertTrue(nms.contains("foobar"));
         assertTrue(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(4);
         assertEquals(1, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
-        assertTrue(! nms.contains("foobar"));
-        assertTrue(! nms.contains("goofy"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
+        assertFalse(nms.contains("foobar"));
+        assertFalse(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(5);
         assertEquals(2, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
         assertTrue(nms.contains("foobar"));
-        assertTrue(! nms.contains("goofy"));
+        assertFalse(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(6);
         assertEquals(2, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
-        assertTrue(! nms.contains("foobar"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
+        assertFalse(nms.contains("foobar"));
         assertTrue(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
 
         cvs = cache.selectVolumes(7);
         assertEquals(3, cvs.size());
-        nms = cvs.stream().map(cv -> cv.getName()).collect(Collectors.toSet());
-        assertTrue(! nms.contains("cranky"));
+        nms = cvs.stream().map(CacheVolume::getName).collect(Collectors.toSet());
+        assertFalse(nms.contains("cranky"));
         assertTrue(nms.contains("foobar"));
         assertTrue(nms.contains("goofy"));
         assertTrue(nms.contains("noobie"));
@@ -290,7 +289,7 @@ public class ConfigurableCacheTest {
     public void testGetStrategyFor() throws CacheManagementException {
         cache = createCache();
         VolumeConfig vcfg = new VolumeConfig();
-        DeletionStrategy strat = null;
+        DeletionStrategy strat;
 
         cache.addCacheVolume(cvlist.get(0), 22000, null, vcfg, true);   // foobar
         vcfg.setDeletionStrategy(new BySizeSelectionStrategy(20000L));
@@ -299,10 +298,10 @@ public class ConfigurableCacheTest {
         cache.addCacheVolume(new NullCacheVolume("noobie"), 30000, null, vcfg, true);
 
         strat = cache.getStrategyFor("foobar", 10, 20);
-        assertTrue("Wrong strategy", strat instanceof OldSelectionStrategy);
+        assertTrue(strat instanceof OldSelectionStrategy);
         strat = cache.getStrategyFor("goofy", 10, 20);
-        assertTrue("Wrong strategy", strat instanceof BySizeSelectionStrategy);
+        assertTrue(strat instanceof BySizeSelectionStrategy);
         strat = cache.getStrategyFor("noobie", 10, 20);
-        assertTrue("Wrong strategy", strat instanceof BigOldSelectionStrategy);
+        assertTrue(strat instanceof BigOldSelectionStrategy);
     }
 }

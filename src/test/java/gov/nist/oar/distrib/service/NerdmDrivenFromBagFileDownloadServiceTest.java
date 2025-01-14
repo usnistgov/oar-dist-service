@@ -12,53 +12,42 @@
  */
 package gov.nist.oar.distrib.service;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.List;
 import java.io.File;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.util.FileSystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
-
-public class NerdmDrivenFromBagFileDownloadServiceTest {
+class NerdmDrivenFromBagFileDownloadServiceTest {
 
     Logger logger = LoggerFactory.getLogger(getClass());
     FilesystemLongTermStorage lts = null;
     NerdmDrivenFromBagFileDownloadService svc = null;
-    
+
     static Path testdir = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
@@ -69,12 +58,11 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
 
         byte[] buf = new byte[100000];
         int len;
-        String[] zips = { "mds1491.mbag0_2-0.zip", "mds1491.1_1_0.mbag0_4-1.zip" };
+        String[] zips = {"mds1491.mbag0_2-0.zip", "mds1491.1_1_0.mbag0_4-1.zip"};
         for (String file : zips) {
-            try (InputStream is = NerdmDrivenFromBagFileDownloadServiceTest.class.getResourceAsStream("/"+file)) {
+            try (InputStream is = NerdmDrivenFromBagFileDownloadServiceTest.class.getResourceAsStream("/" + file)) {
                 try (FileOutputStream os =
-                        new FileOutputStream(new File(testdir.toFile(), file)))
-                {
+                             new FileOutputStream(new File(testdir.toFile(), file))) {
                     while ((len = is.read(buf)) != -1) {
                         os.write(buf, 0, len);
                     }
@@ -83,13 +71,13 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         lts = new FilesystemLongTermStorage(testdir.toString());
         svc = new NerdmDrivenFromBagFileDownloadService(lts);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;
@@ -106,8 +94,7 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
 
     @Test
     public void testGetDataFileInfo()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException
-    {
+            throws ResourceNotFoundException, DistributionException, IOException {
         assertEquals(0, svc.compcache.size());
 
         FileDescription fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
@@ -121,7 +108,7 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
         assertEquals("trial1.json.sha256", fd.name);
         assertEquals(90, fd.contentLength);
         assertEquals("application/octet-stream", fd.contentType);
-        logger.info("cache contains: "+svc.compcache.idSet().toString());
+        logger.info("cache contains: " + svc.compcache.idSet().toString());
         assertEquals(6, svc.compcache.size());
 
         fd = svc.getDataFileInfo("mds1491", "trial2.json", null);
@@ -138,24 +125,24 @@ public class NerdmDrivenFromBagFileDownloadServiceTest {
         assertEquals(6, svc.compcache.size());
     }
 
-    @Test(expected = FileNotFoundException.class)
-    public void testGetDataFileInfoNotFound()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException
-    {
-        FileDescription fd = svc.getDataFileInfo("mds1491", "trial3/goober.json", null);
+    @Test
+    public void testGetDataFileInfoNotFound() {
+        assertThrows(FileNotFoundException.class, () -> {
+            svc.getDataFileInfo("mds1491", "trial3/goober.json", null);
+        });
     }
 
-    @Test(expected = ResourceNotFoundException.class)
-    public void testGetDataFileInfoBadID()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException
-    {
-        FileDescription fd = svc.getDataFileInfo("goober", "trial1.json", null);
+    @Test
+    public void testGetDataFileInfoBadID() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            svc.getDataFileInfo("goober", "trial1.json", null);
+        });
     }
 
     @Test
     public void testUrlPathEncoding() throws DistributionException {
-        assertEquals("just/a/path", svc.urlPathEncode("just/a/path"));
-        assertEquals("justapath", svc.urlPathEncode("justapath"));
-        assertEquals("just%20a%20path", svc.urlPathEncode("just a path"));
+        assertEquals("just/a/path", NerdmDrivenFromBagFileDownloadService.urlPathEncode("just/a/path"));
+        assertEquals("justapath", NerdmDrivenFromBagFileDownloadService.urlPathEncode("justapath"));
+        assertEquals("just%20a%20path", NerdmDrivenFromBagFileDownloadService.urlPathEncode("just a path"));
     }
 }

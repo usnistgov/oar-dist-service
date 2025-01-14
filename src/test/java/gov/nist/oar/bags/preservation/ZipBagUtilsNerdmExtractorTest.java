@@ -14,27 +14,22 @@
 package gov.nist.oar.bags.preservation;
 
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import gov.nist.oar.bags.preservation.BagUtils;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
 import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
+import java.io.InputStream;
 import java.util.HashMap;
+import java.util.zip.ZipEntry;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZipBagUtilsNerdmExtractorTest {
 
@@ -42,15 +37,15 @@ public class ZipBagUtilsNerdmExtractorTest {
     final String bagname = "mds1491.1_1_0.mbag0_4-1";
     final String zipfile = "/mds1491.1_1_0.mbag0_4-1.zip";
     final String bagver = "0.4";
-    Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
+    // Logger logger = LoggerFactory.getLogger(ZipBagUtilsTest.class);
     public ZipBagUtilsNerdmExtractorTest() {}
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         bagstrm = getClass().getResourceAsStream(zipfile);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         if (bagstrm != null) bagstrm.close();
     }
@@ -153,8 +148,7 @@ public class ZipBagUtilsNerdmExtractorTest {
         for(int i=0; i < comps.length(); i++) {
             cmp = comps.getJSONObject(i);
             if (! cmp.has("filepath"))
-                assertFalse("Unexpectedly annotated: "+cmp.opt("@id"),
-                            cmp.has("_location"));
+                assertFalse(cmp.has("_location"), "Unexpectedly annotated: "+cmp.opt("@id"));
             else if (cmp.optString("filepath").equals("sim++.json"))
                 assertEquals(JSONObject.NULL, cmp.opt("_location"));
             else if (cmp.optString("filepath").equals("trial2.json"))
@@ -162,9 +156,8 @@ public class ZipBagUtilsNerdmExtractorTest {
             else if (cmp.optString("filepath").equals("trial3"))
                 assertEquals(JSONObject.NULL, cmp.opt("_location"));
             else 
-                assertEquals("Unexpected bagname: "+cmp.optString("filepath")+" ("+
-                             Integer.toString(i)+") ",
-                             "mds1491.1_1_0.mbag0_4-1", cmp.opt("_location"));
+                assertEquals("mds1491.1_1_0.mbag0_4-1", cmp.opt("_location"), 
+                    "Unexpected bagname: "+cmp.optString("filepath")+" ("+Integer.toString(i)+") ");
         }
     }
 }
