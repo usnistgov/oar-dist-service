@@ -190,8 +190,14 @@ public class NISTDistribServiceConfig {
         logger.info("Bagstore mode: " + mode);
         logger.info("Bagstore location: " + bagstore);
         try {
-            if (mode.equals("aws") || mode.equals("remote")) 
+            if (mode.equals("aws") || mode.equals("remote")) {
+                // this should not be necessary
+                AmazonS3 s3c = s3client;
+                if (s3c == null)
+                    s3c = getAmazonS3();
+                //
                 return new AWSS3LongTermStorage(bagstore, s3client);
+            }
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
             else
