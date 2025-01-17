@@ -1,13 +1,21 @@
 spring:
+  config:
+    import: "optional:configserver:"
+  profiles:
+    # intended for development mode
+    active: default
   application:
     name: oar-dist-service
-  profiles:
-    active: prod
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: ["prod", "test", "dev", "local"]
   cloud:
     config:
       uri: http://localhost:8087
-  config:
-    import: "optional:configserver:"
     
 server:
     port: 8083

@@ -1,4 +1,7 @@
 spring:
+  config:
+    activate:
+      on-profile: test
   cloud:
     config:
       enabled: false   # Disables Spring Cloud Config during tests
