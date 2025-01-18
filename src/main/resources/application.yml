@@ -1,58 +1,37 @@
 spring:
-  config:
-    import: "optional:configserver:"
-  profiles:
-    # intended for development mode
-    active: default
   application:
     name: oar-dist-service
-
----
-
-spring:
   config:
-    activate:
-      on-profile: ["prod", "test", "dev", "local"]
-  cloud:
-    config:
-      uri: http://localhost:8087
-    
+    import: optional:configserver:http://localhost:8087
+
 server:
-    port: 8083
-    servlet:
-      context-path:  /od
-    error:
-      include-stacktrace: never
-    connection-timeout: 10s
-    max-http-header-size: 8192
-    tomcat:
-      accesslog:
-        directory: /var/log/dist-service
-        enabled: true
-        file-date-format: yyyy-MM-dd
-        prefix: tomcat-access-log
-        suffix: .log
-        rotate: true
-      accept-count: 100
-      max-connections: 10000
-      max-threads: 200
-      min-spare-threads: 10
-#        
-#security:
-#    headers:
-#      frame: true
-#      xss: true
-#      hsts: all
-#    enable-csrf: false
-    
-     
+  port: 8083
+  servlet:
+    context-path: /od
+  error:
+    include-stacktrace: never
+  connection-timeout: 10s
+  max-http-header-size: 8192
+  tomcat:
+    accesslog:
+      directory: /var/log/dist-service
+      enabled: true
+      file-date-format: yyyy-MM-dd
+      prefix: tomcat-access-log
+      suffix: .log
+      rotate: true
+    accept-count: 100
+    max-connections: 10000
+    max-threads: 200
+    min-spare-threads: 10
+
 logging:
   file: distservice.log
-  path : /var/log/dist-service
+  path: /var/log/dist-service
   exception-conversion-word: '%wEx'
   level:
     gov.nist.oar.distrib: DEBUG
-  
+
 springdoc:
   swagger-ui:
     tagsSorter: alpha
