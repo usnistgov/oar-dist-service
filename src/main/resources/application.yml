@@ -2,7 +2,9 @@ spring:
   application:
     name: oar-dist-service
   config:
-    import: optional:configserver:http://localhost:8087
+    import: "optional:configserver:"
+  cloud:
+    uri: http://localhost:8087
 
 server:
   port: 8083
