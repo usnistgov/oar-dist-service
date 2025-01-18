@@ -196,7 +196,7 @@ public class NISTDistribServiceConfig {
                 if (s3c == null)
                     s3c = getAmazonS3();
                 //
-                return new AWSS3LongTermStorage(bagstore, s3client);
+                return new AWSS3LongTermStorage(bagstore, s3c);
             }
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
