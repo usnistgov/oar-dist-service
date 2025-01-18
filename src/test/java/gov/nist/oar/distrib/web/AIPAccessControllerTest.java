@@ -28,12 +28,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@TestPropertySource(properties = {
+	"server.servlet.context-path=/od"})
 public class AIPAccessControllerTest {
 
     Logger logger = LoggerFactory.getLogger(AIPAccessControllerTest.class);
