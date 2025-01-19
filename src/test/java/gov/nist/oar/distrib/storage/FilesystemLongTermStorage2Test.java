@@ -12,28 +12,27 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import static org.junit.Assert.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.FileWriter;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
 
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.StorageVolumeException;
 
 // This set of sets was brought in from a parallel implementation in support of the cache manager.
@@ -44,7 +43,7 @@ public class FilesystemLongTermStorage2Test {
     String rightHash = "38acb15d02d5ac0f2a2789602e9df950c380d2799b4bdb59394e4eeabdd3a662";
     String wrongHash = "Ha!";
   
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
@@ -55,8 +54,8 @@ public class FilesystemLongTermStorage2Test {
         
         // setup a little repo
         String[] bases = { "data.7z", "missing.nosha" };
-        Path f = null;
-        int j = 0;
+        // Path f = null;
+        // int j = 0;
         for (String base : bases) {
             File out = new File(testdir.toFile(), base);
             try (FileWriter w = new FileWriter(out)) {
@@ -70,7 +69,7 @@ public class FilesystemLongTermStorage2Test {
         }
     }
   
-    @After
+    @AfterEach
     public void tearDown(){
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;

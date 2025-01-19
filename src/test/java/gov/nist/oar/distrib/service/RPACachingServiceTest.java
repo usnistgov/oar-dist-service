@@ -1,14 +1,13 @@
 package gov.nist.oar.distrib.service;
 
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
-import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,14 +17,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
+import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 
 public class RPACachingServiceTest {
 
@@ -33,7 +35,7 @@ public class RPACachingServiceTest {
         private PDRCacheManager pdrCacheManager;
         private RPAConfiguration rpaConfiguration;
     
-        @Before
+        @BeforeEach
         public void setUp() {
             pdrCacheManager = mock(PDRCacheManager.class);
             rpaConfiguration = mock(RPAConfiguration.class);
@@ -336,4 +338,3 @@ public class RPACachingServiceTest {
     }
 
 }
-

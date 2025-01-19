@@ -11,20 +11,19 @@
  */
 package gov.nist.oar.clients.rmm;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Iterator;
+import java.util.Map;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CompMapTest {
 
@@ -48,7 +47,7 @@ public class CompMapTest {
 
     private long now() { return System.currentTimeMillis(); }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         map = new ComponentInfoCache.CompMap(5, -1);
     }
@@ -134,7 +133,7 @@ public class CompMapTest {
 
     @Test
     public void testCaching() {
-        JSONObject got = null;
+        // JSONObject got = null;
         assertEquals(0, map.size());
         map.lim = 2;
 
@@ -159,7 +158,7 @@ public class CompMapTest {
 
     @Test
     public void testWeed() {
-        JSONObject got = null;
+        // JSONObject got = null;
         assertEquals(0, map.size());
 
         JSONObject jo = makeComp();
@@ -188,7 +187,7 @@ public class CompMapTest {
 
     @Test
     public void testUpdateAccess() {
-        JSONObject got = null;
+        // JSONObject got = null;
         assertEquals(0, map.size());
 
         JSONObject jo = makeComp();

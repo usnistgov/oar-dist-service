@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.service.rpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
@@ -71,6 +72,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
     private final static String RECORD_PENDING_STATUS = "pending";
     private final static String RECORD_APPROVED_STATUS = "approved";
+    private final static String RECORD_PRE_APPROVED_STATUS = "pre-approved";
     private final static String RECORD_DECLINED_STATUS = "declined";
     private final static String RECORD_REJECTED_STATUS = "rejected";
 
@@ -269,21 +271,19 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      * @throws InvalidRequestException   If the request is invalid or incomplete.
      * @throws RequestProcessingException If an error occurs during request processing, including URL creation, serialization, or communication errors.
      */
-
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException,
-            RequestProcessingException {
+    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException, RequestProcessingException {
         int responseCode;
-
+        RecordWrapper newRecordWrapper;
+    
         // Validate the email and country against the blacklists before proceeding
         String email = userInfoWrapper.getUserInfo().getEmail();
         String country = userInfoWrapper.getUserInfo().getCountry();
         String rejectionReason = "";
-
-        // Log user info
+    
         LOGGER.debug("User's email: " + email);
         LOGGER.debug("User's country: " + country);
-
+    
         // Check for blacklisted email and country
         if (isEmailBlacklisted(email)) {
             rejectionReason = "Email " + email + " is blacklisted.";
@@ -292,29 +292,23 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             rejectionReason = "Country " + country + " is blacklisted.";
             LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
         }
-
-        // Set the pending status of the record in this service, and not based on the user's input
-        userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_PENDING_STATUS);
-
+    
+        // Set the appropriate approval status based on blacklisting
         if (!rejectionReason.isEmpty()) {
-            // Append the rejection reason to the existing description
-            String currentDescription = userInfoWrapper.getUserInfo().getDescription();
-            String updatedDescription = currentDescription + "\nThis record was automatically rejected. Reason: " + rejectionReason;
-            userInfoWrapper.getUserInfo().setDescription(updatedDescription);
-            // Set approval status to rejected
             userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
+            String updatedDescription = userInfoWrapper.getUserInfo().getDescription() +
+                    "\nThis record was automatically rejected. Reason: " + rejectionReason;
+            userInfoWrapper.getUserInfo().setDescription(updatedDescription);
+        } else {
+            // Set pending or pre-approved status based on dataset type
+            String datasetId = userInfoWrapper.getUserInfo().getSubject();
+            boolean isPreApproved = isPreApprovedDataset(datasetId);
+            userInfoWrapper.getUserInfo().setApprovalStatus(isPreApproved ? RECORD_PRE_APPROVED_STATUS : RECORD_PENDING_STATUS);
         }
-
-        // Initialize return value
-        RecordWrapper newRecordWrapper;
-
-        // Get path
+    
+        // Send the POST request to Salesforce
         String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
-
-        // Get token
         JWTToken token = jwtHelper.getToken();
-
-        // Build URL
         String url;
         try {
             url = new URIBuilder(token.getInstanceUrl())
@@ -325,89 +319,146 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
         LOGGER.debug("CREATE_RECORD_URL=" + url);
-
+    
+        // Serialize the request payload
         String postPayload;
         try {
             postPayload = prepareRequestPayload(userInfoWrapper);
-            // Log the payload before serialization
             LOGGER.debug("CREATE_RECORD_PAYLOAD=" + postPayload);
         } catch (JsonProcessingException e) {
             LOGGER.error("Error while preparing record creation payload: " + e.getMessage());
             throw new RequestProcessingException("Error while preparing record creation payload: " + e.getMessage());
         }
-
-        // Send POST request
+    
+        // Send the POST request
         HttpURLConnection connection = null;
-
+    
         try {
             URL requestUrl = new URL(url);
             connection = connectionFactory.createHttpURLConnection(requestUrl);
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Authorization", "Bearer " + token.getAccessToken());
-            // Set payload
-            byte[] payloadBytes = postPayload.getBytes(StandardCharsets.UTF_8);
-            connection.setDoOutput(true); // tell connection we are writing data to the output stream
-            OutputStream os = connection.getOutputStream();
-            os.write(payloadBytes);
-            os.flush();
-            os.close();
-
+            connection.setDoOutput(true);
+    
+            // Write payload to output stream
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(postPayload.getBytes(StandardCharsets.UTF_8));
+                os.flush();
+            }
+    
+            // Process Salesforce response
             responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) { // If created
+            if (responseCode == HttpURLConnection.HTTP_OK) {
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     StringBuilder response = new StringBuilder();
                     String line;
-
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
                     LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
-                    // Handle the response
                     newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                 }
             } else {
-                // Handle any other error response
                 LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
             }
-
-        } catch (MalformedURLException e) {
-            // Handle the URL Malformed error
-            LOGGER.debug("Invalid URL: " + e.getMessage());
-            throw new RequestProcessingException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
-            // Handle the I/O error
-            LOGGER.debug("Error sending GET request: " + e.getMessage());
+            LOGGER.debug("Error sending request: " + e.getMessage());
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         } finally {
-            // Close the connection
             if (connection != null) {
                 connection.disconnect();
             }
         }
-
-        // Check if success and handle accordingly
+    
+        // Handle record creation based on the dataset type and approval status
         if (newRecordWrapper != null) {
-            // Check if the record is marked as rejected before proceeding
-            if (!RECORD_REJECTED_STATUS.equals(newRecordWrapper.getRecord().getUserInfo().getApprovalStatus())) {
-                // If the record is not marked as rejected, proceed with the normal success handling,
-                // including sending emails for SME approval and to the requester.
-                this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
+            String approvalStatus = newRecordWrapper.getRecord().getUserInfo().getApprovalStatus();
+    
+            if (RECORD_REJECTED_STATUS.equals(approvalStatus)) {
+                LOGGER.info("Record automatically rejected due to blacklist. Skipping further processing.");
+            } else if (RECORD_PRE_APPROVED_STATUS.equals(approvalStatus)) {
+                // Handle pre-approved dataset: cache immediately and send both confirmation and download emails
+                String randomId = this.rpaDatasetCacher.cache(userInfoWrapper.getUserInfo().getSubject());
+                if (randomId == null) {
+                    throw new RequestProcessingException("Caching process returned a null randomId");
+                }
+                this.recordResponseHandler.onPreApprovedRecordCreationSuccess(newRecordWrapper.getRecord(), randomId);
             } else {
-                // Since the record is automatically rejected, we skip sending approval and notification emails.
-                LOGGER.info("Record automatically rejected due to blacklist. Skipping email notifications.");
+                // Handle SME-required dataset: send SME approval request and confirmation email
+                this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
             }
         } else {
-            // we expect a record to be created every time we call createRecord
-            // if newRecordWrapper is null, it means creation failed
+            // Handle failure if record creation did not succeed
             this.recordResponseHandler.onRecordCreationFailure(responseCode);
         }
-
-
+    
         return newRecordWrapper;
     }
+    
 
+    // Method to check if a dataset is pre-approved
+    public boolean isPreApprovedDataset(String datasetId) {
+        String datasetUrl = constructDatasetUrl(datasetId);
+
+        JsonNode metadata = fetchDatasetMetadata(datasetUrl);
+        if (metadata == null) {
+            LOGGER.info("Failed to retrieve metadata or metadata is empty.");
+            return false;
+        }
+
+        return checkForPreApproval(metadata, datasetId);
+    }
+
+    private String constructDatasetUrl(String datasetId) {
+        String baseUrl = rpaConfiguration.getBaseDownloadUrl().replace("/ds/", "/id/");
+        return baseUrl + datasetId;
+    }
+
+    private JsonNode fetchDatasetMetadata(String datasetUrl) {
+        HttpURLConnection connection = null; 
+        try {
+            URL url = new URL(datasetUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
+    
+            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    return new ObjectMapper().readTree(in);
+                }
+            } else {
+                LOGGER.debug("Failed to retrieve metadata, HTTP response code: " + connection.getResponseCode());
+            }
+        } catch (IOException e) {
+            LOGGER.debug("Error retrieving metadata: " + e.getMessage());
+        } finally {
+            if (connection != null) {
+                connection.disconnect(); // Close connection
+            }
+        }
+        return null; // Return null if metadata fetch fails
+    }
+    
+
+    private boolean checkForPreApproval(JsonNode metadata, String datasetId) {
+        JsonNode components = metadata.path("components");
+        for (JsonNode component : components) {
+            JsonNode typeNode = component.path("@type");
+            if (typeNode.isArray() && typeNode.toString().contains("nrdp:RestrictedAccessPage")) {
+                JsonNode accessProfile = component.path("pdr:accessProfile");
+                if (!accessProfile.isMissingNode() && "rpa:rp0".equals(accessProfile.path("@type").asText())) {
+                    LOGGER.info("Dataset (ID =" + datasetId + ")  is pre-approved.");
+                    return true;
+                }
+            }
+        }
+        LOGGER.info("Dataset (ID =" + datasetId + ") requires SME approval.");
+        return false;
+    }
+    
+     
     private boolean isEmailBlacklisted(String email) {
         List<String> disallowedEmailStrings = rpaConfiguration.getDisallowedEmails();
         for (String patternString : disallowedEmailStrings) {
@@ -432,7 +483,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // Serialize the userInfoWrapper object to JSON
         return new ObjectMapper().writeValueAsString(userInfoWrapper);
     }
-
+    
 
     /**
      * Updates the status of a record in the database.

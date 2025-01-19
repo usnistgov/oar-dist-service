@@ -3,29 +3,22 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RequestSanitizerTest {
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
     private RequestSanitizer requestSanitizer;
 
-    @Before
+    @BeforeEach
     public void setup() {
         requestSanitizer = new RequestSanitizer();
     }
 
     @Test
     public void testSanitizeAndValidate_validInput() {
-
         // create a UserInfoWrapper instance with valid data
         UserInfo validUserInfo = new UserInfo();
         validUserInfo.setFullName("Jane Doe");
@@ -44,9 +37,8 @@ public class RequestSanitizerTest {
         requestSanitizer.sanitizeAndValidate(validWrapper);
     }
 
-    @Test(expected = InvalidRequestException.class)
+    @Test
     public void testSanitizeAndValidate_invalidInput_emptyField() {
-
         // create a UserInfoWrapper instance with invalid data
         UserInfo invalidUserInfo = new UserInfo();
         invalidUserInfo.setFullName("");
@@ -62,13 +54,13 @@ public class RequestSanitizerTest {
         UserInfoWrapper invalidWrapper = new UserInfoWrapper(invalidUserInfo, "test_recaptcha");
 
         // exception should be thrown for invalid input
-        requestSanitizer.sanitizeAndValidate(invalidWrapper);
+        assertThrows(InvalidRequestException.class, () -> {
+            requestSanitizer.sanitizeAndValidate(invalidWrapper);
+        });
     }
 
     @Test
     public void testSanitizeAndValidate_invalidInput_unsupportedParam() {
-
-        // create a UserInfo instance with valid data
         // create a UserInfoWrapper instance with invalid data
         UserInfo invalidUserInfo = new UserInfo();
         invalidUserInfo.setFullName("Jane Doe");
@@ -87,13 +79,10 @@ public class RequestSanitizerTest {
 
         UserInfoWrapper invalidWrapper = new UserInfoWrapper(invalidUserInfo, "test_recaptcha");
 
-        // exception should be thrown for invalid input
-        try {
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
             requestSanitizer.sanitizeAndValidate(invalidWrapper);
-            fail("Expected an InvalidRequestException to be thrown");
-        } catch (InvalidRequestException e) {
-            assertEquals("Request payload contains unsupported parameters: [anotherUnsupportedParam, unsupportedParam]", e.getMessage());
-        }
+        });
+        assertEquals("Request payload contains unsupported parameters: [anotherUnsupportedParam, unsupportedParam]", exception.getMessage());
     }
 
     @Test
@@ -112,12 +101,10 @@ public class RequestSanitizerTest {
 
         UserInfoWrapper invalidWrapper = new UserInfoWrapper(invalidUserInfo, "test_recaptcha");
 
-        try {
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
             requestSanitizer.sanitizeAndValidate(invalidWrapper);
-            fail("Expected InvalidRequestException to be thrown");
-        } catch (InvalidRequestException e) {
-            assertEquals("fullName cannot be blank.", e.getMessage());
-        }
+        });
+        assertEquals("fullName cannot be blank.", exception.getMessage());
     }
 
     @Test
@@ -137,12 +124,10 @@ public class RequestSanitizerTest {
 
         UserInfoWrapper invalidWrapper = new UserInfoWrapper(invalidUserInfo, "test_recaptcha");
 
-        try {
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
             requestSanitizer.sanitizeAndValidate(invalidWrapper);
-            fail("Expected InvalidRequestException to be thrown");
-        } catch (InvalidRequestException e) {
-            assertEquals("fullName cannot be blank.", e.getMessage());
-        }
+        });
+        assertEquals("fullName cannot be blank.", exception.getMessage());
     }
 
     @Test
@@ -168,6 +153,5 @@ public class RequestSanitizerTest {
 
         // test will pass if no exception is thrown
     }
-
 
 }

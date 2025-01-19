@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,8 +30,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +86,7 @@ public class VersionController {
      */
     @Operation(summary = "Return the version data for the service", 
                   description = "This returns the name and version label for this service")
-    @GetMapping(value = "/")
+    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     public VersionInfo getServiceVersion() {
         return new VersionInfo(NAME, VERSION);
     }

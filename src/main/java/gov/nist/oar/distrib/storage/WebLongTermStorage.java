@@ -150,19 +150,21 @@ public class WebLongTermStorage implements LongTermStorage {
      */
     protected URL getResourceURL(String resource) {
         if (_prefix != null) {
-            if (! resource.startsWith(_prefix)) return null;
+            if (!resource.startsWith(_prefix)) return null;
             resource = resource.substring(_prefix.length());
         }
-        
+    
         if (resource.length() == 0) return null;
-        
+    
         try {
-            return new URL(urlbase+resource);
-        }
-        catch (MalformedURLException ex) {
+            URI uri = new URI(urlbase + resource);  // Construct URI
+            logger.debug("Constructed URL: {}", uri.toString());  // Log the URL
+            return uri.toURL();  // Convert URI back to URL and return
+        } catch (URISyntaxException | MalformedURLException ex) {
             return null;
         }
     }
+    
 
     /**
      * open a connection to the resource.  This allows sub-classes to tune the connection parameters
@@ -266,9 +268,13 @@ public class WebLongTermStorage implements LongTermStorage {
     @Override
     public InputStream openFile(String resource) throws FileNotFoundException, StorageVolumeException {
         URL ep = getResourceURL(resource);
+        if (ep == null) {
+            throw new StorageVolumeException("Resource URL is null for resource: " + resource);
+        }
         HttpURLConnection conn = null;
         try {
             conn = openConnection(ep);
+            
             conn.setRequestMethod("GET");
             logger.debug("GET {}", ep.toString());
             int status = conn.getResponseCode();    // triggers request
@@ -277,7 +283,7 @@ public class WebLongTermStorage implements LongTermStorage {
                 throw new IOException("Server error "+Integer.toString(status)+" while accessing "+
                                       ep.toString()+": "+conn.getResponseMessage());
             if (status > 300)
-                throw new FileNotFoundException(resource);
+                throw new FileNotFoundException(resource + "Status = " + status + " New Location = " + conn.getHeaderField("Location"));
 
             FileDescription fd = new FileDescription(resource, conn.getContentLengthLong(),
                                                      conn.getContentType());

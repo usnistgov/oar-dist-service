@@ -1,55 +1,59 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
-import gov.nist.oar.distrib.web.RPAConfiguration;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPut;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class HttpRPADatasetCacherTest {
+
+    @InjectMocks
     private HttpRPADatasetCacher httpRPADatasetCacher;
+
+    @Mock
     private RPAConfiguration rpaConfiguration;
-    HttpClient httpClient;
+
+    @Mock
+    private HttpClient httpClient;
+
     @Captor
     private ArgumentCaptor<HttpPut> httpPutCaptor;
-    String datasetId;
 
+    private String datasetId;
     private static final String BASE_URL = "https://oardev.nist.gov";
     private static final String CACHE_PATH = "/od/ds/rpa/cache/";
 
-
-    @Before
+    @BeforeEach
     public void setUp() {
-        rpaConfiguration = mock(RPAConfiguration.class);
         when(rpaConfiguration.getPdrCachingUrl()).thenReturn(BASE_URL);
-
-        httpRPADatasetCacher = new HttpRPADatasetCacher(rpaConfiguration);
-        httpClient = mock(HttpClient.class);
         httpRPADatasetCacher.setHttpClient(httpClient);
-
         datasetId = "mds2-2909";
     }
 

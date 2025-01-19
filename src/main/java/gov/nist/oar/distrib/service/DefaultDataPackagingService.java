@@ -38,9 +38,6 @@ public class DefaultDataPackagingService implements DataPackagingService {
     String domains;
     DownloadBundlePlanner dwnldPlanner;
     
-    @Value("${logging.path}")
-    private String logFile;
-
     public DefaultDataPackagingService() {
 	// Default constructor
     }

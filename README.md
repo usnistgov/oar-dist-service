@@ -8,8 +8,8 @@ us to provide consistent and long-lived URLs to data products while
 hiding the actual location of files in storage.  In particular, files
 can be cached in a number locations for fast access.  The service
 capabilities are provided via a REST Web interface.  The
-implementation allows for the data products to be store either on
-local disk on in Amazon Web Services (AWS) S3.  
+implementation allows for the data products to be stored either on
+local disk or in Amazon Web Services (AWS) S3.  
 
 This service is implemented in Java and uses the
 [Spring Boot Framework](https://spring.io/) to implement the web
@@ -22,14 +22,14 @@ docker/    --> Docker containers for building the software and running
                 tests (without requiring prerequites to be installed).
 src/       --> Java source code and resources, organized as a Maven
                 project.
-scripts/   --> scripts building, testing, and running the software
-oar-build/ --> support libaries for building and testing (not for
+scripts/   --> Scripts for building, testing, and running the software.
+oar-build/ --> Support libaries for building and testing (not for
                 direct execution).
 ```
 
 ## Prerequisites
 
-As Maven project, this project relies on Maven to fetch and manage its
+As a Maven project, this repository relies on Maven to fetch and manage its
 library dependencies; thus, the only prerequisites that must be
 installed by the user are:
 
@@ -37,8 +37,8 @@ installed by the user are:
 * Maven 3.0.X or later
 * npm 6.2.0 or later (required for unit testing)
 
-This project has an optional dependency on Docker, the container
-infrastructure.  If docker is install, one can build and test the
+This project has an optional dependency on Docker: the container
+infrastructure.  If Docker is installed, one can build and test the
 software without Java or Maven installed.
 
 ## Building and Running the Service
@@ -49,9 +49,9 @@ The primary artifact provided by this repository is the executable JAR
 file, `oar-dist-service.jar`, which can be used to launch the
 service.  
 
-#### Simple building with `makedist`
+#### Simple Building with `makedist`
 
-As a standard OAR repository, the JAR file can be built by simply
+As a standard OAR repository, the JAR file can be built
 via the `makedist` script:
 
 ```
@@ -62,7 +62,7 @@ A successful build will save the JAR file as
 `target/oar-dist-service.jar`.  This script will also copy the JAR
 file to the `dist` subdirectory, adding a version number to the JAR
 file's name.  It also creates in the `dist` directory a file
-called `target/oar-dist-service-*_deps.json` which inventories all of
+called `target/oar-dist-service-*_deps.json`, which inventories all of
 the dependencies built into the JAR.
 
 Building with `makedist` requires that the above-listed prerequisites
@@ -146,7 +146,7 @@ This generates the same reports as described above.
 
 ### Testing with Docker
 
-If you do not have Java, Maven, and npm installed, but you do have Docker,
+If you do not have Java, Maven, and npm installed, but do have Docker,
 you can use Docker to run the unit tests.  Type:
 
 ```
@@ -170,20 +170,27 @@ scripts/run_service.sh -h
 ```
 
 ## Logging
-For each download request submitted to service, it captures information about an individual file or group/bundle of files requested to download. There are three types of requests,
-Single file download
-This request serves a file which is part of a collection associated with particular data record/data publication. 
+For each download request submitted to the service, information is captured about an individual file or group/bundle of files requested for download. 
+There are three types of requests:
+
+### Single file download
+This request serves a file which is part of a collection associated with a particular data record/data publication. 
 Single file download is served by using a long term URL.
-For this request we updated the service logs to print/output the record identifies, filename/filepath, its size and status of the download (success, failure or canceled by user)
+For this request we updated the service logs to print/output the record identifies, filename/filepath, its size, and the status of the download (success, failure or canceled by user).
 
-BundlePlan 
-Once bundleplan request is submitted for bundle/collection of files, it checks the size of each file and create bundles suggestion for download based on the size limitation per bundle. This request does not return actual data but returns the plan which user should use to download data to avoid issues getting large data sizes. For this type of request we log in details each file requested per bundle with common request identifier.
+### BundlePlan 
+Once a bundleplan request is submitted for bundle/collection of files, it checks the size of each file and creates bundle suggestions for download based on the size limitation per bundle. 
+This request does not return actual data but returns the plan which the user should use to download data to avoid issues getting large data sizes. 
+For this type of request, we log the details of each file requested per bundle with a common request identifier.
 
-Bundle Download
-This request actually serves data and delivers files as per request. In this request collection of files called bundle is requested with unique request identifier. The logs now collection information about each request and print request identifier, bundle name, files and sizes etc. It also produces information about whether bundle is successfully downloaded or partially downloaded or all files failed so bundle is failed to download.
+### Bundle Download
+This request actually serves data and delivers files as per request. 
+In this request, a collection of files called a bundle is requested with the unique request identifier. 
+The logs now collection information about each request and print request identifier, bundle name, files and sizes etc. 
+It also produces information about whether the bundle is successfully downloaded, partially downloaded, or the bundle download failed because all files failed.
 
 Note for developer ::
-Keep/maintain the formatting for these log messages as it is because there are log parsing scripts written in python in a separate project to get the request related information from log file and load in readable tables/collections in the database/
+Keep/maintain the formatting for these log messages as there are log parsing scripts written in python in a separate project to get the request related information from the log file and load in readable tables/collections in the database.
 
 ## Disclaimer
 

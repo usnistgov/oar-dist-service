@@ -12,15 +12,14 @@
  */
 package gov.nist.oar.distrib.datapackage;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.json.JSONException;
-import org.json.JSONObject;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Deoyani Nandrekar-Heinis BundleNamefilePathUrl java object test.
@@ -46,13 +45,13 @@ public class BundleNameFilePathUrlTest {
 
     @Test
     public void testJson() throws JsonProcessingException, JSONException {
-	String fileUrl1 = "{\"filePath\":\"/filepath/file-1.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
-	String fileUrl2 = "{\"filePath\":\"/filepath/file-2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	// String fileUrl1 = "{\"filePath\":\"/filepath/file-1.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
+	// String fileUrl2 = "{\"filePath\":\"/filepath/file-2.pdf\",\"downloadUrl\":\"https://s3.amazonaws.com/nist-midas/1894/license.pdf\"}";
 
-	String bundleNAme = " \"requestId\": request-1, \"bundleName\":\"download_data_1\" ";
-	String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" 
-	+ ", \"bundleSize\": 66, \"filesInBundle\": 2 }";
-	JSONObject jsonObject = new JSONObject(bundleJson);
+	// String bundleNAme = " \"requestId\": request-1, \"bundleName\":\"download_data_1\" ";
+	// String bundleJson = "{" + bundleNAme + "," + "\"includeFiles\"" + ":[" + fileUrl1 + "," + fileUrl2 + "]" 
+	// + ", \"bundleSize\": 66, \"filesInBundle\": 2 }";
+	// JSONObject jsonObject = new JSONObject(bundleJson);
 	FileRequest fpathUrl_1 = new FileRequest("/filepath/file-1.pdf",
 		"https://s3.amazonaws.com/nist-midas/1894/license.pdf");
 	FileRequest fpathUrl_2 = new FileRequest("/filepath/file-2.pdf",

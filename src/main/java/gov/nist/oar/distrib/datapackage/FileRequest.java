@@ -12,7 +12,7 @@
 
 package gov.nist.oar.distrib.datapackage;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * a container for holding a request for a file to be part of a data package (or bundle).  A

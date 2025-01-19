@@ -1,30 +1,23 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import org.junit.Assert;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for the {@link HttpURLConnectionFactory} interface and its implementations.
  */
 public class HttpURLConnectionFactoryTest {
 
-    private static final URL TEST_URL;
-
-    static {
-        try {
-            TEST_URL = new URL("https://example.com");
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final String TEST_URL = "https://example.com";
 
     /**
      * An implementation of the {@link HttpURLConnectionFactory} interface that creates {@link HttpURLConnection}
@@ -44,7 +37,6 @@ public class HttpURLConnectionFactoryTest {
         }
     }
 
-
     /**
      * Tests the {@link HttpURLConnectionFactoryImpl#createHttpURLConnection(URL)} method.
      *
@@ -54,8 +46,13 @@ public class HttpURLConnectionFactoryTest {
     public void testCreateHttpURLConnection() throws IOException {
         HttpURLConnectionFactory factory = new HttpURLConnectionFactoryImpl();
         // Test with a valid URL
-        URL url = new URL("https://example.com");
-        HttpURLConnection connection = factory.createHttpURLConnection(url);
-        Assert.assertNotNull(connection);
+        URI uri = null;
+        try {
+            uri = new URI(TEST_URL);
+        } catch (URISyntaxException e) {
+            fail("URI Syntax Exception: " + e.getMessage());
+        }
+        HttpURLConnection connection = factory.createHttpURLConnection(uri.toURL());
+        assertNotNull(connection, "HttpURLConnection should not be null");
     }
 }

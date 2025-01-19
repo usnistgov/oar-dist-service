@@ -1,18 +1,17 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidFormInputException;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
-import gov.nist.oar.distrib.service.rpa.model.UserInfo;
-import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.junit.jupiter.api.Test;
+
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidFormInputException;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
+import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 
 /**
  * Unit tests for the {@link HTMLSanitizer} class.
@@ -34,13 +33,13 @@ public class HTMLSanitizerTest {
     public void testSanitize_StringObject() {
         String input = "<a>Some simple text</a>";
         String sanitizedInput = HTMLSanitizer.sanitize(input);
-        Assert.assertEquals("Some simple text", sanitizedInput);
+        assertEquals("Some simple text", sanitizedInput);
     }
 
     @Test
     public void testSanitize_NullStringObject() {
         String sanitizedInput = HTMLSanitizer.sanitize(null);
-        Assert.assertEquals(null, sanitizedInput);
+        assertEquals(null, sanitizedInput);
     }
 
     @Test
@@ -49,7 +48,7 @@ public class HTMLSanitizerTest {
         StringBuilder sb = new StringBuilder().append("<a>").append("Hello, there!").append("</a>");
         // sanitized sb
         StringBuilder sanitizedSb = HTMLSanitizer.sanitize(sb);
-        Assert.assertEquals("Hello, there!", sanitizedSb.toString());
+        assertEquals("Hello, there!", sanitizedSb.toString());
     }
 
     @Test
@@ -65,7 +64,7 @@ public class HTMLSanitizerTest {
         expectedMap.put("fullName", "John Doe");
         expectedMap.put("organization", "NIST");
         // assert
-        Assert.assertEquals(expectedMap, sanitizedMap);
+        assertEquals(expectedMap, sanitizedMap);
     }
 
     @Test
@@ -86,7 +85,7 @@ public class HTMLSanitizerTest {
                 "NIST"
         };
         // assert
-        Assert.assertArrayEquals(expectedArray, sanitizedArray);
+        assertArrayEquals(expectedArray, sanitizedArray);
     }
 
     @Test
@@ -112,12 +111,12 @@ public class HTMLSanitizerTest {
         HTMLSanitizer.sanitize(userInfoWrapper);
 
         // Verify that the HTML tags and attributes have been sanitized
-        Assert.assertEquals("NIST", userInfoWrapper.getUserInfo().getOrganization());
-        Assert.assertEquals("John Doe", userInfoWrapper.getUserInfo().getFullName());
-        Assert.assertEquals("USA", userInfoWrapper.getUserInfo().getCountry());
-        Assert.assertEquals("Test dataset", userInfoWrapper.getUserInfo().getProductTitle());
+        assertEquals("NIST", userInfoWrapper.getUserInfo().getOrganization());
+        assertEquals("John Doe", userInfoWrapper.getUserInfo().getFullName());
+        assertEquals("USA", userInfoWrapper.getUserInfo().getCountry());
+        assertEquals("Test dataset", userInfoWrapper.getUserInfo().getProductTitle());
         // This checks line breaks as well
-        Assert.assertEquals(testDescription, userInfoWrapper.getUserInfo().getDescription());
+        assertEquals(testDescription, userInfoWrapper.getUserInfo().getDescription());
     }
 
     @Test

@@ -13,20 +13,20 @@
  */
 package gov.nist.oar.distrib.cachemgr.restore;
 
-import gov.nist.oar.distrib.LongTermStorage;
+import java.io.InputStream;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
 import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-
-import java.io.InputStream;
-import java.io.IOException;
-
-import org.json.JSONObject;
-import org.json.JSONException;
 
 /**
  * an abstract base class for implementations of the Restorer interface that pulls objects through a 

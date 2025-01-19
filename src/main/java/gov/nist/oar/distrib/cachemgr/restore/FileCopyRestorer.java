@@ -13,18 +13,13 @@
  */
 package gov.nist.oar.distrib.cachemgr.restore;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-
-import java.io.InputStream;
-import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
+
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
 
 /**
  * a restorer that assumes that data objects are stored in long-term storage as individual files.

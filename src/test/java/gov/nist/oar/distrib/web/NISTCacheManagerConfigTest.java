@@ -13,54 +13,42 @@
  */
 package gov.nist.oar.distrib.web;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.VolumeStatus;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.BasicCache;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.DeletionStrategy;
 import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.inventory.OldSelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.inventory.BigOldSelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetRestorer;
-import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
+import gov.nist.oar.distrib.cachemgr.BasicCache;
 
 import org.json.JSONObject;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.io.IOException;
-import java.io.FileNotFoundException;
 import java.io.File;
-import java.net.MalformedURLException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
 
 public class NISTCacheManagerConfigTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    Path tempf;
 
     NISTCacheManagerConfig cfg = null;
     File rootdir = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        rootdir = tempf.newFolder("cache");
+        rootdir = Files.createDirectory(tempf.resolve("cache")).toFile();
         cfg = new NISTCacheManagerConfig();
         cfg.setAdmindir(rootdir.toString());
 
@@ -69,35 +57,35 @@ public class NISTCacheManagerConfigTest {
         
         NISTCacheManagerConfig.CacheVolumeConfig vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         vcfg.setCapacity(2000L);
-        File vdir = new File(rootdir,"vols/king");
+        File vdir = new File(rootdir, "vols/king");
         vdir.mkdirs();
-        vcfg.setLocation("file://"+vdir.toString());
+        vcfg.setLocation("file://" + vdir.toString());
         vcfg.setStatus("update");
-        List<String> roles = new ArrayList<String>();
+        List<String> roles = new ArrayList<>();
         roles.add("general");
         roles.add("large");
         vcfg.setRoles(roles);
         vcfg.setRedirectBase("http://data.nist.gov/cache/king");
         vcfg.setName("king");
-        Map<String, Object> strat = new HashMap<String, Object>();
+        Map<String, Object> strat = new HashMap<>();
         strat.put("type", "oldest");
-        strat.put("priority0", new Integer(20));
+        strat.put("priority0", 20);
         vcfg.setDeletionStrategy(strat);
         vols.add(vcfg);
 
         vcfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         vcfg.setCapacity(3000L);
-        vdir = new File(rootdir,"vols/pratt");
+        vdir = new File(rootdir, "vols/pratt");
         vdir.mkdirs();
-        vcfg.setLocation("file://"+vdir.toString());
+        vcfg.setLocation("file://" + vdir.toString());
         vcfg.setStatus("update");
-        roles = new ArrayList<String>();
+        roles = new ArrayList<>();
         roles.add("old");
         roles.add("small");
         vcfg.setRoles(roles);
         vcfg.setRedirectBase("http://data.nist.gov/cache/pratt");
         vcfg.setName("pratt");
-        strat = new HashMap<String, Object>();
+        strat = new HashMap<>();
         strat.put("type", "bigoldest");
         vcfg.setDeletionStrategy(strat);
         vols.add(vcfg);
@@ -138,7 +126,7 @@ public class NISTCacheManagerConfigTest {
     }
 
     BagStorage makeBagStorage() throws IOException {
-        return new FilesystemLongTermStorage(tempf.newFolder("lts").toString());
+        return new FilesystemLongTermStorage(Files.createDirectory(tempf.resolve("lts")).toString());
     }
 
     @Test
@@ -146,12 +134,12 @@ public class NISTCacheManagerConfigTest {
         BagStorage bags = makeBagStorage();
         HeadBagCacheManager hbcmgr = cfg.createHeadBagManager(bags);
         assertEquals("88434", hbcmgr.getARKNAAN());
-        File root = new File(tempf.getRoot(), "cache/headbags");
+        File root = Files.createDirectories(tempf.resolve("cache/headbags")).toFile();
         assertTrue(root.isDirectory());
         File inv = new File(root, "inventory.sqlite");
         assertTrue(inv.isFile());
-        assertTrue((new File(root, "cv0")).isDirectory());
-        assertTrue((new File(root, "cv1")).isDirectory());
+        assertTrue(new File(root, "cv0").isDirectory());
+        assertTrue(new File(root, "cv1").isDirectory());
 
         SQLiteStorageInventoryDB db = new SQLiteStorageInventoryDB(inv.toString());
         JSONObject cvi = db.getVolumeInfo("cv0");
@@ -167,12 +155,12 @@ public class NISTCacheManagerConfigTest {
 
         HeadBagCacheManager hbcmgr = cfg.createHeadBagManager(makeBagStorage());
         assertEquals("88888", hbcmgr.getARKNAAN());
-        File root = new File(tempf.getRoot(), "cache/headbags");
+        File root = Files.createDirectories(tempf.resolve("cache/headbags")).toFile();
         assertTrue(root.isDirectory());
         File inv = new File(root, "inventory.sqlite");
         assertTrue(inv.isFile());
-        assertTrue((new File(root, "cv0")).isDirectory());
-        assertTrue((new File(root, "cv1")).isDirectory());
+        assertTrue(new File(root, "cv0").isDirectory());
+        assertTrue(new File(root, "cv1").isDirectory());
 
         SQLiteStorageInventoryDB db = new SQLiteStorageInventoryDB(inv.toString());
         JSONObject cvi = db.getVolumeInfo("cv0");
@@ -196,20 +184,22 @@ public class NISTCacheManagerConfigTest {
 
     @Test
     public void testCreateDefaultCache() throws ConfigurationException, IOException, CacheManagementException {
-        BasicCache cache = cfg.createDefaultCache(null);
-
+        cfg.createDefaultCache(null);
         File inv = new File(rootdir, "data.sqlite");
+        assertTrue(rootdir.isDirectory());
+        assertEquals(rootdir.toString() +"/data.sqlite" , inv.toString());
         assertTrue(inv.isFile());
-        assertTrue((new File(rootdir, "vols/king")).isDirectory());
-        assertTrue((new File(rootdir, "vols/pratt")).isDirectory());
+        assertTrue(new File(rootdir, "vols/king").isDirectory());
+        assertTrue(new File(rootdir, "vols/pratt").isDirectory());
+
         SQLiteStorageInventoryDB db = new SQLiteStorageInventoryDB(inv.toString());
         JSONObject cvi = db.getVolumeInfo("king");
         assertEquals(2000L, cvi.getLong("capacity"));
-        assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE|PDRCacheRoles.ROLE_LARGE_OBJECTS, cvi.getInt("roles"));
-        
+        assertEquals(PDRCacheRoles.ROLE_GENERAL_PURPOSE | PDRCacheRoles.ROLE_LARGE_OBJECTS, cvi.getInt("roles"));
+
         cvi = db.getVolumeInfo("pratt");
         assertEquals(3000L, cvi.getLong("capacity"));
-        assertEquals(PDRCacheRoles.ROLE_OLD_VERSIONS|PDRCacheRoles.ROLE_SMALL_OBJECTS, cvi.getInt("roles"));
+        assertEquals(PDRCacheRoles.ROLE_OLD_VERSIONS | PDRCacheRoles.ROLE_SMALL_OBJECTS, cvi.getInt("roles"));
 
         cvi = db.getVolumeInfo("topsecret");
         assertEquals(5000L, cvi.getLong("capacity"));
