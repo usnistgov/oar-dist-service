@@ -410,6 +410,10 @@ public class RPAConfiguration {
         return this.getEmailTemplates().get("declined-user");
     }
 
+    public EmailTemplate preApprovedEmail() {
+        return this.getEmailTemplates().get("pre-approved-user");
+    }
+
     @Override
     public String toString() {
         ObjectMapper mapper = new ObjectMapper();

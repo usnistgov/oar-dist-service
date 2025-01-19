@@ -37,11 +37,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -50,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
     
 
@@ -172,19 +177,27 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired AmazonS3             s3client;    // set via getter below
-    @Autowired BagStorage                lts;    // set via getter below
-    @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
-    @Autowired CacheManagerProvider cmgrprov;    // set via getter below
+    AmazonS3             s3client;    // set via getter below
+    BagStorage                lts;    // set via getter below
+    MimetypesFileTypeMap  mimemap;    // set via getter below
+    CacheManagerProvider cmgrprov;    // set via getter below
 
     /**
      * the storage service to use to access the bags
      */
     @Bean
     public BagStorage getLongTermStorage() throws ConfigurationException {
+        logger.info("Bagstore mode: " + mode);
+        logger.info("Bagstore location: " + bagstore);
         try {
-            if (mode.equals("aws") || mode.equals("remote")) 
-                return new AWSS3LongTermStorage(bagstore, s3client);
+            if (mode.equals("aws") || mode.equals("remote")) {
+                // this should not be necessary
+                AmazonS3 s3c = s3client;
+                if (s3c == null)
+                    s3c = getAmazonS3();
+                //
+                return new AWSS3LongTermStorage(bagstore, s3c);
+            }
             else if (mode.equals("local")) 
                 return new FilesystemLongTermStorage(bagstore);
             else
@@ -211,11 +224,10 @@ public class NISTDistribServiceConfig {
         // import credentials from the EC2 machine we are running on
         InstanceProfileCredentialsProvider provider = InstanceProfileCredentialsProvider.getInstance();
 
-        AmazonS3 client = AmazonS3Client.builder()
-                                        .standard()                 
-                                        .withCredentials(provider)
-                                        .withRegion(region)
-                                        .build();
+        AmazonS3 client = AmazonS3ClientBuilder.standard()  // Static access of standard() method
+                                            .withCredentials(provider)
+                                            .withRegion(region)
+                                            .build();
         return client;
     }
 
@@ -330,7 +342,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public WebMvcConfigurer mvcConfigurer() {
-        return new WebMvcConfigurerAdapter() {
+        return new WebMvcConfigurer() { 
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**");
@@ -338,15 +350,17 @@ public class NISTDistribServiceConfig {
 
             @Override
             public void configurePathMatch(PathMatchConfigurer configurer) {
-                UrlPathHelper uhlpr = configurer.getUrlPathHelper();
-                if (uhlpr == null) {
-                    uhlpr = new UrlPathHelper();
-                    configurer.setUrlPathHelper(uhlpr);
+                UrlPathHelper urlPathHelper = configurer.getUrlPathHelper();
+                if (urlPathHelper == null) {
+                    urlPathHelper = new UrlPathHelper();
+                    configurer.setUrlPathHelper(urlPathHelper);
                 }
-                uhlpr.setRemoveSemicolonContent(false);
+                urlPathHelper.setRemoveSemicolonContent(false);
             }
         };
     }
+
+
 
     @Bean
     public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {

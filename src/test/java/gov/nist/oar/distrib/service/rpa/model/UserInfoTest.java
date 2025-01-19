@@ -1,11 +1,11 @@
 package gov.nist.oar.distrib.service.rpa.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UserInfoTest {
 
@@ -33,7 +33,7 @@ public class UserInfoTest {
         // Validate the contents of the serialized string
         assertTrue(jsonStr.contains("John Doe"));
         assertTrue(jsonStr.contains("johndoe@example.com"));
-        userInfo.setCountry("United States");
+        assertTrue(jsonStr.contains("United States"));
     }
 
     @Test

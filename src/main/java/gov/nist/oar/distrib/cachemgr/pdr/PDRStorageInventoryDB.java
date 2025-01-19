@@ -13,36 +13,32 @@
  */
 package gov.nist.oar.distrib.cachemgr.pdr;
 
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.SelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.InventorySearchException;
-import gov.nist.oar.distrib.cachemgr.InventoryMetadataException;
-import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONTokener;
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.File;
-import java.util.List;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
-import java.sql.Statement;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.InventoryMetadataException;
+import gov.nist.oar.distrib.cachemgr.InventorySearchException;
+import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
+import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 
 
 /**
@@ -599,7 +595,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     public static void initializeSQLiteDB(String filepath) throws InventoryException {
         // load the sql script from a resource
-        Class thiscl = PDRStorageInventoryDB.class;
+        Class<PDRStorageInventoryDB> thiscl = PDRStorageInventoryDB.class;
         BufferedReader rdr = null;
         StringBuilder sb = new StringBuilder();
         try {
@@ -621,7 +617,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
         // execute each statement
         Connection conn = null;
-        Statement stmt = null;
+        // Statement stmt = null;
         try {
             conn = DriverManager.getConnection("jdbc:sqlite:"+filepath);
             for (String s : stmts) {

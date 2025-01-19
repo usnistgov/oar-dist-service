@@ -13,23 +13,18 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
 
 import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.SelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.inventory.BySizeSelectionStrategy;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-
-import java.util.List;
-import java.util.ArrayList;
-
-import org.json.JSONObject;
-import org.json.JSONException;
 
 /**
  * this test also tests the SizeLimitedSelectionStrategy implementation

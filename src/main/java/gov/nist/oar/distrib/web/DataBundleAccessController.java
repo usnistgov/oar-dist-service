@@ -15,14 +15,17 @@ package gov.nist.oar.distrib.web;
 import java.io.IOException;
 import java.util.zip.ZipOutputStream;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -75,7 +78,7 @@ public class DataBundleAccessController {
                             @ApiResponse(responseCode = "500", description="There is some error in distribution service") })
     @Operation(summary = "stream  compressed bundle of data requested",
                description = "download files specified in the filepath fiels with associated location/url where it is downloaded.")
-    @PostMapping(value = "/ds/_bundle", consumes = "application/json")
+    @PostMapping(value = "/ds/_bundle", consumes = "application/json", produces = "application/json")
     public void getBundle(@Valid @RequestBody BundleRequest bundleRequest,
                           @Parameter(hidden = true) HttpServletResponse response,
                           @Parameter(hidden = true) Errors errors,
@@ -133,59 +136,75 @@ public class DataBundleAccessController {
     }
 
     @ExceptionHandler(ServiceSyntaxException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorInfo handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
-        return createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ", ex.getMessage());
-
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleServiceSyntaxException(ServiceSyntaxException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        ErrorInfo errorInfo = createErrorInfo(req, 400, "Malformed input", "Malformed input detected in ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NoContentInPackageException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleServiceSyntaxException(NoContentInPackageException ex, HttpServletRequest req) {
-        return createErrorInfo(req, 404, "There is no content in the package.", "Malformed input detected in ",
-                               ex.getMessage());
-
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleNoContentInPackageException(NoContentInPackageException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        ErrorInfo errorInfo = createErrorInfo(req, 404, "There is no content in the package.", 
+                                            "Malformed input detected in ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(NoFilesAccesibleInPackageException.class)
-    @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    public ErrorInfo handleServiceSyntaxException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
-        return createErrorInfo(req, 502, "No files could be accessed successfully.", 
-                               "There are no files successfully accessed ", ex.getMessage());
-
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleNoFilesAccesibleInPackageException(NoFilesAccesibleInPackageException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ErrorInfo errorInfo = createErrorInfo(req, 502, "No files could be accessed successfully.", 
+                                            "There are no files successfully accessed ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.BAD_GATEWAY);
     }
 
     @ExceptionHandler(InputLimitException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
     @ResponseBody
-    public ErrorInfo handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
-        return createErrorInfo(req, HttpStatus.FORBIDDEN.value(),
-                               "Number of files and total size of bundle has some limit.", 
-                               "Bundle size and number of files in the bundle have some limits.", ex.getMessage());
+    public ResponseEntity<ErrorInfo> handleInputLimitException(InputLimitException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); 
+        ErrorInfo errorInfo = createErrorInfo(req, HttpStatus.FORBIDDEN.value(),
+                                            "Number of files and total size of bundle has some limit.", 
+                                            "Bundle size and number of files in the bundle have some limits.", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(DistributionException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleInternalError(DistributionException ex, HttpServletRequest req) {
-        return createErrorInfo(req, 500, "Internal Server Error", "Failure processing request: ",
-                               ex.getMessage());
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleDistributionException(DistributionException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error", 
+                                            "Failure processing request: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(IOException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleStreamingError(DistributionException ex, HttpServletRequest req) {
-        return createErrorInfo(req, 500, "Internal Server Error", "Streaming failure during request: ",
-                               ex.getMessage());
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleIOException(IOException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error", 
+                                            "Streaming failure during request: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-
-    public ErrorInfo handleStreamingError(RuntimeException ex, HttpServletRequest req) {
-
-        return createErrorInfo(req, 500, "Unexpected Server Error", "Unexpected failure during request: ",
-                               ex.getMessage());
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleRuntimeException(RuntimeException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Unexpected Server Error", 
+                                            "Unexpected failure during request: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 
     /**
      * Create Error Information object to be returned to the client as a result of failed request

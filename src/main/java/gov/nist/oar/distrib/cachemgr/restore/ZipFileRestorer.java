@@ -13,21 +13,18 @@
  */
 package gov.nist.oar.distrib.cachemgr.restore;
 
-import gov.nist.oar.distrib.LongTermStorage;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
 import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.Reservation;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
 
 /**
  * a restorer that extracts its objects from zip files in long-term storage
@@ -186,11 +183,11 @@ public class ZipFileRestorer extends RestorerBase {
     public InputStream openDataObject(String id) throws StorageVolumeException {
         String[] loc = id2location(id);  // may throw
         
-        ZipEntry ze = null;
+        // ZipEntry ze = null;
         ZipInputStream zis = null;
         try {
             zis = openZipSource(loc[0]);
-            ze = advanceTo(zis, loc[1]);
+            advanceTo(zis, loc[1]);
             return zis;
         }
         catch (FileNotFoundException ex) {

@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 8083
+
+distrib:
+  bagstore:
+    mode: local
+    location: ${basedir}/src/test/resources
+  baseurl: http://localhost/oar-distrb-service
+
+logging:
+  path: ${basedir}/target/surefire-reports

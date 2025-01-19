@@ -13,63 +13,65 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
-
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.DeletionPlan;
-import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
-
-import org.json.JSONObject;
-import org.json.JSONException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.io.File;
-import java.util.Map;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.DeletionPlan;
+import gov.nist.oar.distrib.cachemgr.DeletionPlanner;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.NullCacheVolume;
 
 public class DefaultDeletionPlannerTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
-    File dbf = null;
+    Path dbf = null;
     StorageInventoryDB sidb = null;
     NullCacheVolume cv = null;
     List<CacheVolume> cvlist = null;
 
     String createDB() throws IOException, InventoryException {
-        File tf = tempf.newFile("testdb.sqlite");
-        String out = tf.getAbsolutePath();
+        Path tf = Files.createFile(tempDir.resolve("testdb.sqlite"));
+        String out = tf.toAbsolutePath().toString();
         SQLiteStorageInventoryDB.initializeDB(out);
         return out;
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
-        dbf.delete();
+        dbf.toFile().delete();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException, InventoryException {
         cv = new NullCacheVolume("foobar");
-        cvlist = new ArrayList<CacheVolume>(2);
+        cvlist = new ArrayList<>(2);
         cvlist.add(cv);
         
-        dbf = new File(createDB());
-        assertTrue(dbf.exists());
+        dbf = tempDir.resolve("testdb.sqlite");
+        createDB();
+        assertTrue(dbf.toFile().exists());
 
-        sidb = new SQLiteStorageInventoryDB(dbf.getPath());
+        sidb = new SQLiteStorageInventoryDB(dbf.toString());
         sidb.registerAlgorithm("md5");
         sidb.registerAlgorithm("sha256");
         sidb.registerVolume("foobar", 200000, null);
@@ -82,7 +84,7 @@ public class DefaultDeletionPlannerTest {
         String nm = null;
         JSONObject md = null;
         long total = 0L;
-        for (int i=0; i < sizes.length; i++) {
+        for (int i = 0; i < sizes.length; i++) {
             nm = Integer.toString(i);
             md = new JSONObject();
             md.put("size", sizes[i]);
@@ -97,7 +99,7 @@ public class DefaultDeletionPlannerTest {
     @Test
     public void testCtor() throws InventoryException {
         SizeLimitedSelectionStrategy strat = new BySizeSelectionStrategy(1000000);
-        DeletionPlanner planr = new DefaultDeletionPlanner(sidb, cvlist, strat);
+        new DefaultDeletionPlanner(sidb, cvlist, strat);
     }
 
     @Test
@@ -107,7 +109,6 @@ public class DefaultDeletionPlannerTest {
         DeletionPlanner planr = new DefaultDeletionPlanner(sidb, cvlist, strat);
 
         DeletionPlan dp = planr.createDeletionPlanFor(cv, 1000);
-        // should not require any deletions
         assertNotNull(dp);
         assertEquals(0L, dp.getByteCountToBeRemoved());
         assertEquals(0.0, dp.score, 0.0);
@@ -117,10 +118,8 @@ public class DefaultDeletionPlannerTest {
         Map<String,Long> used = sidb.getUsedSpace();
         assertEquals(157145, used.get("foobar").longValue());
         long remove = dp.getByteCountToBeRemoved();
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" > 7145",
-                   remove > 7145);
-        assertTrue("Expected plan score="+Double.toString(dp.score)+" > 1000.0",
-                   dp.score > 1000.0);
+        assertTrue(remove > 7145, "Expected getByteCountToBeRemoved()=" + Long.toString(remove) + " > 7145");
+        assertTrue(dp.score > 1000.0, "Expected plan score=" + Double.toString(dp.score) + " > 1000.0");
         assertEquals(remove, 100311L);
 
         List<CacheObject> deletables = dp.getDeletableObjects();
@@ -171,12 +170,9 @@ public class DefaultDeletionPlannerTest {
         assertEquals("finbar", dp.getVolumeName());
         
         long remove = dp.getByteCountToBeRemoved();
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" < 7000",
-                   remove < 7000);
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" > 2274",
-                   remove > 2274);
-        assertTrue("Expected plan score="+Double.toString(dp.score)+" < 1000.0",
-                   dp.score < 1000.0);
+        assertTrue(remove < 7000, "Expected getByteCountToBeRemoved()=" + Long.toString(remove) + " < 7000");
+        assertTrue(remove > 2274, "Expected getByteCountToBeRemoved()=" + Long.toString(remove) + " > 2274");
+        assertTrue(dp.score < 1000.0, "Expected plan score=" + Double.toString(dp.score) + " < 1000.0");
 
         deletables = dp.getDeletableObjects();
         assertEquals(4, deletables.size());
@@ -189,11 +185,8 @@ public class DefaultDeletionPlannerTest {
         assertEquals("cranky", dp.getVolumeName());
         remove = dp.getByteCountToBeRemoved();
         
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" < 50000",
-                   remove < 50000);
-        assertTrue("Expected getByteCountToBeRemoved()="+Long.toString(remove)+" > 9000",
-                   remove > 7145);
-        assertTrue("Expected plan score="+Double.toString(dp.score)+" > 1000.0",
-                   dp.score < 1000.0);
+        assertTrue(remove < 50000, "Expected getByteCountToBeRemoved()=" + Long.toString(remove) + " < 50000");
+        assertTrue(remove > 7145, "Expected getByteCountToBeRemoved()=" + Long.toString(remove) + " > 9000");
+        assertTrue(dp.score < 1000.0, "Expected plan score=" + Double.toString(dp.score) + " > 1000.0");
     }
 }

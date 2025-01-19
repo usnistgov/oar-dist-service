@@ -11,68 +11,58 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpMethod;
-
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.json.JSONException;
-
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
 
-
-@RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
-                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-        "distrib.bagstore.mode=local",
-        "distrib.bagstore.location=${basedir}/src/test/resources",
-        "distrib.baseurl=http://localhost/oar-distrb-service",
-        "logging.path=${basedir}/target/surefire-reports"
-})
+	"server.servlet.context-path=/od"})
 public class AIPAccessControllerTest {
 
     Logger logger = LoggerFactory.getLogger(AIPAccessControllerTest.class);
 
-    @LocalServerPort
-    int port;
+    @org.springframework.boot.test.web.server.LocalServerPort
+    private int port;
 
-    TestRestTemplate websvc = new TestRestTemplate();
-    HttpHeaders headers = new HttpHeaders();
+    @Autowired
+    private TestRestTemplate websvc;
+
+    private HttpHeaders headers;
+
+    @BeforeEach
+    public void setUp() {
+        headers = new HttpHeaders();
+    }
 
     @Test
     public void testDescribeAIP() throws JSONException {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                          "/ds/_aip/mds1491.mbag0_2-0.zip/_info",
-                                                      HttpMethod.GET, req, String.class);
+                        "/ds/_aip/mds1491.mbag0_2-0.zip/_info",
+                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
         logger.info("testDescribeAIP(): got:\n  " + resp.getBody());
 
         String expect = "{ name:mds1491.mbag0_2-0.zip, contentType: \"application/zip\"," +
-                          "contentLength:9841, aipid:mds1491, serialization:zip}";
+                "contentLength:9841, aipid:mds1491, serialization:zip}";
 
         String got = resp.getBody();
         JSONAssert.assertEquals(expect, got, false);
@@ -82,26 +72,30 @@ public class AIPAccessControllerTest {
 
     @Test
     public void testDescribeAIPsBadID() throws JSONException {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/_aip/goober.zip",
-                                                      HttpMethod.GET, req, String.class);
+                HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         JSONAssert.assertEquals("{requestURL:\"/od/ds/_aip/goober.zip\"," +
-                                 "status:404,message:\"AIP file not found\",method:GET}",
-                                resp.getBody(), true);
+                        "status:404,message:\"AIP file not found\",method:GET}",
+                resp.getBody(), true);
     }
 
     @Test
-    public void testDownloadAIP() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                          "/ds/_aip/mds1491.mbag0_2-0.zip",
-                                                      HttpMethod.GET, req, String.class);
+public void testDownloadAIP() {
+    HttpEntity<String> req = new HttpEntity<>(null, headers);
+    ResponseEntity<byte[]> resp = websvc.exchange(getBaseURL() +
+             "/ds/_aip/mds1491.mbag0_2-0.zip", HttpMethod.GET, req, byte[].class);
 
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        assertEquals("application/zip", resp.getHeaders().getFirst("Content-Type"));
-        assertEquals(9841, resp.getBody().length());
-    }
+    logger.info("Expected file size: 9841");
+    logger.info("Actual Content-Length in response: " + resp.getHeaders().getFirst("Content-Length"));
+    logger.info("Actual bytes received: " + resp.getBody().length);
+
+    assertEquals(HttpStatus.OK, resp.getStatusCode());
+    assertEquals("application/zip", resp.getHeaders().getFirst("Content-Type"));
+    assertEquals(9841, resp.getBody().length);  // Compare byte array length
+}
+
 
     private String getBaseURL() {
         return "http://localhost:" + port + "/od";

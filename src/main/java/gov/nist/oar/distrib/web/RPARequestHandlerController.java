@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,7 +41,7 @@ import com.amazonaws.services.s3.AmazonS3;
 
 import java.util.Map;
 import java.io.IOException;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).
@@ -183,11 +185,11 @@ public class RPARequestHandlerController {
      * The response status indicates whether the connection test was successful.
      */
     @GetMapping("test")
-    ResponseEntity testConnectionToSalesforceAPIs() {
+    ResponseEntity<String> testConnectionToSalesforceAPIs() {
         _checkForService();
         LOGGER.info("Testing connection to Salesforce APIs...");
         // TODO: make Salesforce API call
-        return new ResponseEntity("Salesforce API is available.", HttpStatus.OK);
+        return new ResponseEntity<String>("Salesforce API is available.", HttpStatus.OK);
     }
 
     /**
@@ -207,8 +209,8 @@ public class RPARequestHandlerController {
      * @throws RequestProcessingException If an error occurs during the request processing.
      * @throws UnauthorizedException      If the authorization header does not contain valid credentials.
      */
-    @GetMapping(value = "/request/accepted/{id}")
-    public ResponseEntity getRecord(@PathVariable String id,
+    @GetMapping(value = "/request/accepted/{id}", produces = "application/json")
+    public ResponseEntity<RecordWrapper> getRecord(@PathVariable String id,
                                     @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, RequestProcessingException, UnauthorizedException {
 
@@ -233,7 +235,7 @@ public class RPARequestHandlerController {
             if (isValid) {
                 RecordWrapper recordWrapper = service.getRecord(id);
                 LOGGER.debug("Successfully retrieved record with ID: {}", id);
-                return new ResponseEntity(recordWrapper, HttpStatus.OK);
+                return new ResponseEntity<RecordWrapper>(recordWrapper, HttpStatus.OK);
             } else {
                 LOGGER.warn("Invalid token provided for record with ID: {}", id);
                 throw new UnauthorizedException("invalid token");
@@ -266,8 +268,8 @@ public class RPARequestHandlerController {
      * @throws RequestProcessingException           If an error occurs during request processing.
      * @throws UnauthorizedException                If the request is unauthorized (optional, to be implemented).
      */
-    @PostMapping(value = "/request/form", consumes = {"application/json"})
-    public ResponseEntity createRecord(@RequestBody UserInfoWrapper userInfoWrapper,
+    @PostMapping(value = "/request/form", consumes = {"application/json"}, produces = "application/json")
+    public ResponseEntity<RecordWrapper> createRecord(@RequestBody UserInfoWrapper userInfoWrapper,
                                        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
         _checkForService();
@@ -299,7 +301,7 @@ public class RPARequestHandlerController {
         RecordWrapper recordWrapper = service.createRecord(userInfoWrapper);
 
         LOGGER.debug("Record successfully created. Preparing to send response...");
-        return new ResponseEntity(recordWrapper, HttpStatus.OK);
+        return new ResponseEntity<RecordWrapper>(recordWrapper, HttpStatus.OK);
     }
 
 
@@ -325,8 +327,8 @@ public class RPARequestHandlerController {
      * @throws RequestProcessingException If an error occurs during request processing.
      * @throws UnauthorizedException      If the authorization header does not contain valid credentials.
      */
-    @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json")
-    public ResponseEntity updateRecord(@PathVariable String id, @RequestBody RecordPatch patch,
+    @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<RecordStatus> updateRecord(@PathVariable String id, @RequestBody RecordPatch patch,
                                        @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
 
@@ -358,7 +360,7 @@ public class RPARequestHandlerController {
                 logUpdateAction(tokenDetails, id);
 
                 LOGGER.debug("Record successfully updated");
-                return new ResponseEntity(recordStatus, HttpStatus.OK);
+                return new ResponseEntity<RecordStatus>(recordStatus, HttpStatus.OK);
             } else {
                 LOGGER.error("Token is invalid");
                 throw new UnauthorizedException("invalid token");
@@ -398,9 +400,16 @@ public class RPARequestHandlerController {
      */
     @ExceptionHandler(RecordNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorInfo handleRecordNotFoundException(RecordNotFoundException ex) {
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleRecordNotFoundException(RecordNotFoundException ex) {
         LOGGER.error("RecordNotFoundException encountered: {}", ex.getMessage());
-        return new ErrorInfo(404, "record not found: " + ex.getMessage());
+        
+        ErrorInfo errorInfo = new ErrorInfo(404, "record not found: " + ex.getMessage());
+        
+        // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                             .contentType(MediaType.APPLICATION_JSON)
+                             .body(errorInfo);
     }
 
     /**
@@ -416,9 +425,15 @@ public class RPARequestHandlerController {
      */
     @ExceptionHandler(InvalidRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorInfo handleInvalidRequestException(InvalidRequestException ex) {
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleInvalidRequestException(InvalidRequestException ex) {
         LOGGER.error("InvalidRequestException encountered: {}", ex.getMessage());
-        return new ErrorInfo(400, "invalid request: " + ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(400, "invalid request: " + ex.getMessage());
+
+        // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                             .contentType(MediaType.APPLICATION_JSON)
+                             .body(errorInfo);
     }
 
     /**
@@ -435,9 +450,14 @@ public class RPARequestHandlerController {
      */
     @ExceptionHandler(RecaptchaVerificationFailedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorInfo handleRecaptchaVerificationFailedException(RecaptchaVerificationFailedException ex) {
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleRecaptchaVerificationFailedException(RecaptchaVerificationFailedException ex) {
         LOGGER.error("RecaptchaVerificationFailedException encountered: {}", ex.getMessage());
-        return new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(errorInfo);
     }
 
     /**
@@ -453,11 +473,17 @@ public class RPARequestHandlerController {
      * @param ex The instance of RequestProcessingException that was thrown.
      * @return ErrorInfo A new ErrorInfo object that encapsulates the status code and the detailed error message.
      */
+    @ResponseBody
     @ExceptionHandler(RequestProcessingException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorInfo handleRequestProcessingException(RequestProcessingException ex) {
+    public ResponseEntity<ErrorInfo> handleRequestProcessingException(RequestProcessingException ex) {
         LOGGER.error("RequestProcessingException encountered: {}", ex.getMessage());
-        return new ErrorInfo(500, "internal server error: " + ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(500, "internal server error: " + ex.getMessage());
+
+        // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .contentType(MediaType.APPLICATION_JSON)
+                             .body(errorInfo);
     }
 
     /**
@@ -475,16 +501,27 @@ public class RPARequestHandlerController {
      */
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorInfo handleUnauthorizedException(UnauthorizedException ex) {
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleUnauthorizedException(UnauthorizedException ex) {
         LOGGER.error("UnauthorizedException encountered: {}", ex.getMessage());
-        return new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
+
+        // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(errorInfo);
     }
 
     @ExceptionHandler(NotOperatingException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorInfo handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
         LOGGER.warn("Request to non-engaged RPACachingService: " + req.getRequestURI() + "\n  " +
                     ex.getMessage());
-        return new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
+        ErrorInfo errorInfo =  new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
+        // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .contentType(MediaType.APPLICATION_JSON)
+                             .body(errorInfo);
     }
 }

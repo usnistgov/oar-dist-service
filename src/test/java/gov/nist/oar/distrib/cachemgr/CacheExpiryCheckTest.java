@@ -1,17 +1,20 @@
 package gov.nist.oar.distrib.cachemgr;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.time.Instant;
-
-import static org.mockito.Mockito.anyString;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
 public class CacheExpiryCheckTest {
 
     @Mock
@@ -22,9 +25,8 @@ public class CacheExpiryCheckTest {
     private CacheObject cacheObject;
     private CacheExpiryCheck expiryCheck;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         expiryCheck = new CacheExpiryCheck(mockInventoryDB);
     }
 
@@ -50,7 +52,6 @@ public class CacheExpiryCheckTest {
         // Verify removeObject effect
         verify(mockInventoryDB).removeObject(cacheObject.volname, cacheObject.name);
     }
-
 
     /**
      * Test to ensure that {@link CacheExpiryCheck} does not flag a cache object as expired if the current time has not
@@ -113,14 +114,13 @@ public class CacheExpiryCheckTest {
         verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
     }
 
-
     /**
      * Tests that an {@link IntegrityException} is thrown when a cache object has the {@code expires} metadata
      * but lacks a valid {@code lastModified} time.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
      */
-    @Test(expected = IntegrityException.class)
+    @Test
     public void testObjectWithExpiresButNoLastModified_ThrowsException() throws Exception {
         cacheObject.name = "objectWithNoLastModified";
         cacheObject.volname = "testVolume";
@@ -128,7 +128,9 @@ public class CacheExpiryCheckTest {
         when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(1000L); // Expires in 1 second
         when(cacheObject.getLastModified()).thenReturn(-1L); // Last modified not available
 
-        expiryCheck.check(cacheObject);
+        assertThrows(IntegrityException.class, () -> {
+            expiryCheck.check(cacheObject);
+        });
     }
 
     /**
@@ -147,5 +149,4 @@ public class CacheExpiryCheckTest {
         // Verify no action is taken
         verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
     }
-
 }
