@@ -11,46 +11,27 @@
  */
 package gov.nist.oar.clients.rmm;
 
-import gov.nist.oar.clients.OARServiceException;
-import gov.nist.oar.clients.OARWebServiceException;
-import gov.nist.oar.clients.AmbiguousIDException;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.net.URL;
-
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.ClassRule;
-import org.junit.rules.TestRule;
-import static org.junit.Assert.*;
-
-import gov.nist.oar.RequireWebSite;
-import gov.nist.oar.EnvVarIncludesWords;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONTokener;
-import org.json.JSONException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import gov.nist.oar.clients.OARServiceException;
 
 public class RMMResourceResolverNetTest {
 
-    @ClassRule
-    public static TestRule siterule = new RequireWebSite("https://data.nist.gov/rmm/resourceApi");
-    
-    @ClassRule
-    public static TestRule envrule = new EnvVarIncludesWords("OAR_TEST_INCLUDE", "net");
-
     RMMResourceResolver reslvr = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         reslvr = new RMMResourceResolver("https://data.nist.gov/rmm/records", 10, -1);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         reslvr.compcache.clear();
     }
@@ -59,53 +40,47 @@ public class RMMResourceResolverNetTest {
     public void testResolveEDIID() throws OARServiceException {
         assertEquals(0, reslvr.getCacheSize());
         JSONObject rec = reslvr.resolveEDIID("3A1EE2F169DD3B8CE0531A570681DB5D1491");
-        assertNotNull("Failed to find record", rec);
+        assertNotNull(rec, "Failed to find record");
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", rec.getString("ediid"));
         assertEquals("ark:/88434/mds00hw91v", rec.getString("@id"));
         assertEquals(6, reslvr.getCacheSize());
 
-        assertNull("resource id treated as EDIID", reslvr.resolveEDIID("ark:/88434/mds00hw91v"));
+        assertNull(reslvr.resolveEDIID("ark:/88434/mds00hw91v"), "Resource ID treated as EDIID");
     }
 
     @Test
     public void testResolveResourceID() throws OARServiceException {
         assertEquals(0, reslvr.getCacheSize());
         JSONObject rec = reslvr.resolveResourceID("ark:/88434/mds00hw91v");
-        assertNotNull("Failed to find record", rec);
+        assertNotNull(rec, "Failed to find record");
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", rec.getString("ediid"));
         assertEquals("ark:/88434/mds00hw91v", rec.getString("@id"));
         assertEquals(6, reslvr.getCacheSize());
-
-        // assertNull("resource id treated as resource ID",
-        //           reslvr.resolveEDIID("3A1EE2F169DD3B8CE0531A570681DB5D1491"));
     }
 
     @Test
     public void testResolveComponentID() throws OARServiceException {
         assertEquals(0, reslvr.getCacheSize());
-        JSONObject rec =
-            reslvr.resolveComponentID("ark:/88434/mds00hw91v/cmps/1491_optSortSphEvaluated20160701.cdf");
-        assertNotNull("Failed to find component", rec);
+        JSONObject rec = reslvr.resolveComponentID("ark:/88434/mds00hw91v/cmps/1491_optSortSphEvaluated20160701.cdf");
+        assertNotNull(rec, "Failed to find component");
         assertEquals("cmps/1491_optSortSphEvaluated20160701.cdf", rec.getString("@id"));
         assertEquals("1491_optSortSphEvaluated20160701.cdf", rec.getString("filepath"));
         assertEquals(6, reslvr.getCacheSize());
 
-        rec =
-          reslvr.resolveComponentID("ark:/88434/mds00hw91v/cmps/1491_optSortSphEvaluated20160701.cdf.sha256");
-        assertNotNull("Failed to find component", rec);
+        rec = reslvr.resolveComponentID("ark:/88434/mds00hw91v/cmps/1491_optSortSphEvaluated20160701.cdf.sha256");
+        assertNotNull(rec, "Failed to find component");
         assertEquals("cmps/1491_optSortSphEvaluated20160701.cdf.sha256", rec.getString("@id"));
         assertEquals("1491_optSortSphEvaluated20160701.cdf.sha256", rec.getString("filepath"));
         assertEquals(6, reslvr.getCacheSize());
 
         rec = reslvr.resolveComponentID("ark:/88434/mds00hw91v#doi:10.18434/T4SW26");
-        assertNotNull("Failed to find component", rec);
+        assertNotNull(rec, "Failed to find component");
         assertEquals("#doi:10.18434/T4SW26", rec.getString("@id"));
         assertEquals("https://doi.org/10.18434/T4SW26", rec.getString("accessURL"));
         assertEquals(6, reslvr.getCacheSize());
 
         rec = reslvr.resolveComponentID("ark:/88434/mds00hw91v/cmps/goober");
-        assertNull("Found bogus component", rec);
+        assertNull(rec, "Found bogus component");
         assertEquals(6, reslvr.getCacheSize());
     }
-
 }

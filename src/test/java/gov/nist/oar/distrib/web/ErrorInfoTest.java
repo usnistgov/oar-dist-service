@@ -13,15 +13,13 @@
  */
 package gov.nist.oar.distrib.web;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.json.JSONException;
 
 public class ErrorInfoTest {
 
@@ -29,22 +27,21 @@ public class ErrorInfoTest {
     public void testCtor() {
         ErrorInfo e = new ErrorInfo("/goober", 403, "Rude!", "HEAD");
         assertEquals("/goober", e.requestURL);
-        assertEquals(403,       e.status);
-        assertEquals("Rude!",   e.message);
+        assertEquals(403, e.status);
+        assertEquals("Rude!", e.message);
         assertEquals("HEAD", e.method);
 
         e = new ErrorInfo("/goober", 410, "Rude!");
         assertEquals("/goober", e.requestURL);
-        assertEquals(410,       e.status);
-        assertEquals("Rude!",   e.message);
+        assertEquals(410, e.status);
+        assertEquals("Rude!", e.message);
         assertEquals("GET", e.method);
 
-
         e = new ErrorInfo(410, "Rude!");
-        assertEquals(null, e.requestURL);
-        assertEquals(410,       e.status);
-        assertEquals("Rude!",   e.message);
-        assertEquals(null, e.method);
+        assertNull(e.requestURL);
+        assertEquals(410, e.status);
+        assertEquals("Rude!", e.message);
+        assertNull(e.method);
     }
 
     @Test
@@ -66,7 +63,5 @@ public class ErrorInfoTest {
         e.message = null;
         json = new ObjectMapper().writeValueAsString(e);
         JSONAssert.assertEquals("{status:403}", json, true);
-                                
     }
-
 }

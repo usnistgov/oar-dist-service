@@ -12,33 +12,34 @@
  */
 package gov.nist.oar.distrib.web;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
-import gov.nist.oar.RequireWebSite;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.nist.oar.RequireWebSite;
 import gov.nist.oar.distrib.datapackage.BundleDownloadPlan;
 import gov.nist.oar.distrib.datapackage.BundleRequest;
 import gov.nist.oar.distrib.datapackage.FileRequest;
@@ -48,9 +49,10 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
  *
  */
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+	"server.servlet.context-path=/od",
         "distrib.bagstore.mode=local",
 	"distrib.bagstore.location=${basedir}/src/test/resources",
 	"distrib.baseurl=http://localhost/od/ds",
@@ -88,8 +90,12 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[0] = testval1;
 	inputfileList[1] = testval2;
 	BundleRequest bFL = new BundleRequest("testdownload-3", inputfileList,0,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
-		.body(bFL);
+	HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> request = RequestEntity
+            .post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+            .headers(headers)
+            .body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 
@@ -126,8 +132,12 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[2] = testval3;
 
 	BundleRequest bFL = new BundleRequest("testdownload-4", inputfileList,99,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
-		.body(bFL);
+	HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> request = RequestEntity
+            .post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+            .headers(headers)
+            .body(bFL);
 	System.out.println("request.getStatusCode():" + request + " \n request.getHeaders() :"
 			+ request.getHeaders() + "\n request.getBody():" + request.getBody());
 	
@@ -164,8 +174,12 @@ public class BundleDownloadPlanControllerTest {
 	
 	
 	BundleRequest bundleRequest = new BundleRequest("testdownload-5", ifileList,0,2);
-	RequestEntity<BundleRequest> newRequest = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
-		.body(bundleRequest);
+	HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> newRequest = RequestEntity
+            .post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+            .headers(headers)
+            .body(bundleRequest);
 
 	ResponseEntity<String> newResponse = websvc.exchange(newRequest, String.class);
 
@@ -203,8 +217,12 @@ public class BundleDownloadPlanControllerTest {
 	inputfileList[2] = testval3;
 	
 	BundleRequest bFL = new BundleRequest("testdownload-6", inputfileList,0,2);
-	RequestEntity<BundleRequest> request = RequestEntity.post(new URI(getBaseURL() + "/ds/_bundle_plan"))
-		.body(bFL);
+	HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+	RequestEntity<BundleRequest> request = RequestEntity
+            .post(new URI(getBaseURL() + "/ds/_bundle_plan"))
+            .headers(headers)
+            .body(bFL);
 
 	ResponseEntity<String> response = websvc.exchange(request, String.class);
 

@@ -11,41 +11,35 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpMethod;
-
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.json.JSONException;
-
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+	    "server.servlet.context-path=/od",
         "distrib.bagstore.mode=local",
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
@@ -384,7 +378,11 @@ public class DatasetAccessControllerTest {
 
     @Test
     public void testDownloadFileInfoViaBadARK() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        // Set the Accept header to request JSON
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/ds/ark:/mds1491/goob/trial1.json",
                                                       HttpMethod.HEAD, req, String.class);
 

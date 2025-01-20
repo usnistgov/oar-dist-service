@@ -13,27 +13,26 @@
  */
 package gov.nist.oar.distrib.cachemgr.inventory;
 
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.CacheObject;
-import gov.nist.oar.distrib.cachemgr.CacheObjectCheck;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.IntegrityException;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
-
 import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.CacheObject;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.IntegrityException;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
 
 public class ReadableCheckTest {
 
@@ -41,7 +40,7 @@ public class ReadableCheckTest {
     CacheObject tstco = null;
     ReadableCheck chk = null;
 
-    @Before
+    @BeforeEach
     public void setUp()
         throws StorageVolumeException, InventoryException, IOException, CacheManagementException
     {

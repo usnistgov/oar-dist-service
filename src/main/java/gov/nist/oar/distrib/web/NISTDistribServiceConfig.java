@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.util.UrlPathHelper;
 
 import gov.nist.oar.distrib.BagStorage;
@@ -43,16 +42,16 @@ import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
+
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-
-    
 
 /**
  * The configuration for the Distribution Service used in the NIST Public Data Repository.
@@ -173,16 +172,18 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
-    @Autowired S3Client             s3client;    // set via getter below
-    @Autowired BagStorage                lts;    // set via getter below
-    @Autowired MimetypesFileTypeMap  mimemap;    // set via getter below
-    @Autowired CacheManagerProvider cmgrprov;    // set via getter below
+    S3Client             s3client;    // set via getter below
+    BagStorage                lts;    // set via getter below
+    MimetypesFileTypeMap  mimemap;    // set via getter below
+    CacheManagerProvider cmgrprov;    // set via getter below
 
     /**
      * the storage service to use to access the bags
      */
     @Bean
-    public BagStorage getLongTermStorage() throws ConfigurationException {
+    public BagStorage getLongTermStorage(S3Client s3client) throws ConfigurationException {
+        logger.info("Bagstore mode: " + mode);
+        logger.info("Bagstore location: " + bagstore);
         try {
             if (mode.equals("aws") || mode.equals("remote")) {
                 return new AWSS3LongTermStorage(bagstore, s3client);
@@ -228,7 +229,6 @@ public class NISTDistribServiceConfig {
             throw new ConfigurationException("Error creating S3 client: " + e.getMessage(), e);
         }
     }
-
 
     /**
      * the MIME type assignments to use when setting content types
@@ -341,7 +341,7 @@ public class NISTDistribServiceConfig {
      */
     @Bean
     public WebMvcConfigurer mvcConfigurer() {
-        return new WebMvcConfigurerAdapter() {
+        return new WebMvcConfigurer() { 
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**");
@@ -349,15 +349,17 @@ public class NISTDistribServiceConfig {
 
             @Override
             public void configurePathMatch(PathMatchConfigurer configurer) {
-                UrlPathHelper uhlpr = configurer.getUrlPathHelper();
-                if (uhlpr == null) {
-                    uhlpr = new UrlPathHelper();
-                    configurer.setUrlPathHelper(uhlpr);
+                UrlPathHelper urlPathHelper = configurer.getUrlPathHelper();
+                if (urlPathHelper == null) {
+                    urlPathHelper = new UrlPathHelper();
+                    configurer.setUrlPathHelper(urlPathHelper);
                 }
-                uhlpr.setRemoveSemicolonContent(false);
+                urlPathHelper.setRemoveSemicolonContent(false);
             }
         };
     }
+
+
 
     @Bean
     public OpenAPI customOpenAPI(@Value("1.1.0") String appVersion) {

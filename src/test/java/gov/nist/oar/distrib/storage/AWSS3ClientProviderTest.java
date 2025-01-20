@@ -12,22 +12,25 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -40,17 +43,30 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
+/*
+ * Note that AWSS3ClientProvider, along with this test class, is deprecated but has been kept in 
+ * place in case it needs reviving.  It should be removed after successful migration to the 
+ * AWS SDK v2.
+ */
 public class AWSS3ClientProviderTest {
 
-    @ClassRule
-    public static S3MockTestRule siterule = new S3MockTestRule();
+    @RegisterExtension
+    static final S3MockExtension S3_MOCK = S3MockExtension.builder()
+            .withSecureConnection(false) 
+            .withHttpPort(9090) // Specify port here
+            .silent()   // Suppress statup banner and reduce logging verbosity
+            .build();
 
+    static S3Client s3client = null;
     private static final String bucket = "oar-lts-test";
-    private AWSS3ClientProvider s3Provider = null;
+    // Note: AWSS3ClientProvider is now deprecated
+    // private AWSS3ClientProvider s3Provider = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
-        S3Client s3client = createS3Provider().client();
+        // Note: provider class is now deprecated
+        s3client = S3_MOCK.createS3ClientV2();
+        // S3Client s3client = createS3Provider().client();
 
         if (bucketExists(s3client, bucket)) {
             destroyBucket(s3client);
@@ -60,6 +76,21 @@ public class AWSS3ClientProviderTest {
         s3client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
     }
 
+    /* 
+     * deprecated code
+     *
+    public static S3Client createS3Client() {
+        final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
+        final String endpoint = "http://localhost:9090/";
+        final String region = "us-east-1";
+
+        return AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .withEndpointConfiguration(new AmazonS3ClientBuilder.EndpointConfiguration(endpoint, region))
+                .enablePathStyleAccess()
+                .build();
+    }
+
     public static AWSS3ClientProvider createS3Provider() {
         final AwsBasicCredentials credentials = AwsBasicCredentials.create("foo", "bar");
         final String endpoint = "http://localhost:9090/";
@@ -67,6 +98,7 @@ public class AWSS3ClientProviderTest {
 
         return new AWSS3ClientProvider(StaticCredentialsProvider.create(credentials), region, 2, endpoint);
     }
+     */
 
     private static boolean bucketExists(S3Client s3client, String bucketName) {
         try {
@@ -99,17 +131,21 @@ public class AWSS3ClientProviderTest {
                 .build());
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
-        S3Client s3client = createS3Provider().client();
+        // deprecated
+        // S3Client s3client = createS3Provider().client();
         destroyBucket(s3client);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        s3Provider = createS3Provider();
+        // s3Provider = createS3Provider();
     }
 
+    /*
+     * deprecated
+     *
     @Test
     public void testClient() {
         assertNotNull(s3Provider);
@@ -143,6 +179,7 @@ public class AWSS3ClientProviderTest {
         s3Provider.shutdown();
         assertEquals(0, s3Provider.accessesLeft());
 
+        s3client.shutdown();
         try {
             client.listBuckets();
             fail("Expected IllegalStateException after shutdown");
@@ -174,4 +211,5 @@ public class AWSS3ClientProviderTest {
         assertNotSame(client1, client2);
         assertEquals(1, clonedProvider.accessesLeft());
     }
+     */
 }

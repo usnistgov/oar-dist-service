@@ -13,11 +13,12 @@
  */
 package gov.nist.oar.distrib.web;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import gov.nist.oar.distrib.cachemgr.VolumeStatus;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
@@ -39,32 +40,32 @@ import java.net.MalformedURLException;
 
 public class CacheVolumeConfigTest {
 
-    @Rule
-    public final TemporaryFolder tempf = new TemporaryFolder();
+    @TempDir
+    File tempf;
 
     NISTCacheManagerConfig cmcfg = new NISTCacheManagerConfig();
     NISTCacheManagerConfig.CacheVolumeConfig cfg = null;
     File voldir = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        cmcfg.setAdmindir(tempf.newFolder("cache").toString());
+        cmcfg.setAdmindir(tempf.getAbsolutePath());
         voldir = new File(cmcfg.getAdmindir(), "volume");
         voldir.mkdir();
         
         cfg = new NISTCacheManagerConfig.CacheVolumeConfig();
         cfg.setCapacity(2000L);
-        cfg.setLocation("file://"+voldir.toString());
+        cfg.setLocation("file://" + voldir.toString());
         cfg.setStatus("update");
-        List<String> roles = new ArrayList<String>();
+        List<String> roles = new ArrayList<>();
         roles.add("general");
         roles.add("large");
         cfg.setRoles(roles);
         cfg.setRedirectBase("http://data.nist.gov/cache/goob");
         cfg.setName("goob");
-        Map<String, Object> strat = new HashMap<String, Object>();
+        Map<String, Object> strat = new HashMap<>();
         strat.put("type", "oldest");
-        strat.put("priority0", new Integer(20));
+        strat.put("priority0", 20);
         cfg.setDeletionStrategy(strat);
     }
 
@@ -79,11 +80,7 @@ public class CacheVolumeConfigTest {
         assertEquals(VolumeStatus.VOL_FOR_INFO, cfg.getStatusCode());
 
         cfg.setStatus("goober");
-        try {
-            cfg.getStatusCode();
-            fail("Failed to raise exception for unrecognized status name");
-        }
-        catch (ConfigurationException ex) { /* success */ }
+        assertThrows(ConfigurationException.class, () -> cfg.getStatusCode());
     }
 
     @Test
@@ -92,16 +89,16 @@ public class CacheVolumeConfigTest {
         assertTrue(ds instanceof OldSelectionStrategy);
         assertEquals(20, ((OldSelectionStrategy) ds).getNormalPriority());
 
-        Map<String, Object> strat = new HashMap<String, Object>();
+        Map<String, Object> strat = new HashMap<>();
         strat.put("type", "biggest");
-        strat.put("priority0", new Integer(20));  // should be ignored
-        strat.put("normSize", new Integer(50));
+        strat.put("priority0", 20);  // should be ignored
+        strat.put("normSize", 50);
         cfg.setDeletionStrategy(strat);
         ds = cfg.createDeletionStrategy();
         assertTrue(ds instanceof BySizeSelectionStrategy);
         assertEquals(50.0, ((BySizeSelectionStrategy) ds).getNormalizingSize(), 0.01);
 
-        strat.put("normSize", new Double(50.5));
+        strat.put("normSize", 50.5);
         cfg.setDeletionStrategy(strat);
         ds = cfg.createDeletionStrategy();
         assertTrue(ds instanceof BySizeSelectionStrategy);
@@ -114,48 +111,30 @@ public class CacheVolumeConfigTest {
         assertEquals(9000000.0, ((BigOldSelectionStrategy) ds).getTurnOverAge(), 0.01);
         assertEquals(5.0e8, ((BigOldSelectionStrategy) ds).getTurnOverSize(), 0.01e8);
 
-        strat.put("ageTurnOver", new Double(200000.0));
-        strat.put("sizeTurnOver", new Integer(40000));
+        strat.put("ageTurnOver", 200000.0);
+        strat.put("sizeTurnOver", 40000);
         ds = cfg.createDeletionStrategy();
         assertTrue(ds instanceof BigOldSelectionStrategy);
         assertEquals(200000.0, ((BigOldSelectionStrategy) ds).getTurnOverAge(), 0.01);
         assertEquals(4.0e4, ((BigOldSelectionStrategy) ds).getTurnOverSize(), 0.01e4);
 
         strat.put("type", "dumbest");
-        try {
-            cfg.createDeletionStrategy();
-            fail("Failed to raise exception for unrecognized strategy name");
-        }
-        catch (ConfigurationException ex) { /* success */ }
+        assertThrows(ConfigurationException.class, () -> cfg.createDeletionStrategy());
     }
 
     @Test
-    public void testCreateCacheVolume()
-        throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException
-    {
+    public void testCreateCacheVolume() throws ConfigurationException, FileNotFoundException, MalformedURLException, CacheManagementException {
         CacheVolume cv = cfg.createCacheVolume(cmcfg, null);
         assertTrue(cv instanceof FilesystemCacheVolume);
         assertEquals(voldir, ((FilesystemCacheVolume) cv).getRootDir());
 
-        try {
-            cfg.setLocation("s3://nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg, null);
-            fail("Failed to raise exception for unconfigured S3 client");
-        }
-        catch (ConfigurationException ex) { /* success */ }
+        cfg.setLocation("s3://nist-goober/gurn");
+        assertThrows(ConfigurationException.class, () -> cfg.createCacheVolume(cmcfg, null));
 
-        try {
-            cfg.setLocation("next://nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg, null);
-            fail("Failed to raise exception for unrecognized volume type");
-        }
-        catch (ConfigurationException ex) { /* success */ }
+        cfg.setLocation("next://nist-goober/gurn");
+        assertThrows(ConfigurationException.class, () -> cfg.createCacheVolume(cmcfg, null));
 
-        try {
-            cfg.setLocation("/oar/data/nist-goober/gurn");
-            cfg.createCacheVolume(cmcfg, null);
-            fail("Failed to raise exception for missing location scheme");
-        }
-        catch (ConfigurationException ex) { /* success */ }
+        cfg.setLocation("/oar/data/nist-goober/gurn");
+        assertThrows(ConfigurationException.class, () -> cfg.createCacheVolume(cmcfg, null));
     }
 }

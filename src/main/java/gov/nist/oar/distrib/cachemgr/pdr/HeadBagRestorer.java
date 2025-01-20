@@ -74,7 +74,7 @@ public class HeadBagRestorer implements Restorer {
     {
         ArrayList<String> bagnames = new ArrayList<String>(2);
         
-        ResourceNotFoundException notfound = null;
+        // ResourceNotFoundException notfound = null;
         for (BagStorage store : bagstores) {
             try {
                 bagnames.add(store.findHeadBagFor(aipid));

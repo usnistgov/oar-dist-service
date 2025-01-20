@@ -11,6 +11,7 @@
  */
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
@@ -76,6 +77,9 @@ public class NISTDistribServiceConfigTest {
     @Autowired
     RPAConfiguration rpaConfiguration;
 
+    @Autowired
+    BagStorage lts;
+
     public static void cleanTestDir(File testdir) throws IOException {
         /*
         */
@@ -111,8 +115,8 @@ public class NISTDistribServiceConfigTest {
         assertEquals("local", config.mode);
         assertTrue(config.bagstore.endsWith("src/test/resources"));
         assertNotNull(config.mimemap);
-        assertNotNull(config.lts);
-        assertTrue(config.lts instanceof FilesystemLongTermStorage);
+        assertNotNull(lts);
+        assertTrue(lts instanceof FilesystemLongTermStorage);
         assertTrue(provider.canProvideManager());
 
         File tst = new File(testdir, "data.sqlite");

@@ -14,15 +14,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.0.RELEASE</version>
+        <version>3.3.0</version>
     </parent>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>Greenwich.RELEASE</spring-cloud.version>
-        <!-- Spring -->
-        <!--  <spring.boot.version>2.0.1.RELEASE</spring.boot.version> -->
+        <spring-cloud.version>2023.0.2</spring-cloud.version>
         <!-- Sonar -->
         <sonar.languages>java,xml,css,web</sonar.languages>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -42,6 +40,11 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>io.github.classgraph</groupId>
+                <artifactId>classgraph</artifactId>
+                <version>4.8.154</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -54,7 +57,7 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>aws-sdk-java</artifactId>
-            <version>2.29.35</version>
+            <version>2.29.29</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
@@ -62,16 +65,10 @@
             <artifactId>httpclient</artifactId>
             <version>4.5.13</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-config-client</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
@@ -92,7 +89,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
@@ -102,16 +98,14 @@
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-commons</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.17.0</version>
+            <version>2.18.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -147,29 +141,28 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <!--
-          -  This s3mock does not properly support pagination; using
-          -  com.adobe.testing.s3mock instead.  See s3mock subdir.
-          -
-        <dependency>
-            <groupId>io.findify</groupId>
-            <artifactId>s3mock_2.12</artifactId>
-            <version>0.2.5</version>
+            <groupId>com.adobe.testing</groupId>
+            <artifactId>s3mock</artifactId>
+            <version>3.12.0</version>
             <scope>test</scope>
         </dependency>
-          -->
-
-        <!-- https://mvnrepository.com/artifact/javax.activation/activation -->
+        <dependency>
+            <groupId>com.adobe.testing</groupId>
+            <artifactId>s3mock-junit5</artifactId>
+            <version>3.12.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.19.4</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
             <version>1.1.1</version>
         </dependency>
-
-        <!-- dependencies user for RPA-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -195,7 +188,44 @@
             <artifactId>commons-validator</artifactId>
             <version>1.7</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>8.0.1.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.17.2</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+
     </dependencies>
+
     <build>
         <finalName>oar-dist-service</finalName>
         <pluginManagement>
@@ -250,6 +280,9 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <basedir>${project.basedir}</basedir>
+                    </systemPropertyVariables>
                     <forkCount>0</forkCount>
                     <systemPropertyVariables>
                         <conf.path>${user.home}/spm</conf.path>
@@ -293,29 +326,6 @@
                         <configuration>
                             <dataFile>${sonar.jacoco.reportPath}</dataFile>
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>jacoco-initialize-it</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${sonar.jacoco.itReportPath}</destFile>
-                            <propertyName>failsafeArgLine</propertyName>
-                            <append>true</append>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>jacoco-site-it</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                        <configuration>
-                            <dataFile>${sonar.jacoco.itReportPath}</dataFile>
-                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>

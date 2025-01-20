@@ -11,50 +11,45 @@
  */
 package gov.nist.oar.distrib.cachemgr.restore;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.Checksum;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
-import gov.nist.oar.distrib.cachemgr.RestorationException;
-import gov.nist.oar.distrib.cachemgr.Restorer;
-import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.Reservation;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Test;
-import static org.junit.Assert.*;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.FileNotFoundException;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
-import java.nio.file.FileSystemException;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipEntry;
 
-import org.json.JSONObject;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
+
+import gov.nist.oar.distrib.Checksum;
+import gov.nist.oar.distrib.LongTermStorage;
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
+import gov.nist.oar.distrib.cachemgr.Reservation;
+import gov.nist.oar.distrib.cachemgr.RestorationException;
+import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.SQLiteStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class ZipFileRestorerTest {
 
-    Path testdir = null;
-    File storeroot = null;
-    LongTermStorage lts = null;
-    
-    @Before
-    public void setUp() throws IOException {
+    static Path testdir = null;
+    static File storeroot = null;
+    static LongTermStorage lts = null;
+
+    @BeforeAll
+    public static void setUp() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
         if (indir.toFile().canWrite())
@@ -63,16 +58,16 @@ public class ZipFileRestorerTest {
             testdir = Files.createTempDirectory("_unittest");
         storeroot = new File(testdir.toFile(), "ltstore");
         storeroot.mkdirs();
-        
+
         // setup a little repo
-        Files.copy(getClass().getResourceAsStream("/mds1491.mbag0_2-0.zip"),
-                   (new File(storeroot, "mds1491.mbag0_2-0.zip")).toPath());
+        Files.copy(ZipFileRestorerTest.class.getResourceAsStream("/mds1491.mbag0_2-0.zip"),
+                (new File(storeroot, "mds1491.mbag0_2-0.zip")).toPath());
 
         lts = new FilesystemLongTermStorage(storeroot.getAbsolutePath());
     }
 
-    @After
-    public void tearDown(){
+    @AfterAll
+    public static void tearDown() {
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;
     }
@@ -95,24 +90,26 @@ public class ZipFileRestorerTest {
         try {
             rest.getSizeOf("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
     public void testGetChecksum() throws StorageVolumeException {
         ZipFileRestorer rest = new ZipFileRestorer(lts, "mds1491.mbag0_2-0.zip", "");
         assertEquals("ab671096", rest.getChecksum("mds1491.mbag0_2-0/data/trial1.json").hash);
-                     
+
         try {
             rest.getChecksum("goober!");
             fail("Failed to raise exception for missing file");
-        } catch (ObjectNotFoundException ex) { }
+        } catch (ObjectNotFoundException ex) {
+            // success!
+        }
     }
 
     @Test
-    public void testRestoreObject()
-        throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException
-    {
+    public void testRestoreObject() throws RestorationException, StorageVolumeException, JSONException, InventoryException, IOException {
         File cvdir = new File(testdir.toFile(), "cache");
         cvdir.mkdirs();
         CacheVolume cv = new FilesystemCacheVolume(cvdir.toString());
@@ -121,7 +118,7 @@ public class ZipFileRestorerTest {
         String dbf = (new File(testdir.toFile(), "sidb.sqlite3")).toString();
         SQLiteStorageInventoryDB.initializeDB(dbf);
         StorageInventoryDB db = new SQLiteStorageInventoryDB(dbf);
-        db.registerVolume(cv.getName(), 20000000, null);  // 20 MB capacity
+        db.registerVolume(cv.getName(), 20000000, null); // 20 MB capacity
         db.registerAlgorithm(Checksum.CRC32);
         db.registerAlgorithm(Checksum.SHA256);
 
@@ -135,36 +132,32 @@ public class ZipFileRestorerTest {
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(1562, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
-        assertEquals("77237883",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+        assertEquals(5, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
+        assertEquals("77237883", db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(0L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
         rest.restoreObject("mds1491.mbag0_2-0/bag-info.txt", resv, "preservation.log", null);
         assertTrue((new File(cvdir, "preservation.log")).isFile());
         assertTrue(cv.exists("preservation.log"));
         assertEquals(625, db.findObject(cv.getName(), "preservation.log").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority",11));
-        assertEquals("cb1bc46f",
-                     db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum",""));
+        assertEquals(10, db.findObject(cv.getName(), "preservation.log").getMetadatumInt("priority", 11));
+        assertEquals("cb1bc46f", db.findObject(cv.getName(), "preservation.log").getMetadatumString("checksum", ""));
         assertEquals(937L, resv.getSize());
         resv.drop();
-        
+
         resv = Reservation.reservationFor(cv, db, 1562);
-        rest.restoreObject("mds1491.mbag0_2-0/data/trial3/trial3a.json", resv,
-                           "data/trial3::trial3a.json", null);
+        rest.restoreObject("mds1491.mbag0_2-0/data/trial3/trial3a.json", resv, "data/trial3::trial3a.json", null);
         assertTrue((new File(cvdir, "data/trial3::trial3a.json")).isFile());
         assertTrue(cv.exists("data/trial3::trial3a.json"));
         assertEquals(70, db.findObject(cv.getName(), "data/trial3::trial3a.json").getSize());
-        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority",11));
-        assertEquals("c6723c3a",
-                     db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum",""));
+        assertEquals(10, db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumInt("priority", 11));
+        assertEquals("c6723c3a", db.findObject(cv.getName(), "data/trial3::trial3a.json").getMetadatumString("checksum", ""));
         assertEquals(1492L, resv.getSize());
         resv.drop();
-        
+
         assertTrue(cv.exists("preservation.log"));
-        assertEquals(20000000-(70+625), db.getAvailableSpaceIn(cv.getName()));
+        assertEquals(20000000 - (70 + 625), db.getAvailableSpaceIn(cv.getName()));
     }
 }

@@ -11,53 +11,52 @@
  */
 package gov.nist.oar.distrib.web;
 
-import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
-import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ResourceNotFoundException;
-import gov.nist.oar.distrib.web.ConfigurationException;
-
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpMethod;
-import org.springframework.util.FileSystemUtils;
-
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.json.JSONException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.util.FileSystemUtils;
+
+import gov.nist.oar.distrib.ResourceNotFoundException;
+import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
+import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 
 /**
- * This class tests the CachemanagementController endpoints when no cache manager is in use.
+ * This class tests the CacheManagementController endpoints when no cache manager is in use.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = NISTDistribServiceConfig.class,
-                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
+	"server.servlet.context-path=/od",
     "distrib.bagstore.mode=local",
     "distrib.bagstore.location=${basedir}/src/test/resources",
     "distrib.baseurl=http://localhost/oar-distrb-service",
@@ -100,8 +99,6 @@ public class CacheManagementControllerTest {
     }
 
     public void cleanTestDir(File testdir) throws IOException, ConfigurationException {
-        /*
-        */
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
         testdir.mkdirs();
@@ -109,24 +106,9 @@ public class CacheManagementControllerTest {
         provider.cfg.theCache = null;
         HeadBagCacheManager hbcm = provider.createHeadBagManager();
         provider.createPDRCacheManager(hbcm);
-
-        /*
-        try {
-            provider.getPDRCacheManager().cacheDataset("mds1491", null, true);
-        }
-        catch (ResourceNotFoundException ex) {
-            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
-        }
-        catch (StorageVolumeException ex) {
-            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
-        }
-        catch (CacheManagementException ex) {
-            throw new ConfigurationException("Failed to cache mds1491: " + ex.getMessage());
-        }
-        */
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
         String tmpdir = System.getProperty("java.io.tmpdir");
         if (tmpdir == null)
@@ -137,24 +119,21 @@ public class CacheManagementControllerTest {
         testdir = new File(tmp, "testcmgr");
         testdir.mkdirs();
         (new File(testdir,"db")).mkdirs();
-        // cleanTestDir(testdir);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() throws IOException {
         if (testdir.exists()) 
             FileSystemUtils.deleteRecursively(testdir);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException, ConfigurationException {
         cleanTestDir(testdir);
     }
 
-    @Before
-    public void setUp()
-        throws CacheManagementException, StorageVolumeException, ResourceNotFoundException, ConfigurationException
-    {
+    @BeforeEach
+    public void setUp() throws CacheManagementException, StorageVolumeException, ResourceNotFoundException, ConfigurationException {
         provider.getPDRCacheManager().cacheDataset("mds1491", null, true, 0 , null);
     }
 
@@ -167,9 +146,8 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testGetStatus() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONAssert.assertEquals("{requestURL:\"/od/cache/\"," +
                                  "status:200,message:\"Cache Manager in Use\",method:GET}",
@@ -178,9 +156,8 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testSummarizeVolumes() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
         assertEquals(2, summary.length());
@@ -188,9 +165,8 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testSummarizeVolume() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/goober", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/volumes/goober", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
         resp = websvc.exchange(getBaseURL() + "/cache/volumes/king", HttpMethod.GET, req, String.class);
@@ -209,9 +185,8 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testSummarizeContents() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/", HttpMethod.GET, req, String.class);
         JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
         assertEquals(1, summary.length());
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", summary.getJSONObject(0).optString("aipid", null));
@@ -220,29 +195,24 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testSummarizeDataset() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491", 
-                               HttpMethod.GET, req, String.class);
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONObject summary = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("3A1EE2F169DD3B8CE0531A570681DB5D1491", summary.optString("aipid", null));
         assertEquals(3, summary.getJSONArray("files").length());
-        // assertEquals(0, summary.length());
     }
 
     @Test
     public void testListObjectsFor2() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/:checked", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/:checked", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:files", 
-                               HttpMethod.GET, req, String.class);
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:files", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
         assertEquals(3, summary.length());
@@ -250,20 +220,17 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testListObjectsFor3() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/gurn/1", 
-                                                      HttpMethod.GET, req, String.class);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/gurn/1", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json/:files", 
-                               HttpMethod.GET, req, String.class);
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json/:files", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONArray summary = new JSONArray(new JSONTokener(resp.getBody()));
         assertEquals(1, summary.length());
         assertEquals("mds1491/trial1.json", summary.getJSONObject(0).getString("name"));
 
-        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json", 
-                               HttpMethod.GET, req, String.class);
+        resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial1.json", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         JSONObject file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("mds1491/trial1.json", file.getString("name"));
@@ -271,9 +238,8 @@ public class CacheManagementControllerTest {
 
     @Test
     public void testCacheDataset() {
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
-        ResponseEntity<String> resp = websvc.exchange(getBaseURL() +
-                                                      "/cache/objects/goober/gurn/:cached", 
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
+        ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/goober/gurn/:cached", 
                                                       HttpMethod.PUT, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
@@ -294,6 +260,7 @@ public class CacheManagementControllerTest {
             if (! HttpStatus.NOT_FOUND.equals(resp.getStatusCode())) break;
         }
         assertEquals(HttpStatus.OK, resp.getStatusCode());
+        
         JSONObject file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("67C783D4BA814C8EE05324570681708A1899/NMRRVocab20171102.rdf", file.getString("name"));
 
@@ -332,23 +299,22 @@ public class CacheManagementControllerTest {
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         file = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals("mds1491/trial1.json", file.getString("name"));
-        assertTrue("Cache object's since date is too old: "+Long.toString(file.optLong("since", 0L))+" <= "+
-                   Long.toString(since),
-                   since < file.optLong("since", 0L));
+        assertTrue( since < file.optLong("since", 0L), "Cache object's since date is too old: " + 
+                    file.optLong("since", 0L) + " <= " + since);
     }
 
     @Test
     public void testRunMonitor() throws ConfigurationException {
         JSONObject status = null;
         ResponseEntity<String> resp = null;
-        HttpEntity<String> req = new HttpEntity<String>(null, headers);
+        HttpEntity<String> req = new HttpEntity<>(null, headers);
 
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         status = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals(0L, status.getLong("lastRan"));
         assertEquals("(never)", status.getString("lastRanDate"));
-        assertFalse("Monitor started on its own", status.getBoolean("running"));
+        assertFalse(status.getBoolean("running"), "Monitor started on its own");
 
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -368,7 +334,7 @@ public class CacheManagementControllerTest {
         status = new JSONObject(new JSONTokener(resp.getBody()));
         assertTrue(0L < status.getLong("lastRan"));
         assertNotEquals("(never)", status.getString("lastRanDate"));
-        assertFalse("Monitor failed to finish?", status.getBoolean("running"));
+        assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
     }
 
     @Test
@@ -382,7 +348,7 @@ public class CacheManagementControllerTest {
         status = new JSONObject(new JSONTokener(resp.getBody()));
         assertEquals(0L, status.getLong("lastRan"));
         assertEquals("(never)", status.getString("lastRanDate"));
-        assertFalse("Monitor started on its own", status.getBoolean("running"));
+        assertFalse(status.getBoolean("running"), "Monitor started on its own");
 
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
@@ -412,41 +378,32 @@ public class CacheManagementControllerTest {
         status = new JSONObject(new JSONTokener(resp.getBody()));
         assertTrue(0L < status.getLong("lastRan"));
         assertNotEquals("(never)", status.getString("lastRanDate"));
-        assertFalse("Monitor failed to finish?", status.getBoolean("running"));
+        assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
     }
+
 
     @Test
     public void testRemoveFromCache() {
         HttpEntity<String> req = new HttpEntity<>(null, headers);
 
-        // First, ensure the dataset or file initially exists in the cache by sending a GET request
-        // This is a check to confirm presence before deletion
         ResponseEntity<String> resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:cached",
                 HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
-        // Attempt to remove a specific file (trial2.json) from the cache using the DELETE method
-        // The file path and the ':cached' selector are included in the URL
         ResponseEntity<String> removeResp = websvc.exchange(getBaseURL() +
                         "/cache/objects/mds1491/trial2.json/:cached",
                 HttpMethod.DELETE, req, String.class);
         assertEquals(HttpStatus.OK, removeResp.getStatusCode());
 
-        // After deletion, verify that the specific file (trial2.json) is no longer accessible
-        // Expect a NOT_FOUND status code to confirm successful deletion
         resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/trial2.json/:cached",
                 HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        // Now, attempt to remove the entire dataset ('mds1491') from the cache
-        // This tests the capability to delete all files under a dataset identifier
         removeResp = websvc.exchange(getBaseURL() +
                         "/cache/objects/mds1491/:cached",
                 HttpMethod.DELETE, req, String.class);
         assertEquals(HttpStatus.OK, removeResp.getStatusCode());
 
-        // Confirm that the entire dataset ('mds1491') is no longer available in the cache
-        // A GET request should return a NOT_FOUND status, meaning the dataset has been successfully removed from cache
         resp = websvc.exchange(getBaseURL() + "/cache/objects/mds1491/:cached",
                 HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());

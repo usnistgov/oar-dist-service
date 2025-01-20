@@ -12,11 +12,13 @@
  */
 package gov.nist.oar.distrib.cachemgr.storage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -31,18 +33,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 // import org.slf4j.Logger;
 // import org.slf4j.LoggerFactory;
 
 import gov.nist.oar.distrib.ObjectNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
+
 // import io.findify.s3mock.S3Mock;
+import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import gov.nist.oar.distrib.storage.S3MockTestRule;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -71,18 +76,22 @@ public class AWSS3CacheVolumeTest {
 
     // static S3Mock api = new
     // S3Mock.Builder().withPort(port).withInMemoryBackend().build();
-    @ClassRule
-    public static S3MockTestRule siterule = new S3MockTestRule();
-
+    @RegisterExtension
+    static final S3MockExtension S3_MOCK = S3MockExtension.builder()
+            .withSecureConnection(false) 
+            .withHttpPort(9090) // Specify port here
+            .silent()   // Suppress statup banner and reduce logging verbosity
+            .build();
+    
     static final String bucket = "oar-cv-test";
     static final String folder = "cach";
     static String hash = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9";
     static S3Client s3client = null;
     AWSS3CacheVolume s3cv = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
-        s3client = createS3Client();
+        s3client = S3_MOCK.createS3ClientV2();
 
         // Check if bucket exists and destroy it if necessary
         if (bucketExists(bucket)) {
@@ -166,11 +175,11 @@ public class AWSS3CacheVolumeTest {
                 .build());
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         // Verify folder exists in the bucket
         String folderKey = folder + "/";
-        assertTrue("Folder does not exist: " + folder, folderExists(bucket, folderKey));
+        assertTrue(folderExists(bucket, folderKey), "Folder does not exist: " + folder);
 
         // Initialize AWSS3CacheVolume
         try {
@@ -180,7 +189,7 @@ public class AWSS3CacheVolumeTest {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         s3cv = null;
         depopulateFolder();
@@ -214,18 +223,15 @@ public class AWSS3CacheVolumeTest {
 
     @Test
     public void testCtor() throws FileNotFoundException {
-        assertEquals(s3cv.bucket, bucket);
-        assertEquals(s3cv.folder, "cach");
-        assertEquals(s3cv.name, "s3:/oar-cv-test/cach/");
-        assertEquals(s3cv.getName(), "s3:/oar-cv-test/cach/");
+        assertEquals(bucket, s3cv.bucket);
+        assertEquals(folder, s3cv.folder);
+        assertEquals("s3:/oar-cv-test/cach/", s3cv.getName());
 
         s3cv = new AWSS3CacheVolume(bucket, "cach", "goober", s3client);
-        assertEquals(s3cv.bucket, bucket);
-        assertEquals(s3cv.folder, "cach");
-        assertEquals(s3cv.name, "goober");
-        assertEquals(s3cv.getName(), "goober");
-
-        // assertTrue(! s3client.doesObjectExist(bucket, folder+"/goob/gurn"));
+        assertEquals(bucket, s3cv.bucket);
+        assertEquals("cach", s3cv.folder);
+        assertEquals("goober", s3cv.name);
+        assertEquals("goober", s3cv.getName());
     }
 
     @Test
@@ -306,13 +312,13 @@ public class AWSS3CacheVolumeTest {
 
         assertTrue(objectExists(bucket, objname));
         assertTrue(s3cv.exists("test.txt"));
-        assertTrue("metadata not updated with 'modified'", md.has("modified"));
+        assertTrue(md.has("modified"), "metadata not updated with 'modified'");
 
         long mod = md.getLong("modified");
-        assertTrue("Bad mod date: " + Long.toString(mod), mod > 0L);
+        assertTrue(mod > 0L, "Bad mod date: " + Long.toString(mod));
         String vcs = md.getString("volumeChecksum");
-        assertTrue("Bad volume checksum: " + vcs,
-                vcs.startsWith("etag ") && vcs.length() > 36);
+        assertTrue(vcs.startsWith("etag ") && vcs.length() > 36,
+                   "Bad volume checksum: " + vcs);
     }
 
     // Helper method to check if an object exists
@@ -353,7 +359,7 @@ public class AWSS3CacheVolumeTest {
         CacheObject co = s3cv.get("test.txt");
         assertEquals(co.getSize(), obj.length);
         long mod = co.getLastModified();
-        assertTrue("Bad mod time: " + Long.toString(mod), mod > 0L);
+        assertTrue(mod > 0L, "Bad mod time: " + Long.toString(mod));
         assertEquals(co.getMetadatumString("contentType", ""), "text/plain");
     }
 
@@ -435,25 +441,19 @@ public class AWSS3CacheVolumeTest {
         md.put("size", obj.length);
         md.put("contentType", "text/plain");
         md.put("contentMD5", "goob");
-        InputStream is = new ByteArrayInputStream(obj);
 
-        try {
-            s3cv.saveAs(is, "test.txt", md);
-            fail("Failed to detect bad MD5 sum");
-        } catch (StorageVolumeException ex) {
-            // Expected!
-            assertTrue("Failed for the wrong reason: " + ex.getMessage(),
-                ex.getMessage().contains("MD5 checksum mismatch for object"));
-        } finally {
-            try {
-                is.close();
-            } catch (IOException ex) {
+        StorageVolumeException ex = assertThrows(StorageVolumeException.class, () -> {
+            try (InputStream is = new ByteArrayInputStream(obj)) {
+                s3cv.saveAs(is, "test.txt", md);
             }
-        }
-        assertTrue("Failed transfered object not deleted from bucket",
-                !objectExists(bucket, objname));
-        assertTrue("Failed transfered object not deleted from volume",
-                !s3cv.exists("test.txt"));
+        });
+        assertTrue(ex.getMessage().contains("MD5 checksum mismatch for object"),
+                   "Failed for the wrong reason: " + ex.getMessage());
+
+        assertTrue(!objectExists(bucket, objname),
+                   "Failed transfered object not deleted from bucket");
+        assertTrue(!s3cv.exists("test.txt"),
+                   "Failed transfered object not deleted from volume");
     }
 
     @Test
@@ -468,17 +468,11 @@ public class AWSS3CacheVolumeTest {
         }
 
         testSaveAs();
-        InputStream is = s3cv.getStream("test.txt");
-        assertNotNull(is);
-        BufferedReader rdr = new BufferedReader(new InputStreamReader(is));
-        try {
-            assertEquals(rdr.readLine(), "hello world.");
+        try (InputStream is = s3cv.getStream("test.txt");
+             BufferedReader rdr = new BufferedReader(new InputStreamReader(is)))
+        {
+            assertEquals("hello world.", rdr.readLine());
             assertNull(rdr.readLine());
-        } finally {
-            try {
-                rdr.close();
-            } catch (IOException ex) {
-            }
         }
 
         s3cv.remove("test.txt");
@@ -497,6 +491,7 @@ public class AWSS3CacheVolumeTest {
             s3cv.get("test.txt");
             fail("Missing object did not throw ObjectNotFoundException");
         } catch (ObjectNotFoundException ex) {
+            // expected
         }
 
         testSaveAs();
@@ -514,10 +509,13 @@ public class AWSS3CacheVolumeTest {
         assertTrue(objectExists(bucket, objname2));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testRedirectForUnsupported()
-            throws StorageVolumeException, UnsupportedOperationException, IOException {
-        s3cv.getRedirectFor("goober");
+            throws StorageVolumeException, UnsupportedOperationException, IOException
+    {
+        assertThrows(UnsupportedOperationException.class, () -> {
+                s3cv.getRedirectFor("goober");
+            });
     }
 
     @Test

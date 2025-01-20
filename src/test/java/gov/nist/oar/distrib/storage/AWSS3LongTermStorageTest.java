@@ -12,9 +12,9 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -25,18 +25,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StorageVolumeException;
+
+import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -63,8 +65,12 @@ import software.amazon.awssdk.services.s3.model.S3Object;
  */
 public class AWSS3LongTermStorageTest {
 
-    @ClassRule
-    public static S3MockTestRule siterule = new S3MockTestRule();
+    @RegisterExtension
+    static final S3MockExtension S3_MOCK = S3MockExtension.builder()
+            .withSecureConnection(false) 
+            .withHttpPort(9090) // Specify port here
+            .silent()   // Suppress statup banner and reduce logging verbosity
+            .build();
 
     private static Logger logger = LoggerFactory.getLogger(AWSS3LongTermStorageTest.class);
 
@@ -73,10 +79,10 @@ public class AWSS3LongTermStorageTest {
     private static S3Client s3client;
     AWSS3LongTermStorage s3Storage = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
         // Initialize S3 Client
-        s3client = createS3Client();
+        s3client = S3_MOCK.createS3ClientV2();
 
         // Ensure bucket is clean before tests
         if (bucketExists(BUCKET_NAME)) {
@@ -86,7 +92,7 @@ public class AWSS3LongTermStorageTest {
         populateBucket();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         try {
             s3Storage = new AWSS3LongTermStorage(BUCKET_NAME, s3client);
@@ -96,21 +102,18 @@ public class AWSS3LongTermStorageTest {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         s3Storage = null;
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         try {
-            if (s3client != null) {
-                destroyBucket();
-            }
+            destroyBucket();
         } catch (Exception e) {
             logger.warn("Failed to destroy bucket during teardown: " + e.getMessage());
         }
-        siterule.stopServer();
     }
 
     public static S3Client createS3Client() {
@@ -145,7 +148,7 @@ public class AWSS3LongTermStorageTest {
     public void testBucketCreation() {
         try {
             s3client.headBucket(HeadBucketRequest.builder().bucket(BUCKET_NAME).build());
-            assertTrue("Bucket exists and is accessible", true);
+            assertTrue(true, "Bucket exists and is accessible");
         } catch (Exception e) {
             fail("Bucket creation or access failed: " + e.getMessage());
         }
@@ -233,15 +236,15 @@ public class AWSS3LongTermStorageTest {
 
             // Verify each object exists in the bucket
             for (String key : expectedKeys) {
-                assertTrue("Object " + key + " should exist in the bucket",
-                        objectExists(BUCKET_NAME, key));
+                assertTrue(objectExists(BUCKET_NAME, key),
+                           "Object " + key + " should exist in the bucket");
             }
 
             // Verify corresponding .sha256 files exist
             for (String key : expectedKeys) {
                 String hashKey = key + ".sha256";
-                assertTrue("Hash file " + hashKey + " should exist in the bucket",
-                        objectExists(BUCKET_NAME, hashKey));
+                assertTrue(objectExists(BUCKET_NAME, hashKey),
+                           "Hash file " + hashKey + " should exist in the bucket");
             }
         } catch (Exception e) {
             fail("populateBucket test failed: " + e.getMessage());
@@ -250,7 +253,7 @@ public class AWSS3LongTermStorageTest {
 
     @Test
     public void testFindBagsFor() throws DistributionException, FileNotFoundException {
-        List<String> filenames = new ArrayList<String>();
+        List<String> filenames = new ArrayList<>();
         filenames.add("mds013u4g.1_0_0.mbag0_4-0.zip");
         filenames.add("mds013u4g.1_0_0.mbag0_4-1.zip");
         filenames.add("mds013u4g.1_0_0.mbag0_4-2.7z");
@@ -279,6 +282,7 @@ public class AWSS3LongTermStorageTest {
         filenames.add("mds088kd2.1_0_1.mbag0_4-15.zip");
         filenames.add("mds088kd2.1_0_1.mbag0_4-16.zip");
         filenames.add("mds088kd2.1_0_1.mbag0_4-17.7z");
+
         filenames.sort(null);
 
         List<String> found = s3Storage.findBagsFor("mds088kd2");
@@ -329,7 +333,7 @@ public class AWSS3LongTermStorageTest {
         InputStream is = s3Storage.openFile("mds088kd2.1_0_1.mbag0_4-17.7z");
         byte[] buf = new byte[100];
         int n = is.read(buf);
-        assertEquals("Unexpected output: " + (new String(buf, 0, n)), 1, n);
+        assertEquals(1, n, "Unexpected output: " + (new String(buf, 0, n)));
         assertEquals("0", new String(buf, 0, 1));
         assertEquals(-1, is.read());
         is.close();
@@ -344,6 +348,7 @@ public class AWSS3LongTermStorageTest {
             fail("Failed to barf on missing file");
             is.close();
         } catch (FileNotFoundException ex) {
+            // expected
         }
     }
 
@@ -386,8 +391,7 @@ public class AWSS3LongTermStorageTest {
             String bagname = s3Storage.findHeadBagFor("mds013u4g9");
             fail("Failed to raise ResourceNotFoundException; returned " + bagname.toString());
         } catch (ResourceNotFoundException ex) {
+            // expected
         }
-
     }
-
 }

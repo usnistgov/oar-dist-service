@@ -11,11 +11,17 @@
  */
 package gov.nist.oar.distrib.storage;
 
-import org.junit.rules.TestRule;
-import org.junit.runners.model.Statement;
-import org.junit.runner.Description;
-import org.junit.AssumptionViolatedException;
+import java.io.File;
+import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +34,9 @@ import java.io.File;
 import java.lang.ProcessBuilder.Redirect;
 
 /**
- * a JUnit ClassRule that starts a S3Mock server in a separate process for testing purposes
+ * A JUnit 5 Extension that starts an S3Mock server in a separate process for testing purposes.
  */
-public class S3MockTestRule implements TestRule {
+public class S3MockTestRule implements BeforeAllCallback, AfterAllCallback {
 
     static final String _testurl = "http://localhost:9090/";
     private File serverdir = null;
@@ -46,15 +52,15 @@ public class S3MockTestRule implements TestRule {
 
     public void startServer() throws IOException {
         String scrp = script.getAbsolutePath();
-        log.info("Starting server in dir="+serverdir.toString());
+        log.info("Starting server in dir=" + serverdir.toString());
         log.info("  See server log in s3mock-server.log");
         server = new ProcessBuilder(scrp).directory(serverdir)
-                                         .redirectErrorStream(true)
-                                         .redirectOutput(Redirect.to(new File("s3mock-server.log")))
-                                         .start();
-        if (! server.isAlive())
-            throw new IllegalStateException("Server exited prematurely; status="+
-                                            Integer.toString(server.exitValue()));
+                .redirectErrorStream(true)
+                .redirectOutput(Redirect.to(new File("s3mock-server.log")))
+                .start();
+        if (!server.isAlive())
+            throw new IllegalStateException("Server exited prematurely; status=" +
+                    Integer.toString(server.exitValue()));
     }
 
     public void stopServer() {
@@ -72,22 +78,19 @@ public class S3MockTestRule implements TestRule {
     public boolean checkAvailable() throws MalformedURLException {
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) (new URL(_testurl)).openConnection();
+            URL url = URI.create(_testurl).toURL();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setInstanceFollowRedirects(true);
             conn.setConnectTimeout(1000);
             conn.setReadTimeout(1000);
             int status = conn.getResponseCode();
             conn.getContent();
 
-            if (status >= 200 && status < 300)
-                return true;
+            return status >= 200 && status < 300;
+        } catch (IOException ex) {
+            log.warn("S3Mock Service is not up yet (" + ex.getMessage() + ")");
             return false;
-        }
-        catch (IOException ex) {
-            log.warn("S3Mock Service is not up yet ("+ex.getMessage()+")");
-            return false;
-        }
-        finally {
+        } finally {
             if (conn != null) conn.disconnect();
         }
     }
@@ -114,23 +117,16 @@ public class S3MockTestRule implements TestRule {
     }
 
     @Override
-    public Statement apply(Statement base, Description desc) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                if (! script.exists())
-                    throw new AssumptionViolatedException(script.toString() +
-                                                   ": S3Mock server script not found (skipping AWS tests)");
-                startServer();
-                try {
-                    if (! waitForServer(30000))
-                        throw new IllegalStateException("S3Mock server not responding after 30s.");
-                    base.evaluate();
-                }
-                finally {
-                    stopServer();
-                }
-            }
-        };
+    public void beforeAll(ExtensionContext context) throws Exception {
+        if (!script.exists())
+            throw new IllegalStateException(script.toString() + ": S3Mock server script not found (skipping AWS tests)");
+        startServer();
+        if (!waitForServer(30000))
+            throw new IllegalStateException("S3Mock server not responding after 30s.");
     }
-}    
+
+    @Override
+    public void afterAll(ExtensionContext context) {
+        stopServer();
+    }
+}

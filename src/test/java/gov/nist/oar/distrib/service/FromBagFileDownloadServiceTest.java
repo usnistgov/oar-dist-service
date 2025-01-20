@@ -12,50 +12,44 @@
  */
 package gov.nist.oar.distrib.service;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.io.File;
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.AfterClass;
-import org.junit.Rule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.FileSystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.StreamHandle;
-import gov.nist.oar.distrib.FileDescription;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 import gov.nist.oar.distrib.DistributionException;
-import gov.nist.oar.distrib.service.PreservationBagService;
-import gov.nist.oar.distrib.service.DefaultPreservationBagService;
+import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.ResourceNotFoundException;
-
+import gov.nist.oar.distrib.StreamHandle;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 public class FromBagFileDownloadServiceTest {
 
     FilesystemLongTermStorage lts = null;
     FromBagFileDownloadService svc = null;
-    
+
     static Path testdir = null;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws IOException {
         // create a test directory where we can write stuff
         Path indir = Paths.get(System.getProperty("user.dir"));
@@ -68,10 +62,9 @@ public class FromBagFileDownloadServiceTest {
         int len;
         String[] zips = { "mds1491.mbag0_2-0.zip", "mds1491.1_1_0.mbag0_4-1.zip" };
         for (String file : zips) {
-            try (InputStream is = FromBagFileDownloadServiceTest.class.getResourceAsStream("/"+file)) {
+            try (InputStream is = FromBagFileDownloadServiceTest.class.getResourceAsStream("/" + file)) {
                 try (FileOutputStream os =
-                        new FileOutputStream(new File(testdir.toFile(), file)))
-                {
+                             new FileOutputStream(new File(testdir.toFile(), file))) {
                     while ((len = is.read(buf)) != -1) {
                         os.write(buf, 0, len);
                     }
@@ -80,13 +73,13 @@ public class FromBagFileDownloadServiceTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         lts = new FilesystemLongTermStorage(testdir.toString());
         svc = new FromBagFileDownloadService(lts);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         FileSystemUtils.deleteRecursively(testdir.toFile());
         testdir = null;
@@ -111,25 +104,27 @@ public class FromBagFileDownloadServiceTest {
         assertTrue(files.contains("trial1.json"));
         assertTrue(files.contains("trial2.json"));
         assertTrue(files.contains("trial3/trial3a.json"));
-        assertTrue(files.contains("trial3/trial3a.json"));
         assertTrue(files.contains("trial3/trial3a.json.sha256"));
         assertEquals(5, files.size());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
-    public void testListDataFilesBadVer() throws ResourceNotFoundException, DistributionException {
-        svc.listDataFiles("mds1491", "12.2");
+    @Test
+    public void testListDataFilesBadVer() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            svc.listDataFiles("mds1491", "12.2");
+        });
     }
 
-    @Test(expected = ResourceNotFoundException.class)
-    public void testListDataFilesBadID() throws ResourceNotFoundException, DistributionException {
-        svc.listDataFiles("goober", null);
+    @Test
+    public void testListDataFilesBadID() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            svc.listDataFiles("goober", null);
+        });
     }
 
     @Test
     public void testGetDataFile()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException
-    {
+            throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException {
         StreamHandle sh = svc.getDataFile("mds1491", "trial3/trial3a.json", "0");
         assertNotNull(sh.dataStream);
         assertEquals("trial3/trial3a.json", sh.getInfo().name);
@@ -161,24 +156,23 @@ public class FromBagFileDownloadServiceTest {
         rdr.close();
     }
 
-    @Test(expected = FileNotFoundException.class)
-    public void testGetDataFileBadFile()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException
-    {
-        StreamHandle sh = svc.getDataFile("mds1491", "trial3/trial3a.json.sha256", "0");
+    @Test
+    public void testGetDataFileBadFile() {
+        assertThrows(FileNotFoundException.class, () -> {
+            svc.getDataFile("mds1491", "trial3/trial3a.json.sha256", "0");
+        });
     }
 
-    @Test(expected = ResourceNotFoundException.class)
-    public void testGetDataFileBadID()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException
-    {
-        StreamHandle sh = svc.getDataFile("goober", "trial1.json", null);
+    @Test
+    public void testGetDataFileBadID() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            svc.getDataFile("goober", "trial1.json", null);
+        });
     }
 
     @Test
     public void testGetDataFileInfo()
-        throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException
-    {
+            throws ResourceNotFoundException, DistributionException, FileNotFoundException, IOException {
         FileDescription fd = svc.getDataFileInfo("mds1491", "trial3/trial3a.json", "0");
         assertEquals("trial3/trial3a.json", fd.name);
         assertEquals(70, fd.contentLength);
@@ -189,10 +183,10 @@ public class FromBagFileDownloadServiceTest {
     @Test
     public void testGetDefaultContentType() {
         assertEquals("application/octet-stream", svc.getDefaultContentType("goober"));
-        assertEquals("text/plain",               svc.getDefaultContentType("goober.txt"));
-        assertEquals("image/jpeg",               svc.getDefaultContentType("goober.jpg"));
-        assertEquals("application/pdf",          svc.getDefaultContentType("goober.pdf"));
-        assertEquals("image/png",                svc.getDefaultContentType("goober.png"));
-        assertEquals("application/json",         svc.getDefaultContentType("goober.json"));
+        assertEquals("text/plain", svc.getDefaultContentType("goober.txt"));
+        assertEquals("image/jpeg", svc.getDefaultContentType("goober.jpg"));
+        assertEquals("application/pdf", svc.getDefaultContentType("goober.pdf"));
+        assertEquals("image/png", svc.getDefaultContentType("goober.png"));
+        assertEquals("application/json", svc.getDefaultContentType("goober.json"));
     }
 }

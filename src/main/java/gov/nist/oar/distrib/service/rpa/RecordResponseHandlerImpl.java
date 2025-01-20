@@ -9,6 +9,7 @@ import gov.nist.oar.distrib.service.rpa.model.EmailInfo;
 import gov.nist.oar.distrib.service.rpa.model.EmailInfoWrapper;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.Record;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.web.RPAConfiguration;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -90,6 +91,37 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         LOGGER.debug("Failed to create record, status_code=" + statusCode);
         throw new RequestProcessingException("Failed to create record, status_code=" + statusCode);
     }
+    
+    /**
+     * Called when a pre-approved record creation operation succeeds.
+     * Sends download email to user.
+     * @param record The newly created pre-approved record
+     * @param randomId The unique identifier for the cached dataset associated with the record
+     */
+    @Override
+    public void onPreApprovedRecordCreationSuccess(Record record, String randomId) throws RequestProcessingException {
+        LOGGER.debug("Handling success for pre-approved record with ID: " + record.getId());
+
+        // Generate the download URL
+        String downloadUrl;
+        try {
+            downloadUrl = new URIBuilder(this.rpaConfiguration.getDatacartUrl())
+                    .setParameter("id", randomId)
+                    .build()
+                    .toString();
+        } catch (URISyntaxException e) {
+            throw new RequestProcessingException("Error building URI: " + e.getMessage());
+        }
+
+        // Send combined email for pre-approved record
+        if (this.emailSender.sendPreApprovedEmailToEndUser(record, downloadUrl)) {
+            LOGGER.debug("Pre-approved email sent successfully (RecordID=" + record.getId() + ")");
+        } else {
+            throw new RequestProcessingException("Failed to send pre-approved email");
+        }
+    }
+
+
 
     /**
      * Called when a record update operation has been approved.
@@ -219,6 +251,20 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         }
 
         /**
+         * Sends a combined email for pre-approved records.
+         *
+         * @param record - the record for which to send the email
+         * @param downloadUrl - the download URL to include in the email
+         * @return true if the email was sent successfully, false otherwise
+         */
+        private boolean sendPreApprovedEmailToEndUser(Record record, String downloadUrl) throws InvalidRequestException, RequestProcessingException {
+            EmailInfo emailInfo = EmailHelper.getEndUserPreApprovedEmailInfo(record, this.rpaConfiguration, downloadUrl);
+            LOGGER.debug("EMAIL_INFO=" + emailInfo);
+            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+        }
+
+
+        /**
          * Sends a declined email to the end user for the given record.
          *
          * @param record the record for which to send the email
@@ -320,4 +366,5 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             return responseCode;
         }
     }
+
 }

@@ -1,12 +1,11 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import gov.nist.oar.distrib.service.rpa.utils.JsonSerializable;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 
 /**
  * This class provides unit tests for the {@link JsonSerializable} class.
@@ -67,6 +66,7 @@ public class JsonSerializableTest {
 
     // A simple test class that extends JsonSerializable, but missing a getter
     public static class TestObjectMissingGetter extends JsonSerializable {
+        @SuppressWarnings("unused") // Suppress the warning about unused value
         private String value;
 
         public TestObjectMissingGetter(String value) {

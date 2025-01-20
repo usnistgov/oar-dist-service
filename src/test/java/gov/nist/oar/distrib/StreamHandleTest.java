@@ -13,10 +13,8 @@
  */
 package gov.nist.oar.distrib;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -25,73 +23,78 @@ import java.io.ByteArrayInputStream;
 public class StreamHandleTest {
 
     @Test
-    public void testCtorNull() {
+    public void testCtorNull() throws IOException {
+        try (StreamHandle sh = new StreamHandle()) {
+            assertNull(sh.dataStream);
+            assertNull(sh.getInfo().name);
+            assertNull(sh.getInfo().contentType);
+            assertNull(sh.getInfo().checksum);
+            assertEquals(-1L, sh.getInfo().contentLength);
+        }
 
-        StreamHandle sh = new StreamHandle();
-        assertEquals(sh.dataStream, null);
-        assertEquals(sh.getInfo().name, null);
-        assertEquals(sh.getInfo().contentType, null);
-        assertEquals(sh.getInfo().checksum, null);
-        assertEquals(sh.getInfo().contentLength, -1L);
-
-        sh = new StreamHandle(null);
-        assertEquals(sh.dataStream, null);
-        assertEquals(sh.getInfo().name, null);
-        assertEquals(sh.getInfo().contentType, null);
-        assertEquals(sh.getInfo().checksum, null);
-        assertEquals(sh.getInfo().contentLength, -1L);
+        try (StreamHandle sh = new StreamHandle(null)) {
+            assertNull(sh.dataStream);
+            assertNull(sh.getInfo().name);
+            assertNull(sh.getInfo().contentType);
+            assertNull(sh.getInfo().checksum);
+            assertEquals(-1L, sh.getInfo().contentLength);
+        }
     }
 
     @Test
-    public void testCtorFull() {
-
+    public void testCtorFull() throws IOException {
         String data = "Hello world";
         InputStream strm = new ByteArrayInputStream(data.getBytes());
 
-        StreamHandle sh = new StreamHandle(null, -3, null, null, (String) null);
-        assertEquals(null, sh.dataStream  );
-        assertEquals(null, sh.getInfo().name        );
-        assertEquals(null, sh.getInfo().contentType );
-        assertEquals(null, sh.getInfo().checksum    );
-        assertEquals( -3L, sh.getInfo().contentLength        );
+        try (StreamHandle sh = new StreamHandle(null, -3, null, null, (String) null)) {
+            assertNull(sh.dataStream);
+            assertNull(sh.getInfo().name);
+            assertNull(sh.getInfo().contentType);
+            assertNull(sh.getInfo().checksum);
+            assertEquals(-3L, sh.getInfo().contentLength);
+        }
 
-        sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
-                              Checksum.sha256("abcdef12345"));
-        assertSame(sh.dataStream, strm);
-        assertEquals("greeting.txt", sh.getInfo().name);
-        assertEquals("text/plain",   sh.getInfo().contentType);
-        assertEquals("abcdef12345",  sh.getInfo().checksum.hash);
-        assertEquals("sha256", sh.getInfo().checksum.algorithm);
-        assertEquals(11L, sh.getInfo().contentLength);
+        try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
+                Checksum.sha256("abcdef12345"))) {
+            assertSame(strm, sh.dataStream);
+            assertEquals("greeting.txt", sh.getInfo().name);
+            assertEquals("text/plain", sh.getInfo().contentType);
+            assertEquals("abcdef12345", sh.getInfo().checksum.hash);
+            assertEquals("sha256", sh.getInfo().checksum.algorithm);
+            assertEquals(11L, sh.getInfo().contentLength);
+        }
     }
 
     @Test
-    public void testCtorOther() {
+    public void testCtorOther() throws IOException {
         String data = "Hello world";
         InputStream strm = new ByteArrayInputStream(data.getBytes());
 
-        StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
-                                           "abcdef12345");
-        assertSame(sh.dataStream,    strm);
-        assertEquals(sh.getInfo().name,        "greeting.txt");
-        assertEquals(sh.getInfo().contentType, "text/plain");
-        assertEquals(sh.getInfo().checksum.hash, "abcdef12345");
-        assertEquals(sh.getInfo().checksum.algorithm, Checksum.SHA256);
-        assertEquals(sh.getInfo().contentLength,        11L);
+        try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
+                "abcdef12345")) {
+            assertSame(strm, sh.dataStream);
+            assertEquals("greeting.txt", sh.getInfo().name);
+            assertEquals("text/plain", sh.getInfo().contentType);
+            assertEquals("abcdef12345", sh.getInfo().checksum.hash);
+            assertEquals(Checksum.SHA256, sh.getInfo().checksum.algorithm);
+            assertEquals(11L, sh.getInfo().contentLength);
+        }
 
-        sh = new StreamHandle(strm, data.length());
-        assertSame(sh.dataStream,    strm);
-        assertEquals(sh.getInfo().name,        null);
-        assertEquals(sh.getInfo().contentType, null);
-        assertEquals(sh.getInfo().checksum, null);
-        assertEquals(sh.getInfo().contentLength,        11L);
+        try (StreamHandle sh = new StreamHandle(strm, data.length())) {
+            assertSame(strm, sh.dataStream);
+            assertNull(sh.getInfo().name);
+            assertNull(sh.getInfo().contentType);
+            assertNull(sh.getInfo().checksum);
+            assertEquals(11L, sh.getInfo().contentLength);
+        }
 
-        sh = new StreamHandle(strm);
-        assertSame(sh.dataStream,    strm);
-        assertEquals(sh.getInfo().name,        null);
-        assertEquals(sh.getInfo().contentType, null);
-        assertEquals(sh.getInfo().checksum,    null);
-        assertEquals(sh.getInfo().contentLength,        -1L);
+        try (StreamHandle sh = new StreamHandle(strm)) {
+            assertSame(strm, sh.dataStream);
+            assertNull(sh.getInfo().name);
+            assertNull(sh.getInfo().contentType);
+            assertNull(sh.getInfo().checksum);
+            assertEquals(-1L, sh.getInfo().contentLength);
+        }
     }
 
     @Test
@@ -99,14 +102,14 @@ public class StreamHandleTest {
         String data = "Hello world";
         InputStream strm = new ByteArrayInputStream(data.getBytes());
 
-        StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
-                                           "abcdef12345");
-        sh.close();
-        sh.close();
+        try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
+                "abcdef12345")) {
+            sh.close();
+        }
 
-        sh = new StreamHandle(null, 55L, "greeting.txt", "text/plain", "abcdef12345");
-        sh.close();
-        sh.close();
+        try (StreamHandle sh = new StreamHandle(null, 55L, "greeting.txt", "text/plain", "abcdef12345")) {
+            sh.close();
+        }
     }
 
     @Test
@@ -115,8 +118,7 @@ public class StreamHandleTest {
         InputStream strm = new ByteArrayInputStream(data.getBytes());
 
         try (StreamHandle sh = new StreamHandle(strm, data.length(), "greeting.txt", "text/plain",
-                                                "abcdef12345")) 
-        {
+                "abcdef12345")) {
             sh.dataStream.read();
         }
     }

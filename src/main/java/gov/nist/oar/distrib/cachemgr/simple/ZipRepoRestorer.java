@@ -13,17 +13,15 @@
  */
 package gov.nist.oar.distrib.cachemgr.simple;
 
-import gov.nist.oar.distrib.cachemgr.restore.ZipFileRestorer;
-import gov.nist.oar.distrib.LongTermStorage;
-import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
-import gov.nist.oar.distrib.StorageVolumeException;
-import gov.nist.oar.distrib.ObjectNotFoundException;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.net.URI;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import gov.nist.oar.distrib.ObjectNotFoundException;
+import gov.nist.oar.distrib.cachemgr.restore.ZipFileRestorer;
+import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
 /**
  * a SimpleCacheManager assuming that the long-term storage is a directory filled 
