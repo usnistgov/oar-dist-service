@@ -4,7 +4,7 @@ spring:
       enabled: false
 
 server:
-  port: 8083
+  port: 0 # Avoid conflict with actual service running port 8083
 
 distrib:
   bagstore:

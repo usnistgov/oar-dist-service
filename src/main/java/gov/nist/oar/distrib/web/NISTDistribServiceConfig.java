@@ -141,7 +141,7 @@ public class NISTDistribServiceConfig {
     /**
      * the AWS region the service should operate in; this is ignored if mode=local.
      */
-    @Value("${cloud.aws.region:@null}")
+    @Value("${cloud.aws.region:us-east-1}")
     String region;
 
     /**
