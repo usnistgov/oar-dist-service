@@ -27,6 +27,10 @@ server:
     max-threads: 200
     min-spare-threads: 10
 
+cloud:
+  aws:
+    region: us-east-1
+
 logging:
   file: distservice.log
   path: /var/log/dist-service
