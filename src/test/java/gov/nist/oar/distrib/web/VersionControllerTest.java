@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/od",
         "cloud.aws.region=us-east-1",
-        "logging.path=${basedir}/target/surefire-reports",
+        "logging.path=${basedir}/target/surefire-reports"
 })
 public class VersionControllerTest {
 

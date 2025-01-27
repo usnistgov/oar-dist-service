@@ -59,7 +59,8 @@ import gov.nist.oar.distrib.datapackage.FileRequest;
         "logging.path=${basedir}/target/surefire-reports",
 	"distrib.packaging.maxpackagesize = 2000000",
         "distrib.packaging.maxfilecount = 2",
-	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us" })
+	"distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas|httpstat.us",
+	"cloud.aws.region=us-east-1" })
 public class BundleDownloadPlanControllerTest {
     RequireWebSite required = new RequireWebSite("https://s3.amazonaws.com/nist-midas/1894/license.pdf");
     Logger logger = LoggerFactory.getLogger(BundleDownloadPlanControllerTest.class);
