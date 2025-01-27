@@ -17,6 +17,8 @@ import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.s3.S3Client;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +38,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.amazonaws.services.s3.AmazonS3;
 
 import java.util.Map;
 import java.io.IOException;
@@ -97,14 +97,14 @@ public class RPARequestHandlerController {
     @Autowired
     public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider,
                                        RPACachingServiceProvider cachingProvider,
-                                       AmazonS3 s3)
+                                       S3Client s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         this(rpaServiceProvider, getCachingServiceFromProvider(cachingProvider, s3));
     }
 
     protected static RPACachingService getCachingServiceFromProvider(RPACachingServiceProvider cachingProvider,
-                                                                     AmazonS3 s3)
+    S3Client s3)
         throws ConfigurationException, IOException, CacheManagementException
     {
         if (cachingProvider == null || ! cachingProvider.canCreateService())

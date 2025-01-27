@@ -44,6 +44,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
         "distrib.bagstore.location=${basedir}/src/test/resources",
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
+        "cloud.aws.region=us-east-1"
         // "logging.level.org.springframework.web=DEBUG"
         // "logging.level.gov.nist.oar.distrib=DEBUG"
 })

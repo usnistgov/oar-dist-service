@@ -4,7 +4,8 @@ spring:
   config:
     import: "optional:configserver:"
   cloud:
-    uri: http://localhost:8087
+    config:
+      uri: http://localhost:8087
 
 server:
   port: 8083
@@ -26,6 +27,10 @@ server:
     max-connections: 10000
     max-threads: 200
     min-spare-threads: 10
+
+cloud:
+  aws:
+    region: us-east-1
 
 logging:
   file: distservice.log

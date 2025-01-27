@@ -25,6 +25,14 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
+import java.util.concurrent.TimeUnit;
+import java.net.MalformedURLException;
+import java.net.HttpURLConnection;
+import java.io.IOException;
+import java.io.File;
+import java.lang.ProcessBuilder.Redirect;
+
 /**
  * A JUnit 5 Extension that starts an S3Mock server in a separate process for testing purposes.
  */
@@ -57,7 +65,14 @@ public class S3MockTestRule implements BeforeAllCallback, AfterAllCallback {
 
     public void stopServer() {
         log.info("Shutting down S3Mock server");
-        server.destroy();
+        if (server != null && server.isAlive()) {
+            server.destroy();
+            try {
+                server.waitFor(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                log.warn("Interrupted while waiting for server shutdown.");
+            }
+        }
     }
 
     public boolean checkAvailable() throws MalformedURLException {
@@ -81,17 +96,23 @@ public class S3MockTestRule implements BeforeAllCallback, AfterAllCallback {
     }
 
     public boolean waitForServer(long timeoutms) throws InterruptedException, MalformedURLException {
-        long starttime = System.currentTimeMillis();
-
-        while (System.currentTimeMillis() - starttime < timeoutms) {
-            if (!server.isAlive())
-                throw new IllegalStateException("Server exited prematurely; status=" +
-                        Integer.toString(server.exitValue()));
-            if (checkAvailable())
+        long startTime = System.currentTimeMillis();
+        long remainingTime = timeoutms;
+    
+        
+        while (remainingTime > 0) {
+            if (!server.isAlive()) {
+                throw new IllegalStateException("S3Mock server exited prematurely; status=" +
+                                                server.exitValue());
+            }
+            if (checkAvailable()) {
+                log.info("S3Mock server is available.");
                 return true;
-            Thread.sleep(2000);
+            }
+            Thread.sleep(3000); // Delay before checking server status
+            remainingTime = timeoutms - (System.currentTimeMillis() - startTime);
+            log.warn("Waiting for S3Mock server, remaining time: " + remainingTime + "ms");
         }
-
         return false;
     }
 

@@ -68,7 +68,8 @@ import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
         "distrib.cachemgr.volumes[1].redirectBase=https://pdr.net/gen/",
         "logging.level.gov.nist.oar.distrib=DEBUG",
         "logging.path=${basedir}/target",
-        "logging.file=tst.log"
+        "logging.file=tst.log",
+        "cloud.aws.region=us-east-1"
 })
 public class DatasetAccessControllerWithCacheTest {
 

@@ -12,13 +12,13 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.BagStorage;
+import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
+import software.amazon.awssdk.services.s3.S3Client;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
-import gov.nist.oar.distrib.cachemgr.CacheManager;
-import gov.nist.oar.distrib.cachemgr.simple.SimpleCacheManager;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.pdr.RestrictedDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
@@ -33,7 +33,6 @@ import java.io.IOException;
 
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
-import com.amazonaws.services.s3.AmazonS3;
 
 /**
  * A factory for creating the {@link gov.nist.oar.distrib.service.RPACachingService} and it 
@@ -44,7 +43,7 @@ public class RPACachingServiceProvider {
     RPAConfiguration rpacfg = null;
     NISTCacheManagerConfig cmcfg = null;
     BagStorage pubstore = null;
-    AmazonS3 s3client = null;
+    S3Client s3client = null;
 
     BagStorage rpastore = null;
     HeadBagCacheManager hbcmgr = null;
@@ -53,7 +52,7 @@ public class RPACachingServiceProvider {
     public RPACachingServiceProvider(NISTCacheManagerConfig cmConfig,
                                      RPAConfiguration rpaConfig,
                                      BagStorage publicBagStore,
-                                     AmazonS3 s3c)
+                                     S3Client s3c)
     {
         rpacfg = rpaConfig;
         cmcfg = cmConfig;
@@ -152,22 +151,26 @@ public class RPACachingServiceProvider {
         String storeloc = rpacfg.getBagstoreLocation();
         if (storeloc == null)
             throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore-location");
+
         String mode = rpacfg.getBagstoreMode();
         if (mode == null || mode.length() == 0)
             throw new ConfigurationException("Missing config parameter: distrib.rpa.bagstore-mode");
 
         try {
-            if (mode.equals("aws") || mode.equals("remote")) 
+            if (mode.equals("aws") || mode.equals("remote")) {
                 return new AWSS3LongTermStorage(storeloc, s3client);
-            else if (mode.equals("local")) 
+            } else if (mode.equals("local")) {
                 return new FilesystemLongTermStorage(storeloc);
-            else
+            } else {
                 throw new ConfigurationException("distrib.rpa.bagstore-mode",
-                                                 "Unsupported storage mode: "+ mode);
-        }
-        catch (FileNotFoundException ex) {
+                        "Unsupported storage mode: " + mode);
+            }
+        } catch (FileNotFoundException ex) {
             throw new ConfigurationException("distrib.rpa.bagstore-location",
-                                             "RP Storage Location not found: "+ex.getMessage(), ex);
+                    "RP Storage Location not found: " + ex.getMessage(), ex);
+        } catch (StorageVolumeException ex) {
+            throw new ConfigurationException("distrib.rpa.bagstore",
+                    "Failed to initialize AWS S3 storage: " + ex.getMessage(), ex);
         }
     }
 
@@ -200,7 +203,7 @@ public class RPACachingServiceProvider {
      * @param s3   an AmazonS3 interface for accessing S3 buckets for storage (as specified in
      *             the configuration)
      */
-    protected RPACachingService createRPACachingService(AmazonS3 s3) 
+    protected RPACachingService createRPACachingService(S3Client s3) 
         throws ConfigurationException, IOException, CacheManagementException
     {
         return new RPACachingService(createRPACacheManager(cmcfg.getCache(s3)), rpacfg);
@@ -212,7 +215,7 @@ public class RPACachingServiceProvider {
      * @param s3   an AmazonS3 interface for accessing S3 buckets for storage (as specified in
      *             the configuration); ignored if the service has already been created.
      */
-    public RPACachingService getRPACachingService(AmazonS3 s3) 
+    public RPACachingService getRPACachingService(S3Client s3) 
         throws ConfigurationException, IOException, CacheManagementException
     {
         if (cacher == null && canCreateService())

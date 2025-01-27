@@ -33,7 +33,13 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest(classes = NISTDistribServiceConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-	"server.servlet.context-path=/od"})
+        "distrib.bagstore.mode=local",
+        "distrib.bagstore.location=${basedir}/src/test/resources",
+        "distrib.baseurl=http://localhost/oar-distrb-service",
+        "logging.path=${basedir}/target/surefire-reports",
+        "cloud.aws.region=us-east-1",
+	"server.servlet.context-path=/od"
+})
 public class AIPAccessControllerTest {
 
     Logger logger = LoggerFactory.getLogger(AIPAccessControllerTest.class);

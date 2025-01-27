@@ -11,6 +11,7 @@
  */
 package gov.nist.oar.distrib.web;
 
+import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
@@ -59,7 +60,9 @@ import java.io.File;
         "distrib.rpa.authorized[0]=AUTHORIZED.1",
         "distrib.rpa.authorized[1]=AUTHORIZED.2",
         "distrib.rpa.bagstore-location=${basedir}/src/test/resources/restricted",
-        "distrib.rpa.bagstore-mode=local"
+        "distrib.rpa.bagstore-mode=local",
+        "cloud.aws.region=us-east-1"
+        
 })
 public class NISTDistribServiceConfigTest {
 
@@ -73,6 +76,9 @@ public class NISTDistribServiceConfigTest {
 
     @Autowired
     RPAConfiguration rpaConfiguration;
+
+    @Autowired
+    BagStorage lts;
 
     public static void cleanTestDir(File testdir) throws IOException {
         /*
@@ -109,8 +115,8 @@ public class NISTDistribServiceConfigTest {
         assertEquals("local", config.mode);
         assertTrue(config.bagstore.endsWith("src/test/resources"));
         assertNotNull(config.mimemap);
-        assertNotNull(config.lts);
-        assertTrue(config.lts instanceof FilesystemLongTermStorage);
+        assertNotNull(lts);
+        assertTrue(lts instanceof FilesystemLongTermStorage);
         assertTrue(provider.canProvideManager());
 
         File tst = new File(testdir, "data.sqlite");

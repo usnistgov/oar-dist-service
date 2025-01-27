@@ -12,13 +12,17 @@
  */
 package gov.nist.oar.distrib.storage;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,12 +31,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
+/*
+ * Note that AWSS3ClientProvider, along with this test class, is deprecated but has been kept in 
+ * place in case it needs reviving.  It should be removed after successful migration to the 
+ * AWS SDK v2.
+ */
 public class AWSS3ClientProviderTest {
 
     @RegisterExtension
@@ -42,20 +57,29 @@ public class AWSS3ClientProviderTest {
             .silent()   // Suppress statup banner and reduce logging verbosity
             .build();
 
-    static AmazonS3 s3client = null;
-    static final String bucket = "oar-lts-test";
+    static S3Client s3client = null;
+    private static final String bucket = "oar-lts-test";
+    // Note: AWSS3ClientProvider is now deprecated
+    // private AWSS3ClientProvider s3Provider = null;
 
     @BeforeAll
-    public static void setUpClass() throws IOException {
-        s3client = S3_MOCK.createS3Client();
+    public static void setUpClass() {
+        // Note: provider class is now deprecated
+        s3client = S3_MOCK.createS3ClientV2();
+        // S3Client s3client = createS3Provider().client();
 
-        if (s3client.doesBucketExistV2(bucket))
-            destroyBucket();
-        s3client.createBucket(bucket);
-        // populateBucket(s3client);
+        if (bucketExists(s3client, bucket)) {
+            destroyBucket(s3client);
+        }
+
+        // Create bucket
+        s3client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
     }
 
-    public static AmazonS3 createS3Client() {
+    /* 
+     * deprecated code
+     *
+    public static S3Client createS3Client() {
         final BasicAWSCredentials credentials = new BasicAWSCredentials("foo", "bar");
         final String endpoint = "http://localhost:9090/";
         final String region = "us-east-1";
@@ -67,52 +91,125 @@ public class AWSS3ClientProviderTest {
                 .build();
     }
 
-    public static void destroyBucket() {
-        List<S3ObjectSummary> files = s3client.listObjects(bucket).getObjectSummaries();
-        for (S3ObjectSummary f : files) 
-            s3client.deleteObject(bucket, f.getKey());
-        s3client.deleteBucket(bucket);
+    public static AWSS3ClientProvider createS3Provider() {
+        final AwsBasicCredentials credentials = AwsBasicCredentials.create("foo", "bar");
+        final String endpoint = "http://localhost:9090/";
+        final String region = "us-east-1";
+
+        return new AWSS3ClientProvider(StaticCredentialsProvider.create(credentials), region, 2, endpoint);
+    }
+     */
+
+    private static boolean bucketExists(S3Client s3client, String bucketName) {
+        try {
+            s3client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            return true;
+        } catch (NoSuchBucketException e) {
+            return false;
+        }
     }
 
-    @BeforeEach
-    public void setUp() {
-        s3client = createS3Client();
+    private static void destroyBucket(S3Client s3client) {
+        ListObjectsV2Response listResponse = s3client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .build());
+
+        // Delete all objects
+        List<String> keys = listResponse.contents().stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
+        for (String key : keys) {
+            s3client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+        }
+
+        // Delete the bucket
+        s3client.deleteBucket(DeleteBucketRequest.builder()
+                .bucket(bucket)
+                .build());
     }
 
     @AfterAll
     public static void tearDownClass() {
-        destroyBucket();
+        // deprecated
+        // S3Client s3client = createS3Provider().client();
+        destroyBucket(s3client);
     }
 
+    @BeforeEach
+    public void setUp() {
+        // s3Provider = createS3Provider();
+    }
+
+    /*
+     * deprecated
+     *
     @Test
     public void testClient() {
-        assertNotNull(s3client);
-        assertTrue(s3client.doesBucketExistV2(bucket));
+        assertNotNull(s3Provider);
+        assertEquals(2, s3Provider.accessesLeft());
+
+        S3Client client1 = s3Provider.client();
+        assertNotNull(client1);
+        assertEquals(1, s3Provider.accessesLeft());
+
+        S3Client client2 = s3Provider.client();
+        assertNotNull(client2);
+        assertSame(client1, client2);
+        assertEquals(0, s3Provider.accessesLeft());
+
+        // Client should reset after limit is exceeded
+        S3Client client3 = s3Provider.client();
+        assertNotNull(client3);
+        assertNotSame(client1, client3);
+        assertEquals(1, s3Provider.accessesLeft());
+
+        // Validate bucket existence
+        assertTrue(bucketExists(client3, bucket));
     }
 
     @Test
     public void testShutdown() {
-        assertNotNull(s3client);
+        S3Client client = s3Provider.client();
+        assertNotNull(client);
+        assertEquals(1, s3Provider.accessesLeft());
+
+        s3Provider.shutdown();
+        assertEquals(0, s3Provider.accessesLeft());
 
         s3client.shutdown();
         try {
-            s3client.doesBucketExistV2(bucket);
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException ex) {
+            client.listBuckets();
+            fail("Expected IllegalStateException after shutdown");
+        } catch (IllegalStateException e) {
             // Expected
         }
 
-        // Reinitialize after shutdown
-        s3client = createS3Client();
-        assertTrue(s3client.doesBucketExistV2(bucket));
+        // Create a new client after shutdown
+        S3Client newClient = s3Provider.client();
+        assertNotNull(newClient);
+        assertTrue(bucketExists(newClient, bucket));
     }
 
     @Test
     public void testClone() {
-        AmazonS3 newS3client = createS3Client();
-        assertNotNull(newS3client);
-        assertNotEquals(s3client, newS3client);
+        assertNotNull(s3Provider);
+        assertEquals(2, s3Provider.accessesLeft());
 
-        assertTrue(newS3client.doesBucketExistV2(bucket));
+        S3Client client1 = s3Provider.client();
+        assertNotNull(client1);
+        assertEquals(1, s3Provider.accessesLeft());
+
+        AWSS3ClientProvider clonedProvider = s3Provider.cloneMe();
+        assertNotSame(s3Provider, clonedProvider);
+        assertEquals(2, clonedProvider.accessesLeft());
+
+        S3Client client2 = clonedProvider.client();
+        assertNotNull(client2);
+        assertNotSame(client1, client2);
+        assertEquals(1, clonedProvider.accessesLeft());
     }
+     */
 }

@@ -76,7 +76,8 @@ import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
     "distrib.cachemgr.volumes[0].roles[1]=fast",
     "distrib.cachemgr.volumes[1].roles[0]=large",
     "distrib.cachemgr.volumes[1].roles[1]=general",
-    "distrib.cachemgr.restapi.accesstoken=SECRET"
+    "distrib.cachemgr.restapi.accesstoken=SECRET",
+    "cloud.aws.region=us-east-1"
 })
 public class CacheManagementControllerTest {
 
