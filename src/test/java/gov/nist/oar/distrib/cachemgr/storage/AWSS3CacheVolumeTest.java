@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -507,6 +508,32 @@ public class AWSS3CacheVolumeTest {
         s3cv.saveAs(co, "gurn.txt");
         assertTrue(objectExists(bucket, objname1));
         assertTrue(objectExists(bucket, objname2));
+    }
+
+    /**
+     * Verify that a large file (defined as larger than 5MB) can be saved
+     * via the saveAs() method.  This test makes sure that the underlying
+     * S3 multipart upload is working.
+     */
+    @Test
+    public void testSaveAsLargeFile() throws StorageVolumeException {
+        // Define a file size larger than 5MB, for example 20MB.
+        long fileSize = 20L * 1024 * 1024;
+        JSONObject md = new JSONObject();
+        md.put("size", fileSize);
+        md.put("contentType", "application/octet-stream");
+
+        // Create a simulated large input stream. Here it just returns the byte 'a'
+        try (InputStream is = new LargeInputStream(fileSize, (byte) 'a')) {
+            // Call upload method
+            s3cv.saveAs(is, "large-file.dat", md);
+        } catch (IOException e) {
+            fail("Unexpected IOException: " + e.getMessage());
+        }
+
+        // Verify that the object exists in the bucket.
+        String key = folder + "/large-file.dat";
+        assertTrue(objectExists(bucket, key), "Large file was not uploaded");
     }
 
     @Test
