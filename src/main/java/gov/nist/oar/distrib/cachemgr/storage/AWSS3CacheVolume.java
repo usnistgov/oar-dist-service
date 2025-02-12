@@ -20,9 +20,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -32,6 +35,12 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
@@ -47,6 +56,8 @@ import gov.nist.oar.distrib.StorageStateException;
 import gov.nist.oar.distrib.StorageVolumeException;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 
 /**
  * an implementation of the CacheVolume interface that stores its data
@@ -328,7 +339,7 @@ public class AWSS3CacheVolume implements CacheVolume {
             try {
                 size = md.getLong("size");
             } catch (Exception e) {
-                // ignore, size is required
+                // ignore; size is required
             }
             contentType = md.optString("contentType", null);
             contentMD5 = md.optString("contentMD5", null);
@@ -339,42 +350,95 @@ public class AWSS3CacheVolume implements CacheVolume {
         }
 
         try {
-            // Validate MD5 checksum if provided
+            // If an MD5 checksum is provided, validate it first.
             if (contentMD5 != null) {
                 InputStream markableInputStream = from.markSupported() ? from : new BufferedInputStream(from);
-                markableInputStream.mark((int) size); // Mark the stream for reset
+                // Mark the stream (ensure the mark limit is at least the size of the stream)
+                markableInputStream.mark((int) size);
                 String calculatedMD5 = calculateMD5(markableInputStream, size);
                 if (!calculatedMD5.equals(contentMD5)) {
                     throw new StorageVolumeException("MD5 checksum mismatch for object: " + s3name(name));
                 }
-                markableInputStream.reset(); // Reset the stream for the actual upload
-                from = markableInputStream; // Ensure the validated stream is used
+                markableInputStream.reset();
+                from = markableInputStream;
             }
 
-            // Prepare the PutObjectRequest
-            PutObjectRequest.Builder putRequestBuilder = PutObjectRequest.builder()
+            // Build the CreateMultipartUpload request
+            CreateMultipartUploadRequest.Builder createRequestBuilder = CreateMultipartUploadRequest.builder()
                     .bucket(bucket)
-                    .key(s3name(name))
-                    .contentLength(size);
+                    .key(s3name(name));
 
             if (contentType != null) {
-                putRequestBuilder.contentType(contentType);
+                createRequestBuilder.contentType(contentType);
             }
-            if (contentMD5 != null) {
-                putRequestBuilder.contentMD5(contentMD5);
+            // Add Content-Disposition header (using the file name)
+            String fileName = name;
+            if (fileName.endsWith("/")) {
+                fileName = fileName.substring(0, fileName.length() - 1);
+            }
+            String[] nameFields = fileName.split("/");
+            createRequestBuilder.contentDisposition(nameFields[nameFields.length - 1]);
+
+            // Initiate the multipart upload.
+            CreateMultipartUploadResponse createResponse = s3client.createMultipartUpload(createRequestBuilder.build());
+            String uploadId = createResponse.uploadId();
+
+            List<CompletedPart> completedParts = new ArrayList<>();
+            final int partSize = 50 * 1024 * 1024; // 50 MB
+            byte[] buffer = new byte[partSize];
+            int partNumber = 1;
+            int bytesRead = 0;
+
+            try {
+                // Read the stream chunk by chunk.
+                while ((bytesRead = from.read(buffer)) != -1) {
+                    // Wrap the read bytes in a ByteBuffer (only the valid bytes)
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
+                    // Build the UploadPartRequest
+                    UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
+                            .bucket(bucket)
+                            .key(s3name(name))
+                            .uploadId(uploadId)
+                            .partNumber(partNumber)
+                            .contentLength((long) bytesRead)
+                            .build();
+
+                    // Upload the part
+                    UploadPartResponse uploadPartResponse = s3client.uploadPart(
+                            uploadPartRequest,
+                            RequestBody.fromByteBuffer(byteBuffer));
+
+                    // Save the completed part info (part number and returned ETag)
+                    completedParts.add(CompletedPart.builder()
+                            .partNumber(partNumber)
+                            .eTag(uploadPartResponse.eTag())
+                            .build());
+
+                    partNumber++;
+                }
+            } catch (Exception e) {
+                // Abort the multipart upload if any error occurs during part upload.
+                s3client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                        .bucket(bucket)
+                        .key(s3name(name))
+                        .uploadId(uploadId)
+                        .build());
+                throw e;
             }
 
-            // Add Content-Disposition header (e.g., file name for web servers)
-            if (name.endsWith("/")) {
-                name = name.substring(0, name.length() - 1);
-            }
-            String[] nameFields = name.split("/");
-            putRequestBuilder.contentDisposition(nameFields[nameFields.length - 1]);
+            // Complete the multipart upload.
+            CompletedMultipartUpload completedMultipartUpload = CompletedMultipartUpload.builder()
+                    .parts(completedParts)
+                    .build();
 
-            // Perform the upload
-            s3client.putObject(putRequestBuilder.build(), RequestBody.fromInputStream(from, size));
+            s3client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                    .bucket(bucket)
+                    .key(s3name(name))
+                    .uploadId(uploadId)
+                    .multipartUpload(completedMultipartUpload)
+                    .build());
 
-            // Update metadata if provided
+            // Update metadata if provided.
             if (md != null) {
                 CacheObject co = get(name);
                 long modifiedTime = co.getLastModified();
@@ -386,14 +450,12 @@ public class AWSS3CacheVolume implements CacheVolume {
                 }
             }
         } catch (S3Exception e) {
-            if (e.awsErrorDetails() != null && e.awsErrorDetails().errorCode().equals("InvalidDigest")) {
+            if (e.awsErrorDetails() != null && "InvalidDigest".equals(e.awsErrorDetails().errorCode())) {
                 throw new StorageVolumeException("MD5 checksum mismatch for object: " + s3name(name), e);
             }
-            throw new StorageVolumeException("Failed to upload object: " + s3name(name) + " (" + e.getMessage() + ")",
-                    e);
+            throw new StorageVolumeException("Failed to upload object: " + s3name(name) + " (" + e.getMessage() + ")", e);
         } catch (Exception e) {
-            throw new StorageVolumeException("Unexpected error saving object " + s3name(name) + ": " + e.getMessage(),
-                    e);
+            throw new StorageVolumeException("Unexpected error saving object " + s3name(name) + ": " + e.getMessage(), e);
         }
     }
 
