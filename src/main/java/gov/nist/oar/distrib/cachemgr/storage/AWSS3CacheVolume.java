@@ -24,12 +24,10 @@ import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -77,6 +75,7 @@ public class AWSS3CacheVolume implements CacheVolume {
     public final String name;
     protected S3Client s3client = null;
     protected String baseurl = null;
+    private static final Logger logger = LoggerFactory.getLogger(AWSS3CacheVolume.class);
 
     /**
      * create the storage instance
@@ -294,8 +293,15 @@ public class AWSS3CacheVolume implements CacheVolume {
     }
 
     /**
-     * save a copy of the named object to this storage volume. If an object
+     * Saves a copy of the named object to this storage volume. If an object
      * already exists in the volume with this name, it will be replaced.
+     * <p>
+     * <strong>Note:</strong> This implementation now uses multipart uploads instead of a single
+     * PUT operation. This change is necessary because AWS S3 has a hard limit of 5GB per single PUT.
+     * Multipart uploads also impose a maximum of 10,000 parts per upload, so developers should
+     * pay careful attention to the part size used. In this implementation, each part is set to 50MB,
+     * but if a file is extremely large, consider adjusting the part size to avoid exceeding the
+     * 10,000 parts limit. <strong>TODO:</strong> Make the part size configurable.
      * <p>
      * This implementation will look for three metadata properties that will be
      * incorporated into
@@ -329,31 +335,32 @@ public class AWSS3CacheVolume implements CacheVolume {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("AWSS3CacheVolume.saveAs(): must provide name");
         }
-
+    
         long size = -1L;
         String contentType = null;
         String contentMD5 = null;
-
+    
         // Extract metadata
         if (md != null) {
             try {
                 size = md.getLong("size");
             } catch (Exception e) {
-                // ignore; size is required
+                logger.warn("Failed to retrieve size from metadata, size is required.");
             }
             contentType = md.optString("contentType", null);
             contentMD5 = md.optString("contentMD5", null);
         }
-
+    
         if (size <= 0) {
             throw new IllegalArgumentException("AWSS3CacheVolume.saveAs(): metadata must include size property");
         }
-
+    
+        logger.info("Starting upload: {} (Size: {} bytes)", name, size);
+    
         try {
             // If an MD5 checksum is provided, validate it first.
             if (contentMD5 != null) {
                 InputStream markableInputStream = from.markSupported() ? from : new BufferedInputStream(from);
-                // Mark the stream (ensure the mark limit is at least the size of the stream)
                 markableInputStream.mark((int) size);
                 String calculatedMD5 = calculateMD5(markableInputStream, size);
                 if (!calculatedMD5.equals(contentMD5)) {
@@ -362,53 +369,57 @@ public class AWSS3CacheVolume implements CacheVolume {
                 markableInputStream.reset();
                 from = markableInputStream;
             }
-
+    
             // Build the CreateMultipartUpload request
             CreateMultipartUploadRequest.Builder createRequestBuilder = CreateMultipartUploadRequest.builder()
                     .bucket(bucket)
                     .key(s3name(name));
-
+    
             if (contentType != null) {
                 createRequestBuilder.contentType(contentType);
             }
-            // Add Content-Disposition header (using the file name)
-            String fileName = name;
-            if (fileName.endsWith("/")) {
-                fileName = fileName.substring(0, fileName.length() - 1);
-            }
-            String[] nameFields = fileName.split("/");
-            createRequestBuilder.contentDisposition(nameFields[nameFields.length - 1]);
-
-            // Initiate the multipart upload.
+    
+            // Start multipart upload
             CreateMultipartUploadResponse createResponse = s3client.createMultipartUpload(createRequestBuilder.build());
             String uploadId = createResponse.uploadId();
-
+    
             List<CompletedPart> completedParts = new ArrayList<>();
-            final int partSize = 50 * 1024 * 1024; // 50 MB
+            final int partSize = 50 * 1024 * 1024; // 50MB
             byte[] buffer = new byte[partSize];
             int partNumber = 1;
-            int bytesRead = 0;
-
+    
             try {
-                // Read the stream chunk by chunk.
-                while ((bytesRead = from.read(buffer)) != -1) {
-                    // Wrap the read bytes in a ByteBuffer (only the valid bytes)
-                    ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
-                    // Build the UploadPartRequest
+                while (true) {
+                    int totalRead = 0;
+    
+                    // Make sure we read exactly partSize (50MB) before uploading
+                    while (totalRead < partSize) {
+                        int bytesRead = from.read(buffer, totalRead, partSize - totalRead);
+                        if (bytesRead == -1) {
+                            break; // End of stream
+                        }
+                        totalRead += bytesRead;
+                    }
+    
+                    if (totalRead == 0) { 
+                        break; // No more data to upload
+                    }
+    
+                    // Upload only when we have a reasonable part size
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, totalRead);
+    
                     UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
                             .bucket(bucket)
                             .key(s3name(name))
                             .uploadId(uploadId)
                             .partNumber(partNumber)
-                            .contentLength((long) bytesRead)
+                            .contentLength((long) totalRead)
                             .build();
-
-                    // Upload the part
+    
                     UploadPartResponse uploadPartResponse = s3client.uploadPart(
                             uploadPartRequest,
                             RequestBody.fromByteBuffer(byteBuffer));
-
-                    // Save the completed part info (part number and returned ETag)
+    
                     completedParts.add(CompletedPart.builder()
                             .partNumber(partNumber)
                             .eTag(uploadPartResponse.eTag())
@@ -417,7 +428,6 @@ public class AWSS3CacheVolume implements CacheVolume {
                     partNumber++;
                 }
             } catch (Exception e) {
-                // Abort the multipart upload if any error occurs during part upload.
                 s3client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
                         .bucket(bucket)
                         .key(s3name(name))
@@ -425,19 +435,21 @@ public class AWSS3CacheVolume implements CacheVolume {
                         .build());
                 throw e;
             }
-
-            // Complete the multipart upload.
+    
+            // Complete the multipart upload
             CompletedMultipartUpload completedMultipartUpload = CompletedMultipartUpload.builder()
                     .parts(completedParts)
                     .build();
-
+    
             s3client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                     .bucket(bucket)
                     .key(s3name(name))
                     .uploadId(uploadId)
                     .multipartUpload(completedMultipartUpload)
                     .build());
-
+    
+            logger.info("Multipart upload completed successfully for {}. Total parts uploaded: {}", name, completedParts.size());
+    
             // Update metadata if provided.
             if (md != null) {
                 CacheObject co = get(name);
@@ -451,10 +463,13 @@ public class AWSS3CacheVolume implements CacheVolume {
             }
         } catch (S3Exception e) {
             if (e.awsErrorDetails() != null && "InvalidDigest".equals(e.awsErrorDetails().errorCode())) {
+                logger.error("MD5 checksum mismatch for {}", s3name(name));
                 throw new StorageVolumeException("MD5 checksum mismatch for object: " + s3name(name), e);
             }
+            logger.error("Failed to upload object {}: {}", s3name(name), e.getMessage());
             throw new StorageVolumeException("Failed to upload object: " + s3name(name) + " (" + e.getMessage() + ")", e);
         } catch (Exception e) {
+            logger.error("Unexpected error saving object {}: {}", s3name(name), e.getMessage());
             throw new StorageVolumeException("Unexpected error saving object " + s3name(name) + ": " + e.getMessage(), e);
         }
     }
