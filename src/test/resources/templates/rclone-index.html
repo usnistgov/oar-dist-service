@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+
+<body>
+    <div th:if="${fileCount + dirCount == 0}">
+        <p>No files</p>
+    </div>
+    <ul th:unless="${fileCount + dirCount == 0}">
+        <li th:each="f: ${files}">
+            <span th:text="${f.name}">filename</span>
+        </li>
+    </ul>
+</body>
