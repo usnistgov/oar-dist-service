@@ -32,6 +32,15 @@
     {
       "@id": "cmp/virtual-sub/file",
       "filepath": "virtual-sub/data.bin"
+    },
+    {
+      "@id": "cmp/restricted",
+      "filepath": "restricted/secret.txt",
+      "@type": [
+        "nrdp:RestrictedAccessPage",
+        "nrdp:AccessPage",
+        "dcat:Distribution"
+      ]
     }
   ]
 }

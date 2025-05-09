@@ -30,7 +30,8 @@ import java.util.*;
  * structure in a way compatible with rclone’s HTTP backend.
  *
  * <ul>
- * <li>GET /rclone/{dsid}/ -- list top‐level files & folders for dataset {dsid}</li>
+ * <li>GET /rclone/{dsid}/ -- list top‐level files & folders for dataset
+ * {dsid}</li>
  * <li>GET /rclone/{dsid}/{path}/ -- list virtual subdirectory</li>
  * <li>GET /rclone/{dsid}/{file} -- download a file (FORWARDED to /ds/...)</li>
  * </ul>
@@ -131,7 +132,6 @@ public class RcloneIndexController {
         return uri.startsWith(prefix) ? uri.substring(prefix.length()) : "";
     }
 
-    
     /**
      * Return the "components" array from the nerdm.json file for the given
      * dataset. If the file does not exist, throw a ResourceNotFoundException.
@@ -141,7 +141,7 @@ public class RcloneIndexController {
      * @param dsDir the directory containing the dataset
      * @return a JsonNode representing the "components" array
      * @throws ResourceNotFoundException if the file does not exist
-     * @throws DistributionException if there is an error reading the file
+     * @throws DistributionException     if there is an error reading the file
      */
     private JsonNode loadComponents(Path dsDir) throws ResourceNotFoundException, DistributionException {
         Path nf = dsDir.resolve("nerdm.json");
@@ -156,6 +156,30 @@ public class RcloneIndexController {
         } catch (IOException e) {
             throw new DistributionException("Error reading nerdm.json for " + dsDir, e);
         }
+    }
+
+    /**
+     * Returns true if the given component’s @type array contains an entry
+     * whose local name (after the last “:”) equals the given shortType.
+     */
+    private boolean hasType(JsonNode component, String shortType) {
+        for (JsonNode t : component.path("@type")) {
+            String txt = t.asText();
+            int idx = txt.lastIndexOf(':');
+            String local = idx >= 0 ? txt.substring(idx + 1) : txt;
+            if (shortType.equals(local)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isSubcollection(JsonNode component) {
+        return hasType(component, "Subcollection");
+    }
+
+    private boolean isRestrictedAccessPage(JsonNode component) {
+        return hasType(component, "RestrictedAccessPage");
     }
 
     /**
@@ -178,7 +202,8 @@ public class RcloneIndexController {
         // prefix.
         String prefix = subdirectory.isEmpty() ? "" : subdirectory + "/";
 
-        // Case‐insensitive TreeMap for more natural order, so “Apple.txt” and “apple.txt” end up
+        // Case‐insensitive TreeMap for more natural order, so “Apple.txt” and
+        // “apple.txt” end up
         // adjacent.
         TreeMap<String, FileInfo> entriesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
@@ -186,6 +211,10 @@ public class RcloneIndexController {
         Path subdirectoryOnDisk = datasetDir.resolve(subdirectory);
 
         for (JsonNode component : components) {
+            // Skip any restricted access components
+            if (isRestrictedAccessPage(component))
+                continue;
+
             JsonNode filepathNode = component.get("filepath");
             if (filepathNode == null) {
                 // No filepath—skip
@@ -206,13 +235,7 @@ public class RcloneIndexController {
             }
 
             // Detect explicit Subcollections (folders marked explicitly in metadata)
-            boolean isSubcollection = false;
-            for (JsonNode typeNode : component.path("@type")) {
-                if (typeNode.asText().endsWith("Subcollection")) {
-                    isSubcollection = true;
-                    break;
-                }
-            }
+            boolean isSubcollection = isSubcollection(component);
 
             // Decide how to present this entry:
             // - If an explicit Subcollection, always show “name/”
@@ -253,7 +276,7 @@ public class RcloneIndexController {
                 return new FileInfo(nameKey, isDirectory, sizeString, modifiedString);
             });
         }
-        
+
         return new ArrayList<>(entriesMap.values());
     }
 

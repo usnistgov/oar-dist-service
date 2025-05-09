@@ -37,8 +37,22 @@ class RcloneIndexControllerTest {
                 .andExpect(content().string(containsString("favicon.ico")))
                 .andExpect(content().string(containsString("hello.txt")))
                 .andExpect(content().string(containsString("explicit-sub/")))
-                .andExpect(content().string(containsString("virtual-sub/")));
+                .andExpect(content().string(containsString("virtual-sub/")))
+                .andExpect(content().string(not(containsString("restricted/"))));
     }
+
+    /**
+     * A restricted access page is never shown in the directory listing.
+     */
+    @Test
+    void restrictedAccessPageIsOmitted() throws Exception {
+        mockMvc.perform(get("/rclone/DSID_12345/"))
+            .andExpect(status().isOk())
+            // we never show the restricted component
+            .andExpect(content().string(not(containsString("secret.txt"))))
+            .andExpect(content().string(not(containsString("restricted/"))));
+    }
+
 
     /**
      * GET /rclone/DSID_12345/file.txt forwards to GET /ds/DSID_12345/file.txt.
