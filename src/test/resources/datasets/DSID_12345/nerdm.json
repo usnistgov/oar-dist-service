@@ -1,0 +1,37 @@
+{
+  "_schema": "http://example.org/nerdm-schema/v0.7#",
+  "@context": [
+    "http://example.org/nerdm-pub-context.jsonld",
+    {
+      "@base": "DSID_12345"
+    }
+  ],
+  "@id": "DSID_12345",
+  "title": "Test Dataset with Subcollections",
+  "modified": "2025-05-08T00:00:00Z",
+  "components": [
+    {
+      "@id": "cmp/favicon",
+      "filepath": "favicon.ico"
+    },
+    {
+      "@id": "cmp/rootfile",
+      "filepath": "hello.txt"
+    },
+    {
+      "@id": "cmp/explicit-sub",
+      "@type": [
+        "nrdp:Subcollection"
+      ],
+      "filepath": "explicit-sub/"
+    },
+    {
+      "@id": "cmp/explicit-sub/file",
+      "filepath": "explicit-sub/info.txt"
+    },
+    {
+      "@id": "cmp/virtual-sub/file",
+      "filepath": "virtual-sub/data.bin"
+    }
+  ]
+}
