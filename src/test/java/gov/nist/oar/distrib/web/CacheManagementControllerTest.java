@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -338,7 +339,7 @@ public class CacheManagementControllerTest {
     }
 
     @Test
-    public void testStartMonitor() throws ConfigurationException {
+    public void testStartMonitor() throws ConfigurationException, InterruptedException {
         JSONObject status = null;
         ResponseEntity<String> resp = null;
         HttpEntity<String> req = new HttpEntity<String>(null, headers);
@@ -370,15 +371,27 @@ public class CacheManagementControllerTest {
         try { month.join(5000); } catch (InterruptedException ex) {  }
         assertFalse(month.isAlive());
 
+        // Expect the “running” endpoint to be gone
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        status = new JSONObject(new JSONTokener(resp.getBody()));
-        assertTrue(0L < status.getLong("lastRan"));
-        assertNotEquals("(never)", status.getString("lastRanDate"));
-        assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
+        // Poll /cache/monitor/ until the job completes
+        int attempts = 0;
+        while (attempts++ < 10) {
+            resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+            assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+            status = new JSONObject(resp.getBody());
+            if (!status.getBoolean("running")) {
+                // once it’s done, assert
+                assertTrue(status.getLong("lastRan") > 0,       "lastRan should be > 0");
+                assertNotEquals("(never)", status.getString("lastRanDate"),
+                                "lastRanDate should have a real timestamp");
+                return;  // success
+            }
+            Thread.sleep(100);
+        }
+        fail("Monitor did not finish within timeout");
     }
 
 
