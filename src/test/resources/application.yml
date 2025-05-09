@@ -6,6 +6,9 @@ spring:
 server:
   port: 0 # Avoid conflict with actual service running port 8083
 
+file:
+  base-dir: ${user.dir}/src/test/resources/datasets
+
 distrib:
   bagstore:
     mode: local
