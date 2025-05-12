@@ -28,6 +28,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -669,7 +670,14 @@ public class AWSS3CacheVolume implements CacheVolume {
             }
         } else {
             try {
-                return new URL(baseurl + name.replace(" ", "%20"));
+                // properly encode the URL
+                URL url = UriComponentsBuilder.fromHttpUrl(baseurl)
+                        .pathSegment(name.split("/"))
+                        .encode()
+                        .build()
+                        .toUri()
+                        .toURL();
+                return url;
             } catch (MalformedURLException ex) {
                 throw new StorageVolumeException("Failed to form legal URL: " + ex.getMessage(), ex);
             }
