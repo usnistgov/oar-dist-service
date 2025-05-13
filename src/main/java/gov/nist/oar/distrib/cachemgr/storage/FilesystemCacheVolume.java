@@ -23,13 +23,14 @@ import java.io.IOException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.net.URL;
 import java.net.MalformedURLException;
 
 import org.json.JSONObject;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 import org.apache.commons.io.FileUtils;
 
 /**
@@ -319,13 +320,9 @@ public class FilesystemCacheVolume implements CacheVolume {
             throw new UnsupportedOperationException("FilesystemCacheVolume: getRedirectFor not supported");
         try {
             // properly encode the URL
-            URL url = UriComponentsBuilder.fromHttpUrl(baseurl)
-                    .pathSegment(name.split("/"))
-                    .encode()
-                    .build()
-                    .toUri()
-                    .toURL();
-            return url;
+            String encodedName = UriUtils.encodePath(name, StandardCharsets.UTF_8);
+            String url = baseurl.endsWith("/") ? baseurl + encodedName : baseurl + "/" + encodedName;
+            return new URL(url);
         }
         catch (MalformedURLException ex) {
             throw new StorageVolumeException("Failed to form legal URL: "+ex.getMessage(), ex);
