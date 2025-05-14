@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.time.Instant;
 
 import org.json.JSONObject;
@@ -207,6 +208,11 @@ public class FilesystemCacheVolumeTest {
             // Use URI instead of URL
             assertEquals(new URI("https://ex.org/goober"), v.getRedirectFor("goober").toURI());
             assertEquals(new URI("https://ex.org/i%20a/m%20groot"), v.getRedirectFor("i a/m groot").toURI());
+
+            // New test case with Unicode and special characters like α,β,γ
+            String name = "folder/EDS map αβγ #file.tiff";
+            String expected = "https://ex.org/folder/EDS%20map%20%CE%B1%CE%B2%CE%B3%20%23file.tiff";
+            assertEquals(new URI(expected), v.getRedirectFor(name).toURI());
         } catch (URISyntaxException e) {
             fail("URI syntax is incorrect: " + e.getMessage());
         }
