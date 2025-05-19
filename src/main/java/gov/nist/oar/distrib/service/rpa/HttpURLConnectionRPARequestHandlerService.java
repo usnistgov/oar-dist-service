@@ -272,83 +272,160 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      * @throws RequestProcessingException If an error occurs during request processing, including URL creation, serialization, or communication errors.
      */
     @Override
-    public RecordWrapper createRecord(UserInfoWrapper userInfoWrapper) throws InvalidRequestException, RequestProcessingException {
-        int responseCode;
-        RecordWrapper newRecordWrapper;
-    
-        // Validate the email and country against the blacklists before proceeding
-        String email = userInfoWrapper.getUserInfo().getEmail();
-        String country = userInfoWrapper.getUserInfo().getCountry();
-        String rejectionReason = "";
-    
-        LOGGER.debug("User's email: " + email);
-        LOGGER.debug("User's country: " + country);
-    
-        // Check for blacklisted email and country
-        if (isEmailBlacklisted(email)) {
-            rejectionReason = "Email " + email + " is blacklisted.";
-            LOGGER.warn("Email {} is blacklisted. Request to create record will be automatically rejected.", email);
-        } else if (isCountryBlacklisted(country)) {
-            rejectionReason = "Country " + country + " is blacklisted.";
-            LOGGER.warn("Country {} is blacklisted. Request to create record will be automatically rejected.", country);
-        }
-    
-        // Set the appropriate approval status based on blacklisting
+    public RecordCreationResult createRecord(UserInfoWrapper userInfoWrapper)
+            throws InvalidRequestException, RequestProcessingException {
+        // 1. Blacklist validation
+        String rejectionReason = evaluateBlacklistStatus(userInfoWrapper);
         if (!rejectionReason.isEmpty()) {
-            userInfoWrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
-            String updatedDescription = userInfoWrapper.getUserInfo().getDescription() +
-                    "\nThis record was automatically rejected. Reason: " + rejectionReason;
-            userInfoWrapper.getUserInfo().setDescription(updatedDescription);
+            markAsRejected(userInfoWrapper, rejectionReason);
         } else {
-            // Set pending or pre-approved status based on dataset type
-            String datasetId = userInfoWrapper.getUserInfo().getSubject();
-            boolean isPreApproved = isPreApprovedDataset(datasetId);
-            userInfoWrapper.getUserInfo().setApprovalStatus(isPreApproved ? RECORD_PRE_APPROVED_STATUS : RECORD_PENDING_STATUS);
+            updateApprovalStatus(userInfoWrapper);
+        }
+
+        // 2. Prepare POST payload
+        String payload = preparePayloadOrFail(userInfoWrapper);
+        String url = buildCreateRecordUrl();
+
+        // 3. Call Salesforce
+        RecordCreationResult postResult = postToSalesforce(url, payload);
+        int statusCode = postResult.getStatusCode();
+        LOGGER.debug("CREATE_RECORD_STATUS_CODE=" + statusCode);
+
+        return postResult;
+    }
+
+    private String evaluateBlacklistStatus(UserInfoWrapper wrapper) {
+        String email = wrapper.getUserInfo().getEmail();
+        String country = wrapper.getUserInfo().getCountry();
+        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}", email, country);
+    
+        if (isEmailBlacklisted(email)) {
+            LOGGER.warn("Email {} is blacklisted.", email);
+            return "Email " + email + " is blacklisted.";
+        } else if (isCountryBlacklisted(country)) {
+            LOGGER.warn("Country {} is blacklisted.", country);
+            return "Country " + country + " is blacklisted.";
+        }
+        return "";
+    }
+    
+    /**
+     * Sets the approval status of a record to {@link #RECORD_REJECTED_STATUS} and
+     * appends the given reason to the description of the record.
+     * 
+     * @param wrapper the record to be updated
+     * @param reason the reason for rejection
+     */
+    private void markAsRejected(UserInfoWrapper wrapper, String reason) {
+        wrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
+        String updatedDesc = wrapper.getUserInfo().getDescription() +
+                "\nThis record was automatically rejected. Reason: " + reason;
+        wrapper.getUserInfo().setDescription(updatedDesc);
+    }
+    
+    /**
+     * Updates the approval status of a record based on whether the dataset is pre-approved.
+     * If the dataset is pre-approved, the status is set to {@link #RECORD_PRE_APPROVED_STATUS}.
+     * Otherwise, the status is set to {@link #RECORD_PENDING_STATUS}.
+     *
+     * @param wrapper The UserInfoWrapper containing the record.
+     */
+    private void updateApprovalStatus(UserInfoWrapper wrapper) {
+        String datasetId = wrapper.getUserInfo().getSubject();
+        boolean isPreApproved = isPreApprovedDataset(datasetId);
+        wrapper.getUserInfo().setApprovalStatus(isPreApproved ? RECORD_PRE_APPROVED_STATUS : RECORD_PENDING_STATUS);
+    }
+    
+    /**
+     * Prepares the request payload for the record creation request.
+     * If successful, returns the prepared payload. If an error occurs while preparing the payload,
+     * logs the error and throws a RequestProcessingException.
+     *
+     * @param wrapper The UserInfoWrapper containing the record.
+     * @return The prepared request payload.
+     * @throws RequestProcessingException If an error occurs while preparing the payload.
+     */
+    private String preparePayloadOrFail(UserInfoWrapper wrapper) throws RequestProcessingException {
+        try {
+            String payload = prepareRequestPayload(wrapper);
+            LOGGER.debug("CREATE_RECORD_PAYLOAD={}", payload);
+            return payload;
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error preparing payload: {}", e.getMessage());
+            throw new RequestProcessingException("Error preparing payload: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Handles the actions to be taken after the creation of a record.
+     *
+     * Depending on the approval status of the record, this method determines the
+     * post-processing steps. If the record was rejected, it logs the rejection and skips
+     * further processing. If the record is pre-approved, it caches the dataset and sends
+     * confirmation and download emails. Otherwise, it handles the successful creation of
+     * the record.
+     *
+     * @param wrapper The RecordWrapper containing the record and its details.
+     * @param input   The UserInfoWrapper containing the original input data used to create the record.
+     * @param code    The HTTP status code returned by the record creation request.
+     * @throws RequestProcessingException If any error occurs during post-processing, such as caching failures.
+     */
+    @Override
+    public void handleAfterRecordCreation(RecordWrapper wrapper, UserInfoWrapper input, int code)
+            throws RequestProcessingException {
+        if (wrapper == null) {
+            recordResponseHandler.onRecordCreationFailure(code);
+            return;
         }
     
-        // Send the POST request to Salesforce
-        String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
-        JWTToken token = jwtHelper.getToken();
-        String url;
+        String status = wrapper.getRecord().getUserInfo().getApprovalStatus();
+    
+        switch (status) {
+            case RECORD_REJECTED_STATUS:
+                LOGGER.info("Record auto-rejected; skipping post-processing.");
+                break;
+            case RECORD_PRE_APPROVED_STATUS:
+                // Handle pre-approved dataset: cache immediately and send both confirmation and download emails
+                String randomId = rpaDatasetCacher.cache(input.getUserInfo().getSubject());
+                if (randomId == null)
+                    throw new RequestProcessingException("Caching process returned null randomId");
+                recordResponseHandler.onPreApprovedRecordCreationSuccess(wrapper.getRecord(), randomId);
+                break;
+            default:
+                recordResponseHandler.onRecordCreationSuccess(wrapper.getRecord());
+        }
+    }
+    
+    
+    private String buildCreateRecordUrl() throws RequestProcessingException {
         try {
-            url = new URIBuilder(token.getInstanceUrl())
+            String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
+            return new URIBuilder(jwtHelper.getToken().getInstanceUrl())
                     .setPath(createRecordUri)
                     .build()
                     .toString();
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.debug("CREATE_RECORD_URL=" + url);
-    
-        // Serialize the request payload
-        String postPayload;
-        try {
-            postPayload = prepareRequestPayload(userInfoWrapper);
-            LOGGER.debug("CREATE_RECORD_PAYLOAD=" + postPayload);
-        } catch (JsonProcessingException e) {
-            LOGGER.error("Error while preparing record creation payload: " + e.getMessage());
-            throw new RequestProcessingException("Error while preparing record creation payload: " + e.getMessage());
-        }
-    
-        // Send the POST request
+    }
+
+    private RecordCreationResult postToSalesforce(String url, String payload) throws RequestProcessingException {
         HttpURLConnection connection = null;
-    
         try {
             URL requestUrl = new URL(url);
             connection = connectionFactory.createHttpURLConnection(requestUrl);
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Authorization", "Bearer " + token.getAccessToken());
+            connection.setRequestProperty("Authorization", "Bearer " + jwtHelper.getToken().getAccessToken());
             connection.setDoOutput(true);
     
-            // Write payload to output stream
+            // Write JSON payload
             try (OutputStream os = connection.getOutputStream()) {
-                os.write(postPayload.getBytes(StandardCharsets.UTF_8));
+                os.write(payload.getBytes(StandardCharsets.UTF_8));
                 os.flush();
             }
     
-            // Process Salesforce response
-            responseCode = connection.getResponseCode();
+            int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     StringBuilder response = new StringBuilder();
@@ -357,44 +434,22 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                         response.append(line);
                     }
                     LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
-                    newRecordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
+                    RecordWrapper recordWrapper =  new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
+                    return new RecordCreationResult(recordWrapper, responseCode);
+
                 }
             } else {
-                LOGGER.debug("Error response from Salesforce service: " + connection.getResponseMessage());
+                LOGGER.error("Salesforce returned error: " + connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
             }
+    
         } catch (IOException e) {
-            LOGGER.debug("Error sending request: " + e.getMessage());
-            throw new RequestProcessingException("I/O error: " + e.getMessage());
+            throw new RequestProcessingException("I/O error during POST to Salesforce: " + e.getMessage());
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
-    
-        // Handle record creation based on the dataset type and approval status
-        if (newRecordWrapper != null) {
-            String approvalStatus = newRecordWrapper.getRecord().getUserInfo().getApprovalStatus();
-    
-            if (RECORD_REJECTED_STATUS.equals(approvalStatus)) {
-                LOGGER.info("Record automatically rejected due to blacklist. Skipping further processing.");
-            } else if (RECORD_PRE_APPROVED_STATUS.equals(approvalStatus)) {
-                // Handle pre-approved dataset: cache immediately and send both confirmation and download emails
-                String randomId = this.rpaDatasetCacher.cache(userInfoWrapper.getUserInfo().getSubject());
-                if (randomId == null) {
-                    throw new RequestProcessingException("Caching process returned a null randomId");
-                }
-                this.recordResponseHandler.onPreApprovedRecordCreationSuccess(newRecordWrapper.getRecord(), randomId);
-            } else {
-                // Handle SME-required dataset: send SME approval request and confirmation email
-                this.recordResponseHandler.onRecordCreationSuccess(newRecordWrapper.getRecord());
-            }
-        } else {
-            // Handle failure if record creation did not succeed
-            this.recordResponseHandler.onRecordCreationFailure(responseCode);
-        }
-    
-        return newRecordWrapper;
     }
     
 
