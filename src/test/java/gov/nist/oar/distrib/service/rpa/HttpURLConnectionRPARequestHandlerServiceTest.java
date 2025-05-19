@@ -704,8 +704,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // - The "Approved" status followed by a date-time in ISO 8601 format.
         // - An email address.
         // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,6}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+";
-        System.out.println("Actual value: " + payloadObject.get("Approval_Status__c"));
+        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
     }
 
