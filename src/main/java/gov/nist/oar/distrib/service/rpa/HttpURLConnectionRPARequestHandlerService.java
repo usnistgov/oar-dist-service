@@ -260,16 +260,18 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
 
     /**
-     * Creates a new record in Salesforce using the information from the provided UserInfoWrapper object.
-     *
-     * This method builds a URL to create a record in Salesforce using a configuration endpoint.
-     * It prepares the request payload from the UserInfoWrapper object and sends a POST request
-     * to Salesforce. The response is parsed into a RecordWrapper object, which is returned.
-     *
-     * @param userInfoWrapper       The UserInfoWrapper object containing the data to create the new record.
-     * @return RecordWrapper        The RecordWrapper object containing the newly created record.
-     * @throws InvalidRequestException   If the request is invalid or incomplete.
-     * @throws RequestProcessingException If an error occurs during request processing, including URL creation, serialization, or communication errors.
+     * Creates a new record in the Salesforce database based on the provided user information.
+     * 
+     * This method will first validate the user information against the blacklist. If the user is on the
+     * blacklist, the record will be marked as rejected. Otherwise, the record will be created in
+     * Salesforce. The method will then return the result of the record creation, including the
+     * HTTP status code and the newly created record data.
+     * 
+     * @param userInfoWrapper the user information and record data for the new record
+     * @return the result of the record creation, including the HTTP status code and the newly
+     *         created record data
+     * @throws InvalidRequestException if the request payload is invalid
+     * @throws RequestProcessingException if there is an error while processing the request
      */
     @Override
     public RecordCreationResult createRecord(UserInfoWrapper userInfoWrapper)
