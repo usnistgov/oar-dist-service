@@ -296,6 +296,18 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         return postResult;
     }
 
+    /**
+     * Evaluates the blacklist status of the given UserInfoWrapper.
+     * 
+     * Given a UserInfoWrapper, this method will evaluate the blacklist status
+     * of the user's email and country. If either the email or country is
+     * blacklisted, the method will return a string indicating the reason for
+     * the rejection. Otherwise, an empty string will be returned.
+     * 
+     * @param wrapper the UserInfoWrapper to evaluate
+     * @return a string indicating the reason for rejection, or an empty string
+     *         if the user is not blacklisted
+     */
     private String evaluateBlacklistStatus(UserInfoWrapper wrapper) {
         String email = wrapper.getUserInfo().getEmail();
         String country = wrapper.getUserInfo().getCountry();
@@ -399,6 +411,12 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
     
     
+    /**
+     * Builds the URL used to create a record in the Salesforce database.
+     * 
+     * @return the URL used to create a record in the Salesforce database.
+     * @throws RequestProcessingException if there is an error while building the URL.
+     */
     private String buildCreateRecordUrl() throws RequestProcessingException {
         try {
             String createRecordUri = getConfig().getSalesforceEndpoints().get(CREATE_RECORD_ENDPOINT_KEY);
@@ -411,6 +429,14 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         }
     }
 
+    /**
+     * Performs a POST request to the Salesforce service to create a new record.
+     * 
+     * @param url    the URL of the Salesforce endpoint to post to
+     * @param payload the JSON payload to send in the request body
+     * @return a RecordCreationResult containing the newly created record and the HTTP status code
+     * @throws RequestProcessingException if there is an error while performing the request
+     */
     private RecordCreationResult postToSalesforce(String url, String payload) throws RequestProcessingException {
         HttpURLConnection connection = null;
         try {
@@ -473,6 +499,12 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         return baseUrl + datasetId;
     }
 
+    /**
+     * Retrieves the metadata for the given datasetId in JSON format.
+     *
+     * @param datasetUrl the URL to retrieve the dataset metadata from
+     * @return the JSON metadata for the dataset, or null if the request fails
+     */
     private JsonNode fetchDatasetMetadata(String datasetUrl) {
         HttpURLConnection connection = null; 
         try {
@@ -499,6 +531,17 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
     
 
+    /**
+     * Check if a dataset is pre-approved.  This is done by examining the
+     * metadata for the dataset and looking for a component with type
+     * "nrdp:RestrictedAccessPage" and an accessProfile with type "rpa:rp0".
+     * If such a component is found, the method returns true, indicating the
+     * dataset is pre-approved.  Otherwise, it returns false.
+     * 
+     * @param metadata the JSON metadata for the dataset
+     * @param datasetId the dataset ID
+     * @return true if the dataset is pre-approved, false otherwise
+     */
     private boolean checkForPreApproval(JsonNode metadata, String datasetId) {
         JsonNode components = metadata.path("components");
         for (JsonNode component : components) {
