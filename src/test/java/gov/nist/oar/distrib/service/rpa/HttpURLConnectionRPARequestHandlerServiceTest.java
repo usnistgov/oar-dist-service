@@ -705,8 +705,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // - An email address.
         // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
         String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,6}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+";
+        System.out.println("Actual value: " + payloadObject.get("Approval_Status__c"));
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
-
     }
 
     /**
