@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -304,7 +305,7 @@ public class CacheManagementControllerTest {
     }
 
     @Test
-    public void testRunMonitor() throws ConfigurationException {
+    public void testRunMonitor() throws ConfigurationException, InterruptedException {
         JSONObject status = null;
         ResponseEntity<String> resp = null;
         HttpEntity<String> req = new HttpEntity<>(null, headers);
@@ -329,12 +330,31 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
 
-        resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-        status = new JSONObject(new JSONTokener(resp.getBody()));
-        assertTrue(0L < status.getLong("lastRan"));
-        assertNotEquals("(never)", status.getString("lastRanDate"));
-        assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
+        // resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+        // assertEquals(HttpStatus.OK, resp.getStatusCode());
+        // status = new JSONObject(new JSONTokener(resp.getBody()));
+        // assertTrue(0L < status.getLong("lastRan"));
+        // assertNotEquals("(never)", status.getString("lastRanDate"));
+        // assertFalse(status.getBoolean("running"), "Monitor failed to finish?");
+
+        resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+
+        // keep polling /cache/monitor/ until the job completes
+        int attempts = 0;
+        while (attempts++ < 10) {
+            resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+            assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+            status = new JSONObject(resp.getBody());
+            if (!status.getBoolean("running")) {
+                assertTrue(status.getLong("lastRan") > 0);
+                assertNotEquals("(never)", status.getString("lastRanDate"));
+                return;  // success
+            }
+            Thread.sleep(100);
+        }
+        fail("Monitor failed to finish?");
     }
 
     @Test
