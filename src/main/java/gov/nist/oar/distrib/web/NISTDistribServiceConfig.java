@@ -13,6 +13,7 @@ package gov.nist.oar.distrib.web;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -22,12 +23,12 @@ import javax.activation.MimetypesFileTypeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -35,11 +36,14 @@ import org.springframework.web.util.UrlPathHelper;
 
 import gov.nist.oar.distrib.BagStorage;
 import gov.nist.oar.distrib.StorageVolumeException;
+import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
+import gov.nist.oar.distrib.service.RPACachingService;
+import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.storage.AWSS3LongTermStorage;
 import gov.nist.oar.distrib.storage.FilesystemLongTermStorage;
 
@@ -106,6 +110,7 @@ import software.amazon.awssdk.services.s3.S3Client;
  * {@see gov.nist.oar.distrib.web.LocalstackDistribServiceConfig LocalstackDistribServiceConfig}
  */
 @SpringBootApplication
+@EnableAsync
 public class NISTDistribServiceConfig {
 
     private static Logger logger = LoggerFactory.getLogger(NISTDistribServiceConfig.class);
@@ -329,6 +334,16 @@ public class NISTDistribServiceConfig {
     @Bean
     public RPAServiceProvider getRPAServiceProvider(RPAConfiguration rpaConfiguration) {
         return new RPAServiceProvider(rpaConfiguration);
+    }
+
+    @Bean
+    public RPAAsyncExecutor getRPAAsyncExecutor(RPACachingServiceProvider rpaCachingServiceProvider,
+            RPAServiceProvider rpaServiceProvider, S3Client s3)
+            throws ConfigurationException, IOException, CacheManagementException {
+
+        RPACachingService cachingService = rpaCachingServiceProvider.getRPACachingService(s3);
+        RPARequestHandler handler = rpaServiceProvider.getRPARequestHandler(cachingService);
+        return new RPAAsyncExecutor(handler);
     }
 
     /**
