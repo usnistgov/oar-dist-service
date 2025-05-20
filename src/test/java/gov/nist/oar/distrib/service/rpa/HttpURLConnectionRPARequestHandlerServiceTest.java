@@ -1,33 +1,17 @@
 package gov.nist.oar.distrib.service.rpa;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nist.oar.distrib.service.RPACachingService;
-import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
-import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
-import gov.nist.oar.distrib.service.rpa.model.JWTToken;
-import gov.nist.oar.distrib.service.rpa.model.Record;
-import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
-import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
-import gov.nist.oar.distrib.service.rpa.model.UserInfo;
-import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
-import gov.nist.oar.distrib.web.RPAConfiguration;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -41,19 +25,35 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gov.nist.oar.distrib.service.RPACachingService;
+import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.service.rpa.model.JWTToken;
+import gov.nist.oar.distrib.service.rpa.model.Record;
+import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
+import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
+import gov.nist.oar.distrib.service.rpa.model.UserInfo;
+import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
+import gov.nist.oar.distrib.web.RPAConfiguration;
 
 /**
  * This class contains unit tests for the {@link HttpURLConnectionRPARequestHandlerService} class.
@@ -87,7 +87,7 @@ import static org.mockito.Mockito.when;
  * Note: All tests should pass if the service is working correctly.
  */
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     private static final String TEST_ACCESS_TOKEN = "test_access_token";
@@ -99,14 +99,14 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             "\"Test Product\",\"subject\":\"1234567890\",\"description\":\"Test Product Description\"}}}";
 
     private static final String RECAPTCHA_RESPONSE = "recaptcha_response";
-    @Mock
+    @Mock(lenient = true)
     private RPAConfiguration rpaConfiguration;
     @Mock
     private HttpURLConnection mockConnection;
 
     @Mock
     private CloseableHttpClient mockHttpClient;
-    @Mock
+    @Mock(lenient = true)
     JWTHelper mockJwtHelper;
     @Mock
     RecaptchaHelper recaptchaHelper;
@@ -127,9 +127,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         put("update-record-endpoint", "/records/update");
     }};
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         service = spy(new HttpURLConnectionRPARequestHandlerService(rpaConfiguration, rpaCachingService));
         service.setJWTHelper(mockJwtHelper);
         service.setRecaptchaHelper(recaptchaHelper);
@@ -138,9 +137,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         service.seRPADatasetCacher(rpaDatasetCacher);
         service.setHttpClient(mockHttpClient);
 
-        // Set up mock behavior for rpaConfiguration
-        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
-
+        
         // Set up mock behavior for mockJwtHelper
         testToken = new JWTToken(TEST_ACCESS_TOKEN, TEST_INSTANCE_URL);
         when(mockJwtHelper.getToken()).thenReturn(testToken);
@@ -250,8 +247,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Test
     public void testCreateRecord_success()
             throws InvalidRequestException, IOException {
+        // Set up mock behavior for rpaConfiguration
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
         // Arrange
-        // Mock the RPAConfiguration to return non-blacklisted email strings and countries
+        // Mock the RPAConfiguration to return non-blacklisted email strings and
+        // countries
         when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@disallowed\\.com$"));
         when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Disallowed Country"));
 
@@ -291,7 +291,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         );
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = result.getRecordWrapper();
+
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -313,10 +315,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
         // Verify connection was closed
         verify(mockConnection).disconnect();
-
-        // Verify that onRecordCreationSuccess is called for non-blacklisted records
-        verify(recordResponseHandler, times(1)).onRecordCreationSuccess(any());
-
     }
 
     @Test
@@ -359,7 +357,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(mockConnection.getURL()).thenReturn(url);
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = result.getRecordWrapper();
+
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -424,7 +424,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = result.getRecordWrapper();
+
 
         // Assert
         assertEquals("rejected", actualRecord.getRecord().getUserInfo().getApprovalStatus());
@@ -438,7 +440,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testCreateRecord_withAuthorizedUser_shouldSucceed()
             throws InvalidRequestException, IOException {
         // Recaptcha stubbings ar no longer needed here since we skip verification
-
+        // Set up mock behavior for rpaConfiguration
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
+        
         // Set up mock behavior for mockConnection
         // Set expected dummy response
         String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
@@ -474,7 +478,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         );
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = result.getRecordWrapper();
+
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -501,7 +507,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testCreateRecord_with_NON_AuthorizedUser_shouldSucceed()
             throws InvalidRequestException, IOException {
         // Arrange
-
+        // Set up mock behavior for rpaConfiguration
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
+            
         // Set up mock behavior for mockConnection
         // Set expected dummy response
         String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
@@ -537,7 +545,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         );
 
         // Act
-        RecordWrapper actualRecord = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+        RecordWrapper actualRecord = result.getRecordWrapper();
 
         // Assert
         assertEquals(actualRecord.getRecord().getId(), testRecordWrapper.getRecord().getId());
@@ -581,7 +590,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     public void testCreateRecord_failure_badRequest()
             throws IOException {
         // Arrange
-
+        // Set up mock behavior for rpaConfiguration
+        when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
+        
         // Set up mock behavior for mockConnection
         // Here the dummy record doesn't matter since we are expecting an exception to be thrown
         // Create a mock output stream for the connection
@@ -693,9 +704,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // - The "Approved" status followed by a date-time in ISO 8601 format.
         // - An email address.
         // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+";
+        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
-
     }
 
     /**

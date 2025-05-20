@@ -2,6 +2,7 @@ package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
+import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -46,18 +47,18 @@ import jakarta.servlet.http.HttpServletRequest;
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).
  * <p>
- * This controller provides endpoints to manage user requests for downloading data with restricted public access.
- * It includes functionalities such as creating new records, updating existing ones, and retrieving record information.
+ * This controller provides endpoints to manage user requests for downloading
+ * data with restricted public access.
+ * It includes functionalities such as creating new records, updating existing
+ * ones, and retrieving record information.
  * <p>
  * All endpoints are prefixed with <code>/ds/rpa</code>.
  */
 @RestController
 @RequiredArgsConstructor
-@Tag(
-        name = "RPA Data Request Handler API",
-        description = "API endpoints for managing user requests to download data under Restricted Public Access. " +
-                "Provides functionalities for creating, updating, and retrieving records."
-)
+@Tag(name = "RPA Data Request Handler API", description = "API endpoints for managing user requests to download data under Restricted Public Access. "
+        +
+        "Provides functionalities for creating, updating, and retrieving records.")
 @CrossOrigin
 @RequestMapping(value = "/ds/rpa")
 public class RPARequestHandlerController {
@@ -80,6 +81,7 @@ public class RPARequestHandlerController {
 
     private RecaptchaVerificationHelper recaptchaHelper;
 
+    private RPAAsyncExecutor asyncExecutor;
     /**
      * Logger for this class.
      */
@@ -88,49 +90,54 @@ public class RPARequestHandlerController {
     /**
      * Constructs a new RPARequestHandlerController.
      * <p>
-     * Initializes the service, request sanitizer, and JWT token validator using the provided RPA service provider
+     * Initializes the service, request sanitizer, and JWT token validator using the
+     * provided RPA service provider
      * and caching service.
      *
      * @param rpaServiceProvider The service provider for RPA-related services.
-     * @param rpaCachingService  The caching service for storing and retrieving RPA data.
+     * @param rpaCachingService  The caching service for storing and retrieving RPA
+     *                           data.
      */
     @Autowired
     public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider,
-                                       RPACachingServiceProvider cachingProvider,
-                                       S3Client s3)
-        throws ConfigurationException, IOException, CacheManagementException
-    {
-        this(rpaServiceProvider, getCachingServiceFromProvider(cachingProvider, s3));
+            RPACachingServiceProvider cachingProvider,
+            S3Client s3,
+            RPAAsyncExecutor asyncExecutor)
+            throws ConfigurationException, IOException, CacheManagementException {
+        this(rpaServiceProvider, getCachingServiceFromProvider(cachingProvider, s3), asyncExecutor);
     }
 
     protected static RPACachingService getCachingServiceFromProvider(RPACachingServiceProvider cachingProvider,
-    S3Client s3)
-        throws ConfigurationException, IOException, CacheManagementException
-    {
-        if (cachingProvider == null || ! cachingProvider.canCreateService())
+            S3Client s3)
+            throws ConfigurationException, IOException, CacheManagementException {
+        if (cachingProvider == null || !cachingProvider.canCreateService())
             return null;
         return cachingProvider.getRPACachingService(s3);
     }
-    
+
     public RPARequestHandlerController(RPAServiceProvider rpaServiceProvider,
-                                       RPACachingService cachingService)
-    {
+            RPACachingService cachingService,
+            RPAAsyncExecutor asyncExecutor) {
         if (cachingService != null && rpaServiceProvider != null)
             this.service = rpaServiceProvider.getRPARequestHandler(cachingService);
         this.requestSanitizer = new RequestSanitizer();
         this.configuration = rpaServiceProvider.getRpaConfiguration();
         this.jwtTokenValidator = new JwtTokenValidator(this.configuration);
         this.recaptchaHelper = new RecaptchaVerificationHelper(this.configuration);
+        this.asyncExecutor = asyncExecutor;
     }
 
     /**
-     * a specialized exception indicating that a CacheManager is not currently in use.  This is used 
-     * to inform clients to such if they try to access endpoints provided by this class.
+     * a specialized exception indicating that a CacheManager is not currently in
+     * use. This is used
+     * to inform clients to such if they try to access endpoints provided by this
+     * class.
      */
     class NotOperatingException extends RequestProcessingException {
         NotOperatingException(String message) {
             super(message);
         }
+
         NotOperatingException() {
             this("Restricted data service is not in operation at this time (no cache manager available)");
         }
@@ -174,15 +181,19 @@ public class RPARequestHandlerController {
     /**
      * Tests the connection to Salesforce APIs.
      * <p>
-     * This method verifies whether a connection can be established to the Salesforce APIs.
-     * It performs a simple health check by trying to reach the Salesforce server, and
+     * This method verifies whether a connection can be established to the
+     * Salesforce APIs.
+     * It performs a simple health check by trying to reach the Salesforce server,
+     * and
      * returns the status of this attempt in the ResponseEntity.
      *
      * <p>
      * Endpoint: <code>GET /test</code>
      *
-     * @return ResponseEntity The response from the Salesforce server encapsulated within a ResponseEntity object.
-     * The response status indicates whether the connection test was successful.
+     * @return ResponseEntity The response from the Salesforce server encapsulated
+     *         within a ResponseEntity object.
+     *         The response status indicates whether the connection test was
+     *         successful.
      */
     @GetMapping("test")
     ResponseEntity<String> testConnectionToSalesforceAPIs() {
@@ -195,23 +206,30 @@ public class RPARequestHandlerController {
     /**
      * Retrieves information about a specific record identified by its ID.
      * <p>
-     * This method returns a RecordWrapper object encapsulating the requested record's data.
-     * The operation requires authorization as indicated by the authorization header.
+     * This method returns a RecordWrapper object encapsulating the requested
+     * record's data.
+     * The operation requires authorization as indicated by the authorization
+     * header.
      *
      * <p>
      * Endpoint: <code>GET /request/accepted/{id}</code>
      *
      * @param id                  The unique identifier of the record to retrieve.
-     * @param authorizationHeader The authorization header, indicating the caller's credentials.
-     * @return ResponseEntity      A ResponseEntity encapsulating the HTTP response. On success, it contains a
-     * RecordWrapper object representing the requested record.
-     * @throws RecordNotFoundException    If a record with the specified ID could not be found.
-     * @throws RequestProcessingException If an error occurs during the request processing.
-     * @throws UnauthorizedException      If the authorization header does not contain valid credentials.
+     * @param authorizationHeader The authorization header, indicating the caller's
+     *                            credentials.
+     * @return ResponseEntity A ResponseEntity encapsulating the HTTP response. On
+     *         success, it contains a
+     *         RecordWrapper object representing the requested record.
+     * @throws RecordNotFoundException    If a record with the specified ID could
+     *                                    not be found.
+     * @throws RequestProcessingException If an error occurs during the request
+     *                                    processing.
+     * @throws UnauthorizedException      If the authorization header does not
+     *                                    contain valid credentials.
      */
     @GetMapping(value = "/request/accepted/{id}", produces = "application/json")
     public ResponseEntity<RecordWrapper> getRecord(@PathVariable String id,
-                                    @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, RequestProcessingException, UnauthorizedException {
 
         _checkForService();
@@ -247,30 +265,42 @@ public class RPARequestHandlerController {
     }
 
     /**
-     * Creates a new record based on user information, subject to reCAPTCHA verification.
+     * Creates a new record based on user information, subject to reCAPTCHA
+     * verification.
      * <p>
-     * This method takes a UserInfoWrapper object as a request body and creates a new record accordingly.
-     * reCAPTCHA verification is performed unless the authorization header matches a configured bypass token.
-     * The created record is encapsulated within a RecordWrapper object and returned in the HTTP response.
+     * This method takes a UserInfoWrapper object as a request body and creates a
+     * new record accordingly.
+     * reCAPTCHA verification is performed unless the authorization header matches a
+     * configured bypass token.
+     * The created record is encapsulated within a RecordWrapper object and returned
+     * in the HTTP response.
      * <p>
      * Endpoint: <code>POST /request/form</code>
      * <p>
      * Content type: <code>application/json</code>
      *
-     * @param userInfoWrapper     The UserInfoWrapper object encapsulating the user information used to create a new
+     * @param userInfoWrapper     The UserInfoWrapper object encapsulating the user
+     *                            information used to create a new
      *                            record.
-     * @param authorizationHeader The optional authorization header, indicating the caller's credentials. May be used
+     * @param authorizationHeader The optional authorization header, indicating the
+     *                            caller's credentials. May be used
      *                            to bypass reCAPTCHA verification.
-     * @return ResponseEntity       A ResponseEntity that encapsulates the HTTP response. On success, it contains a
-     * RecordWrapper object representing the newly created record.
-     * @throws InvalidRequestException              If the request or the UserInfoWrapper object is invalid.
-     * @throws RecaptchaVerificationFailedException If the reCAPTCHA verification fails.
-     * @throws RequestProcessingException           If an error occurs during request processing.
-     * @throws UnauthorizedException                If the request is unauthorized (optional, to be implemented).
+     * @return ResponseEntity A ResponseEntity that encapsulates the HTTP response.
+     *         On success, it contains a
+     *         RecordWrapper object representing the newly created record.
+     * @throws InvalidRequestException              If the request or the
+     *                                              UserInfoWrapper object is
+     *                                              invalid.
+     * @throws RecaptchaVerificationFailedException If the reCAPTCHA verification
+     *                                              fails.
+     * @throws RequestProcessingException           If an error occurs during
+     *                                              request processing.
+     * @throws UnauthorizedException                If the request is unauthorized
+     *                                              (optional, to be implemented).
      */
-    @PostMapping(value = "/request/form", consumes = {"application/json"}, produces = "application/json")
+    @PostMapping(value = "/request/form", consumes = { "application/json" }, produces = "application/json")
     public ResponseEntity<RecordWrapper> createRecord(@RequestBody UserInfoWrapper userInfoWrapper,
-                                       @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
         _checkForService();
         LOGGER.debug("Attempting to create a new record...");
@@ -298,18 +328,21 @@ public class RPARequestHandlerController {
         LOGGER.debug("Sanitizing and validating user input...");
         requestSanitizer.sanitizeAndValidate(userInfoWrapper);
 
-        RecordWrapper recordWrapper = service.createRecord(userInfoWrapper);
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
 
-        LOGGER.debug("Record successfully created. Preparing to send response...");
-        return new ResponseEntity<RecordWrapper>(recordWrapper, HttpStatus.OK);
+        asyncExecutor.handleAfterRecordCreationAsync(result.getRecordWrapper(), userInfoWrapper, result.getStatusCode());
+
+        LOGGER.debug("Record successfully created. Returning response.");
+        return ResponseEntity.ok(result.getRecordWrapper());
     }
-
 
     /**
      * Updates a record's status based on the given changes.
      * <p>
-     * This method patches a record with a given ID using the provided RecordPatch object and
-     * then returns the new status of the record. The operation requires authorization as indicated
+     * This method patches a record with a given ID using the provided RecordPatch
+     * object and
+     * then returns the new status of the record. The operation requires
+     * authorization as indicated
      * by the authorization header.
      *
      * <p>
@@ -318,18 +351,25 @@ public class RPARequestHandlerController {
      * Content type: <code>application/json</code>
      *
      * @param id                  The unique identifier of the record to update.
-     * @param patch               The RecordPatch object containing the changes to be applied to the record.
-     * @param authorizationHeader The authorization header, indicating the caller's credentials.
-     * @return ResponseEntity     A response entity encapsulating the HTTP response. On success, it contains the new
-     * status of the record.
-     * @throws RecordNotFoundException    If a record with the specified ID could not be found.
-     * @throws InvalidRequestException    If the request or the provided patch is invalid.
-     * @throws RequestProcessingException If an error occurs during request processing.
-     * @throws UnauthorizedException      If the authorization header does not contain valid credentials.
+     * @param patch               The RecordPatch object containing the changes to
+     *                            be applied to the record.
+     * @param authorizationHeader The authorization header, indicating the caller's
+     *                            credentials.
+     * @return ResponseEntity A response entity encapsulating the HTTP response. On
+     *         success, it contains the new
+     *         status of the record.
+     * @throws RecordNotFoundException    If a record with the specified ID could
+     *                                    not be found.
+     * @throws InvalidRequestException    If the request or the provided patch is
+     *                                    invalid.
+     * @throws RequestProcessingException If an error occurs during request
+     *                                    processing.
+     * @throws UnauthorizedException      If the authorization header does not
+     *                                    contain valid credentials.
      */
     @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json", produces = "application/json")
     public ResponseEntity<RecordStatus> updateRecord(@PathVariable String id, @RequestBody RecordPatch patch,
-                                       @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
 
         _checkForService();
@@ -373,12 +413,16 @@ public class RPARequestHandlerController {
     }
 
     /**
-     * Logs the update action made by a Subject Matter Expert (SME) and their identity.
+     * Logs the update action made by a Subject Matter Expert (SME) and their
+     * identity.
      * <p>
-     * This private method logs an update action made by an SME. It extracts the SME's email and full name
-     * from the supplied token details and logs these details along with the ID of the updated record.
+     * This private method logs an update action made by an SME. It extracts the
+     * SME's email and full name
+     * from the supplied token details and logs these details along with the ID of
+     * the updated record.
      *
-     * @param tokenDetails A Map containing the token details, specifically the SME's email (key: "userEmail") and
+     * @param tokenDetails A Map containing the token details, specifically the
+     *                     SME's email (key: "userEmail") and
      *                     full name (key: "userFullname").
      * @param recordId     The ID of the record that was updated.
      */
@@ -389,39 +433,47 @@ public class RPARequestHandlerController {
     }
 
     /**
-     * Handles {@link RecordNotFoundException} by constructing a custom error response with a status of 404 (Not Found).
+     * Handles {@link RecordNotFoundException} by constructing a custom error
+     * response with a status of 404 (Not Found).
      * <p>
-     * When a RecordNotFoundException is thrown within the controller, this method creates a custom ErrorInfo object
+     * When a RecordNotFoundException is thrown within the controller, this method
+     * creates a custom ErrorInfo object
      * encapsulating
-     * the status code and the exception details. The HTTP response status is set to NOT_FOUND (404).
+     * the status code and the exception details. The HTTP response status is set to
+     * NOT_FOUND (404).
      *
      * @param ex The instance of RecordNotFoundException that was thrown.
-     * @return ErrorInfo A new ErrorInfo object containing the status code and the detailed error message.
+     * @return ErrorInfo A new ErrorInfo object containing the status code and the
+     *         detailed error message.
      */
     @ExceptionHandler(RecordNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleRecordNotFoundException(RecordNotFoundException ex) {
         LOGGER.error("RecordNotFoundException encountered: {}", ex.getMessage());
-        
+
         ErrorInfo errorInfo = new ErrorInfo(404, "record not found: " + ex.getMessage());
-        
+
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                             .contentType(MediaType.APPLICATION_JSON)
-                             .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 
     /**
-     * Handles {@link InvalidRequestException} by constructing a custom error response with a status of 400 (Bad
+     * Handles {@link InvalidRequestException} by constructing a custom error
+     * response with a status of 400 (Bad
      * Request).
      * <p>
-     * When an InvalidRequestException is thrown within the controller, this method creates a custom ErrorInfo object
+     * When an InvalidRequestException is thrown within the controller, this method
+     * creates a custom ErrorInfo object
      * encapsulating
-     * the status code and the exception details. The HTTP response status is set to BAD_REQUEST (400).
+     * the status code and the exception details. The HTTP response status is set to
+     * BAD_REQUEST (400).
      *
      * @param ex The instance of InvalidRequestException that was thrown.
-     * @return ErrorInfo A new ErrorInfo object containing the status code and the detailed error message.
+     * @return ErrorInfo A new ErrorInfo object containing the status code and the
+     *         detailed error message.
      */
     @ExceptionHandler(InvalidRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -432,46 +484,56 @@ public class RPARequestHandlerController {
 
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                             .contentType(MediaType.APPLICATION_JSON)
-                             .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 
     /**
-     * Handles {@link RecaptchaVerificationFailedException} by constructing a custom error response with a status of
+     * Handles {@link RecaptchaVerificationFailedException} by constructing a custom
+     * error response with a status of
      * 401 (Unauthorized).
      * <p>
-     * When a RecaptchaVerificationFailedException is thrown within the controller, this method creates a custom
+     * When a RecaptchaVerificationFailedException is thrown within the controller,
+     * this method creates a custom
      * ErrorInfo object encapsulating
-     * the status code and the exception details. The HTTP response status is set to UNAUTHORIZED (401), indicating
+     * the status code and the exception details. The HTTP response status is set to
+     * UNAUTHORIZED (401), indicating
      * that reCAPTCHA verification has failed.
      *
-     * @param ex The instance of RecaptchaVerificationFailedException that was thrown.
-     * @return ErrorInfo A new ErrorInfo object containing the status code and the detailed error message.
+     * @param ex The instance of RecaptchaVerificationFailedException that was
+     *           thrown.
+     * @return ErrorInfo A new ErrorInfo object containing the status code and the
+     *         detailed error message.
      */
     @ExceptionHandler(RecaptchaVerificationFailedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
-    public ResponseEntity<ErrorInfo> handleRecaptchaVerificationFailedException(RecaptchaVerificationFailedException ex) {
+    public ResponseEntity<ErrorInfo> handleRecaptchaVerificationFailedException(
+            RecaptchaVerificationFailedException ex) {
         LOGGER.error("RecaptchaVerificationFailedException encountered: {}", ex.getMessage());
         ErrorInfo errorInfo = new ErrorInfo(401, "Unauthorized: " + ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 
     /**
-     * Handles {@link RequestProcessingException} and constructs a custom error response with a status of 500
+     * Handles {@link RequestProcessingException} and constructs a custom error
+     * response with a status of 500
      * (Internal Server Error).
      * <p>
-     * When a RequestProcessingException is thrown within the controller, this method is invoked to handle the
+     * When a RequestProcessingException is thrown within the controller, this
+     * method is invoked to handle the
      * exception. It creates a
-     * custom ErrorInfo object containing the status code and a message that encapsulates the exception details. The
+     * custom ErrorInfo object containing the status code and a message that
+     * encapsulates the exception details. The
      * HTTP response status
      * is set to INTERNAL_SERVER_ERROR (500).
      *
      * @param ex The instance of RequestProcessingException that was thrown.
-     * @return ErrorInfo A new ErrorInfo object that encapsulates the status code and the detailed error message.
+     * @return ErrorInfo A new ErrorInfo object that encapsulates the status code
+     *         and the detailed error message.
      */
     @ResponseBody
     @ExceptionHandler(RequestProcessingException.class)
@@ -482,22 +544,26 @@ public class RPARequestHandlerController {
 
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                             .contentType(MediaType.APPLICATION_JSON)
-                             .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 
     /**
-     * Handles {@link UnauthorizedException} by constructing a custom error response with a status of 401
+     * Handles {@link UnauthorizedException} by constructing a custom error response
+     * with a status of 401
      * (Unauthorized).
      * <p>
-     * When an UnauthorizedException is thrown within the controller, this method is invoked to manage the exception.
+     * When an UnauthorizedException is thrown within the controller, this method is
+     * invoked to manage the exception.
      * It creates a
-     * custom ErrorInfo object containing the status code and a message that encapsulates the exception details. The
+     * custom ErrorInfo object containing the status code and a message that
+     * encapsulates the exception details. The
      * HTTP response status
      * is set to UNAUTHORIZED (401).
      *
      * @param ex The instance of UnauthorizedException that was thrown.
-     * @return ErrorInfo A new ErrorInfo object that encapsulates the status code and the detailed error message.
+     * @return ErrorInfo A new ErrorInfo object that encapsulates the status code
+     *         and the detailed error message.
      */
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -508,8 +574,8 @@ public class RPARequestHandlerController {
 
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 
     @ExceptionHandler(NotOperatingException.class)
@@ -517,11 +583,11 @@ public class RPARequestHandlerController {
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
         LOGGER.warn("Request to non-engaged RPACachingService: " + req.getRequestURI() + "\n  " +
-                    ex.getMessage());
-        ErrorInfo errorInfo =  new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
+                ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                             .contentType(MediaType.APPLICATION_JSON)
-                             .body(errorInfo);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
     }
 }
