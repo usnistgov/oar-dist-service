@@ -3,6 +3,7 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
+import gov.nist.oar.distrib.service.rpa.UpdateRecordResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -368,49 +369,56 @@ public class RPARequestHandlerController {
      *                                    contain valid credentials.
      */
     @PatchMapping(value = "/request/accepted/{id}", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<RecordStatus> updateRecord(@PathVariable String id, @RequestBody RecordPatch patch,
+    public ResponseEntity<RecordStatus> updateRecord(@PathVariable String id,
+            @RequestBody RecordPatch patch,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
 
         _checkForService();
         LOGGER.debug("Attempting to update record with ID: {}", id);
 
-        // Extracting the token from the header
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring("Bearer ".length());
-            // Validate token using JwtTokenValidator
-            Map<String, String> tokenDetails = null;
-            try {
-                tokenDetails = jwtTokenValidator.validate(token);
-                LOGGER.debug("Token is validated");
-            } catch (MissingRequiredClaimException e) {
-                String missingClaimName = e.getMissingClaimName();
-                LOGGER.debug("Missing required claim detected: " + missingClaimName);
-                throw new InvalidRequestException("JWT token invalid");
-            } catch (JwtException e) {
-                LOGGER.debug("Token validation failed due to a JwtException: " + e.getMessage());
-                throw new UnauthorizedException("JWT token validation failed");
-            }
+        // 1. Extract SME ID and validate token
+        Map<String, String> tokenDetails = extractAndValidateToken(authorizationHeader);
+        String smeId = tokenDetails.get("userEmail");
 
-            if (tokenDetails != null) {
-                LOGGER.debug("Updating record with ID: {}", id);
-                String smeId = tokenDetails.get("userEmail");
-                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus(), smeId);
+        // 2. Update status in backend immediately (quick response path)
+        UpdateRecordResult result = service.updateRecord(id, patch.getApprovalStatus(), smeId);
 
-                logUpdateAction(tokenDetails, id);
+        // 3. Log the action
+        logUpdateAction(tokenDetails, id);
 
-                LOGGER.debug("Record successfully updated");
-                return new ResponseEntity<RecordStatus>(recordStatus, HttpStatus.OK);
-            } else {
-                LOGGER.error("Token is invalid");
-                throw new UnauthorizedException("invalid token");
-            }
-        } else {
-            LOGGER.error("Invalid authorization header");
-            throw new UnauthorizedException("invalid authorization header");
-        }
+        // 4. Async post-processing (slow path in background)
+        asyncExecutor.handleAfterRecordUpdateAsync(result.getRecord(), result.getRecordStatus(), smeId);
 
+        // 5. Respond immediately
+        return new ResponseEntity<>(result.getRecordStatus(), HttpStatus.OK);
     }
+
+    private Map<String, String> extractAndValidateToken(String authorizationHeader)
+        throws UnauthorizedException, InvalidRequestException {
+    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        LOGGER.error("Invalid authorization header");
+        throw new UnauthorizedException("invalid authorization header");
+    }
+
+    String token = authorizationHeader.substring("Bearer ".length());
+    try {
+        Map<String, String> tokenDetails = jwtTokenValidator.validate(token);
+        LOGGER.debug("Token is validated");
+        if (tokenDetails == null) {
+            throw new UnauthorizedException("invalid token");
+        }
+        return tokenDetails;
+    } catch (MissingRequiredClaimException e) {
+        LOGGER.debug("Missing required claim: {}", e.getMissingClaimName());
+        throw new InvalidRequestException("JWT token invalid");
+    } catch (JwtException e) {
+        LOGGER.debug("Token validation failed: {}", e.getMessage());
+        throw new UnauthorizedException("JWT token validation failed");
+    }
+}
+
+
 
     /**
      * Logs the update action made by a Subject Matter Expert (SME) and their

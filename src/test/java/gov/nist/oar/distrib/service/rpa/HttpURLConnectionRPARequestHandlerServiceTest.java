@@ -9,7 +9,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -116,7 +115,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Mock
     RPACachingService rpaCachingService;
 
-    @Mock
+    @Mock(lenient = true)
     RPADatasetCacher rpaDatasetCacher;
 
     private HttpURLConnectionRPARequestHandlerService service;
@@ -685,7 +684,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, "Approved", email);
+        RecordStatus result = service.updateRecord(recordId, "Approved", email).getRecordStatus();
 
         // Assert
         assertEquals(expectedApprovalStatus, result.getApprovalStatus());
@@ -704,8 +703,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // - The "Approved" status followed by a date-time in ISO 8601 format.
         // - An email address.
         // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
-        assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
+        // String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
+        // assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
+        assertTrue(payloadObject.get("Approval_Status__c").toString().contains("Approved_PENDING_CACHING"));
     }
 
     /**
@@ -772,7 +772,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordStatus result = service.updateRecord(recordId, status, email).getRecordStatus();
 
         // Assert
         assertEquals("Declined", result.getApprovalStatus());
@@ -823,7 +823,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordStatus result = service.updateRecord(recordId, status, email).getRecordStatus();
 
         // Assert
         assertEquals("Declined", result.getApprovalStatus());

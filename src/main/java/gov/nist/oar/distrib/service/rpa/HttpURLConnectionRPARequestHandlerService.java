@@ -609,149 +609,262 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      *                                    with caching or communication errors with the database.
      */
     @Override
-    public RecordStatus updateRecord(String recordId, String status, String smeId) throws RecordNotFoundException,
-            InvalidRequestException, RequestProcessingException {
-        // Initialize return object
-        RecordStatus recordStatus;
-        Record record = this.getRecord(recordId).getRecord();
-        String datasetId = record.getUserInfo().getSubject();
-        String randomId = null;
+    public UpdateRecordResult updateRecord(String recordId, String status, String smeId)
+            throws RecordNotFoundException, InvalidRequestException, RequestProcessingException {
 
-        // If the record is being approved
-        if (RECORD_APPROVED_STATUS.equalsIgnoreCase(status)) {
-            LOGGER.info("Starting caching...");
-            randomId = this.rpaDatasetCacher.cache(datasetId);
-            if (randomId == null) {
-                throw new RequestProcessingException("Caching process returned a null randomId");
-            }
+        // 1. Fetch the original record (pre-update)
+        Record record = getRecord(recordId).getRecord();
+
+        // 2. Prepare approval status
+        StatusPreparationResult prep = prepareApprovalStatusForPatch(record, status, smeId);
+
+        // 3. Build PATCH payload and send it to backend
+        String patchPayload = new JSONObject().put("Approval_Status__c", prep.getStatus()).toString();
+        LOGGER.debug("UPDATE_RECORD_PAYLOAD={}", patchPayload);
+
+        String url = buildUpdateRecordUrl(recordId);
+        RecordStatus recordStatus = patchRecordInSalesforce(url, patchPayload);
+        LOGGER.debug("UPDATE_RECORD_RESPONSE={}", recordStatus);
+
+        // 4. Return the update result
+        // IMPORTANT: here we return the original Record object (retrieved before the
+        // PATCH request) along with the updated RecordStatus.
+        // We need to return the original Record for necessary context (subject, email,
+        // etc.) needed downstream.
+        // This is intentional and not an issue because:
+        // - Post-processing logic uses the updated status from RecordStatus, not from
+        // Record.
+        // - This avoids making another API call to fetch the updated record, improving
+        // performance.
+        return new UpdateRecordResult(recordStatus, record, prep.getRandomId());
+    }
+
+    /**
+     * Extracts the random ID from the given current status string if the status
+     * is in the expected finalized format.
+     * 
+     * <p>
+     * The method skips processing if the current status is null or if it starts
+     * with "Approved_PENDING_CACHING". It expects the finalized format to be:
+     * "Approved_<timestamp>_<smeId>_<randomId>".
+     * </p>
+     * 
+     * @param currentStatus The current approval status of the record.
+     * @return The extracted random ID if the current status is in the expected
+     *         format and is not pending caching, otherwise returns null.
+     */
+
+    private String extractRandomIdFromCurrentStatus(String currentStatus) {
+        if (currentStatus == null)
+            return null;
+
+        // Skip if still pending
+        if (currentStatus.startsWith("Approved_PENDING_CACHING")) {
+            return null;
         }
-        // If the record is being declined, check if it needs uncaching
-        else if (RECORD_DECLINED_STATUS.equalsIgnoreCase(status)) {
-            randomId = extractRandomIdFromCurrentStatus(record.getUserInfo().getApprovalStatus());
-            if (randomId != null) {
-                this.rpaDatasetCacher.uncache(randomId);
-            }
+
+        // Expected finalized format: Approved_<timestamp>_<smeId>_<randomId>
+        String[] parts = currentStatus.split("_");
+        if (parts.length == 4 && currentStatus.startsWith("Approved_")) {
+            return parts[3]; // return the randomId
         }
 
-        // Create a valid approval status based on input
-        String approvalStatus = generateApprovalStatus(status, smeId, randomId);
+        return null;
+    }
 
-        // PATCH request payload
-        // Approval_Status__c is how SF service expect the key
-        String patchPayload = new JSONObject().put("Approval_Status__c", approvalStatus).toString();
-        LOGGER.debug("UPDATE_RECORD_PAYLOAD=" + patchPayload);
-
-        // Get token
-        JWTToken token = jwtHelper.getToken();
-
-        // Get endpoint
-        String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
-
-        // Build request URL
-        String url;
+    /**
+     * Builds the URL used to update a record in the Salesforce database.
+     *
+     * @param recordId the ID of the record to update
+     * @return the URL used to update the record in the Salesforce database
+     * @throws RequestProcessingException if there is an error while building the
+     *                                    URL
+     */
+    private String buildUpdateRecordUrl(String recordId) throws RequestProcessingException {
         try {
-            url = new URIBuilder(token.getInstanceUrl())
+            String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
+            return new URIBuilder(jwtHelper.getToken().getInstanceUrl())
                     .setPath(updateRecordUri + "/" + recordId)
                     .build()
                     .toString();
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.debug("UPDATE_RECORD_URL=" + url);
-
-        // Send PATCH request
-        try {
-            HttpPatch httpPatch = new HttpPatch(url);
-            httpPatch.setHeader("Authorization", "Bearer " + token.getAccessToken());
-            httpPatch.setHeader("Content-Type", "application/json");
-            HttpEntity httpEntity = new StringEntity(patchPayload, ContentType.APPLICATION_JSON);
-            httpPatch.setEntity(httpEntity);
-
-            CloseableHttpResponse response = httpClient.execute(httpPatch);
-            int statusCode = response.getStatusLine().getStatusCode();
-            LOGGER.debug("UPDATE_RECORD_STATUS_CODE=" + statusCode);
-            if (statusCode == HttpStatus.SC_OK) { // If success
-                try (InputStream inputStream = response.getEntity().getContent()) {
-                    String responseString = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-                    LOGGER.debug("UPDATE_RECORD_RESPONSE=" + responseString);
-                    // Handle the response
-                    recordStatus = new ObjectMapper().readValue(responseString, RecordStatus.class);
-                }
-            } else if (statusCode == HttpStatus.SC_BAD_REQUEST) { // If bad request
-                LOGGER.debug("Invalid request: " + response.getStatusLine().getReasonPhrase());
-                throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
-            } else {
-                // Handle any other error response
-                LOGGER.debug("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
-                throw new RequestProcessingException("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
-            }
-        } catch (IOException e) {
-            // Handle the I/O error
-            LOGGER.debug("Error sending GET request: " + e.getMessage());
-            throw new RequestProcessingException("I/O error: " + e.getMessage());
-        }
-
-        // Check if status is approved
-        if (recordStatus.getApprovalStatus().toLowerCase().contains("approved")) {
-            this.recordResponseHandler.onRecordUpdateApproved(record, randomId);
-        } else {
-            this.recordResponseHandler.onRecordUpdateDeclined(record);
-        }
-
-        return recordStatus;
     }
-
-    private String extractRandomIdFromCurrentStatus(String currentStatus) {
-        if (currentStatus != null && currentStatus.startsWith("Approved_")) {
-            String[] parts = currentStatus.split("_");
-
-            // Since the expected format is "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]",
-            // the randomId should be the 4th part, if all parts are present
-            if (parts.length == 4) {
-                return parts[3];
-            }
-        }
-        return null;
-    }
-
 
     /**
-     * Generates an approval status string based on the given status, current date/time, and random ID.
-     * The date is in ISO 8601 format. If the status is "Declined", the randomId will not be appended.
+     * Patches a record in the Salesforce database using the given URL and JSON
+     * payload. The JSON payload is expected to be a valid JSON object that
+     * contains the fields to update in the record.
      *
-     * @param status   the approval status to use, either "Approved" or "Declined"
-     * @param smeId    the SME ID to append to the status
-     * @param randomId the generated random ID to append (only if status is "Approved")
-     * @return the generated approval status string.
-     *         If status is "Approved", the format is:
-     *         "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]".
-     *         If status is "Declined", the format is:
-     *         "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]"
-     * @throws InvalidRequestException if the provided status is not "Approved" or "Declined"
+     * @param url     the URL of the record to update
+     * @param payload the JSON payload containing the fields to update in the
+     *                record
+     * @return the updated record status, or null if the request was not
+     *         successful
+     * @throws RequestProcessingException if there is an error while processing
+     *                                    the request
+     */
+    private RecordStatus patchRecordInSalesforce(String url, String payload) throws RequestProcessingException {
+        try {
+            HttpPatch patch = new HttpPatch(url);
+            patch.setHeader("Authorization", "Bearer " + jwtHelper.getToken().getAccessToken());
+            patch.setHeader("Content-Type", "application/json");
+            patch.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(patch)) {
+                int code = response.getStatusLine().getStatusCode();
+                LOGGER.debug("UPDATE_RECORD_STATUS_CODE={}", code);
+
+                if (code == HttpStatus.SC_OK) {
+                    String json = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+                    LOGGER.debug("UPDATE_RECORD_RESPONSE={}", json);
+                    return new ObjectMapper().readValue(json, RecordStatus.class);
+                } else if (code == HttpStatus.SC_BAD_REQUEST) {
+                    throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
+                } else {
+                    throw new RequestProcessingException(
+                            "Salesforce error: " + response.getStatusLine().getReasonPhrase());
+                }
+            }
+
+        } catch (IOException e) {
+            throw new RequestProcessingException("I/O error during record update: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Prepares the approval status for a PATCH request to update a record status in
+     * the database. This method takes a record, the desired status to be
+     * set for the record, and the SME ID associated with the update. It returns a
+     * StatusPreparationResult object containing the new approval status and a
+     * random
+     * ID if the record is being declined and uncaching is needed.
+     * 
+     * <p>
+     * If the desired status is "Approved", the method does not perform caching and
+     * returns a status string of "Approved_PENDING_CACHING_[smeId]". If the
+     * desired status is "Declined", the method uncaches the existing random ID for
+     * the record and returns a status string of
+     * "Declined_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]".
+     * </p>
+     * 
+     * @param record The record to update.
+     * @param status The desired status to be set for the record.
+     * @param smeId  The SME ID associated with the update.
+     * @return A StatusPreparationResult object containing the new approval status
+     *         and
+     *         a random ID if the record is being approved and caching is needed.
+     * @throws InvalidRequestException    If the provided status is invalid or the
+     *                                    request
+     *                                    is otherwise invalid.
+     * @throws RequestProcessingException If there is an error while processing the
+     *                                    request,
+     *                                    such as issues with caching or
+     *                                    communication
+     *                                    errors with the database.
+     */
+    private StatusPreparationResult prepareApprovalStatusForPatch(Record record, String status, String smeId)
+            throws InvalidRequestException, RequestProcessingException {
+
+        String approvalStatus;
+        String randomId = null;
+
+        if (RECORD_APPROVED_STATUS.equalsIgnoreCase(status)) {
+            // Do not perform caching now — defer to async step
+            approvalStatus = "Approved_PENDING_CACHING_" + smeId;
+        } else if (RECORD_DECLINED_STATUS.equalsIgnoreCase(status)) {
+            randomId = extractRandomIdFromCurrentStatus(record.getUserInfo().getApprovalStatus());
+            if (randomId != null)
+                rpaDatasetCacher.uncache(randomId);
+
+            approvalStatus = generateApprovalStatus(status, smeId, null);
+        } else {
+            throw new InvalidRequestException("Invalid approval status: " + status);
+        }
+
+        return new StatusPreparationResult(approvalStatus, randomId);
+    }
+
+    public String finalizeApprovalAndPatchStatus(Record record, String smeId) throws RequestProcessingException {
+        String datasetId = record.getUserInfo().getSubject();
+
+        // 1. Perform the actual caching
+        String randomId = rpaDatasetCacher.cache(datasetId);
+        if (randomId == null) {
+            throw new RequestProcessingException("Caching failed: randomId is null");
+        }
+
+        // 2. Generate the final approval status string
+        String finalStatus = generateApprovalStatus("Approved", smeId, randomId);
+
+        // 3. Build PATCH payload
+        String payload = new JSONObject().put("Approval_Status__c", finalStatus).toString();
+        LOGGER.debug("FINAL_APPROVAL_STATUS_PAYLOAD={}", payload);
+
+        // 4. Send PATCH to update status
+        String recordId = record.getId();
+        String url = buildUpdateRecordUrl(recordId);
+        patchRecordInSalesforce(url, payload);
+        LOGGER.debug("Final approval status patched for record {}", recordId);
+
+        return finalStatus;
+    }
+
+    /**
+     * Generates the approval status string based on the given status and SME ID.
+     * 
+     * <p>
+     * This method is used to generate the approval status string for a record,
+     * which is then used to update the record status in the database. The
+     * approval status string is expected to follow the format
+     * "[status]_[yyyy-MM-dd'T'HH:mm:ss.SSSZ]_[smeId]_[randomId]".
+     * </p>
+     * 
+     * @param status   The desired approval status to be set for the record.
+     * @param smeId    The SME ID associated with the update.
+     * @param randomId A randomly generated ID used for approval status string
+     *                 generation.
+     * @return The generated approval status string.
+     * @throws InvalidRequestException If the provided status is invalid or the
+     *                                 request is otherwise invalid.
      */
     private String generateApprovalStatus(String status, String smeId, String randomId) throws InvalidRequestException {
         String formattedDate = Instant.now().toString();
         String approvalStatus;
 
-        if (status != null) {
-            switch (status.toLowerCase()) {
-                case RECORD_APPROVED_STATUS:
-                    approvalStatus = "Approved_" + formattedDate + "_" + smeId;
-                    if (randomId != null) {
-                        approvalStatus += "_" + randomId;
-                    }
-                    break;
-                case RECORD_DECLINED_STATUS:
-                    approvalStatus = "Declined_" + formattedDate + "_" + smeId;
-                    break;
-                default:
-                    throw new InvalidRequestException("Invalid approval status: " + status);
-            }
-        } else {
+        if (status == null)
             throw new InvalidRequestException("Invalid approval status: status is null");
+
+        switch (status.toLowerCase()) {
+            case RECORD_APPROVED_STATUS:
+                if (randomId == null) {
+                    // During async flow, we don't have the randomId yet
+                    approvalStatus = "Approved_PENDING_CACHING_" + formattedDate + "_" + smeId;
+                } else {
+                    approvalStatus = "Approved_" + formattedDate + "_" + smeId + "_" + randomId;
+                }
+                break;
+
+            case RECORD_DECLINED_STATUS:
+                approvalStatus = "Declined_" + formattedDate + "_" + smeId;
+                break;
+
+            default:
+                throw new InvalidRequestException("Invalid approval status: " + status);
         }
+
         return approvalStatus;
     }
 
+    @Override
+    public void onRecordUpdateApproved(Record record, String randomId) throws RequestProcessingException {
+        this.recordResponseHandler.onRecordUpdateApproved(record, randomId);
+    }
+
+    @Override
+    public void onRecordUpdateDeclined(Record record) {
+        this.recordResponseHandler.onRecordUpdateDeclined(record);
+    }
 
 }

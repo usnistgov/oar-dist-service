@@ -7,6 +7,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
+import gov.nist.oar.distrib.service.rpa.model.Record;
 
 /**
  * An interface for handling requests to manage records. This includes
@@ -29,7 +30,7 @@ public interface RPARequestHandler {
          * @throws RequestProcessingException if there is an error while processing the
          *                                    request
          */
-        RecordStatus updateRecord(String recordId, String status, String smeId)
+        UpdateRecordResult updateRecord(String recordId, String status, String smeId)
                         throws RecordNotFoundException, InvalidRequestException, RequestProcessingException;
 
         /**
@@ -68,4 +69,10 @@ public interface RPARequestHandler {
         public void handleAfterRecordCreation(RecordWrapper wrapper, UserInfoWrapper input, int code)
                         throws RequestProcessingException;
 
+        public String finalizeApprovalAndPatchStatus(Record record, String smeId) throws RequestProcessingException;
+
+        
+        void onRecordUpdateApproved(Record record, String randomId) throws RequestProcessingException;
+
+        void onRecordUpdateDeclined(Record record);
 }

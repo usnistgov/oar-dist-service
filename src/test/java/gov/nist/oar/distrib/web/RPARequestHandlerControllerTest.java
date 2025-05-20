@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
+import gov.nist.oar.distrib.service.rpa.UpdateRecordResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
@@ -318,8 +319,10 @@ public class RPARequestHandlerControllerTest {
     void testUpdateRecord() throws Exception {
         String recordId = "123";
         String status = "Approved";
+        Record record = new Record(recordId, "12345", new UserInfo());
         RecordStatus recordStatus = new RecordStatus(recordId, status);
-        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(recordStatus);
+        UpdateRecordResult updateResult = new UpdateRecordResult(recordStatus, record, "randomId");
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(updateResult);
 
         Map<String, String> expectedTokenDetails = new HashMap<>();
         expectedTokenDetails.put("userFullname", "john.doe");
