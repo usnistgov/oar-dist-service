@@ -311,15 +311,27 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private String evaluateBlacklistStatus(UserInfoWrapper wrapper) {
         String email = wrapper.getUserInfo().getEmail();
         String country = wrapper.getUserInfo().getCountry();
-        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}", email, country);
-    
-        if (isEmailBlacklisted(email)) {
-            LOGGER.warn("Email {} is blacklisted.", email);
-            return "Email " + email + " is blacklisted.";
-        } else if (isCountryBlacklisted(country)) {
-            LOGGER.warn("Country {} is blacklisted.", country);
-            return "Country " + country + " is blacklisted.";
+        String datasetId = wrapper.getUserInfo().getSubject(); // Dataset ID comes from subject
+
+        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}, DATASET_ID={}", email, country, datasetId);
+
+        RPAConfiguration.BlacklistConfig blacklist = rpaConfiguration.getBlacklists().get(datasetId);
+
+        if (blacklist == null) {
+            LOGGER.info("No blacklist configured for dataset {}, access allowed.", datasetId);
+            return ""; // Allow access if no blacklist defined
         }
+
+        if (isEmailBlacklisted(email, blacklist.getDisallowedEmails())) {
+            LOGGER.warn("Email {} is blacklisted for dataset {}.", email, datasetId);
+            return "Email " + email + " is blacklisted for dataset " + datasetId + ".";
+        }
+
+        if (isCountryBlacklisted(country, blacklist.getDisallowedCountries())) {
+            LOGGER.warn("Country {} is blacklisted for dataset {}.", country, datasetId);
+            return "Country " + country + " is blacklisted for dataset " + datasetId + ".";
+        }
+
         return "";
     }
     
@@ -558,23 +570,21 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         return false;
     }
     
-     
-    private boolean isEmailBlacklisted(String email) {
-        List<String> disallowedEmailStrings = rpaConfiguration.getDisallowedEmails();
-        for (String patternString : disallowedEmailStrings) {
-            Pattern pattern = Pattern.compile(patternString);
-            Matcher matcher = pattern.matcher(email);
-            if (matcher.find()) {
+     private boolean isEmailBlacklisted(String email, List<String> patterns) {
+        if (patterns == null)
+            return false;
+        for (String patternString : patterns) {
+            if (Pattern.compile(patternString).matcher(email).find()) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean isCountryBlacklisted(String country) {
-        List<String> disallowedCountries = rpaConfiguration.getDisallowedCountries();
-        return disallowedCountries.contains(country);
+    private boolean isCountryBlacklisted(String country, List<String> disallowedCountries) {
+        return disallowedCountries != null && disallowedCountries.contains(country);
     }
+    
 
     private String prepareRequestPayload(UserInfoWrapper userInfoWrapper) throws JsonProcessingException {
         // Set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
