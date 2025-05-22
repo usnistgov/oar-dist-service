@@ -4,15 +4,23 @@
   "headbagCacheSize": 50000000,
   "bagstoreMode": "local",
   "jwtSecretKey": "1234567890 pdr.rpa.2023 1234567890",
-  "disallowedEmails": [
-    "@123\\.",
-    "@example\\.com$"
-  ],
-  "disallowedCountries": [
-    "Cuba",
-    "North Korea"
-  ],
   "expiresAfterMillis": 1209600000,
+  "authorized": [
+    "Authorized_1",
+    "Authorized_2"
+  ],
+  "blacklists": {
+    "ark:/88434/mds2-2909": {
+      "disallowed-emails": [
+        "@123\\.",
+        "@example\\.com$"
+      ],
+      "disallowed-countries": [
+        "Cuba",
+        "North Korea"
+      ]
+    }
+  },
   "emailTemplates": {
     "pre-approved-user": {
       "subject": "Your Data is Ready for Download",
