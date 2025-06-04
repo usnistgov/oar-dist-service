@@ -1,0 +1,18 @@
+{
+  "components": [
+    {
+      "filepath": "trial1.json",
+      "@type": ["nrdp:DataFile"],
+      "downloadURL": "http://localhost/fakeurl/trial1.json"
+    },
+    {
+      "filepath": "subfolder/trial1.json",
+      "@type": ["nrdp:DataFile"],
+      "downloadURL": "http://localhost/fakeurl/subfolder/trial1.json"
+    },
+    {
+      "filepath": "restricted-file.json",
+      "@type": ["nrdp:RestrictedAccessPage"]
+    }
+  ]
+}

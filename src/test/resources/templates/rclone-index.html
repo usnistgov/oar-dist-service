@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Rclone Index</title></head>
+<body>
+  <h1>Rclone Index Page</h1>
+  <li th:each="file : ${files}">
+    <a th:href="@{${file.href}}" th:text="${file.name}"></a>
+    <span th:text="${file.size}">Size</span>
+    <span th:text="${file.modified}">Modified</span>
+  </li>
+  
+</body>
+</html>
