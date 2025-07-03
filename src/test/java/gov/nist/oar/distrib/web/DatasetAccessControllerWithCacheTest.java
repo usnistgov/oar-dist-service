@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
@@ -43,6 +44,7 @@ import org.springframework.util.FileSystemUtils;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
+import gov.nist.oar.distrib.service.NermDownloadService;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -69,7 +71,8 @@ import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
         "logging.level.gov.nist.oar.distrib=DEBUG",
         "logging.path=${basedir}/target",
         "logging.file=tst.log",
-        "cloud.aws.region=us-east-1"
+        "cloud.aws.region=us-east-1",
+        "file.base-dir=${basedir}/src/test/resources/datasets",
 })
 public class DatasetAccessControllerWithCacheTest {
 
@@ -80,6 +83,9 @@ public class DatasetAccessControllerWithCacheTest {
 
     TestRestTemplate websvc = new TestRestTemplate();
     HttpHeaders headers = new HttpHeaders();
+
+    @MockBean
+    private NermDownloadService nermService;
 
     private String getBaseURL() {
         return "http://localhost:" + port + "/od";
