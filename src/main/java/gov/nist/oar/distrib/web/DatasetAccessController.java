@@ -59,7 +59,7 @@ import gov.nist.oar.distrib.FileDescription;
 import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.service.FileDownloadService;
-import gov.nist.oar.distrib.service.NermDownloadService;
+import gov.nist.oar.distrib.service.NerdmDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
@@ -107,7 +107,7 @@ public class DatasetAccessController {
     FileDownloadService downl;
 
     @Autowired
-    NermDownloadService nermService;
+    NerdmDownloadService nermService;
 
     @Value("${distrib.baseurl}")
     String svcbaseurl;

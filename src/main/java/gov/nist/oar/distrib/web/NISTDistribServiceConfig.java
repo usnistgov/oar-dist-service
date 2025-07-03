@@ -41,6 +41,7 @@ import gov.nist.oar.distrib.service.DataPackagingService;
 import gov.nist.oar.distrib.service.DefaultDataPackagingService;
 import gov.nist.oar.distrib.service.DefaultPreservationBagService;
 import gov.nist.oar.distrib.service.FileDownloadService;
+import gov.nist.oar.distrib.service.NerdmDownloadService;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
@@ -177,6 +178,9 @@ public class NISTDistribServiceConfig {
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
     
+    @Value("${distrib.baseurl}")
+    String baseUrl;
+
     S3Client             s3client;    // set via getter below
     BagStorage                lts;    // set via getter below
     MimetypesFileTypeMap  mimemap;    // set via getter below
@@ -275,6 +279,11 @@ public class NISTDistribServiceConfig {
         return new DefaultDataPackagingService(allowedUrls, maxPkgSize, maxFileCount, allowedRedirects);
     }
 
+    @Bean
+    public NerdmDownloadService getNerdmDownloadService() {
+        return new NerdmDownloadService(baseUrl);
+    }
+
     /**
      * create a configuration object for the cache manager
      */
@@ -284,6 +293,7 @@ public class NISTDistribServiceConfig {
         // this will have config properties injected into it
         return new NISTCacheManagerConfig();
     }
+
 
     /**
      * the configured CacheManagerProvider to use
@@ -438,4 +448,3 @@ public class NISTDistribServiceConfig {
         SpringApplication.run( NISTDistribServiceConfig.class, args );
     }
 }
-

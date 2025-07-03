@@ -42,7 +42,7 @@ public class NermDownloadServiceTest {
                     });
                 });
 
-        NermDownloadService service = new NermDownloadService("http://mockserver", mockClient);
+        NerdmDownloadService service = new NerdmDownloadService("http://mockserver", mockClient);
         JsonNode result = service.fetchNerdm("foo123");
 
         assertNotNull(result);
@@ -66,7 +66,7 @@ public class NermDownloadServiceTest {
                     return handler.handleResponse(new BasicClassicHttpResponse(404));
                 });
 
-        NermDownloadService service = new NermDownloadService("http://mockserver", mockClient);
+        NerdmDownloadService service = new NerdmDownloadService("http://mockserver", mockClient);
 
         IOException ex = assertThrows(IOException.class, () -> service.fetchNerdm("doesnotexist"));
         assertTrue(ex.getMessage().contains("HTTP 404"));

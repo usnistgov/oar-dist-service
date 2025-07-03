@@ -43,7 +43,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import gov.nist.oar.distrib.service.NermDownloadService;
+import gov.nist.oar.distrib.service.NerdmDownloadService;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -73,7 +73,7 @@ public class DatasetAccessControllerTest {
     }
 
     @MockBean
-    private NermDownloadService nermService;
+    private NerdmDownloadService nermService;
 
     private JsonNode mockNerdm(String dsid) throws IOException {
         String json = Files.readString(Paths.get("src/test/resources/datasets/" + dsid + "/nerdm.json"));
