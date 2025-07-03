@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -28,6 +29,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.util.UriUtils;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkServiceException;
@@ -669,7 +671,10 @@ public class AWSS3CacheVolume implements CacheVolume {
             }
         } else {
             try {
-                return new URL(baseurl + name.replace(" ", "%20"));
+                // properly encode the URL
+                String encodedName = UriUtils.encodePath(name, StandardCharsets.UTF_8);
+                String url = baseurl.endsWith("/") ? baseurl + encodedName : baseurl + "/" + encodedName;
+                return new URL(url);
             } catch (MalformedURLException ex) {
                 throw new StorageVolumeException("Failed to form legal URL: " + ex.getMessage(), ex);
             }

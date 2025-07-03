@@ -551,6 +551,11 @@ public class AWSS3CacheVolumeTest {
         s3cv = new AWSS3CacheVolume(bucket, "cach", s3client, "https://ex.org/");
         assertEquals(new URL("https://ex.org/goober"), s3cv.getRedirectFor("goober"));
         assertEquals(new URL("https://ex.org/i%20a/m%20groot"), s3cv.getRedirectFor("i a/m groot"));
+
+        // New test case with Unicode and special characters like α,β,γ
+        String name = "folder/EDS map αβγ #file.tiff";
+        String expected = "https://ex.org/folder/EDS%20map%20%CE%B1%CE%B2%CE%B3%20%23file.tiff";
+        assertEquals(new URL(expected), s3cv.getRedirectFor(name));
     }
 
     @Test

@@ -5,7 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -17,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
+import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
@@ -69,13 +76,16 @@ public class RPARequestHandlerControllerTest {
     @Mock
     RecaptchaVerificationHelper mockRecaptchaHelper;
 
+    @Mock
+    private RPAAsyncExecutor mockAsyncExecutor;
+
     private RPARequestHandlerController controller;
     private MockMvc mockMvc;
 
     @BeforeEach
     public void setup() {
         when(mockRPAServiceProvider.getRPARequestHandler(mockRPACachingService)).thenReturn(service);
-        controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService);
+        controller = new RPARequestHandlerController(mockRPAServiceProvider, mockRPACachingService, mockAsyncExecutor);
         controller.setRequestSanitizer(mockRequestSanitizer);
         controller.setJwtTokenValidator(mockJwtTokenValidator);
         controller.setConfiguration(mockRPAConfiguration);
@@ -201,10 +211,14 @@ public class RPARequestHandlerControllerTest {
         userInfo.setDescription("Some description");
         userInfoWrapper.setUserInfo(userInfo);
 
-        RecordWrapper recordWrapper = new RecordWrapper();
-        recordWrapper.setRecord(new Record("123", "12345", userInfo));
+        Record record = new Record("record-id", "12345", userInfo);
+        RecordWrapper wrapper = new RecordWrapper();
+        wrapper.setRecord(record);
 
-        when(service.createRecord(any(UserInfoWrapper.class))).thenReturn(recordWrapper);
+        RecordCreationResult creationResult = new RecordCreationResult(wrapper, 200);
+
+        // Mock service call
+        when(service.createRecord(any(UserInfoWrapper.class))).thenReturn(creationResult);
 
         mockMvc.perform(post("/ds/rpa/request/form")
                 .content(new ObjectMapper().writeValueAsString(userInfoWrapper))
@@ -243,6 +257,62 @@ public class RPARequestHandlerControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("invalid request: Test error message"));
     }
+
+    @Test
+    void testCreateRecord_TriggersAsyncPostProcessing() throws Exception {
+        // Arrange
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper();
+        UserInfo userInfo = new UserInfo();
+        userInfo.setFullName("Jane Doe");
+        userInfo.setOrganization("NASA");
+        userInfo.setEmail("jane.doe@test.gov");
+        userInfo.setReceiveEmails("True");
+        userInfo.setCountry("United States");
+        userInfo.setApprovalStatus("pre-approved"); // to trigger post-processing
+        userInfo.setProductTitle("Dataset Title");
+        userInfo.setSubject("ark:/88434/mds2-1234");
+        userInfo.setDescription("Test dataset access");
+        userInfoWrapper.setUserInfo(userInfo);
+
+        RecordWrapper recordWrapper = new RecordWrapper();
+        recordWrapper.setRecord(new Record("123", "12345", userInfo));
+
+        RecordCreationResult creationResult = new RecordCreationResult(recordWrapper, 200);
+
+        // Mock service call
+        when(service.createRecord(any(UserInfoWrapper.class))).thenReturn(creationResult);
+
+        // Act
+        mockMvc.perform(post("/ds/rpa/request/form")
+                .content(new ObjectMapper().writeValueAsString(userInfoWrapper))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        // Assert that async post-processing was triggered
+        verify(mockAsyncExecutor).handleAfterRecordCreationAsync(
+                eq(creationResult.getRecordWrapper()),
+                argThat(actual -> areUserInfoWrappersEqual(userInfoWrapper, actual)),
+                eq(200));
+    
+    }
+
+    private boolean areUserInfoWrappersEqual(UserInfoWrapper expected, UserInfoWrapper actual) {
+        if (expected == null || actual == null) return false;
+        UserInfo exp = expected.getUserInfo();
+        UserInfo act = actual.getUserInfo();
+        if (exp == null || act == null) return false;
+    
+        return Objects.equals(exp.getEmail(), act.getEmail()) &&
+               Objects.equals(exp.getFullName(), act.getFullName()) &&
+               Objects.equals(exp.getSubject(), act.getSubject()) &&
+               Objects.equals(exp.getCountry(), act.getCountry()) &&
+               Objects.equals(exp.getOrganization(), act.getOrganization()) &&
+               Objects.equals(exp.getProductTitle(), act.getProductTitle()) &&
+               Objects.equals(exp.getDescription(), act.getDescription()) &&
+               Objects.equals(exp.getApprovalStatus(), act.getApprovalStatus());
+    }
+    
+
 
     @Test
     void testUpdateRecord() throws Exception {
