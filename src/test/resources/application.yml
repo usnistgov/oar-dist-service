@@ -14,3 +14,6 @@ distrib:
 
 logging:
   path: ${basedir}/target/surefire-reports
+
+file:
+  base-dir: ${basedir}/src/test/resources/datasets
