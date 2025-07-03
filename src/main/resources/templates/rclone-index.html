@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Index of /<span th:text="${currentPath}"></span></title>
+    <style>
+        body {
+            overscroll-behavior: none;
+            margin: 0;
+            font-family: Inter, system-ui, sans-serif;
+            background: #f3f6f7;
+        }
+
+        header {
+            width: 100vw;
+            background: #fff;
+            padding: 1.5em 5%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        .breadcrumbs {
+            font-size: .9rem;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: .25em;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .wrapper {
+            max-width: 1200px;
+            margin: auto;
+            padding: 0 5%;
+        }
+
+        .counts {
+            margin-top: .5em;
+            font-size: .9rem;
+            color: #555;
+        }
+
+        .counts .number {
+            font-weight: bold;
+        }
+
+        /* table container with shadow */
+        .table-container {
+            background: #fff;
+            margin: 1em 0;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+        }
+
+        thead {
+            background: #e5e9ea;
+        }
+
+        th,
+        td {
+            padding: .75em 1em;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            text-transform: uppercase;
+            font-size: .9rem;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f4f9fd;
+        }
+
+        a {
+            color: #006ed3;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        a:hover {
+            color: #0095e4;
+        }
+
+        .directory a {
+            font-weight: bold;
+            color: #ffb900;
+        }
+
+        /* fixed column widths */
+        th.size,
+        td.size {
+            width: 12%;
+            max-width: 12%;
+        }
+
+        th.modified,
+        td.modified {
+            width: 18%;
+            max-width: 18%;
+        }
+
+        /* neutralize SVG stroke, fill with text color */
+        .icon {
+            margin-right: .5em;
+            flex-shrink: 0;
+            stroke: none;
+            fill: currentColor;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="wrapper">
+            <div class="breadcrumbs">/rclone/<span th:text="${currentPath}"></span></div>
+            <h1>Index of /<span th:text="${currentPath}"></span></h1>
+        </div>
+    </header>
+
+    <div class="wrapper">
+        <div class="counts">
+            <span><span class="number" th:text="${dirCount}"></span> directories</span>,
+            <span><span class="number" th:text="${fileCount}"></span> files</span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th class="size">Size</th>
+                        <th class="modified">Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Parent directory link -->
+                    <tr>
+                        <td><a href="../"><svg class="icon" ...></svg>../</a></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <!-- Loop through entries -->
+                    <tr th:each="f : ${files}" th:classappend="${f.directory} ? 'directory' : ''">
+                        <td>
+                            <!-- Directory entry uses relative path -->
+                            <th:block th:if="${f.directory}">
+                                <a th:href="@{${f.name}}">
+                                    <svg class="icon" ...></svg>
+                                    <span th:text="${f.name}">name/</span>
+                                </a>
+                            </th:block>
+                            <!-- File entry uses provided downloadURL -->
+                            <th:block th:unless="${f.directory}">
+                                <a th:href="${f.downloadURL}">
+                                    <svg class="icon" ...></svg>
+                                    <span th:text="${f.name}">filename</span>
+                                </a>
+                            </th:block>
+                        </td>
+                        <td class="size" th:text="${f.size}">0 B</td>
+                        <td class="modified" th:text="${f.modified}">dd-MMM-yyyy HH:mm</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</body>
+
+</html>
