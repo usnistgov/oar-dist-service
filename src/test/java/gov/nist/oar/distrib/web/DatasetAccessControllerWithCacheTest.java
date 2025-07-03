@@ -44,7 +44,7 @@ import org.springframework.util.FileSystemUtils;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
-import gov.nist.oar.distrib.service.NermDownloadService;
+import gov.nist.oar.distrib.service.NerdmDownloadService;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = NISTDistribServiceConfig.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -85,7 +85,7 @@ public class DatasetAccessControllerWithCacheTest {
     HttpHeaders headers = new HttpHeaders();
 
     @MockBean
-    private NermDownloadService nermService;
+    private NerdmDownloadService nermService;
 
     private String getBaseURL() {
         return "http://localhost:" + port + "/od";
