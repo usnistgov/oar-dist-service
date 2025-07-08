@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
@@ -166,7 +168,21 @@ public class DefaultDataPackagerTest {
         val2 = "{\"filePath\":\"/testfile2.txt\",\"downloadUrl\":\"https://httpstat.us/301\"}";
         createBundleRequest();
         this.createBundleStream();
+        ensureTestURL(new URL("https://httpstat.us/301"));
         assertThrows(NoFilesAccesibleInPackageException.class, () -> dp.getData(zos));
+    }
+
+    private void ensureTestURL(URL ep) throws RuntimeException {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) ep.openConnection();
+	    conn.setInstanceFollowRedirects(false);
+	    conn.setConnectTimeout(10000); //  10 seconds
+	    conn.setReadTimeout(100000);   // 100 seconds
+	    conn.setRequestMethod("HEAD");
+            conn.getResponseCode();
+        } catch (Exception ex) {
+            throw new RuntimeException("Needed test URL not responding: "+ep.toString());
+        }
     }
 
     private static void createBundleRequest() throws IOException {
