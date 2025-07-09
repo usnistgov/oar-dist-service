@@ -54,7 +54,6 @@ import gov.nist.oar.distrib.service.NerdmDownloadService;
         "distrib.baseurl=http://localhost/oar-distrb-service",
         "logging.path=${basedir}/target/surefire-reports",
         "cloud.aws.region=us-east-1",
-        "file.base-dir=${basedir}/src/test/resources/datasets",
 // "logging.level.org.springframework.web=DEBUG"
 // "logging.level.gov.nist.oar.distrib=DEBUG"
 })

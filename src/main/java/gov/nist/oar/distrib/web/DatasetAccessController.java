@@ -16,9 +16,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -111,14 +108,7 @@ public class DatasetAccessController {
 
     @Value("${distrib.baseurl}")
     String svcbaseurl;
-
-    @Value("${file.base-dir}")
-    private String baseDir;
-
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter
-            .ofPattern("dd-MMM-yyyy HH:mm")
-            .withZone(ZoneId.systemDefault());
-
+    
     private final ObjectMapper mapper = new ObjectMapper();
 
     // TODO test inputs
@@ -445,15 +435,12 @@ public class DatasetAccessController {
 
         // CASE 1: Request is for a directory → return HTML index page
         if (requestURI.endsWith("/")) {
-            // Base dataset directory on disk
-            Path dsDir = Paths.get(baseDir).resolve(dsid).toAbsolutePath().normalize();
-
             // Load nerdm.json
             JsonNode components = loadComponents(dsid);
 
             // List entries
             String subdir = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
-            List<FileInfo> entries = listDirectoryEntries(dsDir, components, subdir);
+            List<FileInfo> entries = listDirectoryEntries(components, subdir);
             long dirs = entries.stream().filter(FileInfo::isDirectory).count();
             long files = entries.size() - dirs;
 
@@ -482,13 +469,9 @@ public class DatasetAccessController {
      *         in the given subdirectory. The list is sorted by name (case
      *         insensitive).
      */
-    private List<FileInfo> listDirectoryEntries(Path datasetDir,
-            JsonNode components,
-            String subdirectory) {
-
-        String prefix = subdirectory.isEmpty() ? "" : subdirectory + "/";
+    private List<FileInfo> listDirectoryEntries(JsonNode components, String subdirectory) {
+        String prefix = subdirectory == null || subdirectory.isEmpty() ? "" : subdirectory + "/";
         TreeMap<String, FileInfo> entriesMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        Path subdirectoryOnDisk = datasetDir.resolve(subdirectory);
 
         for (JsonNode component : components) {
             // Only include downloadable files (skip restricted or incomplete metadata)
@@ -519,25 +502,10 @@ public class DatasetAccessController {
                 isDirectory = false;
             }
 
+            // Deduplicate
             entriesMap.computeIfAbsent(entryName, nameKey -> {
                 String href = isDirectory ? nameKey : component.path("downloadURL").asText();
-                String sizeString = "";
-                String modifiedString = "";
-
-                if (!isDirectory) {
-                    try {
-                        Path fileOnDisk = subdirectoryOnDisk.resolve(nameKey).normalize();
-                        if (Files.exists(fileOnDisk) && !Files.isDirectory(fileOnDisk)) {
-                            sizeString = humanReadable(Files.size(fileOnDisk));
-                            modifiedString = DATE_FMT.format(
-                                    Files.getLastModifiedTime(fileOnDisk).toInstant());
-                        }
-                    } catch (IOException e) {
-                        // leave fields blank
-                    }
-                }
-
-                return new FileInfo(nameKey, isDirectory, sizeString, modifiedString, href);
+                return new FileInfo(nameKey, isDirectory, "", "", href); // no size/modified info
             });
         }
 
@@ -554,14 +522,6 @@ public class DatasetAccessController {
             }
         }
         return false;
-    }
-
-    private String humanReadable(long bytes) {
-        if (bytes < 1024)
-            return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(1024));
-        char unit = "KMGTPE".charAt(exp - 1);
-        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), unit);
     }
 
     private JsonNode loadComponents(String dsid)
