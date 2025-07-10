@@ -9,7 +9,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,8 +20,8 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.StatusLine;
@@ -252,8 +251,12 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Arrange
         // Mock the RPAConfiguration to return non-blacklisted email strings and
         // countries
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@disallowed\\.com$"));
-        when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Disallowed Country"));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
 
         // Set up mock behavior for mockConnection
         // Set expected dummy response
@@ -328,7 +331,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 new HashMap<>()
         );
 
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
 
         // Act
         // Set expected dummy response
@@ -397,7 +406,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 new HashMap<>()
         );
 
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
 
         // Act
         // Set expected dummy response

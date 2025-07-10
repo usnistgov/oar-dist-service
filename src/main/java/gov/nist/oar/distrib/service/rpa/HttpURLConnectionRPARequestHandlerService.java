@@ -311,15 +311,27 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private String evaluateBlacklistStatus(UserInfoWrapper wrapper) {
         String email = wrapper.getUserInfo().getEmail();
         String country = wrapper.getUserInfo().getCountry();
-        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}", email, country);
-    
-        if (isEmailBlacklisted(email)) {
-            LOGGER.warn("Email {} is blacklisted.", email);
-            return "Email " + email + " is blacklisted.";
-        } else if (isCountryBlacklisted(country)) {
-            LOGGER.warn("Country {} is blacklisted.", country);
-            return "Country " + country + " is blacklisted.";
+        String datasetId = wrapper.getUserInfo().getSubject(); // Dataset ID comes from subject
+
+        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}, DATASET_ID={}", email, country, datasetId);
+
+        RPAConfiguration.BlacklistConfig blacklist = rpaConfiguration.getBlacklists().get(datasetId);
+
+        if (blacklist == null) {
+            LOGGER.info("No blacklist configured for dataset {}, access allowed.", datasetId);
+            return ""; // Allow access if no blacklist defined
         }
+
+        if (isEmailBlacklisted(email, blacklist.getDisallowedEmails())) {
+            LOGGER.warn("Email {} is blacklisted for dataset {}.", email, datasetId);
+            return "Email " + email + " is blacklisted for dataset " + datasetId + ".";
+        }
+
+        if (isCountryBlacklisted(country, blacklist.getDisallowedCountries())) {
+            LOGGER.warn("Country {} is blacklisted for dataset {}.", country, datasetId);
+            return "Country " + country + " is blacklisted for dataset " + datasetId + ".";
+        }
+
         return "";
     }
     
@@ -371,45 +383,69 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
     
     /**
-     * Handles the actions to be taken after the creation of a record.
+     * Handles the post-processing steps after a record has been created.
+     * 
+     * Depending on the approval status of the record, this method will take
+     * different actions:
+     * 
+     * - If the record is null, indicating that the creation failed entirely,
+     *   it will notify the handler of the failure.
+     * - If the record is auto-rejected, it logs the event and skips further processing.
+     * - If the record is pre-approved, it attempts to cache the dataset and
+     *   send a download link to the user. Notifies the user of success or failure.
+     * - For all other statuses, it sends a confirmation to the user and an
+     *   approval request to the SME.
      *
-     * Depending on the approval status of the record, this method determines the
-     * post-processing steps. If the record was rejected, it logs the rejection and skips
-     * further processing. If the record is pre-approved, it caches the dataset and sends
-     * confirmation and download emails. Otherwise, it handles the successful creation of
-     * the record.
-     *
-     * @param wrapper The RecordWrapper containing the record and its details.
-     * @param input   The UserInfoWrapper containing the original input data used to create the record.
-     * @param code    The HTTP status code returned by the record creation request.
-     * @throws RequestProcessingException If any error occurs during post-processing, such as caching failures.
+     * @param wrapper The RecordWrapper containing the created record and its details.
+     * @param input The UserInfoWrapper containing the original input data used to create the record.
+     * @param code The HTTP status code returned by the record creation request.
+     * @throws RequestProcessingException If an error occurs during post-processing.
      */
     @Override
     public void handleAfterRecordCreation(RecordWrapper wrapper, UserInfoWrapper input, int code)
             throws RequestProcessingException {
+
         if (wrapper == null) {
+            // If record creation failed entirely (null wrapper), notify handler of failure
             recordResponseHandler.onRecordCreationFailure(code);
             return;
         }
-    
+
         String status = wrapper.getRecord().getUserInfo().getApprovalStatus();
-    
+
         switch (status) {
             case RECORD_REJECTED_STATUS:
+                // Automatically rejected records (e.g., blacklisted) require no post-processing
                 LOGGER.info("Record auto-rejected; skipping post-processing.");
                 break;
+
             case RECORD_PRE_APPROVED_STATUS:
-                // Handle pre-approved dataset: cache immediately and send both confirmation and download emails
-                String randomId = rpaDatasetCacher.cache(input.getUserInfo().getSubject());
-                if (randomId == null)
-                    throw new RequestProcessingException("Caching process returned null randomId");
-                recordResponseHandler.onPreApprovedRecordCreationSuccess(wrapper.getRecord(), randomId);
+                try {
+                    // Try to cache the dataset and send a download link
+                    String datasetId = input.getUserInfo().getSubject();
+                    String randomId = rpaDatasetCacher.cache(datasetId);
+
+                    if (randomId == null) {
+                        // Caching failed — notify user of failure
+                        LOGGER.warn("Failed to cache dataset '{}'; notifying user of processing failure.", datasetId);
+                        recordResponseHandler.onFailure(wrapper.getRecord());
+                    } else {
+                        // Caching succeeded — notify user of success and provide download link
+                        recordResponseHandler.onPreApprovedRecordCreationSuccess(wrapper.getRecord(), randomId);
+                    }
+
+                } catch (Exception e) {
+                    // Unexpected error during caching or metadata lookup — notify user
+                    LOGGER.error("Unexpected error while caching dataset or fetching metadata: {}", e.getMessage(), e);
+                    recordResponseHandler.onFailure(wrapper.getRecord());
+                }
                 break;
+
             default:
+                // Default behavior: confirmation to user and approval request to SME
                 recordResponseHandler.onRecordCreationSuccess(wrapper.getRecord());
         }
     }
-    
     
     /**
      * Builds the URL used to create a record in the Salesforce database.
@@ -558,23 +594,21 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         return false;
     }
     
-     
-    private boolean isEmailBlacklisted(String email) {
-        List<String> disallowedEmailStrings = rpaConfiguration.getDisallowedEmails();
-        for (String patternString : disallowedEmailStrings) {
-            Pattern pattern = Pattern.compile(patternString);
-            Matcher matcher = pattern.matcher(email);
-            if (matcher.find()) {
+     private boolean isEmailBlacklisted(String email, List<String> patterns) {
+        if (patterns == null)
+            return false;
+        for (String patternString : patterns) {
+            if (Pattern.compile(patternString).matcher(email).find()) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean isCountryBlacklisted(String country) {
-        List<String> disallowedCountries = rpaConfiguration.getDisallowedCountries();
-        return disallowedCountries.contains(country);
+    private boolean isCountryBlacklisted(String country, List<String> disallowedCountries) {
+        return disallowedCountries != null && disallowedCountries.contains(country);
     }
+    
 
     private String prepareRequestPayload(UserInfoWrapper userInfoWrapper) throws JsonProcessingException {
         // Set reCAPTCHA field to null, so it doesn't get serialized. SF service doesn't expect this field
