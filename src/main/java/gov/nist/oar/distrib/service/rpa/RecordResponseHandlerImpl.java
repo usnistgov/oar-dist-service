@@ -161,6 +161,28 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         LOGGER.debug("User was declined by SME");
     }
 
+    /**
+     * Called when a processing failure occurs for a record.
+     * <p>
+     * Notifies the user that their request could not be completed.
+     * @param record the record for which the processing failure occurred
+     * @throws RequestProcessingException if there is an error while processing the request
+     * @throws InvalidRequestException if there is an error in the request
+     */
+    @Override
+    public void onFailure(Record record) throws RequestProcessingException, InvalidRequestException {
+        LOGGER.warn("A processing failure occurred for Record ID=" + record.getId() +
+                "; notifying the user that their request could not be completed.");
+
+        boolean sent = this.emailSender.sendFailureNotificationEmailToEndUser(record);
+        if (sent) {
+            LOGGER.debug("Failure notification email sent successfully to end user (RecordID=" + record.getId() + ")");
+        } else {
+            throw new RequestProcessingException("Failed to send failure notification email to end user");
+        }
+    }
+
+
     private class EmailSender {
         /**
          * The key used to retrieve the Salesforce endpoint URL for sending emails.
@@ -274,6 +296,20 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getEndUserDeclinedEmailInfo(record);
             LOGGER.debug("EMAIL_INFO=" + emailInfo);
+            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+        }
+
+        /**
+         * Sends an email to the end user notifying them that there was a metadata failure, i.e. the dataset
+         * associated with the record was not found in the metadata service.
+         *
+         * @param record the record associated with the dataset for which metadata was not found
+         * @return true if the email was sent successfully, false otherwise
+         */
+        private boolean sendFailureNotificationEmailToEndUser(Record record)
+                throws InvalidRequestException, RequestProcessingException {
+            EmailInfo emailInfo = this.emailInfoProvider.getEndUserFailureNotificationEmailInfo(record);
+            LOGGER.debug("EMAIL_INFO (processing failure)=" + emailInfo);
             return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
         }
 

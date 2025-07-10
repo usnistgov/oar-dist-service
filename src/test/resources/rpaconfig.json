@@ -21,10 +21,15 @@
       ]
     }
   },
+  "supportEmail": "rpa-support@nist.gov",
   "emailTemplates": {
     "pre-approved-user": {
       "subject": "Your Data is Ready for Download",
       "content": "<p>Hello ${FULL_NAME},<br><br>Your request for data related to <strong>${DATASET_NAME}</strong> has been processed."
+    },
+    "failure-notification-user": {
+      "subject": "Request Issue Notification",
+      "content": "There was an issue with your request for ${DATASET_NAME}. Please contact ${SUPPORT_EMAIL}."
     }
   }
 }

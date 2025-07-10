@@ -77,5 +77,14 @@ public class RPAConfigurationTest {
             "<p>Hello ${FULL_NAME},<br><br>Your request for data related to <strong>${DATASET_NAME}</strong> has been processed.",
             preApprovedEmail.getContent()
         );
+
+        RPAConfiguration.EmailTemplate failureTemplate = config.getEmailTemplates().get("failure-notification-user");
+        assertNotNull(failureTemplate);
+        assertEquals("Request Issue Notification", failureTemplate.getSubject());
+        assertEquals(
+                "There was an issue with your request for ${DATASET_NAME}. Please contact ${SUPPORT_EMAIL}.",
+                failureTemplate.getContent());
+        String supportEmail = config.getSupportEmail();
+        assertEquals("rpa-support@nist.gov", supportEmail);
     }
 }

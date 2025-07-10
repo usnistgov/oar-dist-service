@@ -61,6 +61,9 @@ public class RPAConfiguration {
     @JsonProperty("expiresAfterMillis")
     long expiresAfterMillis = 0L;
 
+    @JsonProperty("supportEmail")
+    private String supportEmail;
+
     public long getHeadbagCacheSize() {
         return hbCacheSize;
     }
@@ -91,6 +94,14 @@ public class RPAConfiguration {
 
     public void setExpiresAfterMillis(long expiresAfterMillis) {
         this.expiresAfterMillis = expiresAfterMillis;
+    }
+
+    public String getSupportEmail() {
+        return supportEmail;
+    }
+
+    public void setSupportEmail(String supportEmail) {
+        this.supportEmail = supportEmail;
     }
 
     public SalesforceJwt getSalesforceJwt() {
@@ -407,6 +418,11 @@ public class RPAConfiguration {
     public EmailTemplate preApprovedEmail() {
         return this.getEmailTemplates().get("pre-approved-user");
     }
+
+    public EmailTemplate endUserFailureNotificationEmail() {
+        return this.getEmailTemplates().get("failure-notification-user");
+    }
+
 
     @Override
     public String toString() {
