@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,21 +50,21 @@ public class RPAConfiguration {
     @JsonProperty("jwtSecretKey")
     String jwtSecretKey = null;
     @JsonProperty("headbagCacheSize")
-    long hbCacheSize = 50000000;   // 50 MB
+    long hbCacheSize = 50000000; // 50 MB
     @JsonProperty("bagstore-location")
     String bagStore = null;
     @JsonProperty("bagstore-mode")
     String mode = null;
-    @JsonProperty("disallowedEmails")
-    private List<String> disallowedEmails = new ArrayList<>();
-    @JsonProperty("disallowedCountries")
-    private List<String> disallowedCountries = new ArrayList<>();
+    @JsonProperty("blacklists")
+    private Map<String, BlacklistConfig> blacklists = new HashMap<>();
+
     @JsonProperty("expiresAfterMillis")
     long expiresAfterMillis = 0L;
 
     public long getHeadbagCacheSize() {
         return hbCacheSize;
     }
+
     public void setHeadbagCacheSize(long size) {
         hbCacheSize = size;
     }
@@ -71,13 +72,15 @@ public class RPAConfiguration {
     public String getBagstoreLocation() {
         return bagStore;
     }
+
     public void setBagstoreLocation(String loc) {
         bagStore = loc;
     }
-    
+
     public String getBagstoreMode() {
         return mode;
     }
+
     public void setBagstoreMode(String mode) {
         this.mode = mode;
     }
@@ -203,22 +206,6 @@ public class RPAConfiguration {
         this.jwtSecretKey = jwtSecretKey;
     }
 
-    public List<String> getDisallowedEmails() {
-        return disallowedEmails;
-    }
-
-    public void setDisallowedEmailStrings(List<String> disallowedEmails) {
-        this.disallowedEmails = disallowedEmails;
-    }
-
-    public List<String> getDisallowedCountries() {
-        return disallowedCountries;
-    }
-
-    public void setDisallowedCountries(List<String> disallowedCountries) {
-        this.disallowedCountries = disallowedCountries;
-    }
-
     @NoArgsConstructor
     public static class SalesforceJwt {
         @JsonProperty("clientId")
@@ -274,6 +261,14 @@ public class RPAConfiguration {
         }
     }
 
+    public Map<String, BlacklistConfig> getBlacklists() {
+        return blacklists;
+    }
+    
+    public void setBlacklists(Map<String, BlacklistConfig> blacklists) {
+        this.blacklists = blacklists;
+    }
+
     @NoArgsConstructor
     public static class JksConfig {
         @JsonProperty("keyStoreType")
@@ -288,7 +283,6 @@ public class RPAConfiguration {
         @JsonProperty("keyPassword")
         @JsonIgnore
         String keyPassword;
-
 
         public String getKeyStoreType() {
             return keyStoreType;
@@ -420,10 +414,36 @@ public class RPAConfiguration {
         String jsonStr;
         try {
             jsonStr = mapper.writeValueAsString(this);
-        } catch (
-                JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
         return jsonStr;
     }
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BlacklistConfig {
+        @JsonProperty("disallowed-emails")
+        private List<String> disallowedEmails = new ArrayList<>();
+
+        @JsonProperty("disallowed-countries")
+        private List<String> disallowedCountries = new ArrayList<>();
+
+        public List<String> getDisallowedEmails() {
+            return disallowedEmails;
+        }
+
+        public void setDisallowedEmails(List<String> disallowedEmails) {
+            this.disallowedEmails = disallowedEmails;
+        }
+
+        public List<String> getDisallowedCountries() {
+            return disallowedCountries;
+        }
+
+        public void setDisallowedCountries(List<String> disallowedCountries) {
+            this.disallowedCountries = disallowedCountries;
+        }
+    }
+
 }
