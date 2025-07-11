@@ -91,7 +91,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * {@link gov.nist.oar.distrib.web.AIPAccessController AIPAccessController}.
  */
 @Controller
-@Tag(name = "Download Files API", description = " These API endpoints allow access to different data products provided by NIST public data repository.")
+@Tag(name = "Download Files API",
+     description = " These API endpoints allow access to different data products provided by NIST public data repository.")
 @RequestMapping(value = "/ds")
 public class DatasetAccessController {
 
@@ -127,11 +128,13 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List descriptions of available AIP files", description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
+    @Operation(summary = "List descriptions of available AIP files",
+               description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
     @GetMapping(value = "/{dsid}/_aip", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<FileDescription> describeAIPs(@PathVariable("dsid") String dsid)
-            throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
         String fileInfo = "List descriptions of available AIP files: ";
         checkDatasetID(dsid);
 
@@ -164,11 +167,13 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List the AIP versions available for a dataset", description = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
+    @Operation(summary = "List the AIP versions available for a dataset",
+               description = "Each item in the returned JSON array is a version string for AIP versions available for this dataset")
     @GetMapping(value = "/{dsid}/_aip/_v", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<String> listAIPVersions(@PathVariable("dsid") String dsid)
-            throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
         logger.info("List Versions:" + dsid);
         checkDatasetID(dsid);
         return pres.listVersions(dsid);
@@ -190,12 +195,14 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "List descriptions of AIP files available for a particular version of the dataset", description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
+    @Operation(summary = "List descriptions of AIP files available for a particular version of the dataset",
+               description = "Each item in the returned JSON array describes an AIP file available for the dataset its identifier")
     @GetMapping(value = "/{dsid}/_aip/_v/{ver}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<FileDescription> describeAIPsForVersion(@PathVariable("dsid") String dsid,
-            @PathVariable("ver") String ver)
-            throws ResourceNotFoundException, DistributionException {
+                                                        @PathVariable("ver") String ver)
+        throws ResourceNotFoundException, DistributionException
+    {
         String versionDescription = " Describe versions:";
         checkDatasetID(dsid);
 
@@ -245,11 +252,13 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP", description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
+    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
+               description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
     @GetMapping(value = "/{dsid}/_aip/_v/{ver}/_head", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public FileDescription describeHeadAIPForVersion(@PathVariable("dsid") String dsid, @PathVariable("ver") String ver)
-            throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
         checkDatasetID(dsid);
 
         if (ver == null || ver.equals("latest")) {
@@ -283,11 +292,13 @@ public class DatasetAccessController {
      * @throws ResourceNotFoundException if the given ID does not exist
      * @throws DistributionException     if an internal error occurs
      */
-    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP", description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
+    @Operation(summary = "describe the \"head\" AIP (also called the \"head bag\") for the given version of the AIP",
+               description = "The returned JSON object describes the head bag for the dataset, including the URL for downloading it")
     @GetMapping(value = "/{dsid}/_aip/_head", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public FileDescription describeLatestHeadAIP(@PathVariable("dsid") String dsid)
-            throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
         logger.info("Describe head bag:" + dsid);
         return describeHeadAIPForVersion(dsid, null);
     }
@@ -321,14 +332,16 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "stream the data product with the given name", description = "This supports using the full ARK ID as the dataset identifier")
+    @Operation(summary = "stream the data product with the given name",
+               description = "This supports using the full ARK ID as the dataset identifier")
     @GetMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public void downloadFileViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
-            @Parameter(hidden = true) HttpServletRequest request,
-            @Parameter(hidden = true) HttpServletResponse response,
-            @RequestParam Optional<String> requestId)
-            throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
+                                   @Parameter(hidden = true) HttpServletRequest request,
+                                   @Parameter(hidden = true) HttpServletResponse response,
+                                   @RequestParam Optional<String> requestId)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
         logger.debug("Matched ARK ID for download: ark:/" + naan + "/" + dsid);
 
         String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -361,13 +374,15 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given ARK ID", description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
+    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given ARK ID",
+               description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
     @RequestMapping(value = "/ark:/{naan:\\d+}/{dsid}/**", method = RequestMethod.HEAD, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public void downloadFileInfoViaARK(@PathVariable("dsid") String dsid, @PathVariable("naan") String naan,
-            @Parameter(hidden = true) HttpServletRequest request,
-            @Parameter(hidden = true) HttpServletResponse response)
-            throws ResourceNotFoundException, FileNotFoundException, DistributionException {
+                                       @Parameter(hidden = true) HttpServletRequest request,
+                                       @Parameter(hidden = true) HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
         logger.debug("Matched ARK ID for info: ark:/" + naan + "/" + dsid);
 
         String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -405,14 +420,15 @@ public class DatasetAccessController {
      *                                   resolution
      */
     @Operation(summary = "Download a data file or list a dataset folder's contents", 
-                description = "Streams the requested data file from a dataset, or returns an HTML folder listing if a directory is requested (path ends with a slash).")
+               description = "Streams the requested data file from a dataset, or returns an HTML folder listing if a directory is requested (path ends with a slash).")
     @GetMapping("/{dsid:[^a][^r][^k][^:].*}/**")
     public Object downloadFile(@PathVariable("dsid") String dsid,
-            HttpServletRequest request,
-            HttpServletResponse response,
-            @RequestParam Optional<String> requestId,
-            Model model)
-            throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
+                               HttpServletRequest request,
+                               HttpServletResponse response,
+                               @RequestParam Optional<String> requestId,
+                               Model model)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
 
         // Reconstruct raw path from the URI (after /ds/{dsid})
         String requestURI = request.getRequestURI(); // e.g. /od/ds/mds1491/folder/
@@ -525,7 +541,8 @@ public class DatasetAccessController {
     }
 
     private JsonNode loadComponents(String dsid)
-            throws ResourceNotFoundException, DistributionException {
+        throws ResourceNotFoundException, DistributionException
+    {
 
         JsonNode doc = fetchNerdmDoc(dsid);
         if (doc == null)
@@ -607,7 +624,8 @@ public class DatasetAccessController {
      *                                   to the client
      */
     public void downloadFile(String dsid, String filepath, String version, HttpServletResponse response)
-            throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException {
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
+    {
         checkDatasetID(dsid);
         checkFilePath(filepath);
 
@@ -627,28 +645,29 @@ public class DatasetAccessController {
                     URL redirect = cdls.redirectFor(co);
                     if (redirect != null) {
                         logger.info("Data File delivered via redirect: {},{}/{},{}",
-                                dsid, dsid, filepath, co.getSize());
+                                    dsid, dsid, filepath, co.getSize());
                         response.sendRedirect(redirect.toString()); // sends as 302 FOUND
                         return;
                     }
                     sh = cdls.openStreamFor(co);
                 }
-            } catch (ClassCastException ex) {
-                /* fall back on direct read */ } catch (CacheManagementException ex) {
+            }
+            catch (ClassCastException ex) { /* fall back on direct read */ }
+            catch (CacheManagementException ex) {
+                
                 String file = filepath;
-                if (version != null)
-                    file += "#" + version;
+                if (version != null) file += "#" + version;
                 logger.error("Trouble searching cache for data file: {}/{}: {}",
-                        dsid, file, ex.getMessage());
+                             dsid, file, ex.getMessage());
                 // pass through to fallback
-            } catch (IOException ex) {
+            }
+            catch (IOException ex) {
                 // this can only come from sendRedirect()
                 String file = filepath;
-                if (version != null)
-                    file += "#" + version;
+                if (version != null) file += "#" + version;
                 logger.error("Trouble sending redirect response for {}/{}: {}",
-                        dsid, file, ex.getMessage());
-                return;
+                             dsid, file, ex.getMessage());
+                return; 
             }
 
             if (sh == null)
@@ -716,8 +735,7 @@ public class DatasetAccessController {
      * @RequestMapping(value = "/_error/**", method=RequestMethod.GET) public void
      * testErrorHandling(@Paramter(hidden=true) HttpServletRequest request,
      * 
-     * @Paramter(hidden=true) HttpServletResponse response) throws
-     * ResourceNotFoundException,
+     * @Paramter(hidden=true) HttpServletResponse response) throws ResourceNotFoundException,
      * FileNotFoundException, DistributionException { throw new
      * IllegalStateException("fake state"); }
      */
@@ -739,12 +757,14 @@ public class DatasetAccessController {
      * @throws IOException               if an error occurs while streaming the data
      *                                   to the client
      */
-    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given name", description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
+    @Operation(summary = "return info (via the HTTP header) about a downloadable file with a given name",
+               description = "Like all HEAD requests, this returns only the header that would be returned by a GET call to the given path")
     @RequestMapping(value = "/{dsid:[^a][^r][^k][^:].*}/**", method = RequestMethod.HEAD, produces = MediaType.APPLICATION_JSON_VALUE)
     public void downloadFileInfo(@PathVariable("dsid") String dsid,
-            @Parameter(hidden = true) HttpServletRequest request,
-            @Parameter(hidden = true) HttpServletResponse response)
-            throws ResourceNotFoundException, FileNotFoundException, DistributionException {
+                                 @Parameter(hidden = true) HttpServletRequest request,
+                                 @Parameter(hidden = true) HttpServletResponse response)
+        throws ResourceNotFoundException, FileNotFoundException, DistributionException
+    {
         String filepath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         filepath = filepath.substring("/ds/".length() + dsid.length() + 1);
         String ver = null;
@@ -789,7 +809,7 @@ public class DatasetAccessController {
         }
         FileDescription fi = downl.getDataFileInfo(dsid, filepath, version);
         logger.info("HeadRequest:" + dsid + "/" + filepath + "," + " (version " + version + "),"
-                + Long.toString(fi.contentLength));
+                    + Long.toString(fi.contentLength));
 
         /*
          * Need encodeDigest implementation that converts hex to base64
@@ -800,7 +820,7 @@ public class DatasetAccessController {
         response.setHeader("Content-Length", Long.toString(fi.contentLength));
         response.setHeader("Content-Type", fi.contentType);
         response.setHeader("Content-Disposition",
-                "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
+                           "filename=\"" + Pattern.compile("/+").matcher(filepath).replaceAll("_") + "\"");
 
     }
 
@@ -827,18 +847,16 @@ public class DatasetAccessController {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorInfo> handleResourceNotFoundException(ResourceNotFoundException ex,
-            HttpServletRequest req) {
+    public ResponseEntity<ErrorInfo> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest req) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
 
         ErrorInfo errorInfo;
         if (ex.version == null) {
-            errorInfo = createErrorInfo(req, 404, "Resource ID not found", "Non-existent resource requested: ",
-                    ex.getMessage());
+            errorInfo = createErrorInfo(req, 404, "Resource ID not found", "Non-existent resource requested: ", ex.getMessage());
         } else {
             errorInfo = createErrorInfo(req, 404, "Requested version of resource not found",
-                    "Non-existent resource version requested: ", ex.getMessage());
+                                        "Non-existent resource version requested: ", ex.getMessage());
         }
         return new ResponseEntity<>(errorInfo, headers, HttpStatus.NOT_FOUND);
     }
@@ -850,7 +868,7 @@ public class DatasetAccessController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         ErrorInfo errorInfo = createErrorInfo(req, 404, "File not found in requested dataset",
-                "Non-existent file requested from resource: ", ex.getMessage());
+                                              "Non-existent file requested from resource: ", ex.getMessage());
         return new ResponseEntity<>(errorInfo, headers, HttpStatus.NOT_FOUND);
     }
 
@@ -884,7 +902,7 @@ public class DatasetAccessController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error",
-                "Streaming failure during request: ", ex.getMessage());
+                                              "Streaming failure during request: ", ex.getMessage());
         return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -895,24 +913,23 @@ public class DatasetAccessController {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         ErrorInfo errorInfo = createErrorInfo(req, 500, "Unexpected Server Error",
-                "Unexpected failure during request: ", ex.getMessage());
+                                              "Unexpected failure during request: ", ex.getMessage());
         return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**
-     * Create Error Information object to be returned to the client as a result of
-     * failed request
+     * Create Error Information object to be returned to the client as a result of failed request
      * 
-     * @param req        the request object the resulted in an error
-     * @param errorcode  the HTTP status code to return
-     * @param pubMessage the message to return to the client
-     * @param logMessage a message to record in the log
-     * @param exception  the message from the original exception that motivates this
-     *                   error response
-     * @return ErrorInfo the object to return to the client
+     * @param req         the request object the resulted in an error
+     * @param errorcode   the HTTP status code to return
+     * @param pubMessage  the message to return to the client
+     * @param logMessage  a message to record in the log
+     * @param exception   the message from the original exception that motivates this error response
+     * @return ErrorInfo  the object to return to the client
      */
     protected ErrorInfo createErrorInfo(HttpServletRequest req, int errorcode, String pubMessage,
-            String logMessage, String exception) {
+                                        String logMessage, String exception)
+    {
         String URI = "unknown";
         String method = "unknown";
         try {
