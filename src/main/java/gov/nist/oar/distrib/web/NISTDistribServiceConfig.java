@@ -177,9 +177,9 @@ public class NISTDistribServiceConfig {
 
     @Value("${distrib.packaging.allowedRedirects:1}")
     int allowedRedirects;
-    
-    @Value("${distrib.baseurl}")
-    String baseUrl;
+
+    @Value("${distrib.nerdm.baseurl}")
+    String nerdmBaseUrl;
 
     S3Client             s3client;    // set via getter below
     BagStorage                lts;    // set via getter below
@@ -281,7 +281,7 @@ public class NISTDistribServiceConfig {
 
     @Bean
     public NerdmDownloadService getNerdmDownloadService() {
-        return new NerdmDownloadService(baseUrl);
+        return new NerdmDownloadService(nerdmBaseUrl);
     }
 
     /**

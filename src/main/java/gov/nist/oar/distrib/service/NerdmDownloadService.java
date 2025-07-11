@@ -33,7 +33,7 @@ public class NerdmDownloadService {
      * @throws IOException if the request fails or the response is not a valid JSON document
      */
     public JsonNode fetchNerdm(String dsid) throws IOException {
-        String url = baseUrl + "/od/id/" + dsid;
+        String url = baseUrl.endsWith("/") ? baseUrl + dsid : baseUrl + "/" + dsid;
         HttpGet get = new HttpGet(url);
 
         return httpClient.execute(get, response -> {
