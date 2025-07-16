@@ -169,7 +169,7 @@
                             </th:block>
                             <!-- File entry uses provided downloadURL -->
                             <th:block th:unless="${f.directory}">
-                                <a th:href="${f.downloadURL}">
+                                <a th:href="${f.href}">
                                     <svg class="icon" ...></svg>
                                     <span th:text="${f.name}">filename</span>
                                 </a>
