@@ -71,4 +71,43 @@ public class NerdmDownloadServiceTest {
         IOException ex = assertThrows(IOException.class, () -> service.fetchNerdm("doesnotexist"));
         assertTrue(ex.getMessage().contains("HTTP 404"));
     }
+
+    /**
+     * Tests that fetchNerdm caches the successful HTTP response.
+     * This test verifies that when fetchNerdm is called with the same dataset ID
+     * multiple times, the HTTP request is only executed once, and the subsequent
+     * calls retrieve the data from the cache.
+     */
+    @Test
+    public void testFetchNerdm_cachesSuccessfulResponse() throws Exception {
+        CloseableHttpClient mockClient = Mockito.mock(CloseableHttpClient.class);
+        String json = "{\"components\": [{\"name\": \"cachedFile\"}]}";
+
+        // Mock behavior of HTTP client
+        // Whenever execute() is called, no matter the request, pretend to send 
+        // a successful response with the fake JSON body
+        when(mockClient.execute(
+            any(HttpUriRequest.class),
+            ArgumentMatchers.<HttpClientResponseHandler<JsonNode>>any()))
+        .thenAnswer(invocation -> {
+            HttpClientResponseHandler<JsonNode> handler = invocation.getArgument(1);
+            return handler.handleResponse(new BasicClassicHttpResponse(200) {{
+                setEntity(new StringEntity(json));
+            }});
+        });
+
+        NerdmDownloadService service = new NerdmDownloadService("http://mockserver", mockClient);
+
+        JsonNode first = service.fetchNerdm("ds1");
+        JsonNode second = service.fetchNerdm("ds1"); // Should hit the cache
+
+        assertEquals("cachedFile", first.get("components").get(0).get("name").asText());
+        assertEquals("cachedFile", second.get("components").get(0).get("name").asText());
+
+        // Ensure only one actual HTTP call was made
+        Mockito.verify(mockClient, Mockito.times(1)).execute(
+                any(HttpUriRequest.class),
+                ArgumentMatchers.<HttpClientResponseHandler<JsonNode>>any());
+    }
+
 }
