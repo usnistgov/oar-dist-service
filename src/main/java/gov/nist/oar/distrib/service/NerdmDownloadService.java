@@ -14,6 +14,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class NerdmDownloadService {
 
     private final String baseUrl;
@@ -21,6 +24,8 @@ public class NerdmDownloadService {
     private final ObjectMapper mapper = new ObjectMapper();
     // Time To Live for each cached entry - 5 minutes
     private final Duration cacheTTL = Duration.ofMinutes(5);
+
+    private static final Logger logger = LoggerFactory.getLogger(NerdmDownloadService.class);
 
     // FIFO cache with max size 2.
     // This uses a LinkedHashMap that holds at most 2 entries.
@@ -63,6 +68,7 @@ public class NerdmDownloadService {
         CachedValue cached = nerdmCache.get(dsid);
 
         if (cached != null && Duration.between(cached.timestamp, now).compareTo(cacheTTL) < 0) {
+            logger.debug("Returning cached NERDm record for dsid={}", dsid);
             if (cached.data.isPresent())
                 return cached.data.get();
             else
@@ -70,12 +76,15 @@ public class NerdmDownloadService {
         }
 
         String url = baseUrl.endsWith("/") ? baseUrl + dsid : baseUrl + "/" + dsid;
+        logger.info("Fetching NERDm from URL: {}", url);
+
         HttpGet get = new HttpGet(url);
 
         // Fetch the NERDm record from resolver
         try {
             JsonNode result = httpClient.execute(get, response -> {
                 int status = response.getCode();
+                logger.debug("Received status {} for dsid={}", status, dsid);
                 if (status != 200)
                     throw new IOException("NERDm fetch failed: HTTP " + status);
                 String body = EntityUtils.toString(response.getEntity());
@@ -86,10 +95,12 @@ public class NerdmDownloadService {
             return result;
 
         } catch (IOException e) {
+            logger.error("Error fetching NERDm for dsid={}: {}", dsid, e.getMessage(), e);
             nerdmCache.put(dsid, new CachedValue(Optional.empty(), now));
             throw e;
         }
     }
+
 
     private static class CachedValue {
         final Optional<JsonNode> data;

@@ -560,12 +560,12 @@ public class DatasetAccessController {
      * @throws DistributionException     if an error occurs during fetching or
      *                                   parsing the NERDm document
      */
-
     private JsonNode fetchNerdmDoc(String dsid)
             throws ResourceNotFoundException, DistributionException {
         try {
             return nerdmService.fetchNerdm(dsid);
         } catch (IOException e) {
+            logger.error("Failed to fetch or parse NERDm for dsid={}: {}", dsid, e.getMessage(), e);
             throw new DistributionException("Error fetching or parsing NERDm for " + dsid, e);
         }
     }
