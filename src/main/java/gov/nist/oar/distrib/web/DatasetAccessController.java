@@ -459,7 +459,7 @@ public class DatasetAccessController {
             long files = entries.size() - dirs;
 
             model.addAttribute("files", entries);
-            model.addAttribute("currentPath", fullPath.isEmpty() ? "" : fullPath + "/");
+            model.addAttribute("currentPath", fullPath);
             model.addAttribute("dirCount", dirs);
             model.addAttribute("fileCount", files);
 
