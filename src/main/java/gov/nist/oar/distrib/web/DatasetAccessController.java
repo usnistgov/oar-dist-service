@@ -520,8 +520,9 @@ public class DatasetAccessController {
 
             // Deduplicate
             entriesMap.computeIfAbsent(entryName, nameKey -> {
-                String href = isDirectory ? nameKey : component.path("downloadURL").asText();
-                return new FileInfo(nameKey, isDirectory, "", "", href); // no size/modified info
+                // href for files needs to be relative (required by rclone)
+                String href = isDirectory ? nameKey : nameKey;
+                return new FileInfo(nameKey, isDirectory, "", "", href);
             });
         }
 
