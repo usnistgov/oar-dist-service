@@ -10,10 +10,14 @@
 </head>
 
 <body>
-    <header>
+     <header>
         <div class="wrapper">
-            <div class="breadcrumbs">/rclone/<span th:text="${currentPath}">path</span></div>
-            <h1>Index of /<span th:text="${currentPath}">path</span></h1>
+            <div class="breadcrumbs">
+                Current Path
+            </div>
+            <h1>
+               <span th:text="${#strings.isEmpty(currentPath) ? '/' : '/' + currentPath}">/</span>
+            </h1>
         </div>
     </header>
 
@@ -45,13 +49,39 @@
                         <td>
                             <th:block th:if="${f.directory}">
                                 <a th:href="@{${f.name}}">
-                                    <span class="icon">📁</span>
+                                    <span class="icon">
+                                        <!-- Folder icon -->
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-folder-filled" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                            <path
+                                                d="M9 3a1 1 0 0 1 .608 .206l.1 .087l2.706 2.707h6.586a3 3 0 0 1 2.995 2.824l.005 .176v8a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-11a3 3 0 0 1 2.824 -2.995l.176 -.005h4z"
+                                                stroke-width="0" fill="currentColor"></path>
+                                        </svg>
+                                    </span>
                                     <span th:text="${f.name}">name/</span>
                                 </a>
                             </th:block>
                             <th:block th:unless="${f.directory}">
                                 <a th:href="${f.href}">
-                                    <span class="icon">📄</span>
+                                    <span class="icon">
+                                        <!-- File icon -->
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-file-text" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                            <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                                            <path
+                                                d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z">
+                                            </path>
+                                            <path d="M9 9l1 0"></path>
+                                            <path d="M9 13l6 0"></path>
+                                            <path d="M9 17l6 0"></path>
+                                        </svg>
+                                    </span>
                                     <span th:text="${f.name}">filename</span>
                                 </a>
                             </th:block>
@@ -59,6 +89,7 @@
                         <td class="size" th:text="${f.size}">0 B</td>
                         <td class="modified" th:text="${f.modified}">dd-MMM-yyyy HH:mm</td>
                     </tr>
+
                 </tbody>
             </table>
         </div>
