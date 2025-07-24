@@ -35,6 +35,8 @@ public class RPAConfiguration {
     private String baseDownloadUrl = null;
     @JsonProperty("pdrCachingUrl")
     private String pdrCachingUrl = null;
+    @JsonProperty("resolverUrl")
+    private String resolverUrl = null;
     @JsonProperty("datacartUrl")
     private String datacartUrl = null;
     @JsonProperty("smeAppUrl")
@@ -150,6 +152,14 @@ public class RPAConfiguration {
 
     public void setPdrCachingUrl(String pdrCachingUrl) {
         this.pdrCachingUrl = pdrCachingUrl;
+    }
+
+    public String getResolverUrl() {
+        return resolverUrl;
+    }
+
+    public void setResolverUrl(String resolverUrl) {
+        this.resolverUrl = resolverUrl;
     }
 
     public String getDatacartUrl() {

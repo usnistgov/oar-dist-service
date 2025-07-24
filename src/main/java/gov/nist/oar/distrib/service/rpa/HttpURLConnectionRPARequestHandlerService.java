@@ -531,8 +531,8 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     }
 
     private String constructDatasetUrl(String datasetId) {
-        String baseUrl = rpaConfiguration.getBaseDownloadUrl().replace("/ds/", "/id/");
-        return baseUrl + datasetId;
+        String baseUrl = rpaConfiguration.getResolverUrl();
+        return baseUrl.endsWith("/") ? baseUrl + datasetId : baseUrl + "/" + datasetId;
     }
 
     /**
