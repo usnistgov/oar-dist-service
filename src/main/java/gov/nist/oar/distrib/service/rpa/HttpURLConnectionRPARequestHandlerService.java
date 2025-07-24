@@ -279,7 +279,12 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // 1. Blacklist validation
         String rejectionReason = evaluateBlacklistStatus(userInfoWrapper);
         if (!rejectionReason.isEmpty()) {
-            markAsRejected(userInfoWrapper, rejectionReason);
+            try {
+                updateApprovalStatus(userInfoWrapper);
+            } catch (RequestProcessingException e) {
+                LOGGER.error("Metadata lookup failed: {}", e.getMessage());
+                throw e;  // Stop record creation
+            }
         } else {
             updateApprovalStatus(userInfoWrapper);
         }
@@ -356,7 +361,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      *
      * @param wrapper The UserInfoWrapper containing the record.
      */
-    private void updateApprovalStatus(UserInfoWrapper wrapper) {
+    private void updateApprovalStatus(UserInfoWrapper wrapper) throws RequestProcessingException {
         String datasetId = wrapper.getUserInfo().getSubject();
         boolean isPreApproved = isPreApprovedDataset(datasetId);
         wrapper.getUserInfo().setApprovalStatus(isPreApproved ? RECORD_PRE_APPROVED_STATUS : RECORD_PENDING_STATUS);
@@ -523,8 +528,8 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         JsonNode metadata = fetchDatasetMetadata(datasetUrl);
         if (metadata == null) {
-            LOGGER.info("Failed to retrieve metadata or metadata is empty.");
-            return false;
+            LOGGER.error("Failed to retrieve metadata for dataset {}", datasetId);
+            throw new RequestProcessingException("Failed to retrieve metadata from resolver");
         }
 
         return checkForPreApproval(metadata, datasetId);
