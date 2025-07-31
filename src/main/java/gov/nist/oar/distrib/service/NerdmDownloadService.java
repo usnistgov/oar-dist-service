@@ -85,8 +85,12 @@ public class NerdmDownloadService {
             JsonNode result = httpClient.execute(get, response -> {
                 int status = response.getCode();
                 logger.debug("Received status {} for dsid={}", status, dsid);
-                if (status != 200)
+
+                if (status == 404)
+                    throw new NerdmNotFoundException(dsid);
+                else if (status != 200)
                     throw new IOException("NERDm fetch failed: HTTP " + status);
+
                 String body = EntityUtils.toString(response.getEntity());
                 return mapper.readTree(body);
             });

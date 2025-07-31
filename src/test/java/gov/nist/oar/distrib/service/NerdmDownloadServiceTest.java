@@ -51,9 +51,9 @@ public class NerdmDownloadServiceTest {
     }
 
     /**
-     * Tests that fetchNerdm throws an IOException if the HTTP request results in
-     * an HTTP error response. The error message is expected to contain the HTTP
-     * status code.
+     * Tests that fetchNerdm throws a NerdmNotFoundException if the HTTP request
+     * results in a 404 Not Found response. The error message is expected to contain the
+     * dataset ID.
      */
     @Test
     public void testFetchNerdm_httpError() throws Exception {
@@ -68,9 +68,10 @@ public class NerdmDownloadServiceTest {
 
         NerdmDownloadService service = new NerdmDownloadService("http://mockserver", mockClient);
 
-        IOException ex = assertThrows(IOException.class, () -> service.fetchNerdm("doesnotexist"));
-        assertTrue(ex.getMessage().contains("HTTP 404"));
+        NerdmNotFoundException ex = assertThrows(NerdmNotFoundException.class, () -> service.fetchNerdm("doesnotexist"));
+        assertTrue(ex.getMessage().contains("dsid=doesnotexist"));
     }
+
 
     /**
      * Tests that fetchNerdm caches the successful HTTP response.

@@ -55,6 +55,7 @@ import gov.nist.oar.distrib.ResourceNotFoundException;
 import gov.nist.oar.distrib.StreamHandle;
 import gov.nist.oar.distrib.service.FileDownloadService;
 import gov.nist.oar.distrib.service.NerdmDownloadService;
+import gov.nist.oar.distrib.service.NerdmNotFoundException;
 import gov.nist.oar.distrib.service.PreservationBagService;
 import gov.nist.oar.distrib.service.CacheEnabledFileDownloadService;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
@@ -564,6 +565,9 @@ public class DatasetAccessController {
             throws ResourceNotFoundException, DistributionException {
         try {
             return nerdmService.fetchNerdm(dsid);
+        } catch (NerdmNotFoundException e) {
+            logger.warn("NERDm not found for dsid={}", dsid);
+            throw new ResourceNotFoundException(e.getMessage());
         } catch (IOException e) {
             logger.error("Failed to fetch or parse NERDm for dsid={}: {}", dsid, e.getMessage(), e);
             throw new DistributionException("Error fetching or parsing NERDm for " + dsid, e);
