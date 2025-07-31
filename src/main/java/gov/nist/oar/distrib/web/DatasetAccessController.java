@@ -566,7 +566,7 @@ public class DatasetAccessController {
         try {
             return nerdmService.fetchNerdm(dsid);
         } catch (NerdmNotFoundException e) {
-            logger.warn("NERDm not found for dsid={}", dsid);
+            logger.warn("NERDm not found for dsid={}. Check if the dsid is correct and if the resolver service is running.", dsid);
             throw new ResourceNotFoundException(e.getMessage());
         } catch (IOException e) {
             logger.error("Failed to fetch or parse NERDm for dsid={}: {}", dsid, e.getMessage(), e);

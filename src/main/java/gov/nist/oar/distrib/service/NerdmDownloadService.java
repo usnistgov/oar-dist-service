@@ -100,7 +100,7 @@ public class NerdmDownloadService {
 
         } catch (IOException e) {
             // logger.error("Error fetching NERDm for dsid={}: {}", dsid, e.getMessage(), e);
-            nerdmCache.put(dsid, new CachedValue(Optional.empty(), now));
+            // nerdmCache.put(dsid, new CachedValue(Optional.empty(), now));
             throw e;
         }
     }
