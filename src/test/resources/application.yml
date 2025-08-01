@@ -11,6 +11,8 @@ distrib:
     mode: local
     location: ${basedir}/src/test/resources
   baseurl: http://localhost/oar-distrb-service
+  nerdm:
+    baseurl: http://localhost/od/id
 
 logging:
   path: ${basedir}/target/surefire-reports

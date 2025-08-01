@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="'Index of /' + ${currentPath}">Index of /</title>
+    <!-- External CSS file -->
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+
+<body>
+     <header>
+        <div class="wrapper">
+            <div class="breadcrumbs">
+                Current Path
+            </div>
+            <h1>
+               <span th:text="${#strings.isEmpty(currentPath) ? '/' : '/' + currentPath}">/</span>
+            </h1>
+        </div>
+    </header>
+
+    <div class="wrapper">
+        <div class="counts">
+            <span><span class="number" th:text="${dirCount}">0</span> directories</span>,
+            <span><span class="number" th:text="${fileCount}">0</span> files</span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th class="size">Size</th>
+                        <th class="modified">Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Parent directory link -->
+                    <tr>
+                        <td><a href="../">../</a></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    <!-- Directory or file entries -->
+                    <tr th:each="f : ${files}" th:classappend="${f.directory} ? 'directory' : ''">
+                        <td>
+                            <th:block th:if="${f.directory}">
+                                <a th:href="@{${f.name}}">
+                                    <span class="icon">
+                                        <!-- Folder icon -->
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-folder-filled" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                            <path
+                                                d="M9 3a1 1 0 0 1 .608 .206l.1 .087l2.706 2.707h6.586a3 3 0 0 1 2.995 2.824l.005 .176v8a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-11a3 3 0 0 1 2.824 -2.995l.176 -.005h4z"
+                                                stroke-width="0" fill="currentColor"></path>
+                                        </svg>
+                                    </span>
+                                    <span th:text="${f.name}">name/</span>
+                                </a>
+                            </th:block>
+                            <th:block th:unless="${f.directory}">
+                                <a th:href="${f.href}">
+                                    <span class="icon">
+                                        <!-- File icon -->
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="icon icon-tabler icon-tabler-file-text" width="24" height="24"
+                                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                            <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                                            <path
+                                                d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z">
+                                            </path>
+                                            <path d="M9 9l1 0"></path>
+                                            <path d="M9 13l6 0"></path>
+                                            <path d="M9 17l6 0"></path>
+                                        </svg>
+                                    </span>
+                                    <span th:text="${f.name}">filename</span>
+                                </a>
+                            </th:block>
+                        </td>
+                        <td class="size" th:text="${f.size}">0 B</td>
+                        <td class="modified" th:text="${f.modified}">dd-MMM-yyyy HH:mm</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -43,6 +43,7 @@ import java.io.File;
         "distrib.packaging.maxfilecount = 2",
         "distrib.packaging.allowedurls = nist.gov|s3.amazonaws.com/nist-midas",
         "distrib.baseurl=http://localhost/od/ds",
+        "distrib.nerdm.baseurl=http://localhost/od/id",
         "distrib.cachemgr.admindir=${java.io.tmpdir}/testcmgr",
         "distrib.cachemgr.headbagCacheSize=40000000",
         "distrib.cachemgr.volumes[0].location=file://vols/king",
