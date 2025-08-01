@@ -134,6 +134,32 @@ public class EmailInfoProvider {
         return new EmailInfo(recordId, endUserEmailAddress, subject, content);
     }
 
+    /**
+     * Generates an email to be sent to the end user when a request is in a failed state, e.g. the dataset associated with the record
+     * is not found in the metadata service.
+     *
+     * @param record the record this email is related to
+     * @return the email information (recipient, content, subject)
+     */
+    public EmailInfo getEndUserFailureNotificationEmailInfo(Record record) {
+        String recordId = record.getId();
+        String to = record.getUserInfo().getEmail();
+        String subject = rpaConfiguration.endUserFailureNotificationEmail().getSubject();
+
+        Map<String, String> namedPlaceholders = getNamedPlaceholders(record, null, null, null);
+        namedPlaceholders.put("SUPPORT_EMAIL", rpaConfiguration.getSupportEmail());
+
+
+        String content = StringSubstitutor.replace(
+            rpaConfiguration.endUserFailureNotificationEmail().getContent(),
+            namedPlaceholders,
+            "${", "}"
+        );
+
+        return new EmailInfo(recordId, to, subject, content);
+    }
+
+
     private String createEndUserDeclinedEmailContent(Record record) {
         Map<String, String> namedPlaceholders = getNamedPlaceholders(
                 record, null, null, null);
