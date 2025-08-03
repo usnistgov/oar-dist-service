@@ -1,5 +1,6 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 
 /**
@@ -37,4 +38,8 @@ public interface RecordResponseHandler {
      */
     void onRecordUpdateDeclined(Record record);
 
+    /**
+     * This method is called when there is was an issue during processing.
+     */
+    void onFailure(Record record);
 }

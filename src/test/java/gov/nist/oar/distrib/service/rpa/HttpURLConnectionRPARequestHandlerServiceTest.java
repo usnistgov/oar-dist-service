@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,8 +21,8 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.StatusLine;
@@ -247,13 +247,21 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
     @Test
     public void testCreateRecord_success()
             throws InvalidRequestException, IOException {
+        
         // Set up mock behavior for rpaConfiguration
         when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Arrange
         // Mock the RPAConfiguration to return non-blacklisted email strings and
         // countries
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@disallowed\\.com$"));
-        when(rpaConfiguration.getDisallowedCountries()).thenReturn(Arrays.asList("Disallowed Country"));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
 
         // Set up mock behavior for mockConnection
         // Set expected dummy response
@@ -319,6 +327,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_DoesNotSendEmails() throws Exception {
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -328,7 +339,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 new HashMap<>()
         );
 
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
 
         // Act
         // Set expected dummy response
@@ -388,6 +405,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_SetsStatusAndDescriptionCorrectly() throws Exception {
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -397,7 +417,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
                 new HashMap<>()
         );
 
-        when(rpaConfiguration.getDisallowedEmails()).thenReturn(Arrays.asList("@123\\."));
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of()); // not blacklisting country here
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
 
         // Act
         // Set expected dummy response
@@ -442,7 +468,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Recaptcha stubbings ar no longer needed here since we skip verification
         // Set up mock behavior for rpaConfiguration
         when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
-        
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Set up mock behavior for mockConnection
         // Set expected dummy response
         String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
@@ -509,7 +537,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Arrange
         // Set up mock behavior for rpaConfiguration
         when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
-            
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Set up mock behavior for mockConnection
         // Set expected dummy response
         String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
@@ -592,7 +622,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Arrange
         // Set up mock behavior for rpaConfiguration
         when(rpaConfiguration.getBaseDownloadUrl()).thenReturn("https://data.nist.gov/od/ds/");
-        
+        // Set up mock behavior for isPreApprovedDataset
+        doReturn(false).when(service).isPreApprovedDataset(anyString());
+
         // Set up mock behavior for mockConnection
         // Here the dummy record doesn't matter since we are expecting an exception to be thrown
         // Create a mock output stream for the connection
@@ -620,6 +652,26 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         verify(mockConnection).disconnect();
 
     }
+
+    // Resolver failure test case
+    @Test
+    public void testCreateRecord_resolverFailure_shouldFailGracefully() throws IOException {
+        // Simulate resolver failure
+        doThrow(new RequestProcessingException("Failed to retrieve metadata from resolver"))
+                .when(service).isPreApprovedDataset(anyString());
+
+        UserInfoWrapper wrapper = new UserInfoWrapper(
+                getTestRecordWrapper("Pending", "user@test.gov", "USA").getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE);
+
+        try {
+            service.createRecord(wrapper);
+            fail("Expected RequestProcessingException due to resolver failure");
+        } catch (RequestProcessingException ex) {
+            assertEquals("Failed to retrieve metadata from resolver", ex.getMessage());
+        }
+    }
+
 
     private String getUpdateUrl(String recordId) {
         // Build the URL used by get request

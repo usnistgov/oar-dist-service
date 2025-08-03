@@ -52,6 +52,8 @@ public class EmailInfoProviderTest {
     private RPAConfiguration.EmailTemplate endUserDeclinedEmailInfo;
     @Mock
     private RPAConfiguration.EmailTemplate smeApprovalEmailInfo;
+    @Mock
+    private RPAConfiguration.EmailTemplate metadataFailureEmailInfo;
 
     private AutoCloseable closeable;  // For closing open mocks
 
@@ -94,6 +96,11 @@ public class EmailInfoProviderTest {
         when(rpaConfiguration.SMEApprovalEmail()).thenReturn(smeApprovalEmailInfo);
         when(smeApprovalEmailInfo.getSubject()).thenReturn("SME Email - Case: ");
         when(smeApprovalEmailInfo.getContent()).thenReturn("Download of dataset ${DATASET_NAME} by ${FULL_NAME} requires your approval.");
+
+        when(rpaConfiguration.endUserFailureNotificationEmail()).thenReturn(metadataFailureEmailInfo);
+        when(rpaConfiguration.getSupportEmail()).thenReturn("rpa-support@nist.gov");
+        when(metadataFailureEmailInfo.getSubject()).thenReturn("Processing Error Notification");
+        when(metadataFailureEmailInfo.getContent()).thenReturn("We could not process your request related to ${DATASET_NAME}. Please contact ${SUPPORT_EMAIL}.");
     }
 
     @Test
@@ -172,6 +179,23 @@ public class EmailInfoProviderTest {
 
         assertEquals("1", emailInfo.getRecordId());
         assertEquals(expectedEndUserEmailAddress, emailInfo.getRecipient());
+        assertEquals(expectedSubject, emailInfo.getSubject());
+        assertEquals(expectedContent, emailInfo.getContent());
+    }
+
+    @Test
+    public void testGetEndUserFailureNotificationEmailInfo() {
+        // Act
+        EmailInfo emailInfo = emailInfoProvider.getEndUserFailureNotificationEmailInfo(record);
+
+        // Expected values based on mock setup
+        String expectedRecipient = "test@test.com";
+        String expectedSubject = "Processing Error Notification";
+        String expectedContent = "We could not process your request related to TEST_DATASET_TITLE. Please contact rpa-support@nist.gov.";
+
+        // Assert values match expectations
+        assertEquals("1", emailInfo.getRecordId());
+        assertEquals(expectedRecipient, emailInfo.getRecipient());
         assertEquals(expectedSubject, emailInfo.getSubject());
         assertEquals(expectedContent, emailInfo.getContent());
     }
