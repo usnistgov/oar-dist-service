@@ -428,12 +428,9 @@ public class DatasetAccessController {
                                Model model)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
-
-        // Reconstruct raw path from the URI (after /ds/{dsid})
-        String requestURI = request.getRequestURI(); // e.g. /od/ds/mds1491/folder/
-        String contextPath = request.getContextPath(); // e.g. /od
-        String basePath = contextPath + "/ds/" + dsid;
-        String fullPath = requestURI.substring(basePath.length()); // e.g. folder/ or folder/file.txt
+        // NOTE:  requestPath will be percent-decoded which is required downstream
+        String requestPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        String fullPath = requestPath.substring("/ds/".length() + dsid.length());  // e.g. folder/file.txt
 
         if (fullPath.startsWith("/"))
             fullPath = fullPath.substring(1);
@@ -449,7 +446,7 @@ public class DatasetAccessController {
         }
 
         // CASE 1: Request is for a directory → return HTML index page
-        if (requestURI.endsWith("/")) {
+        if (fullPath.endsWith("/")) {
             // Load nerdm.json
             JsonNode components = loadComponents(dsid);
 
