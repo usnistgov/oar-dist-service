@@ -644,6 +644,10 @@ public class DatasetAccessController {
             try {
                 CacheEnabledFileDownloadService cdls = (CacheEnabledFileDownloadService) downl;
                 CacheObject co = cdls.findCachedObject(dsid, filepath, version);
+                if (co == null)
+                    logger.debug("{}/{}: file not found in cache.", dsid, filepath);
+                else if (co.volume == null)
+                    logger.debug("{}/{}: No cache volume indicated for location.", dsid, filepath);
                 if (co != null && co.volume != null) {
                     URL redirect = cdls.redirectFor(co);
                     if (redirect != null) {
@@ -652,6 +656,7 @@ public class DatasetAccessController {
                         response.sendRedirect(redirect.toString()); // sends as 302 FOUND
                         return;
                     }
+                    logger.debug("{}/{}: streaming data from cache", dsid, filepath);
                     sh = cdls.openStreamFor(co);
                 }
             }
@@ -673,9 +678,11 @@ public class DatasetAccessController {
                 return; 
             }
 
-            if (sh == null)
+            if (sh == null) {
                 // fallback on direct download
                 sh = downl.getDataFile(dsid, filepath, version);
+                logger.debug("{}/{}: streaming data from long-term storage", dsid, filepath);
+            }
 
             /*
              * Need encodeDigest implementation that converts hex to base64
