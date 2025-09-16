@@ -428,7 +428,7 @@ public class DatasetAccessController {
                                Model model)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
-        // NOTE:  requestPath will be percent-decoded which is required downstream
+        // NOTE:  requestPath will be already percent-decoded which is required downstream
         String requestPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         String fullPath = requestPath.substring("/ds/".length() + dsid.length());  // e.g. folder/file.txt
 
