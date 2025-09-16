@@ -432,7 +432,7 @@ public class DatasetAccessController {
         String requestPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         String fullPath = requestPath.substring("/ds/".length() + dsid.length());  // e.g. folder/file.txt
 
-        if (fullPath.startsWith("/"))
+        if (fullPath.length() > 1 && fullPath.startsWith("/"))
             fullPath = fullPath.substring(1);
 
         String version = null;
@@ -641,10 +641,6 @@ public class DatasetAccessController {
             try {
                 CacheEnabledFileDownloadService cdls = (CacheEnabledFileDownloadService) downl;
                 CacheObject co = cdls.findCachedObject(dsid, filepath, version);
-                if (co == null)
-                    logger.debug("{}/{}: file not found in cache.", dsid, filepath);
-                else if (co.volume == null)
-                    logger.debug("{}/{}: No cache volume indicated for location.", dsid, filepath);
                 if (co != null && co.volume != null) {
                     URL redirect = cdls.redirectFor(co);
                     if (redirect != null) {
@@ -655,6 +651,10 @@ public class DatasetAccessController {
                     }
                     logger.debug("{}/{}: streaming data from cache", dsid, filepath);
                     sh = cdls.openStreamFor(co);
+                }
+                else {
+                    logger.debug("{}/{}: file not found in cache{}.", dsid, filepath,
+                                 (co != null) ? " (volume not set)" : "");
                 }
             }
             catch (ClassCastException ex) { /* fall back on direct read */ }
