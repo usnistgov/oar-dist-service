@@ -285,7 +285,11 @@ public class CacheEnabledFileDownloadService implements FileDownloadService {
         if (cmgr != null) {
             try {
                 CacheObject out = cmgr.findObject(cacheid(dsid, filepath, version));
-                if (out != null && out.volume == null) out = null;
+                if (out != null && out.volume == null) {
+                    logger.debug("{}/{}: FYI: volume not specified for object found in cache",
+                                 dsid, filepath);
+                    out = null;
+                }
                 if (out != null)
                     return out;
             }

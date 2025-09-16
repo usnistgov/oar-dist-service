@@ -428,14 +428,11 @@ public class DatasetAccessController {
                                Model model)
         throws ResourceNotFoundException, FileNotFoundException, DistributionException, IOException
     {
+        // NOTE:  requestPath will be already percent-decoded which is required downstream
+        String requestPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        String fullPath = requestPath.substring("/ds/".length() + dsid.length());  // e.g. folder/file.txt
 
-        // Reconstruct raw path from the URI (after /ds/{dsid})
-        String requestURI = request.getRequestURI(); // e.g. /od/ds/mds1491/folder/
-        String contextPath = request.getContextPath(); // e.g. /od
-        String basePath = contextPath + "/ds/" + dsid;
-        String fullPath = requestURI.substring(basePath.length()); // e.g. folder/ or folder/file.txt
-
-        if (fullPath.startsWith("/"))
+        if (fullPath.length() > 1 && fullPath.startsWith("/"))
             fullPath = fullPath.substring(1);
 
         String version = null;
@@ -449,7 +446,7 @@ public class DatasetAccessController {
         }
 
         // CASE 1: Request is for a directory → return HTML index page
-        if (requestURI.endsWith("/")) {
+        if (fullPath.endsWith("/")) {
             // Load nerdm.json
             JsonNode components = loadComponents(dsid);
 
@@ -652,7 +649,12 @@ public class DatasetAccessController {
                         response.sendRedirect(redirect.toString()); // sends as 302 FOUND
                         return;
                     }
+                    logger.debug("{}/{}: streaming data from cache", dsid, filepath);
                     sh = cdls.openStreamFor(co);
+                }
+                else {
+                    logger.debug("{}/{}: file not found in cache{}.", dsid, filepath,
+                                 (co != null) ? " (volume not set)" : "");
                 }
             }
             catch (ClassCastException ex) { /* fall back on direct read */ }
@@ -673,9 +675,11 @@ public class DatasetAccessController {
                 return; 
             }
 
-            if (sh == null)
+            if (sh == null) {
                 // fallback on direct download
                 sh = downl.getDataFile(dsid, filepath, version);
+                logger.debug("{}/{}: streaming data from long-term storage", dsid, filepath);
+            }
 
             /*
              * Need encodeDigest implementation that converts hex to base64
