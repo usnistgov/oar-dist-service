@@ -85,25 +85,25 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id ";
 
-    static final String deletion_pSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    static final String deletion_pSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.priority DESC, d.since ASC";
 
-    static final String deletion_sSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    static final String deletion_sSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.priority DESC, d.size DESC, d.since ASC";
 
-    static final String deletion_dSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    static final String deletion_dSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.since ASC, d.priority DESC";
 
     static final String defaultDeletionPlanSelect = deletion_pSelect;
 
     static final String check_volumeSelect =
-        find_sql_base + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
+        find_sql_base + "AND d.checked<? AND d.cached=true AND v.name=? ORDER BY d.checked ASC";
 
     static final String check_Select =
-        find_sql_base + "AND d.checked<? AND d.cached=1 AND d.name NOT LIKE '<reserve#%' "
+        find_sql_base + "AND d.checked<? AND d.cached=true AND d.name NOT LIKE '<reserve#%' "
                       + "ORDER BY d.checked ASC";
 
     protected String _dburl = null;
@@ -202,7 +202,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         StringBuilder sql = new StringBuilder(find_sql_base);
         sql.append("AND d.objid='").append(id).append("' AND v.status >= ").append(purpose);
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=true");
         sql.append(";");
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
@@ -499,7 +499,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
-        String fsql = find_sql_base + "AND d.cached=1 AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        String fsql = find_sql_base + "AND d.cached=true AND v.name='" + volname + "' AND d.name='" + objname + "';";
         List<CacheObject> objs = null;
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
@@ -885,7 +885,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         return out.intValue();
     }
 
-    String rm_sql = "UPDATE objects SET cached=0 WHERE volume=? AND name=?";
+    String rm_sql = "UPDATE objects SET cached=false WHERE volume=? AND name=?";
     String prg_sql = "DELETE FROM objects WHERE volume=? AND name=?";
         
     /**
@@ -1208,7 +1208,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=true GROUP BY v.name";
         try {
             return _get_sum(sum_sql, new HashMap<String, Long>(1)).get(volname).longValue();
         }
@@ -1225,7 +1225,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         Map<String, Long> out = getVolumeCapacities();
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=true GROUP BY v.name";
         return _get_sum(sum_sql, out);
     }
 
@@ -1245,11 +1245,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public Map<String, Long> getUsedSpace() throws InventoryException {
         Collection<String> volnames = volumes();
         Map<String, Long> out = new HashMap<String, Long>(volnames.size());
-        for (String name : volnames) 
+        for (String name : volnames)
             out.put(name, new Long(0L));
         String sum_sql =
             "SELECT v.name as volume, sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=true GROUP BY v.name";
         return _get_sum(sum_sql, out);
     }
 
