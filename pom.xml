@@ -131,6 +131,11 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.41.2.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.7</version>
+        </dependency>
 
         <!-- swagger docs -->
         <dependency>
