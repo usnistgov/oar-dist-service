@@ -16,6 +16,7 @@ import gov.nist.oar.distrib.cachemgr.CacheExpiryCheck;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
@@ -110,6 +111,8 @@ public class NISTCacheManagerConfig {
     String hbdbroot = null;
     boolean triggercache = false;
     BasicCache theCache = null;
+    String dbtype = "sqlite";         // default database type: "sqlite" or "postgres"
+    String dburl = null;              // JDBC URL for PostgreSQL (only used when dbtype=postgres)
 
     public String getAdmindir() { return admindir; }
     public void setAdmindir(String dirpath) { admindir = dirpath; }
@@ -133,6 +136,10 @@ public class NISTCacheManagerConfig {
     public void   setHeadbagDbrootdir(String dir) { hbdbroot = dir; }
     public boolean getTriggerCache() { return triggercache; }
     public void setTriggerCache(boolean trigger) { triggercache = trigger; }
+    public String getDbtype() { return dbtype; }
+    public void setDbtype(String type) { dbtype = type; }
+    public String getDburl() { return dburl; }
+    public void setDburl(String url) { dburl = url; }
 
     /**
      * the configuration of a volume within the cache.  It is expected to be part of a list of 
@@ -390,16 +397,33 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException("No cache volumes are configured!");
 
         // set up the inventory database
-        File dbrootdir = rootdir;
-        if (dbroot != null)
-            dbrootdir = new File(dbroot);
-        File dbfile = new File(dbrootdir, "data.sqlite");
-        File dbf = dbfile.getAbsoluteFile();
-        if (! dbf.exists()) 
-            PDRStorageInventoryDB.initializeSQLiteDB(dbf.toString());
-        if (! dbf.isFile())
-            throw new ConfigurationException(dbfile+": Not a file");
-        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        PDRStorageInventoryDB sidb;
+        if ("postgres".equalsIgnoreCase(dbtype)) {
+            // PostgreSQL database
+            if (dburl == null || dburl.isEmpty())
+                throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured when dbtype=postgres");
+
+            // Initialize PostgreSQL database schema if needed
+            try {
+                PDRStorageInventoryDB.initializePostgresDB(dburl);
+            } catch (InventoryException ex) {
+                // Database may already be initialized, log and continue
+                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL database may already be initialized: " + ex.getMessage());
+            }
+            sidb = PDRStorageInventoryDB.createPostgresDB(dburl);
+        } else {
+            // SQLite database (default)
+            File dbrootdir = rootdir;
+            if (dbroot != null)
+                dbrootdir = new File(dbroot);
+            File dbfile = new File(dbrootdir, "data.sqlite");
+            File dbf = dbfile.getAbsoluteFile();
+            if (! dbf.exists())
+                PDRStorageInventoryDB.initializeSQLiteDB(dbf.toString());
+            if (! dbf.isFile())
+                throw new ConfigurationException(dbfile+": Not a file");
+            sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        }
         sidb.registerAlgorithm("sha256");
 
         // create the cache
@@ -440,15 +464,32 @@ public class NISTCacheManagerConfig {
         if (! cmroot.exists()) cmroot.mkdir();
 
         // create the database
-        File dbrootdir = cmroot;
-        if (hbdbroot != null)
-            dbrootdir = new File(hbdbroot);
-        File dbf = new File(dbrootdir, "inventory.sqlite");
-        if (! dbf.exists())
-            HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
-        if (! dbf.isFile())
-            throw new ConfigurationException(dbf.toString()+": Not a file");
-        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        HeadBagDB sidb;
+        if ("postgres".equalsIgnoreCase(dbtype)) {
+            // PostgreSQL database
+            if (dburl == null || dburl.isEmpty())
+                throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured when dbtype=postgres");
+
+            // Initialize PostgreSQL database schema if needed
+            try {
+                HeadBagDB.initializePostgresDB(dburl);
+            } catch (InventoryException ex) {
+                // Database may already be initialized, log and continue
+                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL headbag database may already be initialized: " + ex.getMessage());
+            }
+            sidb = HeadBagDB.createPostgresDB(dburl);
+        } else {
+            // SQLite database (default)
+            File dbrootdir = cmroot;
+            if (hbdbroot != null)
+                dbrootdir = new File(hbdbroot);
+            File dbf = new File(dbrootdir, "inventory.sqlite");
+            if (! dbf.exists())
+                HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
+            if (! dbf.isFile())
+                throw new ConfigurationException(dbf.toString()+": Not a file");
+            sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        }
         sidb.registerAlgorithm("sha256");
 
         // create the cache
