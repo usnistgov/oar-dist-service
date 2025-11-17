@@ -397,11 +397,16 @@ public class NISTCacheManagerConfig {
             throw new ConfigurationException("No cache volumes are configured!");
 
         // set up the inventory database
+        Logger logger = LoggerFactory.getLogger(this.getClass());
+        logger.info("Initializing cache inventory database: type={}", dbtype);
+
         PDRStorageInventoryDB sidb;
         if ("postgres".equalsIgnoreCase(dbtype)) {
             // PostgreSQL database
             if (dburl == null || dburl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured when dbtype=postgres");
+
+            logger.info("Using PostgreSQL database: jdbc:postgresql:{}", dburl);
 
             // Initialize PostgreSQL database schema if needed
             try {
@@ -418,6 +423,9 @@ public class NISTCacheManagerConfig {
                 dbrootdir = new File(dbroot);
             File dbfile = new File(dbrootdir, "data.sqlite");
             File dbf = dbfile.getAbsoluteFile();
+
+            logger.info("Using SQLite database: {}", dbf.getPath());
+
             if (! dbf.exists())
                 PDRStorageInventoryDB.initializeSQLiteDB(dbf.toString());
             if (! dbf.isFile())
@@ -464,11 +472,16 @@ public class NISTCacheManagerConfig {
         if (! cmroot.exists()) cmroot.mkdir();
 
         // create the database
+        Logger logger = LoggerFactory.getLogger(this.getClass());
+        logger.info("Initializing headbag inventory database: type={}", dbtype);
+
         HeadBagDB sidb;
         if ("postgres".equalsIgnoreCase(dbtype)) {
             // PostgreSQL database
             if (dburl == null || dburl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured when dbtype=postgres");
+
+            logger.info("Using PostgreSQL headbag database: jdbc:postgresql:{}", dburl);
 
             // Initialize PostgreSQL database schema if needed
             try {
@@ -484,6 +497,9 @@ public class NISTCacheManagerConfig {
             if (hbdbroot != null)
                 dbrootdir = new File(hbdbroot);
             File dbf = new File(dbrootdir, "inventory.sqlite");
+
+            logger.info("Using SQLite headbag database: {}", dbf.getAbsolutePath());
+
             if (! dbf.exists())
                 HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
             if (! dbf.isFile())
