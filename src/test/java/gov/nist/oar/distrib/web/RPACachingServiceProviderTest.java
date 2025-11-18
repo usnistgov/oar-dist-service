@@ -96,4 +96,53 @@ public class RPACachingServiceProviderTest {
         RestrictedDatasetRestorer rest = prov.createRPDatasetRestorer();
         assertEquals(1209600000L, rest.getExpiryTime());
     }
+
+    @Test
+    public void testDefaultDatabaseConfigForRPA() {
+        // Verify RPA uses default configuration (no JDBC URL means SQLite)
+        assertNull(cmcfg.getDburl());
+        assertNull(cmcfg.getRpaDburl());
+    }
+
+    @Test
+    public void testRPAPostgresConfigMissingUrl() {
+        // Test that RPA headbag creation with incomplete PostgreSQL JDBC URL throws exception
+        cmcfg.setRpaDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testRPAPostgresConfigEmptyUrl() {
+        // Test that empty PostgreSQL URL is treated as missing for RPA headbag cache
+        cmcfg.setRpaDburl("jdbc:postgresql:");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testRPASqliteWithJdbcUrl()
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        // Test that RPA SQLite works with jdbc:sqlite: URL format
+        File rpahbdir = new File(root, "rpaHeadbags");
+        File sqliteDb = new File(rpahbdir, "test.sqlite");
+        cmcfg.setRpaDburl("jdbc:sqlite:" + sqliteDb.getAbsolutePath());
+
+        // Should create SQLite database successfully
+        HeadBagCacheManager hbcm = prov.getHeadBagCacheManager();
+        assertNotNull(hbcm);
+
+        // Verify SQLite file was created at the specified location
+        assertTrue(sqliteDb.isFile());
+    }
 }
