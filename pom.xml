@@ -117,11 +117,6 @@
             <version>3.12.0</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.8.1</version>
-        </dependency>
-        <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>1</version>
@@ -259,7 +254,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.7.6.201602180812</version>
+                    <version>0.8.12</version>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
@@ -284,16 +279,14 @@
                 <artifactId>maven-surefire-plugin</artifactId>
 
                 <configuration>
-                    <argLine>${surefireArgLine}</argLine>
-                    <argLine>-Djava.io.tmpdir=${basedir}/target/tmp</argLine>
+                    <argLine>${surefireArgLine} -Djava.io.tmpdir=${project.build.directory}/tmp</argLine>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
                     <systemPropertyVariables>
                         <basedir>${project.basedir}</basedir>
-                    </systemPropertyVariables>
-                    <forkCount>0</forkCount>
-                    <systemPropertyVariables>
                         <conf.path>${user.home}/spm</conf.path>
                         <project.test.resourceDirectory>${project.basedir}/src/test/resources</project.test.resourceDirectory>
                     </systemPropertyVariables>
