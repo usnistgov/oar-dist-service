@@ -20,6 +20,7 @@ import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
+import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.pdr.RestrictedDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
@@ -110,13 +111,50 @@ public class RPACachingServiceProvider {
         if (! cmroot.exists()) cmroot.mkdir();
 
         // create the database
-        File dbrootdir = cmroot;
-        File dbf = new File(dbrootdir, "inventory.sqlite");
-        if (! dbf.exists())
-            HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
-        if (! dbf.isFile())
-            throw new ConfigurationException(dbf.toString()+": Not a file");
-        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        Logger logger = LoggerFactory.getLogger(this.getClass());
+        String rpaDbUrl = cmcfg.getRpaDburl();
+        String dbType = NISTCacheManagerConfig.getDatabaseTypeFromUrl(rpaDbUrl);
+        logger.info("Initializing RPA headbag inventory database from URL: {}",
+                    rpaDbUrl != null ? rpaDbUrl.replaceAll("password=[^&]*", "password=***") : "null");
+
+        HeadBagDB sidb;
+        if ("postgres".equals(dbType)) {
+            // PostgreSQL database
+            String pgUrl = NISTCacheManagerConfig.extractDbUrlWithoutPrefix(rpaDbUrl);
+            if (pgUrl == null || pgUrl.isEmpty())
+                throw new ConfigurationException("PostgreSQL database URL (rpaDburl or dburl) must be configured with format: jdbc:postgresql://...");
+
+            logger.info("Using PostgreSQL RPA headbag database");
+
+            // Initialize PostgreSQL database schema if needed
+            try {
+                HeadBagDB.initializePostgresDB(pgUrl);
+            } catch (InventoryException ex) {
+                // Database may already be initialized, log and continue
+                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL RPA headbag database may already be initialized: " + ex.getMessage());
+            }
+            sidb = HeadBagDB.createPostgresDB(pgUrl);
+        } else {
+            // SQLite database (default or explicit jdbc:sqlite: URL)
+            File dbf;
+            if (rpaDbUrl != null && rpaDbUrl.startsWith("jdbc:sqlite:")) {
+                // Use path from JDBC URL
+                String sqlitePath = NISTCacheManagerConfig.extractDbUrlWithoutPrefix(rpaDbUrl);
+                dbf = new File(sqlitePath).getAbsoluteFile();
+            } else {
+                // Use default path
+                File dbrootdir = cmroot;
+                dbf = new File(dbrootdir, "inventory.sqlite");
+            }
+
+            logger.info("Using SQLite RPA headbag database: {}", dbf.getAbsolutePath());
+
+            if (! dbf.exists())
+                HeadBagDB.initializeSQLiteDB(dbf.getAbsolutePath());
+            if (! dbf.isFile())
+                throw new ConfigurationException(dbf.toString()+": Not a file");
+            sidb = HeadBagDB.createHeadBagDB(dbf.getAbsolutePath());
+        }
         sidb.registerAlgorithm("sha256");
 
         // create the cache
@@ -125,8 +163,8 @@ public class RPACachingServiceProvider {
         if (! cvd.exists()) cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv0"),
                              rpacfg.getHeadbagCacheSize()/2, null, true);
-        
-        cvd = new File(cmroot, "cv1");  
+
+        cvd = new File(cmroot, "cv1");
         if (! cvd.exists()) cvd.mkdir();
         cache.addCacheVolume(new FilesystemCacheVolume(cvd, "cv1"),
                              rpacfg.getHeadbagCacheSize()/2, null, true);
