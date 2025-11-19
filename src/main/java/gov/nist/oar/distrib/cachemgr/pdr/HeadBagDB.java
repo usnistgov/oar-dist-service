@@ -127,7 +127,7 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
         class SQLiteHeadBagDB extends HeadBagDB {
             protected File dbfile = null;
             SQLiteHeadBagDB(String filepath) {
-                // we're allowing the file path to include the jdbc URL prefix.
+                // allow the file path to include the jdbc URL prefix.
                 super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
                 dbfile = new File((filepath.startsWith("jdbc:sqlite:"))
                                   ? filepath.substring("jdbc:sqlite:".length())
@@ -142,5 +142,25 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
         }
 
         return new SQLiteHeadBagDB(filepath);
+    }
+
+    /**
+     * create an instance of this class connected to a PostgreSQL database
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database, in the format
+     *                 jdbc:postgresql://host:port/database?user=username&password=password
+     */
+    public static HeadBagDB createPostgresDB(String jdbcUrl) {
+        class PostgresHeadBagDB extends HeadBagDB {
+            PostgresHeadBagDB(String url) {
+                // allow the URL to include the jdbc URL prefix or not
+                super(url.startsWith("jdbc:postgresql:") ? url : "jdbc:postgresql:" + url);
+            }
+            @Override
+            protected Connection connect() throws SQLException {
+                return super.connect();
+            }
+        }
+
+        return new PostgresHeadBagDB(jdbcUrl);
     }
 }
