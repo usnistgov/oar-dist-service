@@ -279,7 +279,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
 
                 <configuration>
-                    <argLine>${surefireArgLine} -Djava.io.tmpdir=${project.build.directory}/tmp</argLine>
+                    <argLine>${surefireArgLine}</argLine>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
