@@ -283,7 +283,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     protected CacheObject extractObject(ResultSet rs) throws SQLException, InventoryException {
         JSONObject md = metadataToJSON(rs);
         CacheObject co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
-        co.cached = rs.getInt("cached") != 0;
+        co.cached = rs.getBoolean("cached");
         if (rs.getObject("id") != null)
             co.id = rs.getString("id");
         return co;
