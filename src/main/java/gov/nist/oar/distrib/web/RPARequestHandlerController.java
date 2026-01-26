@@ -44,6 +44,9 @@ import java.util.Map;
 import java.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 /**
  * Controller for handling data requests under Restricted Public Access (RPA).
  * <p>
@@ -589,5 +592,36 @@ public class RPARequestHandlerController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(errorInfo);
+    }
+
+    /**
+     * Handle exceptions thrown when Spring cannot read/parse the HTTP request body.
+     * This typically occurs when JSON is malformed, contains invalid values (like numeric overflow),
+     * or has type mismatches.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        String detail = getJsonErrorDetail(ex);
+        LOGGER.error("JSON parse error for {}: {}", req.getRequestURI(), ex.getMessage());
+        ErrorInfo errorInfo = new ErrorInfo(req.getRequestURI(), 400, "Malformed JSON input: " + detail, req.getMethod());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorInfo);
+    }
+
+    /**
+     * Extract user-friendly error detail from Jackson exception.
+     * Uses getOriginalMessage() which returns parsing details without exposing internal class names.
+     */
+    private String getJsonErrorDetail(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof JsonProcessingException) {
+            String originalMessage = ((JsonProcessingException) cause).getOriginalMessage();
+            if (originalMessage != null && !originalMessage.isEmpty()) {
+                return originalMessage;
+            }
+        }
+        return "Invalid JSON format";
     }
 }
