@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -172,7 +173,7 @@ public class DefaultDataPackagerTest {
         assertThrows(NoFilesAccesibleInPackageException.class, () -> dp.getData(zos));
     }
 
-    private void ensureTestURL(URL ep) throws RuntimeException {
+    private void ensureTestURL(URL ep) {
         try {
             HttpURLConnection conn = (HttpURLConnection) ep.openConnection();
 	    conn.setInstanceFollowRedirects(false);
@@ -181,7 +182,8 @@ public class DefaultDataPackagerTest {
 	    conn.setRequestMethod("HEAD");
             conn.getResponseCode();
         } catch (Exception ex) {
-            throw new RuntimeException("Needed test URL not responding: "+ep.toString());
+            // Skip test if external service is unavailable
+            assumeTrue(false, "Skipping test: external service unavailable: " + ep.toString());
         }
     }
 

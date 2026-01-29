@@ -403,20 +403,20 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
         // keep polling /cache/monitor/ until the job completes
+        // Increased attempts and wait time to handle slower CI environments
         int attempts = 0;
-        while (attempts++ < 10) {
+        while (attempts++ < 30) {
             resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
             assertEquals(HttpStatus.OK, resp.getStatusCode());
 
             status = new JSONObject(resp.getBody());
-            if (!status.getBoolean("running")) {
-                assertTrue(status.getLong("lastRan") > 0);
+            if (!status.getBoolean("running") && status.getLong("lastRan") > 0) {
                 assertNotEquals("(never)", status.getString("lastRanDate"));
                 return;  // success
             }
-            Thread.sleep(100);
+            Thread.sleep(200);
         }
-        fail("Monitor failed to finish?");
+        fail("Monitor failed to finish or update lastRan within timeout");
     }
 
 

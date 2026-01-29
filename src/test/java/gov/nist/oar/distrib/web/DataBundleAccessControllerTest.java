@@ -137,4 +137,47 @@ public class DataBundleAccessControllerTest {
 	// assertEquals(22, response.getBody().length());
 
     }
+
+    /**
+     * Test that numeric overflow in JSON returns 400 Bad Request instead of 500.
+     * <p>
+     * This test sends a raw JSON string with a number larger than Long.MAX_VALUE,
+     * which cannot be represented as a Java object. This simulates the attack vector
+     * identified by security scanners.
+     */
+    @Test
+    public void testBundleWithNumericOverflow() throws URISyntaxException {
+        // Raw JSON with overflow integer - cannot be created as Java object
+        String malformedJson = """
+            {
+                "requestId": "test-overflow",
+                "bundleName": "testdownload",
+                "includeFiles": [{
+                    "filePath": "/test/file.pdf",
+                    "downloadUrl": "https://example.com/file.pdf",
+                    "fileSize": 999999999999999999999
+                }],
+                "bundleSize": 0,
+                "filesInBundle": 1
+            }
+            """;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Send raw String, not BundleRequest object
+        RequestEntity<String> request = RequestEntity
+                .post(new URI(getBaseURL() + "/ds/_bundle"))
+                .headers(headers)
+                .body(malformedJson);
+
+        ResponseEntity<String> response = websvc.exchange(request, String.class);
+
+        logger.info("Numeric overflow test - Status: {}, Body: {}",
+                    response.getStatusCode(), response.getBody());
+
+        // Should return 400 Bad Request, not 500 Internal Server Error
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(),
+            "Numeric overflow should return 400 Bad Request, not 500 Internal Server Error");
+    }
 }
