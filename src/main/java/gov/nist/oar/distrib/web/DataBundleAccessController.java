@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import gov.nist.oar.distrib.DistributionException;
 import gov.nist.oar.distrib.datapackage.InputLimitException;
@@ -190,9 +191,40 @@ public class DataBundleAccessController {
     public ResponseEntity<ErrorInfo> handleIOException(IOException ex, HttpServletRequest req) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON); // Ensure JSON response
-        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error", 
+        ErrorInfo errorInfo = createErrorInfo(req, 500, "Internal Server Error",
                                             "Streaming failure during request: ", ex.getMessage());
         return new ResponseEntity<>(errorInfo, headers, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * Handle exceptions thrown when Spring cannot read/parse the HTTP request body.
+     * This typically occurs when JSON is malformed, contains invalid values (like numeric overflow),
+     * or has type mismatches.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorInfo> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String detail = getJsonErrorDetail(ex);
+        ErrorInfo errorInfo = createErrorInfo(req, 400, "Malformed JSON input: " + detail,
+                                            "JSON parse error: ", ex.getMessage());
+        return new ResponseEntity<>(errorInfo, headers, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Extract user-friendly error detail from Jackson exception.
+     * Uses getOriginalMessage() which returns parsing details without exposing internal class names.
+     */
+    private String getJsonErrorDetail(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof com.fasterxml.jackson.core.JsonProcessingException) {
+            String originalMessage = ((com.fasterxml.jackson.core.JsonProcessingException) cause).getOriginalMessage();
+            if (originalMessage != null && !originalMessage.isEmpty()) {
+                return originalMessage;
+            }
+        }
+        return "Invalid JSON format";
     }
 
     @ExceptionHandler(RuntimeException.class)
