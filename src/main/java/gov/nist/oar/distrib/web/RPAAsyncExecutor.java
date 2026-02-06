@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Async;
 
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
 
@@ -38,6 +39,24 @@ public class RPAAsyncExecutor {
         } catch (RequestProcessingException e) {
             LOGGER.error("Async post-processing failed for record ID {}: {}", wrapper.getRecord().getId(),
                     e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Handle the post-processing of a record update (approval/decline) asynchronously.
+     * This method does not throw any exceptions; rather, it logs any errors and continues.
+     *
+     * @param record    The record that was updated.
+     * @param status    The approval status ("approved" or "declined").
+     * @param datasetId The ID of the dataset associated with the record.
+     */
+    @Async
+    public void handleAfterRecordUpdateAsync(Record record, String status, String datasetId) {
+        try {
+            handler.handleAfterRecordUpdate(record, status, datasetId);
+        } catch (RequestProcessingException e) {
+            LOGGER.error("Async post-processing failed for record update (record ID {}): {}",
+                    record.getId(), e.getMessage(), e);
         }
     }
 }
