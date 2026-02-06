@@ -50,6 +50,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
@@ -719,7 +720,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Mock behavior of getRecord method
         doReturn(getTestRecordWrapper(expectedApprovalStatus, email, country)).when(service).getRecord("record12345");
 
-        when(rpaDatasetCacher.cache(anyString())).thenReturn(mockRandomId);
+        // Note: caching now happens asynchronously in handleAfterRecordUpdate, not in updateRecord
 
         // Mock HttpResponse
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
@@ -737,11 +738,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, "Approved", email);
+        RecordUpdateResult result = service.updateRecord(recordId, "Approved", email);
 
         // Assert
-        assertEquals(expectedApprovalStatus, result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals(expectedApprovalStatus, result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
 
         // Capture the HttpPatch argument
         HttpPatch patchRequest = captor.getValue();
@@ -752,11 +753,9 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // We can't test the exact time as it changes when we run the test, but we can verify the format
         String patchPayload = EntityUtils.toString(patchRequest.getEntity(), StandardCharsets.UTF_8);
         JSONObject payloadObject = new JSONObject(patchPayload);
-        // The following regex pattern expects:
-        // - The "Approved" status followed by a date-time in ISO 8601 format.
-        // - An email address.
-        // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
+        // The sync update now uses interim ApprovalPending status (no randomId yet)
+        // Format: ApprovalPending_timestamp_email
+        String expectedFormat = "ApprovalPending_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+";
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
     }
 
@@ -824,13 +823,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordUpdateResult result = service.updateRecord(recordId, status, email);
 
         // Assert
-        assertEquals("Declined", result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals("Declined", result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
 
-        // Verify that caching and uncaching were not invoked
+        // Verify that caching and uncaching were not invoked (now happens async)
         verify(rpaDatasetCacher, never()).cache(anyString());
         verify(rpaDatasetCacher, never()).uncache(anyString());
     }
@@ -860,8 +859,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Mock behavior of getRecord method to simulate retrieving a previously approved record
         doReturn(getTestRecordWrapper(initialApprovalStatus, email, country)).when(service).getRecord(recordId);
 
-        // Simulate `uncache` returning true
-        when(rpaDatasetCacher.uncache(anyString())).thenReturn(true);
+        // Note: uncache now happens asynchronously in handleAfterRecordUpdate, not in updateRecord
 
         // Mock HttpResponse for updating the record to "Declined"
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
@@ -875,14 +873,14 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordUpdateResult result = service.updateRecord(recordId, status, email);
 
         // Assert
-        assertEquals("Declined", result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals("Declined", result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
 
-        // Verify uncaching was invoked with the correct random ID
-        verify(rpaDatasetCacher).uncache(mockRandomId);
+        // Verify uncaching not invoked here (now happens async in handleAfterRecordUpdate)
+        verify(rpaDatasetCacher, never()).uncache(anyString());
     }
 
 
