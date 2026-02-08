@@ -240,7 +240,7 @@ public class FilesystemCacheVolume implements CacheVolume {
      * @throws StorageVolumeException     if there is any other problem opening the 
      *                                     named object
      */
-    public synchronized InputStream getStream(String name) throws StorageVolumeException {
+    public InputStream getStream(String name) throws StorageVolumeException {
         if (! this.exists(name))
             throw new ObjectNotFoundException(name, this.getName());
         try {

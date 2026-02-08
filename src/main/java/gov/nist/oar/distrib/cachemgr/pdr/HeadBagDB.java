@@ -24,6 +24,9 @@ import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 /**
  * an extension of the {@link PDRStorageInventoryDB} class that adds specialized functionality to 
  * service a cache of head bags. 
@@ -147,17 +150,27 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
      *                 jdbc:postgresql://host:port/database?user=username&password=password
      */
     public static HeadBagDB createPostgresDB(String jdbcUrl) {
+        String fullUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
+
+        HikariConfig hcfg = new HikariConfig();
+        hcfg.setJdbcUrl(fullUrl);
+        hcfg.setMaximumPoolSize(20);
+        hcfg.setMinimumIdle(5);
+        hcfg.setConnectionTimeout(5000);
+        HikariDataSource pool = new HikariDataSource(hcfg);
+
         class PostgresHeadBagDB extends HeadBagDB {
-            PostgresHeadBagDB(String url) {
-                // allow the URL to include the jdbc URL prefix or not
-                super(url.startsWith("jdbc:postgresql:") ? url : "jdbc:postgresql:" + url);
+            private final HikariDataSource ds;
+            PostgresHeadBagDB(String url, HikariDataSource ds) {
+                super(url);
+                this.ds = ds;
             }
             @Override
             protected Connection connect() throws SQLException {
-                return super.connect();
+                return ds.getConnection();
             }
         }
 
-        return new PostgresHeadBagDB(jdbcUrl);
+        return new PostgresHeadBagDB(fullUrl, pool);
     }
 }

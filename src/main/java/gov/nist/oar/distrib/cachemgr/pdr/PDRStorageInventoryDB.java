@@ -41,6 +41,9 @@ import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.inventory.PostgresBootstrapHelper;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 
 /**
  * an extension of the JDBC-based implementation of a 
@@ -360,7 +363,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
     /**
      * return a list of cache objects having a given EDI (Enterprise Data Inventory) resource identifier
-     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized
      *                 values are defined in the {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} interface.
      * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
@@ -382,7 +385,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * return a list of cache objects having cache identifiers matching a particular pattern
      * @param idpat    an SQL text pattern to look for.  This value should include '%' wildcard characters
      *                 as needed
-     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized
      *                 values are defined in the {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} interface.
      * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
@@ -688,18 +691,28 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      *                 jdbc:postgresql://host:port/database?user=username&password=password
      */
     public static PDRStorageInventoryDB createPostgresDB(String jdbcUrl) {
+        String fullUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
+
+        HikariConfig hcfg = new HikariConfig();
+        hcfg.setJdbcUrl(fullUrl);
+        hcfg.setMaximumPoolSize(20);
+        hcfg.setMinimumIdle(5);
+        hcfg.setConnectionTimeout(5000);
+        HikariDataSource pool = new HikariDataSource(hcfg);
+
         class PostgresPDRSIDB extends PDRStorageInventoryDB {
-            PostgresPDRSIDB(String url) {
-                // allow the URL to include the jdbc URL prefix or not
-                super(url.startsWith("jdbc:postgresql:") ? url : "jdbc:postgresql:" + url);
+            private final HikariDataSource ds;
+            PostgresPDRSIDB(String url, HikariDataSource ds) {
+                super(url);
+                this.ds = ds;
             }
             @Override
             protected Connection connect() throws SQLException {
-                return super.connect();
+                return ds.getConnection();
             }
         }
 
-        return new PostgresPDRSIDB(jdbcUrl);
+        return new PostgresPDRSIDB(fullUrl, pool);
     }
 
     /**
