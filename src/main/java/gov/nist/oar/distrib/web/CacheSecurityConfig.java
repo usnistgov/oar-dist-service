@@ -69,17 +69,24 @@ public class CacheSecurityConfig {
      */
     public SecurityFilterChain configureStrictSecurity(HttpSecurity http) throws Exception {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(Customizer.withDefaults()) 
+            .exceptionHandling(Customizer.withDefaults())
             .addFilterBefore(authenticationFilter(), AnonymousAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> {
                 // auth.requestMatchers("/ds/**").permitAll();
                 auth.requestMatchers("/**").permitAll();
-                auth.requestMatchers(SECURED_ENDPOINTS).authenticated(); 
+                auth.requestMatchers(SECURED_ENDPOINTS).authenticated();
             })
-            .csrf(csrf -> csrf.disable()) 
+            .headers(headers -> headers
+                .cacheControl(cache -> cache.disable())
+                .addHeaderWriter((request, response) -> {
+                    response.setHeader("Cache-Control",
+                        "no-store, no-cache, no-transform, must-revalidate, proxy-revalidate, max-age=0");
+                })
+            )
+            .csrf(csrf -> csrf.disable())
             .formLogin(form -> form.disable())
-            .httpBasic(httpBasic -> httpBasic.disable()) 
-            .logout(logout -> logout.disable()); 
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .logout(logout -> logout.disable());
 
         return http.build();
     }
