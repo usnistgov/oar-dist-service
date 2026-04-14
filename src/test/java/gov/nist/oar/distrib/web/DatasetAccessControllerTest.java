@@ -13,6 +13,7 @@ package gov.nist.oar.distrib.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -384,6 +385,11 @@ public class DatasetAccessControllerTest {
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertTrue(resp.getHeaders().getFirst("Content-Type").startsWith("application/json"));
+        assertNotNull(resp.getHeaders().getFirst("Content-Length"));
+        String cacheControl = resp.getHeaders().getFirst("Cache-Control");
+        assertNotNull(cacheControl);
+        assertTrue(cacheControl.contains("no-transform"),
+                   "Cache-Control must contain no-transform to prevent Cloudflare from stripping Content-Length");
         assertNull(resp.getBody());
     }
 
