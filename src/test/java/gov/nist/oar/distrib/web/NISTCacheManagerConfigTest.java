@@ -226,4 +226,77 @@ public class NISTCacheManagerConfigTest {
         assertEquals(0, vsum.getLong("totalsize"));
         assertEquals(0, vsum.getInt("filecount"));
     }
+
+    @Test
+    public void testDefaultDatabaseConfiguration() {
+        // Verify default database configuration (no JDBC URL means SQLite will be used)
+        assertNull(cfg.getDburl());
+        assertNull(cfg.getHeadbagDburl());
+        assertNull(cfg.getRpaDburl());
+    }
+
+    @Test
+    public void testSetPostgresConfiguration() {
+        // Test setting PostgreSQL JDBC URL configuration
+        cfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+        cfg.setHeadbagDburl("jdbc:postgresql://localhost:5432/test_headbag_db?user=test&password=test");
+        cfg.setRpaDburl("jdbc:postgresql://localhost:5432/test_rpa_db?user=test&password=test");
+
+        assertEquals("jdbc:postgresql://localhost:5432/test_db?user=test&password=test", cfg.getDburl());
+        assertEquals("jdbc:postgresql://localhost:5432/test_headbag_db?user=test&password=test", cfg.getHeadbagDburl());
+        assertEquals("jdbc:postgresql://localhost:5432/test_rpa_db?user=test&password=test", cfg.getRpaDburl());
+    }
+
+    @Test
+    public void testPostgresConfigMissingUrl() {
+        // Test that creating cache with PostgreSQL JDBC URL prefix but incomplete URL throws exception
+        cfg.setDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testPostgresConfigMissingUrlForHeadBag() throws IOException {
+        // Test that creating headbag cache with PostgreSQL JDBC URL prefix but incomplete URL throws exception
+        cfg.setHeadbagDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testPostgresConfigEmptyUrl() {
+        // Test that empty PostgreSQL URL is treated as missing
+        cfg.setDburl("jdbc:postgresql:");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testSqliteWithJdbcUrl() throws ConfigurationException, IOException, CacheManagementException {
+        // Test that SQLite works with jdbc:sqlite: URL format
+        File sqliteDb = new File(rootdir, "test.sqlite");
+        cfg.setDburl("jdbc:sqlite:" + sqliteDb.getAbsolutePath());
+
+        // Should create SQLite database successfully
+        BasicCache cache = cfg.createDefaultCache(null);
+        assertNotNull(cache);
+
+        // Verify SQLite file was created at the specified location
+        assertTrue(sqliteDb.isFile());
+    }
 }

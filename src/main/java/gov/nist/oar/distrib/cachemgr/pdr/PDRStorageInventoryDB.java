@@ -638,4 +638,77 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
             try { if (conn != null) conn.close(); } catch (SQLException ex) { }
         }
     }
+
+    /**
+     * create an instance of this class connected to a PostgreSQL database
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database, in the format
+     *                 jdbc:postgresql://host:port/database?user=username&password=password
+     */
+    public static PDRStorageInventoryDB createPostgresDB(String jdbcUrl) {
+        class PostgresPDRSIDB extends PDRStorageInventoryDB {
+            PostgresPDRSIDB(String url) {
+                // allow the URL to include the jdbc URL prefix or not
+                super(url.startsWith("jdbc:postgresql:") ? url : "jdbc:postgresql:" + url);
+            }
+            @Override
+            protected Connection connect() throws SQLException {
+                return super.connect();
+            }
+        }
+
+        return new PostgresPDRSIDB(jdbcUrl);
+    }
+
+    /**
+     * initialize a PostgreSQL database with the PDR storage inventory schema
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database
+     */
+    public static void initializePostgresDB(String jdbcUrl) throws InventoryException {
+        // load the sql script from a resource
+        Class<PDRStorageInventoryDB> thiscl = PDRStorageInventoryDB.class;
+        BufferedReader rdr = null;
+        StringBuilder sb = new StringBuilder();
+        try {
+            rdr = new BufferedReader(new InputStreamReader(
+                thiscl.getResourceAsStream("res/pdr_postgres_create.sql")));
+
+            String line = null;
+            while ((line = rdr.readLine()) != null)
+                sb.append(" ").append(line);
+        }
+        catch (IOException ex) {
+            throw new InventoryException("Problem reading db init script: "+ex.getMessage(), ex);
+        }
+        finally {
+            try { if (rdr != null) rdr.close(); } catch (IOException ex) { }
+        }
+
+        // split the script into separate statements
+        String[] stmts = sb.toString().split(";");
+
+        // execute each statement
+        Connection conn = null;
+        try {
+            String connUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
+            conn = DriverManager.getConnection(connUrl);
+            for (String s : stmts) {
+                s = s.trim();
+                if (s.isEmpty()) continue;
+                try {
+                    conn.createStatement().execute(s);
+                }
+                catch (SQLException ex) {
+                    throw new InventorySearchException("DB init SQL statement failed: "+s+":\n"
+                                                       +ex.getMessage(), ex);
+                }
+            }
+        }
+        catch (SQLException ex) {
+            throw new InventorySearchException("Failed to connect to PostgreSQL database, "+jdbcUrl+": "
+                                               +ex.getMessage(), ex);
+        }
+        finally {
+            try { if (conn != null) conn.close(); } catch (SQLException ex) { }
+        }
+    }
 }
