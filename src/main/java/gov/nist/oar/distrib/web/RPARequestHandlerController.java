@@ -3,6 +3,7 @@ package gov.nist.oar.distrib.web;
 import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -398,12 +399,18 @@ public class RPARequestHandlerController {
             if (tokenDetails != null) {
                 LOGGER.debug("Updating record with ID: {}", id);
                 String smeId = tokenDetails.get("userEmail");
-                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus(), smeId);
+                RecordUpdateResult result = service.updateRecord(id, patch.getApprovalStatus(), smeId);
+
+                // Trigger async post-processing (caching, email notifications)
+                asyncExecutor.handleAfterRecordUpdateAsync(
+                        result.getRecord(),
+                        patch.getApprovalStatus(),
+                        result.getDatasetId());
 
                 logUpdateAction(tokenDetails, id);
 
                 LOGGER.debug("Record successfully updated");
-                return new ResponseEntity<RecordStatus>(recordStatus, HttpStatus.OK);
+                return new ResponseEntity<RecordStatus>(result.getRecordStatus(), HttpStatus.OK);
             } else {
                 LOGGER.error("Token is invalid");
                 throw new UnauthorizedException("invalid token");

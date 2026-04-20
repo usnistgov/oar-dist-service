@@ -48,6 +48,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
@@ -319,7 +320,8 @@ public class RPARequestHandlerControllerTest {
         String recordId = "123";
         String status = "Approved";
         RecordStatus recordStatus = new RecordStatus(recordId, status);
-        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(recordStatus);
+        RecordUpdateResult updateResult = new RecordUpdateResult(recordStatus, null, "datasetId");
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(updateResult);
 
         Map<String, String> expectedTokenDetails = new HashMap<>();
         expectedTokenDetails.put("userFullname", "john.doe");
