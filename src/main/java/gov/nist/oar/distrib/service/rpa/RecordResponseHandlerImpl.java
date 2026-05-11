@@ -158,7 +158,12 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordUpdateDeclined(Record record) throws InvalidRequestException, RequestProcessingException {
-        LOGGER.debug("User was declined by SME");
+        LOGGER.debug("User was declined by SME. Sending decline notification...");
+        if (this.emailSender.sendDeclinedEmailToEndUser(record)) {
+            LOGGER.debug("Decline notification email sent successfully (RecordID=" + record.getId() + ")");
+        } else {
+            throw new RequestProcessingException("Failed to send decline notification email to end user");
+        }
     }
 
     /**

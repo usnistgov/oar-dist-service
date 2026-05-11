@@ -37,7 +37,8 @@ public class RPAAsyncExecutor {
         try {
             handler.handleAfterRecordCreation(wrapper, input, code);
         } catch (RequestProcessingException e) {
-            LOGGER.error("Async post-processing failed for record ID {}: {}", wrapper.getRecord().getId(),
+            String recordId = wrapper != null && wrapper.getRecord() != null ? wrapper.getRecord().getId() : "unknown";
+            LOGGER.error("Async post-processing failed for record ID {}: {}", recordId,
                     e.getMessage(), e);
         }
     }

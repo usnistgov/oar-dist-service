@@ -713,6 +713,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         // Return result for async processing
         // Note: Email notifications and caching are handled asynchronously
+        record.getUserInfo().setApprovalStatus(approvalStatus);
         return new RecordUpdateResult(recordStatus, record, datasetId);
     }
 
@@ -755,6 +756,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
             if (randomId == null) {
                 LOGGER.error("Caching process returned a null randomId for dataset: {}", datasetId);
+                patchFailureStatus(record);
                 this.recordResponseHandler.onFailure(record);
                 return;
             }
@@ -763,6 +765,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             String currentStatus = record.getUserInfo().getApprovalStatus();
             String finalStatus = updateApprovalStatusWithRandomId(currentStatus, randomId);
             patchRecordStatus(record.getId(), finalStatus);
+            record.getUserInfo().setApprovalStatus(finalStatus);
 
             // Send success email with download link
             this.recordResponseHandler.onRecordUpdateApproved(record, randomId);
@@ -770,7 +773,15 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         } catch (Exception e) {
             LOGGER.error("Approval post-processing failed for record {}: {}", record.getId(), e.getMessage(), e);
-            // Send failure notification to user
+            if (randomId != null) {
+                try {
+                    this.rpaDatasetCacher.uncache(randomId);
+                } catch (Exception uncacheException) {
+                    LOGGER.error("Failed to uncache dataset after approval failure (random ID {}): {}",
+                            randomId, uncacheException.getMessage(), uncacheException);
+                }
+            }
+            patchFailureStatus(record);
             this.recordResponseHandler.onFailure(record);
         }
     }
@@ -799,6 +810,17 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         LOGGER.info("Decline post-processing completed for record: {}", record.getId());
     }
 
+    private void patchFailureStatus(Record record) {
+        String failureStatus = updateApprovalStatusPrefix(record.getUserInfo().getApprovalStatus(), "ApprovalFailed");
+        try {
+            patchRecordStatus(record.getId(), failureStatus);
+            record.getUserInfo().setApprovalStatus(failureStatus);
+        } catch (RequestProcessingException e) {
+            LOGGER.error("Failed to update approval failure status for record {}: {}",
+                    record.getId(), e.getMessage(), e);
+        }
+    }
+
     /**
      * Updates the approval status string to include the random ID.
      * Converts "ApprovalPending_timestamp_smeId" to "Approved_timestamp_smeId_randomId"
@@ -806,13 +828,20 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private String updateApprovalStatusWithRandomId(String currentStatus, String randomId) {
         // Replace "ApprovalPending" with "Approved" and append randomId
         if (currentStatus != null && currentStatus.startsWith("ApprovalPending_")) {
-            return currentStatus.replace("ApprovalPending_", "Approved_") + "_" + randomId;
+            return updateApprovalStatusPrefix(currentStatus, "Approved") + "_" + randomId;
         }
         // Fallback: if already "Approved_", just append randomId
         if (currentStatus != null && currentStatus.startsWith("Approved_") && !currentStatus.contains("_" + randomId)) {
             return currentStatus + "_" + randomId;
         }
         return currentStatus;
+    }
+
+    private String updateApprovalStatusPrefix(String currentStatus, String newPrefix) {
+        if (currentStatus != null && currentStatus.contains("_")) {
+            return newPrefix + currentStatus.substring(currentStatus.indexOf("_"));
+        }
+        return newPrefix + "_" + Instant.now().toString();
     }
 
     /**
