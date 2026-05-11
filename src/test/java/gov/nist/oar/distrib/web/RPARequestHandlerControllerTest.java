@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -293,7 +294,8 @@ public class RPARequestHandlerControllerTest {
         verify(mockAsyncExecutor).handleAfterRecordCreationAsync(
                 eq(creationResult.getRecordWrapper()),
                 argThat(actual -> areUserInfoWrappersEqual(userInfoWrapper, actual)),
-                eq(200));
+                eq(200),
+                anyMap());
     
     }
 
@@ -345,7 +347,7 @@ public class RPARequestHandlerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordId").value("123"));
 
-        verify(mockAsyncExecutor).handleAfterRecordUpdateAsync(record, status, "datasetId");
+        verify(mockAsyncExecutor).handleAfterRecordUpdateAsync(eq(record), eq(status), eq("datasetId"), anyMap());
     }
 
     @Test

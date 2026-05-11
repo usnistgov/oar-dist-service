@@ -7,6 +7,7 @@ import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRDatasetCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.PDRCacheRoles;
+import gov.nist.oar.distrib.service.rpa.RPALogContext;
 import gov.nist.oar.distrib.service.rpa.exceptions.MetadataNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.web.RPAConfiguration;
@@ -61,7 +62,7 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             throws CacheManagementException, ResourceNotFoundException, StorageVolumeException,
             IllegalArgumentException {
 
-        logger.debug("Request to cache dataset with ID=" + datasetID);
+        logger.info("RPA cache request started reqId={} dataset={}", RPALogContext.requestId(), datasetID);
 
         // this is to handle ark IDs
         String dsid = datasetID;
@@ -74,7 +75,6 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
             dsid = parts[2];
         }
 
-        logger.debug("Caching dataset with dsid=" + dsid);
         // append "rpa-" with the generated random ID
         String randomID = "rpa-" + generateRandomID(RANDOM_ID_LENGTH, true, true);
 
@@ -85,11 +85,8 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
 
         // cache dataset
         Set<String> files = this.pdrCacheManager.cacheDataset(dsid, version, true, prefs, randomID);
-        // Log the files
-        logger.debug("Cached files:");
-        for (String file : files) {
-            logger.debug("- " + file);
-        }
+        logger.info("RPA cache request completed reqId={} dataset={} fileCount={}",
+                RPALogContext.requestId(), datasetID, files.size());
         return randomID;
     }
 
@@ -102,7 +99,8 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
      */
     public Map<String, Object> retrieveMetadata(String randomID) throws CacheManagementException,
             MetadataNotFoundException, RequestProcessingException {
-        logger.debug("Requesting metadata for temporary ID=" + randomID);
+        logger.debug("RPA metadata retrieval started reqId={} randomIdPresent={}",
+                RPALogContext.requestId(), randomID != null);
         JSONArray metadata = new JSONArray();
         List<CacheObject> objects = this.pdrCacheManager.selectDatasetObjects(randomID,
                 this.pdrCacheManager.VOL_FOR_GET);
@@ -122,9 +120,8 @@ public class RPACachingService implements DataCachingService, PDRCacheRoles {
         JSONObject result = new JSONObject();
         result.put("randomId", randomID);
         result.put("metadata", metadata);
-        // Log the JSON object
-        logger.debug("Result:");
-        logger.debug(result.toString(4));
+        logger.debug("RPA metadata retrieval completed reqId={} metadataCount={}",
+                RPALogContext.requestId(), metadata.length());
         return result.toMap();
     }
 

@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Java Keystore implementation of the KeyRetriever interface.
@@ -16,6 +17,7 @@ import java.security.KeyStore;
 public class JKSKeyRetriever implements KeyRetriever {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(JKSKeyRetriever.class);
+    private static final AtomicBoolean KEYSTORE_LOGGED = new AtomicBoolean(false);
 
     /**
      * Loads the private key from the Java Keystore given the RPA configuration.
@@ -23,7 +25,10 @@ public class JKSKeyRetriever implements KeyRetriever {
     @Override
     public Key getKey(RPAConfiguration rpaConfiguration)  {
         try {
-            LOGGER.info("Using Java Keystore located at " + rpaConfiguration.getJksConfig().getKeyStorePath());
+            if (KEYSTORE_LOGGED.compareAndSet(false, true)) {
+                LOGGER.debug("RPA signing keystore initialized path={}",
+                        rpaConfiguration.getJksConfig().getKeyStorePath());
+            }
             KeyStore keystore = KeyStore.getInstance(rpaConfiguration.getJksConfig().getKeyStoreType());
             keystore.load(Files.newInputStream(
                             Paths.get(rpaConfiguration.getJksConfig().getKeyStorePath())),

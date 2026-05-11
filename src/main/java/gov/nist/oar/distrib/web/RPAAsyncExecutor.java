@@ -1,9 +1,12 @@
 package gov.nist.oar.distrib.web;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 
+import gov.nist.oar.distrib.service.rpa.RPALogContext;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.Record;
@@ -27,19 +30,25 @@ public class RPAAsyncExecutor {
      * method does not throw any exceptions; rather, it logs any errors and
      * continues.
      * 
-     * @param wrapper The RecordWrapper containing the record and its
+    * @param wrapper The RecordWrapper containing the record and its
      *                details.
      * @param input   The UserInfoWrapper containing the original input data
      *                used to create the record.
      */
     @Async
-    public void handleAfterRecordCreationAsync(RecordWrapper wrapper, UserInfoWrapper input, int code) {
+    public void handleAfterRecordCreationAsync(RecordWrapper wrapper, UserInfoWrapper input, int code,
+            Map<String, String> logContext) {
+        Map<String, String> previousContext = RPALogContext.capture();
+        RPALogContext.restore(logContext);
         try {
             handler.handleAfterRecordCreation(wrapper, input, code);
         } catch (RequestProcessingException e) {
             String recordId = wrapper != null && wrapper.getRecord() != null ? wrapper.getRecord().getId() : "unknown";
-            LOGGER.error("Async post-processing failed for record ID {}: {}", recordId,
+            LOGGER.error("RPA async create post-processing failed reqId={} recordId={}: {}",
+                    RPALogContext.requestId(), recordId,
                     e.getMessage(), e);
+        } finally {
+            RPALogContext.restore(previousContext);
         }
     }
 
@@ -52,12 +61,18 @@ public class RPAAsyncExecutor {
      * @param datasetId The ID of the dataset associated with the record.
      */
     @Async
-    public void handleAfterRecordUpdateAsync(Record record, String status, String datasetId) {
+    public void handleAfterRecordUpdateAsync(Record record, String status, String datasetId,
+            Map<String, String> logContext) {
+        Map<String, String> previousContext = RPALogContext.capture();
+        RPALogContext.restore(logContext);
         try {
             handler.handleAfterRecordUpdate(record, status, datasetId);
         } catch (RequestProcessingException e) {
-            LOGGER.error("Async post-processing failed for record update (record ID {}): {}",
-                    record.getId(), e.getMessage(), e);
+            String recordId = record != null ? record.getId() : "unknown";
+            LOGGER.error("RPA async update post-processing failed reqId={} recordId={} action={}: {}",
+                    RPALogContext.requestId(), recordId, status, e.getMessage(), e);
+        } finally {
+            RPALogContext.restore(previousContext);
         }
     }
 }

@@ -23,6 +23,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,7 +210,8 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.debug("GET_RECORD_URL=" + url);
+        LOGGER.debug("RPA Salesforce record fetch started reqId={} recordId={} endpoint={}",
+                RPALogContext.requestId(), recordId, RPALogContext.safeUrl(url));
         // Create the HttpURLConnection and send the GET request
         RecordWrapper recordWrapper;
         HttpURLConnection connection = null;
@@ -231,24 +233,37 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
-                    LOGGER.debug("GET_RECORD_RESPONSE=" + response);
-                    // Handle the response
                     recordWrapper = new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
+                    if (recordWrapper != null && recordWrapper.getRecord() != null) {
+                        RPALogContext.updateFromRecord(recordWrapper.getRecord());
+                        LOGGER.debug("RPA Salesforce record fetch completed reqId={} recordId={} caseNum={} approvalStatus={}",
+                                RPALogContext.requestId(),
+                                recordWrapper.getRecord().getId(),
+                                recordWrapper.getRecord().getCaseNum(),
+                                RPALogContext.summarizeApprovalStatus(
+                                        recordWrapper.getRecord().getUserInfo().getApprovalStatus()));
+                    }
                 }
             } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
                 // Handle the error HTTP_NOT_FOUND response
+                LOGGER.warn("RPA Salesforce record fetch returned not-found reqId={} recordId={}",
+                        RPALogContext.requestId(), recordId);
                 throw RecordNotFoundException.fromRecordId(recordId);
             } else {
                 // Handle any other error response
+                LOGGER.warn("RPA Salesforce record fetch failed reqId={} recordId={} statusCode={} message={}",
+                        RPALogContext.requestId(), recordId, responseCode, connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from salesforce service: " + connection.getResponseMessage());
             }
         } catch (MalformedURLException e) {
             // Handle the URL Malformed error
-            LOGGER.debug("Invalid URL: " + e.getMessage());
+            LOGGER.error("RPA Salesforce record fetch failed reqId={} recordId={} reason=invalid-url message={}",
+                    RPALogContext.requestId(), recordId, e.getMessage());
             throw new RequestProcessingException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
             // Handle the I/O error
-            LOGGER.debug("Error sending GET request: " + e.getMessage());
+            LOGGER.error("RPA Salesforce record fetch failed reqId={} recordId={} message={}",
+                    RPALogContext.requestId(), recordId, e.getMessage());
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         } finally {
             // Close the connection
@@ -296,7 +311,22 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // 3. Call Salesforce
         RecordCreationResult postResult = postToSalesforce(url, payload);
         int statusCode = postResult.getStatusCode();
-        LOGGER.debug("CREATE_RECORD_STATUS_CODE=" + statusCode);
+        Record createdRecord = postResult.getRecordWrapper() != null ? postResult.getRecordWrapper().getRecord() : null;
+        if (createdRecord != null) {
+            RPALogContext.updateFromRecord(createdRecord);
+            LOGGER.info("RPA Salesforce record create completed reqId={} dataset={} recordId={} caseNum={} approvalStatus={} statusCode={}",
+                    RPALogContext.requestId(),
+                    createdRecord.getUserInfo().getSubject(),
+                    createdRecord.getId(),
+                    createdRecord.getCaseNum(),
+                    RPALogContext.summarizeApprovalStatus(createdRecord.getUserInfo().getApprovalStatus()),
+                    statusCode);
+        } else {
+            LOGGER.info("RPA Salesforce record create completed reqId={} dataset={} statusCode={}",
+                    RPALogContext.requestId(),
+                    userInfoWrapper.getUserInfo().getSubject(),
+                    statusCode);
+        }
 
         return postResult;
     }
@@ -318,25 +348,31 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         String country = wrapper.getUserInfo().getCountry();
         String datasetId = wrapper.getUserInfo().getSubject(); // Dataset ID comes from subject
 
-        LOGGER.debug("USER_EMAIL={}, USER_COUNTRY={}, DATASET_ID={}", email, country, datasetId);
+        LOGGER.debug("RPA blacklist check started reqId={} dataset={} emailDomain={} country={}",
+                RPALogContext.requestId(), datasetId, RPALogContext.emailDomain(email), country);
 
         RPAConfiguration.BlacklistConfig blacklist = rpaConfiguration.getBlacklists().get(datasetId);
 
         if (blacklist == null) {
-            LOGGER.info("No blacklist configured for dataset {}, access allowed.", datasetId);
+            LOGGER.info("RPA blacklist check passed reqId={} dataset={} ruleSet=none",
+                    RPALogContext.requestId(), datasetId);
             return ""; // Allow access if no blacklist defined
         }
 
         if (isEmailBlacklisted(email, blacklist.getDisallowedEmails())) {
-            LOGGER.warn("Email {} is blacklisted for dataset {}.", email, datasetId);
+            LOGGER.warn("RPA blacklist check blocked reqId={} dataset={} reason=email email={}",
+                    RPALogContext.requestId(), datasetId, RPALogContext.maskEmail(email));
             return "Email " + email + " is blacklisted for dataset " + datasetId + ".";
         }
 
         if (isCountryBlacklisted(country, blacklist.getDisallowedCountries())) {
-            LOGGER.warn("Country {} is blacklisted for dataset {}.", country, datasetId);
+            LOGGER.warn("RPA blacklist check blocked reqId={} dataset={} reason=country country={}",
+                    RPALogContext.requestId(), datasetId, country);
             return "Country " + country + " is blacklisted for dataset " + datasetId + ".";
         }
 
+        LOGGER.info("RPA blacklist check passed reqId={} dataset={} ruleSet=configured",
+                RPALogContext.requestId(), datasetId);
         return "";
     }
     
@@ -379,7 +415,10 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private String preparePayloadOrFail(UserInfoWrapper wrapper) throws RequestProcessingException {
         try {
             String payload = prepareRequestPayload(wrapper);
-            LOGGER.debug("CREATE_RECORD_PAYLOAD={}", payload);
+            LOGGER.debug("RPA create-record payload prepared reqId={} dataset={} approvalStatus={} fields=userInfo",
+                    RPALogContext.requestId(),
+                    wrapper.getUserInfo().getSubject(),
+                    RPALogContext.summarizeApprovalStatus(wrapper.getUserInfo().getApprovalStatus()));
             return payload;
         } catch (JsonProcessingException e) {
             LOGGER.error("Error preparing payload: {}", e.getMessage());
@@ -421,7 +460,10 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         switch (status) {
             case RECORD_REJECTED_STATUS:
                 // Automatically rejected records (e.g., blacklisted) require no post-processing
-                LOGGER.info("Record auto-rejected; skipping post-processing.");
+                LOGGER.info("RPA post-create processing skipped reqId={} recordId={} dataset={} reason=auto-rejected",
+                        RPALogContext.requestId(),
+                        wrapper.getRecord().getId(),
+                        input.getUserInfo().getSubject());
                 break;
 
             case RECORD_PRE_APPROVED_STATUS:
@@ -432,16 +474,21 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
                     if (randomId == null) {
                         // Caching failed — notify user of failure
-                        LOGGER.warn("Failed to cache dataset '{}'; notifying user of processing failure.", datasetId);
+                        LOGGER.warn("RPA pre-approved cache failed reqId={} recordId={} dataset={} reason=null-cart-id",
+                                RPALogContext.requestId(), wrapper.getRecord().getId(), datasetId);
                         recordResponseHandler.onFailure(wrapper.getRecord());
                     } else {
                         // Caching succeeded — notify user of success and provide download link
+                        LOGGER.info("RPA pre-approved cache completed reqId={} recordId={} dataset={}",
+                                RPALogContext.requestId(), wrapper.getRecord().getId(), datasetId);
                         recordResponseHandler.onPreApprovedRecordCreationSuccess(wrapper.getRecord(), randomId);
                     }
 
                 } catch (Exception e) {
                     // Unexpected error during caching or metadata lookup — notify user
-                    LOGGER.error("Unexpected error while caching dataset or fetching metadata: {}", e.getMessage(), e);
+                    LOGGER.error("RPA pre-approved post-processing failed reqId={} recordId={} dataset={}: {}",
+                            RPALogContext.requestId(), wrapper.getRecord().getId(),
+                            input.getUserInfo().getSubject(), e.getMessage(), e);
                     recordResponseHandler.onFailure(wrapper.getRecord());
                 }
                 break;
@@ -502,17 +549,19 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
-                    LOGGER.debug("CREATE_RECORD_RESPONSE=" + response);
                     RecordWrapper recordWrapper =  new ObjectMapper().readValue(response.toString(), RecordWrapper.class);
                     return new RecordCreationResult(recordWrapper, responseCode);
 
                 }
             } else {
-                LOGGER.error("Salesforce returned error: " + connection.getResponseMessage());
+                LOGGER.error("RPA Salesforce record create failed reqId={} endpoint={} statusCode={} message={}",
+                        RPALogContext.requestId(), RPALogContext.safeUrl(url), responseCode, connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
             }
-    
+
         } catch (IOException e) {
+            LOGGER.error("RPA Salesforce record create failed reqId={} endpoint={} message={}",
+                    RPALogContext.requestId(), RPALogContext.safeUrl(url), e.getMessage());
             throw new RequestProcessingException("I/O error during POST to Salesforce: " + e.getMessage());
         } finally {
             if (connection != null) {
@@ -590,12 +639,14 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             if (typeNode.isArray() && typeNode.toString().contains("nrdp:RestrictedAccessPage")) {
                 JsonNode accessProfile = component.path("pdr:accessProfile");
                 if (!accessProfile.isMissingNode() && "rpa:rp0".equals(accessProfile.path("@type").asText())) {
-                    LOGGER.info("Dataset (ID =" + datasetId + ")  is pre-approved.");
+                    LOGGER.info("RPA approval path selected reqId={} dataset={} mode=pre-approved",
+                            RPALogContext.requestId(), datasetId);
                     return true;
                 }
             }
         }
-        LOGGER.info("Dataset (ID =" + datasetId + ") requires SME approval.");
+        LOGGER.info("RPA approval path selected reqId={} dataset={} mode=sme",
+                RPALogContext.requestId(), datasetId);
         return false;
     }
     
@@ -650,6 +701,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         RecordStatus recordStatus;
         Record record = this.getRecord(recordId).getRecord();
         String datasetId = record.getUserInfo().getSubject();
+        String currentStatus = record.getUserInfo().getApprovalStatus();
 
         // Create a valid approval status based on input
         // For approvals, use interim "ApprovalPending" status (no random ID yet)
@@ -659,7 +711,6 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // PATCH request payload
         // Approval_Status__c is how SF service expect the key
         String patchPayload = new JSONObject().put("Approval_Status__c", approvalStatus).toString();
-        LOGGER.debug("UPDATE_RECORD_PAYLOAD=" + patchPayload);
 
         // Get token
         JWTToken token = jwtHelper.getToken();
@@ -677,7 +728,10 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         } catch (URISyntaxException e) {
             throw new RequestProcessingException("Error building URI: " + e.getMessage());
         }
-        LOGGER.debug("UPDATE_RECORD_URL=" + url);
+        LOGGER.debug("RPA record status update started reqId={} recordId={} endpoint={} requestedAction={} previousStatus={} targetStatus={}",
+                RPALogContext.requestId(), recordId, RPALogContext.safeUrl(url), status,
+                RPALogContext.summarizeApprovalStatus(currentStatus),
+                RPALogContext.summarizeApprovalStatus(approvalStatus));
 
         // Send PATCH request
         try {
@@ -689,25 +743,30 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
             CloseableHttpResponse response = httpClient.execute(httpPatch);
             int statusCode = response.getStatusLine().getStatusCode();
-            LOGGER.debug("UPDATE_RECORD_STATUS_CODE=" + statusCode);
             if (statusCode == HttpStatus.SC_OK) { // If success
                 try (InputStream inputStream = response.getEntity().getContent()) {
                     String responseString = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-                    LOGGER.debug("UPDATE_RECORD_RESPONSE=" + responseString);
                     // Handle the response
                     recordStatus = new ObjectMapper().readValue(responseString, RecordStatus.class);
+                    LOGGER.info("RPA record status updated reqId={} recordId={} caseNum={} dataset={} action={} previousStatus={} newStatus={}",
+                            RPALogContext.requestId(), recordId, record.getCaseNum(), datasetId, status,
+                            RPALogContext.summarizeApprovalStatus(currentStatus),
+                            RPALogContext.summarizeApprovalStatus(approvalStatus));
                 }
             } else if (statusCode == HttpStatus.SC_BAD_REQUEST) { // If bad request
-                LOGGER.debug("Invalid request: " + response.getStatusLine().getReasonPhrase());
+                LOGGER.warn("RPA record status update rejected reqId={} recordId={} statusCode={} message={}",
+                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase());
                 throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
             } else {
                 // Handle any other error response
-                LOGGER.debug("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
+                LOGGER.error("RPA record status update failed reqId={} recordId={} statusCode={} message={}",
+                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase());
                 throw new RequestProcessingException("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
             }
         } catch (IOException e) {
             // Handle the I/O error
-            LOGGER.debug("Error sending PATCH request: " + e.getMessage());
+            LOGGER.error("RPA record status update failed reqId={} recordId={} message={}",
+                    RPALogContext.requestId(), recordId, e.getMessage());
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         }
 
@@ -748,37 +807,65 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
     private void handleApprovalPostProcessing(Record record, String datasetId)
             throws RequestProcessingException {
         String randomId = null;
+        long startedAt = System.currentTimeMillis();
 
         try {
             // Cache the dataset
-            LOGGER.info("Starting async caching for dataset: {}", datasetId);
+            LOGGER.info("RPA approval post-processing started reqId={} recordId={} dataset={} stage=caching",
+                    RPALogContext.requestId(), record.getId(), datasetId);
+            long cacheStartedAt = System.currentTimeMillis();
             randomId = this.rpaDatasetCacher.cache(datasetId);
+            long cacheElapsedMs = System.currentTimeMillis() - cacheStartedAt;
 
             if (randomId == null) {
-                LOGGER.error("Caching process returned a null randomId for dataset: {}", datasetId);
+                LOGGER.error("RPA approval post-processing failed reqId={} recordId={} dataset={} reason=null-cart-id",
+                        RPALogContext.requestId(), record.getId(), datasetId);
                 patchFailureStatus(record);
                 this.recordResponseHandler.onFailure(record);
                 return;
             }
+            LOGGER.info("RPA approval cache completed reqId={} recordId={} dataset={} cartId={} elapsedMs={}",
+                    RPALogContext.requestId(), record.getId(), datasetId, randomId, cacheElapsedMs);
 
             // Update Salesforce with final status including randomId
             String currentStatus = record.getUserInfo().getApprovalStatus();
             String finalStatus = updateApprovalStatusWithRandomId(currentStatus, randomId);
+            LOGGER.info(
+                    "RPA approval finalization started reqId={} recordId={} dataset={} currentStatus={} targetStatus={} cartId={}",
+                    RPALogContext.requestId(),
+                    record.getId(),
+                    datasetId,
+                    RPALogContext.summarizeApprovalStatus(currentStatus),
+                    RPALogContext.summarizeApprovalStatus(finalStatus),
+                    randomId);
             patchRecordStatus(record.getId(), finalStatus);
+            LOGGER.info("RPA approval finalization patch succeeded reqId={} recordId={} dataset={} targetStatus={}",
+                    RPALogContext.requestId(), record.getId(), datasetId,
+                    RPALogContext.summarizeApprovalStatus(finalStatus));
             record.getUserInfo().setApprovalStatus(finalStatus);
 
             // Send success email with download link
             this.recordResponseHandler.onRecordUpdateApproved(record, randomId);
-            LOGGER.info("Approval post-processing completed for record: {}", record.getId());
+            LOGGER.info("RPA approval post-processing completed reqId={} recordId={} dataset={} finalStatus={} totalElapsedMs={}",
+                    RPALogContext.requestId(), record.getId(), datasetId,
+                    RPALogContext.summarizeApprovalStatus(finalStatus),
+                    System.currentTimeMillis() - startedAt);
 
         } catch (Exception e) {
-            LOGGER.error("Approval post-processing failed for record {}: {}", record.getId(), e.getMessage(), e);
+            LOGGER.error("RPA approval post-processing failed reqId={} recordId={} dataset={} elapsedMs={}: {}",
+                    RPALogContext.requestId(), record.getId(), datasetId,
+                    System.currentTimeMillis() - startedAt, e.getMessage(), e);
             if (randomId != null) {
                 try {
+                    LOGGER.warn("RPA approval cleanup started reqId={} recordId={} dataset={} cartId={}",
+                            RPALogContext.requestId(), record.getId(), datasetId, randomId);
                     this.rpaDatasetCacher.uncache(randomId);
+                    LOGGER.warn("RPA approval cleanup completed reqId={} recordId={} dataset={} cartId={}",
+                            RPALogContext.requestId(), record.getId(), datasetId, randomId);
                 } catch (Exception uncacheException) {
-                    LOGGER.error("Failed to uncache dataset after approval failure (random ID {}): {}",
-                            randomId, uncacheException.getMessage(), uncacheException);
+                    LOGGER.error("RPA approval cleanup failed reqId={} recordId={} dataset={} stage=uncache: {}",
+                            RPALogContext.requestId(), record.getId(), datasetId,
+                            uncacheException.getMessage(), uncacheException);
                 }
             }
             patchFailureStatus(record);
@@ -797,17 +884,21 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
         if (randomId != null) {
             try {
-                LOGGER.info("Uncaching dataset with random ID: {}", randomId);
+                LOGGER.info("RPA decline post-processing started reqId={} recordId={} stage=uncache",
+                        RPALogContext.requestId(), record.getId());
                 this.rpaDatasetCacher.uncache(randomId);
             } catch (Exception e) {
                 // Log but don't fail - the decline should still succeed
-                LOGGER.error("Failed to uncache dataset with ID {}: {}", randomId, e.getMessage(), e);
+                LOGGER.error("RPA decline cleanup failed reqId={} recordId={}: {}",
+                        RPALogContext.requestId(), record.getId(), e.getMessage(), e);
             }
         }
 
         // Send decline notification
         this.recordResponseHandler.onRecordUpdateDeclined(record);
-        LOGGER.info("Decline post-processing completed for record: {}", record.getId());
+        LOGGER.info("RPA decline post-processing completed reqId={} recordId={} finalStatus={}",
+                RPALogContext.requestId(), record.getId(),
+                RPALogContext.summarizeApprovalStatus(record.getUserInfo().getApprovalStatus()));
     }
 
     private void patchFailureStatus(Record record) {
@@ -849,7 +940,6 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      */
     private void patchRecordStatus(String recordId, String approvalStatus) throws RequestProcessingException {
         String patchPayload = new JSONObject().put("Approval_Status__c", approvalStatus).toString();
-        LOGGER.debug("PATCH_RECORD_STATUS_PAYLOAD=" + patchPayload);
 
         JWTToken token = jwtHelper.getToken();
         String updateRecordUri = getConfig().getSalesforceEndpoints().get(UPDATE_RECORD_ENDPOINT_KEY);
@@ -871,14 +961,35 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
             HttpEntity httpEntity = new StringEntity(patchPayload, ContentType.APPLICATION_JSON);
             httpPatch.setEntity(httpEntity);
 
-            CloseableHttpResponse response = httpClient.execute(httpPatch);
-            int statusCode = response.getStatusLine().getStatusCode();
-            LOGGER.debug("PATCH_RECORD_STATUS_CODE=" + statusCode);
+            long executeStartedAt = System.currentTimeMillis();
+            LOGGER.info("RPA record status patch executing reqId={} recordId={} endpoint={} targetStatus={}",
+                    RPALogContext.requestId(), recordId, RPALogContext.safeUrl(url),
+                    RPALogContext.summarizeApprovalStatus(approvalStatus));
 
-            if (statusCode != HttpStatus.SC_OK) {
-                throw new RequestProcessingException("Failed to update record status: " + response.getStatusLine().getReasonPhrase());
+            try (CloseableHttpResponse response = httpClient.execute(httpPatch)) {
+                long executeElapsedMs = System.currentTimeMillis() - executeStartedAt;
+                int statusCode = response.getStatusLine().getStatusCode();
+                LOGGER.info("RPA record status patch returned reqId={} recordId={} statusCode={} elapsedMs={} targetStatus={}",
+                        RPALogContext.requestId(), recordId, statusCode, executeElapsedMs,
+                        RPALogContext.summarizeApprovalStatus(approvalStatus));
+
+                if (statusCode != HttpStatus.SC_OK) {
+                    String responseBody = response.getEntity() != null ? EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8) : "";
+                    LOGGER.error(
+                            "RPA record status patch failed reqId={} recordId={} statusCode={} reason={} targetStatus={} responseBody={}",
+                            RPALogContext.requestId(),
+                            recordId,
+                            statusCode,
+                            response.getStatusLine().getReasonPhrase(),
+                            RPALogContext.summarizeApprovalStatus(approvalStatus),
+                            responseBody);
+                    throw new RequestProcessingException("Failed to update record status: " + response.getStatusLine().getReasonPhrase());
+                }
             }
         } catch (IOException e) {
+            LOGGER.error("RPA record status patch I/O failure reqId={} recordId={} endpoint={} targetStatus={}: {}",
+                    RPALogContext.requestId(), recordId, RPALogContext.safeUrl(url),
+                    RPALogContext.summarizeApprovalStatus(approvalStatus), e.getMessage(), e);
             throw new RequestProcessingException("I/O error updating record status: " + e.getMessage());
         }
     }
