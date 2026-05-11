@@ -248,6 +248,20 @@ public class NISTCacheManagerConfigTest {
     }
 
     @Test
+    public void testDatabaseTypeHelpers() throws ConfigurationException {
+        assertTrue(NISTCacheManagerConfig.isSqliteUrl("jdbc:sqlite:/tmp/test.sqlite"));
+        assertFalse(NISTCacheManagerConfig.isSqliteUrl("jdbc:postgresql://localhost:5432/test"));
+        assertTrue(NISTCacheManagerConfig.isPostgresUrl("jdbc:postgresql://localhost:5432/test"));
+        assertFalse(NISTCacheManagerConfig.isPostgresUrl("jdbc:sqlite:/tmp/test.sqlite"));
+        assertEquals("sqlite",
+                     NISTCacheManagerConfig.requireSupportedDatabaseType("jdbc:sqlite:/tmp/test.sqlite", "dburl"));
+        assertEquals("postgres",
+                     NISTCacheManagerConfig.requireSupportedDatabaseType("jdbc:postgresql://localhost:5432/test",
+                                                                        "dburl"));
+        assertNull(NISTCacheManagerConfig.requireSupportedDatabaseType(null, "dburl"));
+    }
+
+    @Test
     public void testPostgresConfigMissingUrl() {
         // Test that creating cache with PostgreSQL JDBC URL prefix but incomplete URL throws exception
         cfg.setDburl("jdbc:postgresql:");
@@ -258,6 +272,30 @@ public class NISTCacheManagerConfigTest {
         });
 
         assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testMalformedPostgresUrlFailsFast() {
+        cfg.setDburl("jdbc:postgres://localhost:5432/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for dburl"));
+        assertTrue(ex.getMessage().contains("jdbc:postgresql:"));
+    }
+
+    @Test
+    public void testUnsupportedJdbcUrlFailsFast() {
+        cfg.setDburl("jdbc:mysql://localhost:3306/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for dburl"));
+        assertTrue(ex.getMessage().contains("jdbc:mysql://"));
     }
 
     @Test
@@ -272,6 +310,60 @@ public class NISTCacheManagerConfigTest {
         });
 
         assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testUnsupportedHeadbagJdbcUrlFailsFast() throws IOException {
+        cfg.setHeadbagDburl("jdbc:mysql://localhost:3306/headbag?user=test&password=test");
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for headbagDburl"));
+    }
+
+    @Test
+    public void testPostgresHeadbagUrlMustBeExplicitlySeparated() throws IOException {
+        cfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("headbagDburl"));
+        assertTrue(ex.getMessage().contains("separate"));
+    }
+
+    @Test
+    public void testPostgresHeadbagUrlMustNotReuseMainDburl() throws IOException {
+        String dbUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test";
+        cfg.setDburl(dbUrl);
+        cfg.setHeadbagDburl(dbUrl);
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("must not reuse dburl"));
+    }
+
+    @Test
+    public void testExplicitThreeDatabasePostgresConfigIsAccepted() throws ConfigurationException {
+        String mainUrl = "jdbc:postgresql://postgres:5432/oar_cache?user=oar_app&password=test123";
+        String headbagUrl = "jdbc:postgresql://postgres:5432/oar_headbag_cache?user=oar_app&password=test123";
+        String rpaUrl = "jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123";
+
+        cfg.setDburl(mainUrl);
+        cfg.setHeadbagDburl(headbagUrl);
+        cfg.setRpaDburl(rpaUrl);
+
+        assertEquals("postgres", NISTCacheManagerConfig.requireSupportedDatabaseType(cfg.getDburl(), "dburl"));
+        assertEquals(headbagUrl, cfg.resolveHeadbagInventoryDburl());
+        assertEquals(rpaUrl, cfg.resolveRpaInventoryDburl());
     }
 
     @Test

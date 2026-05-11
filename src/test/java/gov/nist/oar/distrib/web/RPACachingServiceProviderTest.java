@@ -130,6 +130,53 @@ public class RPACachingServiceProviderTest {
     }
 
     @Test
+    public void testRPAPostgresUrlMustBeExplicitlySeparated() {
+        cmcfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("rpaDburl"));
+        assertTrue(ex.getMessage().contains("separate"));
+    }
+
+    @Test
+    public void testRPAPostgresUrlMustNotReuseMainDburl() {
+        String dbUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test";
+        cmcfg.setDburl(dbUrl);
+        cmcfg.setRpaDburl(dbUrl);
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("must not reuse dburl"));
+    }
+
+    @Test
+    public void testUnsupportedRpaJdbcUrlFailsFast() {
+        cmcfg.setRpaDburl("jdbc:mysql://localhost:3306/rpa_cache?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for rpaDburl"));
+    }
+
+    @Test
+    public void testExplicitThreeDatabasePostgresRpaConfigIsAccepted() throws ConfigurationException {
+        cmcfg.setDburl("jdbc:postgresql://postgres:5432/oar_cache?user=oar_app&password=test123");
+        cmcfg.setHeadbagDburl("jdbc:postgresql://postgres:5432/oar_headbag_cache?user=oar_app&password=test123");
+        cmcfg.setRpaDburl("jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123");
+
+        assertEquals("postgres", NISTCacheManagerConfig.requireSupportedDatabaseType(cmcfg.getDburl(), "dburl"));
+        assertEquals("jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123",
+                     cmcfg.resolveRpaInventoryDburl());
+    }
+
+    @Test
     public void testRPASqliteWithJdbcUrl()
         throws ConfigurationException, IOException, CacheManagementException
     {

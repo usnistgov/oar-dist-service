@@ -39,6 +39,7 @@ import gov.nist.oar.distrib.cachemgr.InventoryMetadataException;
 import gov.nist.oar.distrib.cachemgr.InventorySearchException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.PostgresBootstrapHelper;
 
 
 /**
@@ -145,6 +146,49 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
         if (! md.has(name))
             return defval;
         return md.getString(name);
+    }
+
+    protected List<CacheObject> queryForObjects(String objsql, int purpose, Object... params)
+        throws InventoryException
+    {
+        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
+        synchronized (lock) {
+            Connection conn = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+            try {
+                conn = connect();
+                stmt = conn.prepareStatement(objsql);
+                for (int i = 0; i < params.length; i++) {
+                    Object param = params[i];
+                    int idx = i + 1;
+                    if (param instanceof String)
+                        stmt.setString(idx, (String) param);
+                    else if (param instanceof Integer)
+                        stmt.setInt(idx, ((Integer) param).intValue());
+                    else if (param instanceof Long)
+                        stmt.setLong(idx, ((Long) param).longValue());
+                    else if (param instanceof Boolean)
+                        stmt.setBoolean(idx, ((Boolean) param).booleanValue());
+                    else
+                        stmt.setObject(idx, param);
+                }
+
+                rs = stmt.executeQuery();
+                List<CacheObject> out = new java.util.ArrayList<CacheObject>();
+                while (rs.next())
+                    out.add(extractObject(rs));
+                return out;
+            }
+            catch (SQLException ex) {
+                throw new InventorySearchException(ex);
+            }
+            finally {
+                try { if (rs != null) rs.close(); } catch (SQLException ex) { }
+                try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+                quietDisconnect(conn);
+            }
+        }
     }
 
     /**
@@ -303,19 +347,15 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> selectObjectsByPDRID(String pdrid, int purpose) throws InventoryException {
-
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.pdrid='").append(pdrid).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.pdrid=? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, pdrid, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, pdrid, Integer.valueOf(purpose));
     }
 
     /**
@@ -328,17 +368,14 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     public List<CacheObject> selectObjectsByEDIID(String ediid, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.ediid='").append(ediid).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.ediid=? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, ediid, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, ediid, Integer.valueOf(purpose));
     }
 
     /**
@@ -353,17 +390,14 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     protected List<CacheObject> selectObjectsLikeID(String idpat, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.objid LIKE '").append(idpat).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.objid LIKE ? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, idpat, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, idpat, Integer.valueOf(purpose));
     }
 
     /**
@@ -395,7 +429,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
             throw new VolumeNotFoundException(volname);
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
@@ -409,9 +443,11 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
             // calculate totals for files having that volume ID
             String qsel = "SELECT count(*) as count,sum(size) as totsz,max(since) as newest," +
-                          "min(checked) as oldest FROM objects WHERE cached=1 AND volume=" +vid;
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel);
+                          "min(checked) as oldest FROM objects WHERE cached=? AND volume=?";
+            stmt = conn.prepareStatement(qsel);
+            stmt.setBoolean(1, true);
+            stmt.setInt(2, vid);
+            res = stmt.executeQuery();
 
             if (res.next() && res.getInt("count") > 0) {
                 out.put("filecount", res.getInt("count"));
@@ -463,20 +499,22 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONObject summarizeDataset(String aipid) throws InventoryException {
-        StringBuilder qsel = new StringBuilder();
-        qsel.append("SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
-            .append("min(d.checked) as oldest FROM objects d, volumes v ")
-            .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
-            .append(aipid).append("/%' GROUP BY d.ediid");
+        String qsel = "SELECT min(d.ediid) as ediid,min(d.pdrid) as pdrid,count(*) as count," +
+                      "sum(d.size) as totsz,max(d.since) as newest,min(d.checked) as oldest " +
+                      "FROM objects d, volumes v " +
+                      "WHERE d.volume=v.id AND d.cached=? AND v.name!='old' AND d.objid LIKE ? " +
+                      "HAVING count(*) > 0";
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
 
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel.toString());
+            stmt = conn.prepareStatement(qsel);
+            stmt.setBoolean(1, true);
+            stmt.setString(2, aipid + "/%");
+            res = stmt.executeQuery();
             if (! res.next())
                 return null;
             return extractDatasetInfo(res);
@@ -500,24 +538,29 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONArray summarizeContents(String volname) throws InventoryException {
-        String qsel = "SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
-                      "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
-        if (volname != null) 
-            qsel += " AND v.name='" + volname + "'";
+        StringBuilder qsel = new StringBuilder();
+        qsel.append("SELECT d.ediid,min(d.pdrid) as pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
+            .append("min(d.checked) as oldest FROM objects d, volumes v ")
+            .append("WHERE d.volume=v.id AND d.cached=?");
+        if (volname != null)
+            qsel.append(" AND v.name=?");
         else
-            qsel += " AND v.name!='old'";
-        qsel += " GROUP BY d.ediid ORDER BY oldest";
+            qsel.append(" AND v.name!='old'");
+        qsel.append(" GROUP BY d.ediid ORDER BY oldest");
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
             
             JSONArray out = new JSONArray();
             JSONObject row = null;
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel);
+            stmt = conn.prepareStatement(qsel.toString());
+            stmt.setBoolean(1, true);
+            if (volname != null)
+                stmt.setString(2, volname);
+            res = stmt.executeQuery();
             while (res.next()) {
                 row = extractDatasetInfo(res);
                 out.put(row);
@@ -664,51 +707,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database
      */
     public static void initializePostgresDB(String jdbcUrl) throws InventoryException {
-        // load the sql script from a resource
-        Class<PDRStorageInventoryDB> thiscl = PDRStorageInventoryDB.class;
-        BufferedReader rdr = null;
-        StringBuilder sb = new StringBuilder();
-        try {
-            rdr = new BufferedReader(new InputStreamReader(
-                thiscl.getResourceAsStream("res/pdr_postgres_create.sql")));
-
-            String line = null;
-            while ((line = rdr.readLine()) != null)
-                sb.append(" ").append(line);
-        }
-        catch (IOException ex) {
-            throw new InventoryException("Problem reading db init script: "+ex.getMessage(), ex);
-        }
-        finally {
-            try { if (rdr != null) rdr.close(); } catch (IOException ex) { }
-        }
-
-        // split the script into separate statements
-        String[] stmts = sb.toString().split(";");
-
-        // execute each statement
-        Connection conn = null;
-        try {
-            String connUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
-            conn = DriverManager.getConnection(connUrl);
-            for (String s : stmts) {
-                s = s.trim();
-                if (s.isEmpty()) continue;
-                try {
-                    conn.createStatement().execute(s);
-                }
-                catch (SQLException ex) {
-                    throw new InventorySearchException("DB init SQL statement failed: "+s+":\n"
-                                                       +ex.getMessage(), ex);
-                }
-            }
-        }
-        catch (SQLException ex) {
-            throw new InventorySearchException("Failed to connect to PostgreSQL database, "+jdbcUrl+": "
-                                               +ex.getMessage(), ex);
-        }
-        finally {
-            try { if (conn != null) conn.close(); } catch (SQLException ex) { }
-        }
+        PostgresBootstrapHelper.initializeSchema(jdbcUrl, PDRStorageInventoryDB.class,
+                                                 "res/pdr_postgres_create.sql", "pdr-storage-bootstrap");
     }
 }

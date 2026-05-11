@@ -67,17 +67,14 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
      */
     public List<CacheObject> selectObjectsByAIPID(String aipid, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.objid LIKE '").append(aipid).append(".%' AND v.status >= ").append(purpose);
+        sql.append("AND d.objid LIKE ? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, aipid + ".%", Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, aipid + ".%", Integer.valueOf(purpose));
     }
 
     /**

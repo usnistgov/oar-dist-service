@@ -986,6 +986,9 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             loadAlgorithms();
         }
         catch (SQLException ex) {
+            loadAlgorithms();
+            if (getAlgorithmID(algname) >= 0)
+                return;
             throw new InventoryException("Failed to register new algorithm into DB ("+algname+
                                          "): "+ex.getMessage(), ex);
         }
@@ -1053,17 +1056,24 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     stmt.setString(5, jmd);
 
                 stmt.executeUpdate();
+                loadVolumes();
+                return;
             }
             catch (SQLException ex) {
-                throw new InventoryException("Failed to register new volume in DB ("+name+
-                                             "): "+ex.getMessage(), ex);
+                loadVolumes();
+                id = getVolumeID(name);
+                if (id < 0) {
+                    throw new InventoryException("Failed to register new volume in DB ("+name+
+                                                 "): "+ex.getMessage(), ex);
+                }
             }
             finally {
                 try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
                 quietDisconnect(conn);
             }
         }
-        else {
+
+        if (id >= 0) {
             try {
                 // was previously registered; update its information
                 // FYI: upd_vol_sql =

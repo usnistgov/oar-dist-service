@@ -156,4 +156,26 @@ public class HeadBagDBTest {
         cos = sidb.findHeadBag("888888833333", "1.0.0", 0);
         assertEquals(0, cos.size());
     }
+
+    @Test
+    public void testSelectObjectsByAIPIDWithQuotedDatasetId() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        HeadBagDB sidb = HeadBagDB.createHeadBagDB(dbf.getPath());
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("size", 456L);
+        md.put("pdrid", "ark:/88888/quoted");
+        md.put("ediid", "quoted");
+
+        sidb.addObject("quoted'set.1_0_0.mbag0_4-3", "foobar", "quoted_headbag.zip", md);
+
+        List<CacheObject> cos = sidb.selectObjectsByAIPID("quoted'set", 0);
+        assertEquals(1, cos.size());
+        assertEquals("quoted_headbag.zip", cos.get(0).name);
+        assertEquals("quoted'set.1_0_0.mbag0_4-3", cos.get(0).id);
+    }
 }

@@ -112,11 +112,8 @@ public class RPACachingServiceProvider {
 
         // create the database
         Logger logger = LoggerFactory.getLogger(this.getClass());
-        String rpaDbUrl = cmcfg.getRpaDburl();
-        String dbType = NISTCacheManagerConfig.getDatabaseTypeFromUrl(rpaDbUrl);
-        logger.info("Initializing RPA headbag inventory database from URL: {}",
-                    rpaDbUrl != null ? rpaDbUrl.replaceAll("password=[^&]*", "password=***") : "null");
-
+        String rpaDbUrl = cmcfg.resolveRpaInventoryDburl();
+        String dbType = NISTCacheManagerConfig.requireSupportedDatabaseType(rpaDbUrl, "rpaDburl");
         HeadBagDB sidb;
         if ("postgres".equals(dbType)) {
             // PostgreSQL database
@@ -124,20 +121,16 @@ public class RPACachingServiceProvider {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (rpaDburl or dburl) must be configured with format: jdbc:postgresql://...");
 
+            logger.info("Initializing RPA headbag inventory database from PostgreSQL URL: {}",
+                        rpaDbUrl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL RPA headbag database");
 
-            // Initialize PostgreSQL database schema if needed
-            try {
-                HeadBagDB.initializePostgresDB(pgUrl);
-            } catch (InventoryException ex) {
-                // Database may already be initialized, log and continue
-                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL RPA headbag database may already be initialized: " + ex.getMessage());
-            }
+            HeadBagDB.initializePostgresDB(pgUrl);
             sidb = HeadBagDB.createPostgresDB(pgUrl);
         } else {
             // SQLite database (default or explicit jdbc:sqlite: URL)
             File dbf;
-            if (rpaDbUrl != null && rpaDbUrl.startsWith("jdbc:sqlite:")) {
+            if (NISTCacheManagerConfig.isSqliteUrl(rpaDbUrl)) {
                 // Use path from JDBC URL
                 String sqlitePath = NISTCacheManagerConfig.extractDbUrlWithoutPrefix(rpaDbUrl);
                 dbf = new File(sqlitePath).getAbsoluteFile();
@@ -147,6 +140,7 @@ public class RPACachingServiceProvider {
                 dbf = new File(dbrootdir, "inventory.sqlite");
             }
 
+            logger.info("Initializing RPA headbag inventory database at SQLite path: {}", dbf.getAbsolutePath());
             logger.info("Using SQLite RPA headbag database: {}", dbf.getAbsolutePath());
 
             if (! dbf.exists())

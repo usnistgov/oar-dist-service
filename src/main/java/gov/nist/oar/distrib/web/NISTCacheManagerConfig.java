@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.File;
@@ -144,6 +145,52 @@ public class NISTCacheManagerConfig {
     public String getRpaDburl() { return rpaDburl != null ? rpaDburl : dburl; }
     public void setRpaDburl(String url) { rpaDburl = url; }
 
+    String resolveHeadbagInventoryDburl() throws ConfigurationException {
+        requireSupportedDatabaseType(dburl, "dburl");
+        return resolvePostgresAwareInventoryDburl(headbagDburl, "headbagDburl", "headbag inventory",
+                                                  rpaDburl, "rpaDburl");
+    }
+
+    String resolveRpaInventoryDburl() throws ConfigurationException {
+        requireSupportedDatabaseType(dburl, "dburl");
+        return resolvePostgresAwareInventoryDburl(rpaDburl, "rpaDburl", "RPA headbag inventory",
+                                                  headbagDburl, "headbagDburl");
+    }
+
+    private String resolvePostgresAwareInventoryDburl(String explicitUrl, String propertyName,
+                                                      String inventoryName, String siblingUrl,
+                                                      String siblingPropertyName)
+        throws ConfigurationException
+    {
+        String mainDbType = requireSupportedDatabaseType(dburl, "dburl");
+        requireSupportedDatabaseType(explicitUrl, propertyName);
+
+        if ("postgres".equals(mainDbType) && (explicitUrl == null || explicitUrl.isEmpty()))
+        {
+            throw new ConfigurationException(propertyName + " must be explicitly configured for PostgreSQL " +
+                                             "deployments to keep the " + inventoryName +
+                                             " separate from the main cache inventory (dburl).");
+        }
+
+        String resolved = explicitUrl != null ? explicitUrl : dburl;
+        String resolvedDbType = requireSupportedDatabaseType(resolved, propertyName);
+        if (! "postgres".equals(resolvedDbType))
+            return resolved;
+
+        if (Objects.equals(resolved, dburl)) {
+            throw new ConfigurationException(propertyName + " must not reuse dburl for PostgreSQL " +
+                                             "deployments. Configure a separate PostgreSQL URL or schema " +
+                                             "for the " + inventoryName + ".");
+        }
+        if (siblingUrl != null && Objects.equals(resolved, siblingUrl)) {
+            throw new ConfigurationException(propertyName + " must not reuse " + siblingPropertyName +
+                                             " for PostgreSQL deployments. Configure a separate PostgreSQL " +
+                                             "URL or schema for the " + inventoryName + ".");
+        }
+
+        return resolved;
+    }
+
     /**
      * Determine database type from JDBC URL prefix
      * @param jdbcUrl The JDBC URL (e.g., "jdbc:postgresql://..." or "jdbc:sqlite:...")
@@ -159,6 +206,31 @@ public class NISTCacheManagerConfig {
             return "sqlite";
         }
         return null;
+    }
+
+    static boolean isPostgresUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.startsWith("jdbc:postgresql:");
+    }
+
+    static boolean isSqliteUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.startsWith("jdbc:sqlite:");
+    }
+
+    static String requireSupportedDatabaseType(String jdbcUrl, String propertyName)
+        throws ConfigurationException
+    {
+        if (jdbcUrl == null) {
+            return null;
+        }
+
+        String dbType = getDatabaseTypeFromUrl(jdbcUrl);
+        if (dbType == null) {
+            throw new ConfigurationException("Unsupported database URL for " + propertyName +
+                                             ": " + jdbcUrl + ". Supported JDBC URL prefixes are " +
+                                             "jdbc:sqlite: and jdbc:postgresql:.");
+        }
+
+        return dbType;
     }
 
     /**
@@ -435,10 +507,7 @@ public class NISTCacheManagerConfig {
 
         // set up the inventory database
         Logger logger = LoggerFactory.getLogger(this.getClass());
-        String dbType = getDatabaseTypeFromUrl(dburl);
-        logger.info("Initializing cache inventory database from URL: {}",
-                    dburl != null ? dburl.replaceAll("password=[^&]*", "password=***") : "null");
-
+        String dbType = requireSupportedDatabaseType(dburl, "dburl");
         PDRStorageInventoryDB sidb;
         if ("postgres".equals(dbType)) {
             // PostgreSQL database
@@ -446,20 +515,16 @@ public class NISTCacheManagerConfig {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured with format: jdbc:postgresql://...");
 
+            logger.info("Initializing cache inventory database from PostgreSQL URL: {}",
+                        dburl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL database");
 
-            // Initialize PostgreSQL database schema if needed
-            try {
-                PDRStorageInventoryDB.initializePostgresDB(pgUrl);
-            } catch (InventoryException ex) {
-                // Database may already be initialized, log and continue
-                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL database may already be initialized: " + ex.getMessage());
-            }
+            PDRStorageInventoryDB.initializePostgresDB(pgUrl);
             sidb = PDRStorageInventoryDB.createPostgresDB(pgUrl);
         } else {
             // SQLite database (default or explicit jdbc:sqlite: URL)
             File dbf;
-            if (dburl != null && dburl.startsWith("jdbc:sqlite:")) {
+            if (isSqliteUrl(dburl)) {
                 // Use path from JDBC URL
                 String sqlitePath = extractDbUrlWithoutPrefix(dburl);
                 dbf = new File(sqlitePath).getAbsoluteFile();
@@ -472,6 +537,7 @@ public class NISTCacheManagerConfig {
                 dbf = dbfile.getAbsoluteFile();
             }
 
+            logger.info("Initializing cache inventory database at SQLite path: {}", dbf.getPath());
             logger.info("Using SQLite database: {}", dbf.getPath());
 
             if (! dbf.exists())
@@ -521,11 +587,8 @@ public class NISTCacheManagerConfig {
 
         // create the database
         Logger logger = LoggerFactory.getLogger(this.getClass());
-        String hbDbUrl = getHeadbagDburl();
-        String dbType = getDatabaseTypeFromUrl(hbDbUrl);
-        logger.info("Initializing headbag inventory database from URL: {}",
-                    hbDbUrl != null ? hbDbUrl.replaceAll("password=[^&]*", "password=***") : "null");
-
+        String hbDbUrl = resolveHeadbagInventoryDburl();
+        String dbType = requireSupportedDatabaseType(hbDbUrl, "headbagDburl");
         HeadBagDB sidb;
         if ("postgres".equals(dbType)) {
             // PostgreSQL database
@@ -533,20 +596,16 @@ public class NISTCacheManagerConfig {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (headbagDburl or dburl) must be configured with format: jdbc:postgresql://...");
 
+            logger.info("Initializing headbag inventory database from PostgreSQL URL: {}",
+                        hbDbUrl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL headbag database");
 
-            // Initialize PostgreSQL database schema if needed
-            try {
-                HeadBagDB.initializePostgresDB(pgUrl);
-            } catch (InventoryException ex) {
-                // Database may already be initialized, log and continue
-                LoggerFactory.getLogger(this.getClass()).info("PostgreSQL headbag database may already be initialized: " + ex.getMessage());
-            }
+            HeadBagDB.initializePostgresDB(pgUrl);
             sidb = HeadBagDB.createPostgresDB(pgUrl);
         } else {
             // SQLite database (default or explicit jdbc:sqlite: URL)
             File dbf;
-            if (hbDbUrl != null && hbDbUrl.startsWith("jdbc:sqlite:")) {
+            if (isSqliteUrl(hbDbUrl)) {
                 // Use path from JDBC URL
                 String sqlitePath = extractDbUrlWithoutPrefix(hbDbUrl);
                 dbf = new File(sqlitePath).getAbsoluteFile();
@@ -558,6 +617,7 @@ public class NISTCacheManagerConfig {
                 dbf = new File(dbrootdir, "inventory.sqlite");
             }
 
+            logger.info("Initializing headbag inventory database at SQLite path: {}", dbf.getAbsolutePath());
             logger.info("Using SQLite headbag database: {}", dbf.getAbsolutePath());
 
             if (! dbf.exists())
