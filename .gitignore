@@ -13,6 +13,7 @@
 hs_err_pid*
 /bin/
 /target/
+LOG_PATH_IS_UNDEFINED/
 *.classpath
 *.project
 
