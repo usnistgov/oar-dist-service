@@ -1,6 +1,6 @@
 # Baseline Capture
 
-This document records the Stage 0 baseline capture and Stage 2 validation for branch `codex/boot4-migration-baseline-tooling`.
+This document records the Stage 0 baseline capture and Stage 2 validation for branch `feat/spring-boot-4-migration`.
 
 ## Baseline Identity
 
@@ -11,7 +11,7 @@ This document records the Stage 0 baseline capture and Stage 2 validation for br
 | Starting branch | `integration` |
 | Starting commit | `d176ff48d4727c4b0eeec82abe5ebb147bf30467` |
 | Commit summary | `Merge pull request #134 from usnistgov/fix/head-content-length-cloudflare` |
-| Working branch | `codex/boot4-migration-baseline-tooling` |
+| Working branch | `feat/spring-boot-4-migration` |
 | Local OS | Windows 11 |
 | Shell | PowerShell with Git Bash available |
 

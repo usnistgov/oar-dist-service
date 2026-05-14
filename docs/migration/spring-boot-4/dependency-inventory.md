@@ -1,6 +1,6 @@
 # Dependency And Build Inventory
 
-This document records the Stage 1 dependency and build inventory for the `integration` baseline at `d176ff48`, plus the Stage 2 build-tooling updates made on branch `codex/boot4-migration-baseline-tooling`.
+This document records the Stage 1 dependency and build inventory for the `integration` baseline at `d176ff48`, plus the Stage 2 build-tooling updates made on branch `feat/spring-boot-4-migration`.
 
 ## Inventory Commands
 

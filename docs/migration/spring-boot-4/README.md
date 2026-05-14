@@ -2,7 +2,7 @@
 
 This directory captures the Spring Boot 4 modernization work for `usnistgov/oar-dist-service`.
 
-The source-of-truth migration specification for the full program is [migration-specification.md](migration-specification.md). This branch, `codex/boot4-migration-baseline-tooling`, intentionally implements only Stage 0, Stage 1, and Stage 2 from that specification:
+The source-of-truth migration specification for the full program is [migration-specification.md](migration-specification.md). This branch, `feat/spring-boot-4-migration`, intentionally implements only Stage 0, Stage 1, and Stage 2 from that specification:
 
 - Stage 0: baseline branch creation and current behavior capture.
 - Stage 1: dependency and build inventory.
