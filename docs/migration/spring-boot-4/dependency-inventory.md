@@ -195,15 +195,16 @@ After Stage 2 on this branch:
 
 Observed CI/Docker files:
 
-- `.github/workflows/source.yml`: sets up Java `21` using `actions/setup-java@v2` with distribution `adopt`, then runs `mvn --batch-mode test`.
+- `.github/workflows/source.yml`: sets up Java `21` using `actions/setup-java@v4` with distribution `temurin`, then runs `./mvnw --batch-mode test`.
 - `.github/workflows/main.yml`, `.github/workflows/integration.yml`, and `.github/workflows/testall.yml`: build Docker test container and run `cd docker && ./testall`.
 - `.github/workflows/docker.yml`: Docker/script workflow on `ubuntu-20.04`.
 - `.travis.yml`: legacy Travis file that runs Docker setup and `bash ./testall`.
 - `docker/build-test/Dockerfile`: uses `maven:3.9.9-eclipse-temurin-21`.
+- `scripts/testall` and `scripts/makedist`: default to the repository Maven Wrapper and allow `MAVEN_CMD=...` override for environments that intentionally need a different Maven launcher.
 - `docker/testall`, `docker/run.sh`, `scripts/testall`, and related scripts assume Docker is available.
 - `appspec.dev.yml` and `appspec.test.yml` indicate deployment automation assumptions outside this branch.
 
-Follow-up: later migration stages should update CI to prefer `./mvnw`, confirm Java 21, decide whether Travis remains supported, and validate Docker images against the final Boot 4 runtime.
+Follow-up: later migration stages should confirm Java 21 in CI, decide whether Travis remains supported, and validate Docker images against the final Boot 4 runtime.
 
 ## High-Risk Follow-Up Areas
 

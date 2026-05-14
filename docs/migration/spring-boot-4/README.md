@@ -19,7 +19,7 @@ This branch does not upgrade Spring Boot, Spring Framework, Spring Cloud, Jackso
 | Spring Framework | `6.1.8` managed by Boot 3.3.0 | `7.0.7` managed by Boot 4.0.6 | unchanged |
 | Spring Cloud | `2023.0.2` | `2025.1.0` | unchanged |
 | Java baseline | POM declares `21`; local shell is Java `25.0.3` | Java 21 production baseline | compiler release set to 21 |
-| Maven | Local Maven `3.9.8`; Docker image Maven `3.9.9` | Maven Wrapper pinned to `3.9.15` | wrapper added |
+| Maven | Local Maven `3.9.8`; Docker image Maven `3.9.9` | Maven Wrapper pinned to `3.9.15` | wrapper added and CI/scripts aligned |
 | Packaging | executable jar | executable jar unless later deployment review changes it | unchanged |
 
 ## Documents In This Directory
@@ -53,9 +53,13 @@ This branch makes only reproducibility and build-tooling changes:
 - Merges duplicate Surefire `systemPropertyVariables` blocks without dropping `basedir`, `conf.path`, or `project.test.resourceDirectory`.
 - Replaces obsolete Failsafe `forkMode` with modern fork configuration.
 - Applies a minimal Windows Maven Wrapper bootstrap fix so `mvnw.cmd` works when the local `.m2` directory is not a symlink.
+- Aligns the source-update GitHub Actions workflow with Temurin Java 21 and the Maven Wrapper.
+- Aligns build helper scripts with the Maven Wrapper while preserving `MAVEN_CMD=...` override support.
 
 ## Current Validation Status
 
-Wrapper and dependency inspection now run under Maven `3.9.15`. Compilation still fails on the local workstation under Java `25.0.3` with Lombok-generated constructor symptoms that were also seen during the initial pre-edit baseline `mvn test`. Java 21 is not installed in the local Adoptium directory, so the next validation pass should run on a Java 21 toolchain or inside the repository Docker build image once Docker is available.
+Wrapper and dependency inspection run under Maven `3.9.15`. Local Java 21 validation is still blocked because this workstation has Java `25.0.3` active and only Temurin 17 and 25 were found in the checked install paths. Compilation still fails under Java `25.0.3` with Lombok/model constructor symptoms that were also seen during the initial pre-edit baseline `mvn test`; Java 25 remains unsupported and unverified for this migration.
 
-Docker validation was attempted through `docker/testall`, but the local Docker daemon was not running.
+Docker validation was attempted through `docker/testall`, `docker version`, and `docker info`, but the local Docker daemon was not running.
+
+The branch is ready for PR review as a Stage 0-2 baseline/tooling branch with environment blockers documented. Stage 3 / the Boot 3.5 checkpoint should begin only after reviewer acceptance and a Java 21 or Docker-based validation run.

@@ -88,6 +88,28 @@ Times are local `America/New_York` on 2026-05-14. Some early command timestamps 
 | 18:12 approx | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc './mvnw -version'` | Passed; Maven `3.9.15`, Java `25.0.3`; unrelated `.bashrc` `ng` warning printed. |
 | 18:13 approx | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc './mvnw -B clean test'` | Failed in sandbox due Maven Central network denial. |
 | 18:13:20 | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc './mvnw -B clean test'` with escalation | Failed at compile; same constructor errors as baseline and Stage 2 validation. |
+| 18:20 approx | `git status --short --branch` | Passed; clean on `feat/spring-boot-4-migration`. |
+| 18:20 approx | `git branch --show-current` | Passed; confirmed `feat/spring-boot-4-migration`. |
+| 18:20 approx | `git log --oneline -8` | Passed; confirmed branch history through `4ef25bfe`. |
+| 18:20 approx | `java -version` | Passed; active Java is Temurin `25.0.3`, not Java 21. |
+| 18:21 approx | `.\mvnw.cmd -version` | Passed; Maven Wrapper `3.9.15` running on Java `25.0.3`. |
+| 18:21 approx | `where.exe java` | Passed; found Temurin 25 first and Temurin 17 second. |
+| 18:21 approx | `cmd.exe /c echo %JAVA_HOME%` | Passed; `JAVA_HOME` points to Temurin 25. |
+| 18:21 approx | `Get-Command java` | Passed; PowerShell resolves Java to Temurin 25. |
+| 18:21 approx | `$env:JAVA_HOME` | Passed; points to Temurin 25. |
+| 18:21 approx | `Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory` | Passed; only Temurin 17 and 25 found. |
+| 18:22 approx | `docker version` | Failed; Docker client exists but daemon pipe is unavailable. |
+| 18:22 approx | `docker info` | Failed; Docker daemon not running. |
+| 18:22 approx | `Get-ChildItem 'C:\Program Files' ...` and `Get-ChildItem 'C:\Program Files\Java' ...` | Passed; no alternate Java 21 install found in checked paths. |
+| 18:23 approx | `Get-Content` on GitHub Actions workflows, Dockerfile, `scripts/makedist`, `scripts/run_service.sh`, and `scripts/testall` | Passed; identified source workflow and helper scripts still using ambient Maven. |
+| 18:24 approx | `rg -n "\bmvn\b|mvnw|java-version|setup-java|maven:" .github docker scripts pom.xml` | Passed; found Maven/Java references for review. |
+| 18:25 approx | `apply_patch` on `.github/workflows/source.yml`, `scripts/makedist`, and `scripts/testall` | Passed; switched source workflow and build helper scripts to Java 21/Maven Wrapper alignment. |
+| 18:28:12 | `Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"` | Passed; captured local timestamp. |
+| 18:28 approx | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc './mvnw -B clean test'` | Failed in sandbox due Maven Central network denial. |
+| 18:28:53 | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc './mvnw -B clean test'` with escalation | Failed under unsupported Java 25 with the same constructor errors; Java 21 validation remains blocked locally. |
+| 18:30 approx | `git diff --stat` and scoped `git diff` | Passed; reviewed CI/script/docs changes. |
+| 18:30 approx | `& 'C:\Program Files\Git\usr\bin\bash.exe' -lc 'bash -n scripts/makedist scripts/testall'` | Passed; build helper shell syntax is valid. |
+| 18:30 approx | `git diff --check` | Passed; no whitespace errors. |
 
 ## Command Result Conventions
 

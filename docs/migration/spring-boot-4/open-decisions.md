@@ -26,7 +26,9 @@ This file records reviewer decisions that should be made before later migration 
 | Duplicate `commons-lang3` declaration | Pre-existing Maven model warning. | Fix in a later focused dependency hygiene branch, not in this baseline/tooling branch unless reviewers want it now. |
 | `mvnw.cmd` generated bootstrap fix | Fixed locally in this branch. | Reviewer can either accept the minimal fix or regenerate with a wrapper version that already handles non-symlink `.m2` directories. |
 | Effective POM artifact | Generated under `target/effective-pom.xml`, then removed by later `clean`. | Regenerate when needed; avoid committing huge generated effective POM unless reviewers request it. |
-| GitHub Actions Maven usage | Some workflows call `mvn` directly. | Later CI branch should switch to `./mvnw` consistently after wrapper is accepted. |
+| GitHub Actions Maven usage | Source workflow now uses Temurin Java 21 and `./mvnw`; Docker workflows use the Java 21 build-test image. | Keep wrapper usage in CI; validate Docker flow when the daemon/CI is available. |
+| Java 25 certification | Java 25 remains the local active runtime and still fails compilation with Lombok/model constructor symptoms. | Treat Java 25 as unsupported/unverified unless reviewers explicitly add it to scope. |
+| Stage 3 readiness | Stage 0-2 docs/tooling are complete, but local Java 21 and Docker validation are blocked by environment. | Stage 3 / Boot 3.5 checkpoint can begin after PR review and an authoritative Java 21 or Docker validation signal. |
 
 ## Assumptions For Later Stages
 

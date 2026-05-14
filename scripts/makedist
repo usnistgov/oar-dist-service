@@ -49,6 +49,7 @@ done
 [ -n "$MAKEDIST" ] || MAKEDIST=${DISTNAMES[@]}
 
 true ${DIST_DIR:=$SOURCE_DIR/dist}
+MVN=${MAVEN_CMD:-$PACKAGE_DIR/mvnw}
 
 java_version=`javac -version 2>&1 | awk '{print $2}'`
 java_major_version=`echo $java_version | sed -re 's/^[0-9]+\.//' -e 's/[\.\-\_].*//'`
@@ -69,7 +70,7 @@ vers4fn=`echo $version | sed -re 's#[/ ]+#_#g'`
 # ENTER BUILD COMMANDS HERE
 #
 # The build products should be written into the "dist" directory
-mvn clean package -DskipTests
+"$MVN" clean package -DskipTests
 [ -f "$targetdir/${DISTNAMES[0]}.jar" ] || {
     echo "${prog}:" Failed to build distribution: \
          "$targetdir/${DISTNAMES[0]}.jar"
@@ -80,7 +81,7 @@ mvn clean package -DskipTests
 #
 # A dependency file should be called DISTNAME-${version}_dep.json
 mkdir -p $DIST_DIR
-mvn dependency:tree -DoutputType=dot -DoutputFile=target/deptree.dot
+"$MVN" dependency:tree -DoutputType=dot -DoutputFile=target/deptree.dot
 $PACKAGE_DIR/scripts/record_deps.py ${DISTNAMES[0]} $version \
                                  > $DIST_DIR/${DISTNAMES[0]}-${vers4fn}_dep.json
 

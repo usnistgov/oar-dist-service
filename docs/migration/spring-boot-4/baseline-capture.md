@@ -26,6 +26,36 @@ This document records the Stage 0 baseline capture and Stage 2 validation for br
 | Docker CLI | Docker `26.1.4` | CLI exists, but daemon was not running during validation. |
 | Git Bash | Available at `C:\Program Files\Git\usr\bin\bash.exe` | Shell startup prints `/c/Users/elmim/.bashrc: line 4: ng: command not found`; unrelated to this repo. |
 
+## Java 21 Readiness Pass
+
+On 2026-05-14, the branch was checked again before opening Stage 3 work. The active Java runtime was still Eclipse Temurin `25.0.3`, and `JAVA_HOME` pointed at:
+
+```text
+C:\Program Files\Eclipse Adoptium\jdk-25.0.3.9-hotspot
+```
+
+The PATH check found:
+
+```text
+C:\Program Files\Eclipse Adoptium\jdk-25.0.3.9-hotspot\bin\java.exe
+C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot\bin\java.exe
+```
+
+The checked local install locations did not contain Java 21. Because Java 21 was not available, the Java 21 validation commands were not certified locally. To validate this branch against the migration baseline, install or select a Java 21 JDK and rerun:
+
+```bash
+java -version
+./mvnw -version
+./mvnw -B clean test
+./mvnw -B -DskipTests package
+./mvnw -B jacoco:report
+./mvnw -B -DskipTests dependency:tree
+```
+
+The wrapper clean test was rerun under the unsupported Java 25 runtime only to refresh the blocker. It failed in the same compile phase with the same `EmailInfo` and `UserInfoWrapper` constructor symptoms. This is not accepted as Java 21 validation evidence.
+
+The source-update GitHub Actions workflow and local build helper scripts were aligned to prefer Java 21 plus the Maven Wrapper so CI can provide the authoritative Java 21 signal.
+
 ## Branch Setup Commands
 
 | Command | Result | Notes |
@@ -114,12 +144,14 @@ The generated `docker/dockbuild.log` from the failed Docker attempt was removed 
 | Docker test runner unavailable | `cd docker && ./testall` | Docker daemon not running | Environmental | Re-run with Docker daemon available or in CI. |
 | Duplicate `commons-lang3` POM declaration warning | All Maven model builds | POM has `commons-lang3` declared twice with versions `3.12.0` and `3.8.1` | Pre-existing | Decide whether to remove duplicate in a later focused dependency-cleanup branch. |
 | Generated `mvnw.cmd` failed on null `.Target` | `.\mvnw.cmd -version` | Wrapper script assumed `.m2` `Target` is indexable | Introduced by generated wrapper, fixed in this branch | Reviewer should accept or replace with a newer official wrapper if available. |
+| Java 21 validation unavailable | `where java`, `Get-Command java`, `$env:JAVA_HOME`, local JDK directory checks | Java 21 is not installed/selected locally | Environmental | Install/select Java 21 or run Docker/CI validation. |
+| Docker daemon unavailable | `docker version`, `docker info` | Docker client exists but server pipe is unavailable | Environmental | Start Docker daemon or run Docker workflow in CI. |
 
 ## Behavior Capture Status
 
 No application behavior was changed in this branch. REST behavior, file-distribution behavior, controller/service separation, local filesystem storage, S3 storage, security behavior, and error semantics remain unmodified.
 
-Because the local Java 25 compile failed before tests could execute and Docker was unavailable, this branch does not yet have a passing local behavioral baseline. The required next validation is:
+Because Java 21 is unavailable locally and Docker is not running, this branch does not yet have a passing local Java 21 behavioral baseline. It is ready for PR review as a documented Stage 0-2 baseline/tooling branch, but the required next validation is:
 
 ```bash
 JAVA_HOME=<Java 21 home> ./mvnw -B clean test

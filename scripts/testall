@@ -7,6 +7,7 @@ prog=`basename $0`
 execdir=`dirname $0`
 [ "$execdir" = "" -o "$execdir" = "." ] && execdir=$PWD
 PACKAGE_DIR=`(cd $execdir/.. > /dev/null 2>&1; pwd)`
+MVN=${MAVEN_CMD:-$PACKAGE_DIR/mvnw}
 
 $PACKAGE_DIR/scripts/setversion.sh
-mvn test
+"$MVN" test
