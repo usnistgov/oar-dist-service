@@ -82,8 +82,6 @@ public class JwtTokenValidator {
             tokenDetails.put("expiry", getClaimAsString(claims.get("exp"), "exp", false));
             tokenDetails.put("user_id", getClaimAsString(claims.getSubject(), "user_id", true));
 
-            LOGGER.debug("Token successfully validated and details extracted.");
-
             return tokenDetails;
 
         } catch (MissingRequiredClaimException e) {
@@ -93,7 +91,7 @@ public class JwtTokenValidator {
             throw e;
         } catch (JwtException ex) {
             // If the token is expired or signature does not match, it will throw an Exception
-            LOGGER.debug("Token validation failed due to JwtException: ", ex);
+            LOGGER.debug("RPA JWT validation failed: {}", ex.getMessage());
             throw ex;
         }
     }

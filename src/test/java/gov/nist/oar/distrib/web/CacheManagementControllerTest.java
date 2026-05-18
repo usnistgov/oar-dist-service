@@ -383,6 +383,8 @@ public class CacheManagementControllerTest {
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running", HttpMethod.GET, req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());
 
+        waitForMonitorCycle(req, 40, 250);
+
         month = mgr.getMonitorThread();
         resp = websvc.exchange(getBaseURL() + "/cache/monitor/running?repeat=0", HttpMethod.PUT, req, String.class);
         assertEquals(HttpStatus.ACCEPTED, resp.getStatusCode());
@@ -417,6 +419,27 @@ public class CacheManagementControllerTest {
             Thread.sleep(200);
         }
         fail("Monitor failed to finish or update lastRan within timeout");
+    }
+
+    private JSONObject waitForMonitorCycle(HttpEntity<String> req, int maxAttempts, long sleepMillis)
+            throws InterruptedException {
+        ResponseEntity<String> resp = null;
+        JSONObject status = null;
+
+        int attempts = 0;
+        while (attempts++ < maxAttempts) {
+            resp = websvc.exchange(getBaseURL() + "/cache/monitor/", HttpMethod.GET, req, String.class);
+            assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+            status = new JSONObject(resp.getBody());
+            if (status.getLong("lastRan") > 0) {
+                assertNotEquals("(never)", status.getString("lastRanDate"));
+                return status;
+            }
+            Thread.sleep(sleepMillis);
+        }
+        fail("Monitor failed to update lastRan within timeout");
+        return status;
     }
 
 

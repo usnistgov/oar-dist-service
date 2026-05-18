@@ -1,6 +1,5 @@
 package gov.nist.oar.distrib.cachemgr;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,8 +31,8 @@ public class CacheExpiryCheckTest {
 
     /**
      * Test to verify that {@link CacheExpiryCheck} correctly identifies and processes an expired cache object.
-     * An object is considered expired based on the `expires` metadata, which defines the duration after which
-     * an object should be considered expired from the time of its last modification. This test ensures that an object
+     * An object is considered expired based on the `expires` metadata, which defines the absolute epoch
+     * millisecond time when the object should expire. This test ensures that an object
      * past its expiration is appropriately removed from the inventory database.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
@@ -43,8 +42,7 @@ public class CacheExpiryCheckTest {
         // Setup an expired cache object
         cacheObject.volume = mockVolume;
         when(cacheObject.hasMetadatum("expires")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(1000L); // Expires in 1 second
-        when(cacheObject.getLastModified()).thenReturn(Instant.now().minusSeconds(10).toEpochMilli());
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(Instant.now().minusSeconds(1).toEpochMilli());
         when(cacheObject.volume.remove(cacheObject.name)).thenReturn(true);
 
         expiryCheck.check(cacheObject);
@@ -55,7 +53,7 @@ public class CacheExpiryCheckTest {
 
     /**
      * Test to ensure that {@link CacheExpiryCheck} does not flag a cache object as expired if the current time has not
-     * exceeded its `expires` duration since its last modification. This test verifies that no removal action is taken
+     * exceeded its absolute `expires` time. This test verifies that no removal action is taken
      * for such non-expired objects.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
@@ -66,9 +64,7 @@ public class CacheExpiryCheckTest {
         cacheObject.name = "nonExpiredObject";
         cacheObject.volname = "testVolume";
         when(cacheObject.hasMetadatum("expires")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(14 * 24 * 60 * 60 * 1000L); // 14 days in milliseconds
-        long lastModified = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L); // 7 days ago, within expiry period
-        when(cacheObject.getLastModified()).thenReturn(lastModified);
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L));
 
         // Perform the check
         expiryCheck.check(cacheObject);
@@ -106,7 +102,6 @@ public class CacheExpiryCheckTest {
         // Setup a non-expired cache object
         when(cacheObject.hasMetadatum("expires")).thenReturn(true);
         when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(System.currentTimeMillis() + 10000L); // Expires in the future
-        when(cacheObject.getLastModified()).thenReturn(System.currentTimeMillis());
 
         expiryCheck.check(cacheObject);
 
@@ -115,22 +110,20 @@ public class CacheExpiryCheckTest {
     }
 
     /**
-     * Tests that an {@link IntegrityException} is thrown when a cache object has the {@code expires} metadata
-     * but lacks a valid {@code lastModified} time.
+     * Tests that lastModified is not required because {@code expires} is stored as an absolute timestamp.
      *
      * @throws Exception to handle any exceptions thrown during the test execution
      */
     @Test
-    public void testObjectWithExpiresButNoLastModified_ThrowsException() throws Exception {
+    public void testObjectWithExpiresButNoLastModified_UsesAbsoluteExpires() throws Exception {
         cacheObject.name = "objectWithNoLastModified";
         cacheObject.volname = "testVolume";
         when(cacheObject.hasMetadatum("expires")).thenReturn(true);
-        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(1000L); // Expires in 1 second
-        when(cacheObject.getLastModified()).thenReturn(-1L); // Last modified not available
+        when(cacheObject.getMetadatumLong("expires", -1L)).thenReturn(System.currentTimeMillis() + 10000L);
 
-        assertThrows(IntegrityException.class, () -> {
-            expiryCheck.check(cacheObject);
-        });
+        expiryCheck.check(cacheObject);
+
+        verify(mockInventoryDB, never()).removeObject(anyString(), anyString());
     }
 
     /**

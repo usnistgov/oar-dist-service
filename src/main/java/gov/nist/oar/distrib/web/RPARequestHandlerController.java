@@ -1,8 +1,10 @@
 package gov.nist.oar.distrib.web;
 
 import gov.nist.oar.distrib.service.RPACachingService;
+import gov.nist.oar.distrib.service.rpa.RPALogContext;
 import gov.nist.oar.distrib.service.rpa.RPARequestHandler;
 import gov.nist.oar.distrib.service.rpa.RecordCreationResult;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaClientException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaServerException;
@@ -235,35 +237,56 @@ public class RPARequestHandlerController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, RequestProcessingException, UnauthorizedException {
 
-        _checkForService();
-        LOGGER.debug("Attempting to retrieve record with ID {}", id);
+        Map<String, String> previousContext = RPALogContext.capture();
+        try {
+            _checkForService();
+            RPALogContext.begin(null, id);
+            LOGGER.debug("RPA record fetch requested reqId={} recordId={}", RPALogContext.requestId(), id);
 
-        // Extracting the token from the header
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring("Bearer ".length());
+            // Extracting the token from the header
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                String token = authorizationHeader.substring("Bearer ".length());
 
-            // Validate token using JwtTokenValidator
-            boolean isValid = false;
-            try {
-                isValid = jwtTokenValidator.validate(token) != null;
-                LOGGER.debug("Token validation successful for record with ID: {}", id);
-            } catch (Exception e) {
-                LOGGER.error("Error during token validation for record with ID: {}. Error Message: {}", id,
-                        e.getMessage());
-                throw new RequestProcessingException(e.getMessage());
-            }
+                // Validate token using JwtTokenValidator
+                Map<String, String> tokenDetails = null;
+                boolean isValid = false;
+                try {
+                    tokenDetails = jwtTokenValidator.validate(token);
+                    isValid = tokenDetails != null;
+                    if (tokenDetails != null) {
+                        RPALogContext.setActor(RPALogContext.maskEmail(tokenDetails.get("userEmail")));
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("RPA record fetch failed during token validation reqId={} recordId={}: {}",
+                            RPALogContext.requestId(), id, e.getMessage());
+                    throw new RequestProcessingException(e.getMessage());
+                }
 
-            if (isValid) {
-                RecordWrapper recordWrapper = service.getRecord(id);
-                LOGGER.debug("Successfully retrieved record with ID: {}", id);
-                return new ResponseEntity<RecordWrapper>(recordWrapper, HttpStatus.OK);
+                if (isValid) {
+                    RecordWrapper recordWrapper = service.getRecord(id);
+                    if (recordWrapper != null && recordWrapper.getRecord() != null) {
+                        RPALogContext.updateFromRecord(recordWrapper.getRecord());
+                        LOGGER.debug(
+                                "RPA record fetch succeeded reqId={} recordId={} caseNum={} approvalStatus={}",
+                                RPALogContext.requestId(),
+                                recordWrapper.getRecord().getId(),
+                                recordWrapper.getRecord().getCaseNum(),
+                                RPALogContext
+                                        .summarizeApprovalStatus(recordWrapper.getRecord().getUserInfo().getApprovalStatus()));
+                    }
+                    return new ResponseEntity<RecordWrapper>(recordWrapper, HttpStatus.OK);
+                } else {
+                    LOGGER.warn("RPA record fetch denied reqId={} recordId={} reason=invalid-token",
+                            RPALogContext.requestId(), id);
+                    throw new UnauthorizedException("invalid token");
+                }
             } else {
-                LOGGER.warn("Invalid token provided for record with ID: {}", id);
-                throw new UnauthorizedException("invalid token");
+                LOGGER.warn("RPA record fetch denied reqId={} recordId={} reason=invalid-authorization-header",
+                        RPALogContext.requestId(), id);
+                throw new UnauthorizedException("invalid authorization header");
             }
-        } else {
-            LOGGER.warn("Invalid authorization header for record with ID: {}", id);
-            throw new UnauthorizedException("invalid authorization header");
+        } finally {
+            RPALogContext.restore(previousContext);
         }
     }
 
@@ -305,38 +328,63 @@ public class RPARequestHandlerController {
     public ResponseEntity<RecordWrapper> createRecord(@RequestBody UserInfoWrapper userInfoWrapper,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader)
             throws InvalidRequestException, RecaptchaVerificationFailedException, RequestProcessingException {
-        _checkForService();
-        LOGGER.debug("Attempting to create a new record...");
+        Map<String, String> previousContext = RPALogContext.capture();
+        try {
+            _checkForService();
+            String datasetId = userInfoWrapper != null && userInfoWrapper.getUserInfo() != null
+                    ? userInfoWrapper.getUserInfo().getSubject()
+                    : null;
+            String email = userInfoWrapper != null && userInfoWrapper.getUserInfo() != null
+                    ? userInfoWrapper.getUserInfo().getEmail()
+                    : null;
+            RPALogContext.begin(datasetId, null);
 
-        // Check if reCAPTCHA verification should be skipped
-        boolean shouldVerifyRecaptcha = recaptchaHelper.shouldVerifyRecaptcha(authorizationHeader);
+            // Check if reCAPTCHA verification should be skipped
+            boolean shouldVerifyRecaptcha = recaptchaHelper.shouldVerifyRecaptcha(authorizationHeader);
+            LOGGER.info("RPA create request received reqId={} dataset={} emailDomain={} recaptchaRequired={}",
+                    RPALogContext.requestId(), datasetId, RPALogContext.emailDomain(email), shouldVerifyRecaptcha);
 
-        RecaptchaResponse recaptchaResponse;
-        if (shouldVerifyRecaptcha) {
-            String recaptchaToken = userInfoWrapper.getRecaptcha();
-            try {
-                recaptchaResponse = recaptchaHelper.verifyRecaptcha(recaptchaToken);
-            } catch (RecaptchaServerException e) {
-                throw new RequestProcessingException(e.getMessage());
-            } catch (RecaptchaClientException e) {
-                throw new InvalidRequestException(e.getMessage());
+            RecaptchaResponse recaptchaResponse;
+            if (shouldVerifyRecaptcha) {
+                String recaptchaToken = userInfoWrapper.getRecaptcha();
+                try {
+                    recaptchaResponse = recaptchaHelper.verifyRecaptcha(recaptchaToken);
+                } catch (RecaptchaServerException e) {
+                    throw new RequestProcessingException(e.getMessage());
+                } catch (RecaptchaClientException e) {
+                    throw new InvalidRequestException(e.getMessage());
+                }
+
+                if (!recaptchaResponse.isSuccess()) {
+                    throw new RecaptchaVerificationFailedException("reCAPTCHA verification failed");
+                }
             }
 
-            if (!recaptchaResponse.isSuccess()) {
-                throw new RecaptchaVerificationFailedException("reCAPTCHA verification failed");
+            // Sanitize and validate the user input
+            requestSanitizer.sanitizeAndValidate(userInfoWrapper);
+            LOGGER.debug("RPA create request validated reqId={} dataset={}", RPALogContext.requestId(), datasetId);
+
+            RecordCreationResult result = service.createRecord(userInfoWrapper);
+            if (result != null && result.getRecordWrapper() != null && result.getRecordWrapper().getRecord() != null) {
+                RPALogContext.updateFromRecord(result.getRecordWrapper().getRecord());
+                LOGGER.info(
+                        "RPA record created reqId={} dataset={} recordId={} caseNum={} approvalStatus={} statusCode={}",
+                        RPALogContext.requestId(),
+                        datasetId,
+                        result.getRecordWrapper().getRecord().getId(),
+                        result.getRecordWrapper().getRecord().getCaseNum(),
+                        RPALogContext
+                                .summarizeApprovalStatus(result.getRecordWrapper().getRecord().getUserInfo().getApprovalStatus()),
+                        result.getStatusCode());
             }
+
+            asyncExecutor.handleAfterRecordCreationAsync(
+                    result.getRecordWrapper(), userInfoWrapper, result.getStatusCode(), RPALogContext.capture());
+
+            return ResponseEntity.ok(result.getRecordWrapper());
+        } finally {
+            RPALogContext.restore(previousContext);
         }
-
-        // Sanitize and validate the user input
-        LOGGER.debug("Sanitizing and validating user input...");
-        requestSanitizer.sanitizeAndValidate(userInfoWrapper);
-
-        RecordCreationResult result = service.createRecord(userInfoWrapper);
-
-        asyncExecutor.handleAfterRecordCreationAsync(result.getRecordWrapper(), userInfoWrapper, result.getStatusCode());
-
-        LOGGER.debug("Record successfully created. Returning response.");
-        return ResponseEntity.ok(result.getRecordWrapper());
     }
 
     /**
@@ -375,44 +423,63 @@ public class RPARequestHandlerController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION) String authorizationHeader)
             throws RecordNotFoundException, InvalidRequestException, RequestProcessingException, UnauthorizedException {
 
-        _checkForService();
-        LOGGER.debug("Attempting to update record with ID: {}", id);
+        Map<String, String> previousContext = RPALogContext.capture();
+        try {
+            _checkForService();
+            RPALogContext.begin(null, id);
 
-        // Extracting the token from the header
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring("Bearer ".length());
-            // Validate token using JwtTokenValidator
-            Map<String, String> tokenDetails = null;
-            try {
-                tokenDetails = jwtTokenValidator.validate(token);
-                LOGGER.debug("Token is validated");
-            } catch (MissingRequiredClaimException e) {
-                String missingClaimName = e.getMissingClaimName();
-                LOGGER.debug("Missing required claim detected: " + missingClaimName);
-                throw new InvalidRequestException("JWT token invalid");
-            } catch (JwtException e) {
-                LOGGER.debug("Token validation failed due to a JwtException: " + e.getMessage());
-                throw new UnauthorizedException("JWT token validation failed");
-            }
+            // Extracting the token from the header
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                String token = authorizationHeader.substring("Bearer ".length());
+                // Validate token using JwtTokenValidator
+                Map<String, String> tokenDetails = null;
+                try {
+                    tokenDetails = jwtTokenValidator.validate(token);
+                } catch (MissingRequiredClaimException e) {
+                    String missingClaimName = e.getMissingClaimName();
+                    LOGGER.warn("RPA record update rejected reqId={} recordId={} reason=missing-claim claim={}",
+                            RPALogContext.requestId(), id, missingClaimName);
+                    throw new InvalidRequestException("JWT token invalid");
+                } catch (JwtException e) {
+                    LOGGER.warn("RPA record update denied reqId={} recordId={} reason=jwt-validation-failed",
+                            RPALogContext.requestId(), id);
+                    throw new UnauthorizedException("JWT token validation failed");
+                }
 
-            if (tokenDetails != null) {
-                LOGGER.debug("Updating record with ID: {}", id);
-                String smeId = tokenDetails.get("userEmail");
-                RecordStatus recordStatus = service.updateRecord(id, patch.getApprovalStatus(), smeId);
+                if (tokenDetails != null) {
+                    String smeId = tokenDetails.get("userEmail");
+                    String requestedStatus = patch != null ? patch.getApprovalStatus() : null;
+                    RPALogContext.setActor(RPALogContext.maskEmail(smeId));
+                    LOGGER.info("RPA record update requested reqId={} recordId={} action={} actor={}",
+                            RPALogContext.requestId(), id, requestedStatus, RPALogContext.maskEmail(smeId));
+                    RecordUpdateResult result = service.updateRecord(id, requestedStatus, smeId);
+                    RPALogContext.updateFromRecord(result.getRecord());
+                    RPALogContext.setDatasetId(result.getDatasetId());
 
-                logUpdateAction(tokenDetails, id);
+                    // Trigger async post-processing (caching, email notifications)
+                    asyncExecutor.handleAfterRecordUpdateAsync(
+                            result.getRecord(),
+                            requestedStatus,
+                            result.getDatasetId(),
+                            result.getPreviousApprovalStatus(),
+                            RPALogContext.capture());
 
-                LOGGER.debug("Record successfully updated");
-                return new ResponseEntity<RecordStatus>(recordStatus, HttpStatus.OK);
+                    logUpdateAction(tokenDetails, result.getRecord(), requestedStatus);
+
+                    return new ResponseEntity<RecordStatus>(result.getRecordStatus(), HttpStatus.OK);
+                } else {
+                    LOGGER.error("RPA record update denied reqId={} recordId={} reason=invalid-token",
+                            RPALogContext.requestId(), id);
+                    throw new UnauthorizedException("invalid token");
+                }
             } else {
-                LOGGER.error("Token is invalid");
-                throw new UnauthorizedException("invalid token");
+                LOGGER.error("RPA record update denied reqId={} recordId={} reason=invalid-authorization-header",
+                        RPALogContext.requestId(), id);
+                throw new UnauthorizedException("invalid authorization header");
             }
-        } else {
-            LOGGER.error("Invalid authorization header");
-            throw new UnauthorizedException("invalid authorization header");
+        } finally {
+            RPALogContext.restore(previousContext);
         }
-
     }
 
     /**
@@ -429,10 +496,19 @@ public class RPARequestHandlerController {
      *                     full name (key: "userFullname").
      * @param recordId     The ID of the record that was updated.
      */
-    private void logUpdateAction(Map<String, String> tokenDetails, String recordId) {
+    private void logUpdateAction(Map<String, String> tokenDetails, gov.nist.oar.distrib.service.rpa.model.Record record,
+            String requestedStatus) {
         String smeEmail = tokenDetails.get("userEmail");
-        String smeFullname = tokenDetails.get("userFullname");
-        LOGGER.info(smeFullname + " (" + smeEmail + ") has updated record with ID=" + recordId);
+        String recordId = record != null ? record.getId() : "unknown";
+        String datasetId = record != null && record.getUserInfo() != null ? record.getUserInfo().getSubject() : "unknown";
+        String caseNum = record != null ? record.getCaseNum() : "unknown";
+        String status = record != null && record.getUserInfo() != null
+                ? RPALogContext.summarizeApprovalStatus(record.getUserInfo().getApprovalStatus())
+                : "unknown";
+        LOGGER.info(
+                "RPA record update accepted reqId={} recordId={} caseNum={} dataset={} action={} approvalStatus={} actor={}",
+                RPALogContext.requestId(), recordId, caseNum, datasetId, requestedStatus, status,
+                RPALogContext.maskEmail(smeEmail));
     }
 
     /**

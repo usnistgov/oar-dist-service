@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -50,6 +51,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.JWTToken;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
@@ -327,9 +329,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_DoesNotSendEmails() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
-
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -405,9 +404,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_SetsStatusAndDescriptionCorrectly() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
-
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -459,6 +455,56 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         assertTrue(actualRecord.getRecord().getUserInfo().getDescription()
                 .contains("This record was automatically rejected."));
 
+    }
+
+    @Test
+    public void testCreateRecord_withBlacklistedPreApprovedDataset_marksRejectedBeforePosting() throws Exception {
+        lenient().doReturn(true).when(service).isPreApprovedDataset(anyString());
+
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status",
+                "jane.doe@123.com", "United States");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE,
+                new HashMap<>()
+        );
+
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of());
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@123.com\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"rejected\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"This record was automatically rejected. Reason: Email is blacklisted.\""
+                + "}}}";
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        OutputStream osMock = mock(OutputStream.class);
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+
+        ArgumentCaptor<byte[]> payloadCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(osMock).write(payloadCaptor.capture());
+        String payload = new String(payloadCaptor.getValue(), StandardCharsets.UTF_8);
+        assertTrue(payload.contains("\"approvalStatus\":\"rejected\""));
+        assertTrue(payload.contains("This record was automatically rejected."));
+        assertTrue(!payload.contains("\"approvalStatus\":\"pre-approved\""));
+        assertEquals("rejected", userInfoWrapper.getUserInfo().getApprovalStatus());
+        assertEquals("rejected", result.getRecordWrapper().getRecord().getUserInfo().getApprovalStatus());
+        verify(service, never()).isPreApprovedDataset(anyString());
     }
 
 
@@ -714,19 +760,18 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         String recordId = "record12345";
         String email = "test@example.com";
         String country = "United States";
-        String mockRandomId = "mockRandomId123";
-        String expectedApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
+        String interimResponseStatus = "ApprovalPending_2023-05-09T15:59:03.872Z_" + email;
         // Mock behavior of getRecord method
-        doReturn(getTestRecordWrapper(expectedApprovalStatus, email, country)).when(service).getRecord("record12345");
+        doReturn(getTestRecordWrapper("Pending", email, country)).when(service).getRecord("record12345");
 
-        when(rpaDatasetCacher.cache(anyString())).thenReturn(mockRandomId);
+        // Note: caching now happens asynchronously in handleAfterRecordUpdate, not in updateRecord
 
         // Mock HttpResponse
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
         when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
         when(httpResponse.getStatusLine().getStatusCode()).thenReturn(200);
         when(httpResponse.getEntity()).thenReturn(
-                new StringEntity("{\"approvalStatus\":\"Approved_2023-05-09T15:59:03.872Z_test@example.com_mockRandomId123\"," +
+                new StringEntity("{\"approvalStatus\":\"" + interimResponseStatus + "\"," +
                         "\"recordId\":\"record12345\"}",
                         ContentType.APPLICATION_JSON)
         );
@@ -737,11 +782,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, "Approved", email);
+        RecordUpdateResult result = service.updateRecord(recordId, "Approved", email);
 
         // Assert
-        assertEquals(expectedApprovalStatus, result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals(interimResponseStatus, result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
 
         // Capture the HttpPatch argument
         HttpPatch patchRequest = captor.getValue();
@@ -752,12 +797,11 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // We can't test the exact time as it changes when we run the test, but we can verify the format
         String patchPayload = EntityUtils.toString(patchRequest.getEntity(), StandardCharsets.UTF_8);
         JSONObject payloadObject = new JSONObject(patchPayload);
-        // The following regex pattern expects:
-        // - The "Approved" status followed by a date-time in ISO 8601 format.
-        // - An email address.
-        // - A random ID (composed of word characters including underscore, alphanumeric, and possibly -) at the end.
-        String expectedFormat = "Approved_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+_\\w+"; //  d{3,9} -- up to 9 digits to include nanoseconds
+        // The sync update now uses interim ApprovalPending status (no randomId yet)
+        // Format: ApprovalPending_timestamp_email
+        String expectedFormat = "ApprovalPending_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z_[\\w.-]+@[\\w.-]+\\.\\w+";
         assertTrue(payloadObject.get("Approval_Status__c").toString().matches(expectedFormat));
+        assertEquals(payloadObject.get("Approval_Status__c").toString(), result.getRecord().getUserInfo().getApprovalStatus());
     }
 
     /**
@@ -824,13 +868,13 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordUpdateResult result = service.updateRecord(recordId, status, email);
 
         // Assert
-        assertEquals("Declined", result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals("Declined", result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
 
-        // Verify that caching and uncaching were not invoked
+        // Verify that caching and uncaching were not invoked (now happens async)
         verify(rpaDatasetCacher, never()).cache(anyString());
         verify(rpaDatasetCacher, never()).uncache(anyString());
     }
@@ -860,8 +904,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Mock behavior of getRecord method to simulate retrieving a previously approved record
         doReturn(getTestRecordWrapper(initialApprovalStatus, email, country)).when(service).getRecord(recordId);
 
-        // Simulate `uncache` returning true
-        when(rpaDatasetCacher.uncache(anyString())).thenReturn(true);
+        // Note: uncache now happens asynchronously in handleAfterRecordUpdate, not in updateRecord
 
         // Mock HttpResponse for updating the record to "Declined"
         CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
@@ -875,14 +918,102 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         doReturn(httpResponse).when(mockHttpClient).execute(any(HttpPatch.class));
 
         // Act
-        RecordStatus result = service.updateRecord(recordId, status, email);
+        RecordUpdateResult result = service.updateRecord(recordId, status, email);
 
         // Assert
-        assertEquals("Declined", result.getApprovalStatus());
-        assertEquals(recordId, result.getRecordId());
+        assertEquals("Declined", result.getRecordStatus().getApprovalStatus());
+        assertEquals(recordId, result.getRecordStatus().getRecordId());
+        assertEquals(initialApprovalStatus, result.getPreviousApprovalStatus());
 
-        // Verify uncaching was invoked with the correct random ID
+        // Verify uncaching not invoked here (now happens async in handleAfterRecordUpdate)
+        verify(rpaDatasetCacher, never()).uncache(anyString());
+    }
+
+    @Test
+    public void testHandleAfterRecordUpdate_approvalCompletesFinalStatusAndEmail() throws Exception {
+        String email = "sme@test.com";
+        String mockRandomId = "mockRandomId123";
+        String pendingStatus = "ApprovalPending_2023-05-09T15:59:03.872Z_" + email;
+        Record record = getTestRecordWrapper(pendingStatus, email, "United States").getRecord();
+        String datasetId = record.getUserInfo().getSubject();
+
+        when(rpaDatasetCacher.cache(datasetId)).thenReturn(mockRandomId);
+
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+        StatusLine statusLine = mock(StatusLine.class);
+        when(httpResponse.getStatusLine()).thenReturn(statusLine);
+        when(statusLine.getStatusCode()).thenReturn(200);
+
+        ArgumentCaptor<HttpPatch> captor = ArgumentCaptor.forClass(HttpPatch.class);
+        doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
+
+        service.handleAfterRecordUpdate(record, "Approved", datasetId);
+
+        HttpPatch patchRequest = captor.getValue();
+        assertEquals(getUpdateUrl(record.getId()), patchRequest.getURI().toString());
+        String patchPayload = EntityUtils.toString(patchRequest.getEntity(), StandardCharsets.UTF_8);
+        JSONObject payloadObject = new JSONObject(patchPayload);
+        assertEquals("Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId,
+                payloadObject.get("Approval_Status__c").toString());
+        assertEquals(payloadObject.get("Approval_Status__c").toString(),
+                record.getUserInfo().getApprovalStatus());
+        verify(recordResponseHandler).onRecordUpdateApproved(record, mockRandomId);
+    }
+
+    @Test
+    public void testHandleAfterRecordUpdate_approvalFailureMarksRecordFailedAndNotifiesUser() throws Exception {
+        String email = "sme@test.com";
+        String pendingStatus = "ApprovalPending_2023-05-09T15:59:03.872Z_" + email;
+        Record record = getTestRecordWrapper(pendingStatus, email, "United States").getRecord();
+        String datasetId = record.getUserInfo().getSubject();
+
+        when(rpaDatasetCacher.cache(datasetId)).thenReturn(null);
+
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+        StatusLine statusLine = mock(StatusLine.class);
+        when(httpResponse.getStatusLine()).thenReturn(statusLine);
+        when(statusLine.getStatusCode()).thenReturn(200);
+
+        ArgumentCaptor<HttpPatch> captor = ArgumentCaptor.forClass(HttpPatch.class);
+        doReturn(httpResponse).when(mockHttpClient).execute(captor.capture());
+
+        service.handleAfterRecordUpdate(record, "Approved", datasetId);
+
+        String patchPayload = EntityUtils.toString(captor.getValue().getEntity(), StandardCharsets.UTF_8);
+        JSONObject payloadObject = new JSONObject(patchPayload);
+        assertEquals("ApprovalFailed_2023-05-09T15:59:03.872Z_" + email,
+                payloadObject.get("Approval_Status__c").toString());
+        assertEquals(payloadObject.get("Approval_Status__c").toString(),
+                record.getUserInfo().getApprovalStatus());
+        verify(recordResponseHandler).onFailure(record);
+        verify(rpaDatasetCacher, never()).uncache(anyString());
+    }
+
+    @Test
+    public void testHandleAfterRecordUpdate_declineUncachesAndNotifiesUser() throws Exception {
+        String email = "sme@test.com";
+        String mockRandomId = "mockRandomId123";
+        String approvedStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
+        Record record = getTestRecordWrapper(approvedStatus, email, "United States").getRecord();
+
+        service.handleAfterRecordUpdate(record, "Declined", record.getUserInfo().getSubject());
+
         verify(rpaDatasetCacher).uncache(mockRandomId);
+        verify(recordResponseHandler).onRecordUpdateDeclined(record);
+    }
+
+    @Test
+    public void testHandleAfterRecordUpdate_declineUsesPreviousApprovalStatusForUncache() throws Exception {
+        String email = "sme@test.com";
+        String mockRandomId = "mockRandomId123";
+        String previousApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
+        String declinedStatus = "Declined_2023-05-10T15:59:03.872Z_" + email;
+        Record record = getTestRecordWrapper(declinedStatus, email, "United States").getRecord();
+
+        service.handleAfterRecordUpdate(record, "Declined", record.getUserInfo().getSubject(), previousApprovalStatus);
+
+        verify(rpaDatasetCacher).uncache(mockRandomId);
+        verify(recordResponseHandler).onRecordUpdateDeclined(record);
     }
 
 

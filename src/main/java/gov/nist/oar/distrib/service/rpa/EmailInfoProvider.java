@@ -7,6 +7,7 @@ import org.apache.commons.text.StringSubstitutor;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Locale;
@@ -21,7 +22,6 @@ import java.util.stream.Stream;
 public class EmailInfoProvider {
 
     private static final String DATE_PATTERN = "EEEE, MM/dd/yyyy 'at' hh:mm a z";
-    private static final int EXPIRATION_DAYS = 14;
     private final RPAConfiguration rpaConfiguration;
 
     /**
@@ -208,7 +208,7 @@ public class EmailInfoProvider {
      */
     private String getExpirationDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_PATTERN, Locale.ENGLISH);
-        ZonedDateTime date = ZonedDateTime.now().plusDays(EXPIRATION_DAYS);
+        ZonedDateTime date = ZonedDateTime.now().plus(rpaConfiguration.getExpiresAfterMillis(), ChronoUnit.MILLIS);
         return formatter.format(date);
     }
 }

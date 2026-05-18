@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -48,6 +49,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
 import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordPatch;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
+import gov.nist.oar.distrib.service.rpa.RecordUpdateResult;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfo;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
@@ -292,7 +294,8 @@ public class RPARequestHandlerControllerTest {
         verify(mockAsyncExecutor).handleAfterRecordCreationAsync(
                 eq(creationResult.getRecordWrapper()),
                 argThat(actual -> areUserInfoWrappersEqual(userInfoWrapper, actual)),
-                eq(200));
+                eq(200),
+                anyMap());
     
     }
 
@@ -318,8 +321,14 @@ public class RPARequestHandlerControllerTest {
     void testUpdateRecord() throws Exception {
         String recordId = "123";
         String status = "Approved";
+        String previousApprovalStatus = "Pending";
         RecordStatus recordStatus = new RecordStatus(recordId, status);
-        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(recordStatus);
+        UserInfo userInfo = new UserInfo();
+        userInfo.setSubject("datasetId");
+        Record record = new Record(recordId, "case-123", userInfo);
+        RecordUpdateResult updateResult = new RecordUpdateResult(recordStatus, record, "datasetId",
+                previousApprovalStatus);
+        when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(updateResult);
 
         Map<String, String> expectedTokenDetails = new HashMap<>();
         expectedTokenDetails.put("userFullname", "john.doe");
@@ -339,6 +348,9 @@ public class RPARequestHandlerControllerTest {
                 .header(HttpHeaders.AUTHORIZATION, headers.getFirst(HttpHeaders.AUTHORIZATION)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordId").value("123"));
+
+        verify(mockAsyncExecutor).handleAfterRecordUpdateAsync(eq(record), eq(status), eq("datasetId"),
+                eq(previousApprovalStatus), anyMap());
     }
 
     @Test
