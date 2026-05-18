@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -328,9 +329,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_DoesNotSendEmails() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
-
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -406,9 +404,6 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_SetsStatusAndDescriptionCorrectly() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
-
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
                 , "jane.doe@123.com", "United States");
@@ -460,6 +455,56 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         assertTrue(actualRecord.getRecord().getUserInfo().getDescription()
                 .contains("This record was automatically rejected."));
 
+    }
+
+    @Test
+    public void testCreateRecord_withBlacklistedPreApprovedDataset_marksRejectedBeforePosting() throws Exception {
+        lenient().doReturn(true).when(service).isPreApprovedDataset(anyString());
+
+        RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status",
+                "jane.doe@123.com", "United States");
+        UserInfoWrapper userInfoWrapper = new UserInfoWrapper(
+                testRecordWrapper.getRecord().getUserInfo(),
+                RECAPTCHA_RESPONSE,
+                new HashMap<>()
+        );
+
+        RPAConfiguration.BlacklistConfig blacklistConfig = new RPAConfiguration.BlacklistConfig();
+        blacklistConfig.setDisallowedEmails(List.of("@123\\."));
+        blacklistConfig.setDisallowedCountries(List.of());
+
+        Map<String, RPAConfiguration.BlacklistConfig> blacklistMap = Map.of("1234", blacklistConfig);
+        when(rpaConfiguration.getBlacklists()).thenReturn(blacklistMap);
+
+        String expectedResponseData = "{\"record\":{\"id\":\"5003R000003ErErQAK\","
+                + "\"caseNum\":\"00228987\","
+                + "\"userInfo\":{\"fullName\":\"Jane Doe\","
+                + "\"organization\":\"NASA\","
+                + "\"email\":\"jane.doe@123.com\","
+                + "\"receiveEmails\":\"Yes\","
+                + "\"country\":\"United States\","
+                + "\"approvalStatus\":\"rejected\","
+                + "\"productTitle\":\"Product title\","
+                + "\"subject\":\"1234\","
+                + "\"description\":\"This record was automatically rejected. Reason: Email is blacklisted.\""
+                + "}}}";
+        InputStream inputStream = new ByteArrayInputStream(expectedResponseData.getBytes());
+        when(mockConnection.getInputStream()).thenReturn(inputStream);
+        OutputStream osMock = mock(OutputStream.class);
+        when(mockConnection.getOutputStream()).thenReturn(osMock);
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+
+        RecordCreationResult result = service.createRecord(userInfoWrapper);
+
+        ArgumentCaptor<byte[]> payloadCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(osMock).write(payloadCaptor.capture());
+        String payload = new String(payloadCaptor.getValue(), StandardCharsets.UTF_8);
+        assertTrue(payload.contains("\"approvalStatus\":\"rejected\""));
+        assertTrue(payload.contains("This record was automatically rejected."));
+        assertTrue(!payload.contains("\"approvalStatus\":\"pre-approved\""));
+        assertEquals("rejected", userInfoWrapper.getUserInfo().getApprovalStatus());
+        assertEquals("rejected", result.getRecordWrapper().getRecord().getUserInfo().getApprovalStatus());
+        verify(service, never()).isPreApprovedDataset(anyString());
     }
 
 
@@ -878,6 +923,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         // Assert
         assertEquals("Declined", result.getRecordStatus().getApprovalStatus());
         assertEquals(recordId, result.getRecordStatus().getRecordId());
+        assertEquals(initialApprovalStatus, result.getPreviousApprovalStatus());
 
         // Verify uncaching not invoked here (now happens async in handleAfterRecordUpdate)
         verify(rpaDatasetCacher, never()).uncache(anyString());
@@ -951,6 +997,20 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
         Record record = getTestRecordWrapper(approvedStatus, email, "United States").getRecord();
 
         service.handleAfterRecordUpdate(record, "Declined", record.getUserInfo().getSubject());
+
+        verify(rpaDatasetCacher).uncache(mockRandomId);
+        verify(recordResponseHandler).onRecordUpdateDeclined(record);
+    }
+
+    @Test
+    public void testHandleAfterRecordUpdate_declineUsesPreviousApprovalStatusForUncache() throws Exception {
+        String email = "sme@test.com";
+        String mockRandomId = "mockRandomId123";
+        String previousApprovalStatus = "Approved_2023-05-09T15:59:03.872Z_" + email + "_" + mockRandomId;
+        String declinedStatus = "Declined_2023-05-10T15:59:03.872Z_" + email;
+        Record record = getTestRecordWrapper(declinedStatus, email, "United States").getRecord();
+
+        service.handleAfterRecordUpdate(record, "Declined", record.getUserInfo().getSubject(), previousApprovalStatus);
 
         verify(rpaDatasetCacher).uncache(mockRandomId);
         verify(recordResponseHandler).onRecordUpdateDeclined(record);

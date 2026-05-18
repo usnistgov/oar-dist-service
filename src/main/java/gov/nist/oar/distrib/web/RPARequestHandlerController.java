@@ -461,6 +461,7 @@ public class RPARequestHandlerController {
                             result.getRecord(),
                             requestedStatus,
                             result.getDatasetId(),
+                            result.getPreviousApprovalStatus(),
                             RPALogContext.capture());
 
                     logUpdateAction(tokenDetails, result.getRecord(), requestedStatus);

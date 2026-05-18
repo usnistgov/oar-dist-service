@@ -294,12 +294,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // 1. Blacklist validation
         String rejectionReason = evaluateBlacklistStatus(userInfoWrapper);
         if (!rejectionReason.isEmpty()) {
-            try {
-                updateApprovalStatus(userInfoWrapper);
-            } catch (RequestProcessingException e) {
-                LOGGER.error("Metadata lookup failed: {}", e.getMessage());
-                throw e;  // Stop record creation
-            }
+            markAsRejected(userInfoWrapper, rejectionReason);
         } else {
             updateApprovalStatus(userInfoWrapper);
         }
@@ -385,7 +380,8 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      */
     private void markAsRejected(UserInfoWrapper wrapper, String reason) {
         wrapper.getUserInfo().setApprovalStatus(RECORD_REJECTED_STATUS);
-        String updatedDesc = wrapper.getUserInfo().getDescription() +
+        String description = wrapper.getUserInfo().getDescription();
+        String updatedDesc = (description == null ? "" : description) +
                 "\nThis record was automatically rejected. Reason: " + reason;
         wrapper.getUserInfo().setDescription(updatedDesc);
     }
@@ -680,7 +676,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      * <p>
      * This method handles the approval or decline of a record. For approvals, it sets an interim
      * "ApprovalPending" status and returns immediately. The actual caching and final status update
-     * happen asynchronously via {@link #handleAfterRecordUpdate(Record, String, String)}.
+     * happen asynchronously via {@link #handleAfterRecordUpdate(Record, String, String, String)}.
      * </p>
      * <p>
      * For declines, the status is updated directly without caching.
@@ -773,7 +769,7 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // Return result for async processing
         // Note: Email notifications and caching are handled asynchronously
         record.getUserInfo().setApprovalStatus(approvalStatus);
-        return new RecordUpdateResult(recordStatus, record, datasetId);
+        return new RecordUpdateResult(recordStatus, record, datasetId, currentStatus);
     }
 
     /**
@@ -790,13 +786,13 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      * @throws RequestProcessingException if an error occurs during post-processing
      */
     @Override
-    public void handleAfterRecordUpdate(Record record, String status, String datasetId)
+    public void handleAfterRecordUpdate(Record record, String status, String datasetId, String previousApprovalStatus)
             throws RequestProcessingException {
 
         if (RECORD_APPROVED_STATUS.equalsIgnoreCase(status)) {
             handleApprovalPostProcessing(record, datasetId);
         } else if (RECORD_DECLINED_STATUS.equalsIgnoreCase(status)) {
-            handleDeclinePostProcessing(record);
+            handleDeclinePostProcessing(record, previousApprovalStatus);
         }
     }
 
@@ -877,15 +873,18 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
      * Handles the async post-processing for a decline.
      * Uncaches the dataset if previously approved, and sends decline notification.
      */
-    private void handleDeclinePostProcessing(Record record) {
+    private void handleDeclinePostProcessing(Record record, String previousApprovalStatus) {
         // Check if there's a random ID from a previous approval to uncache
-        String currentStatus = record.getUserInfo().getApprovalStatus();
-        String randomId = extractRandomIdFromCurrentStatus(currentStatus);
+        String statusForCleanup = previousApprovalStatus != null
+                ? previousApprovalStatus
+                : record.getUserInfo().getApprovalStatus();
+        String randomId = extractRandomIdFromCurrentStatus(statusForCleanup);
 
         if (randomId != null) {
             try {
-                LOGGER.info("RPA decline post-processing started reqId={} recordId={} stage=uncache",
-                        RPALogContext.requestId(), record.getId());
+                LOGGER.info("RPA decline post-processing started reqId={} recordId={} previousStatus={} stage=uncache",
+                        RPALogContext.requestId(), record.getId(),
+                        RPALogContext.summarizeApprovalStatus(statusForCleanup));
                 this.rpaDatasetCacher.uncache(randomId);
             } catch (Exception e) {
                 // Log but don't fail - the decline should still succeed

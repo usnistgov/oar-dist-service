@@ -321,11 +321,13 @@ public class RPARequestHandlerControllerTest {
     void testUpdateRecord() throws Exception {
         String recordId = "123";
         String status = "Approved";
+        String previousApprovalStatus = "Pending";
         RecordStatus recordStatus = new RecordStatus(recordId, status);
         UserInfo userInfo = new UserInfo();
         userInfo.setSubject("datasetId");
         Record record = new Record(recordId, "case-123", userInfo);
-        RecordUpdateResult updateResult = new RecordUpdateResult(recordStatus, record, "datasetId");
+        RecordUpdateResult updateResult = new RecordUpdateResult(recordStatus, record, "datasetId",
+                previousApprovalStatus);
         when(service.updateRecord(anyString(), anyString(), anyString())).thenReturn(updateResult);
 
         Map<String, String> expectedTokenDetails = new HashMap<>();
@@ -347,7 +349,8 @@ public class RPARequestHandlerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recordId").value("123"));
 
-        verify(mockAsyncExecutor).handleAfterRecordUpdateAsync(eq(record), eq(status), eq("datasetId"), anyMap());
+        verify(mockAsyncExecutor).handleAfterRecordUpdateAsync(eq(record), eq(status), eq("datasetId"),
+                eq(previousApprovalStatus), anyMap());
     }
 
     @Test

@@ -24,7 +24,7 @@ public interface RPARequestHandler {
          *
          * For approvals, this sets an interim "ApprovalPending" status and returns immediately.
          * The actual caching and final status update happen asynchronously via
-         * {@link #handleAfterRecordUpdate(Record, String, String)}.
+         * {@link #handleAfterRecordUpdate(Record, String, String, String)}.
          *
          * @param recordId the ID of the record to update
          * @param status   the new status for the record
@@ -50,7 +50,26 @@ public interface RPARequestHandler {
          * @param datasetId the ID of the dataset associated with the record
          * @throws RequestProcessingException if an error occurs during post-processing
          */
-        void handleAfterRecordUpdate(Record record, String status, String datasetId)
+        default void handleAfterRecordUpdate(Record record, String status, String datasetId)
+                        throws RequestProcessingException {
+                String previousApprovalStatus = record != null && record.getUserInfo() != null
+                                ? record.getUserInfo().getApprovalStatus()
+                                : null;
+                handleAfterRecordUpdate(record, status, datasetId, previousApprovalStatus);
+        }
+
+        /**
+         * Handles post-processing with the record's status before the synchronous
+         * update. This is needed for decline cleanup because the random cart ID exists
+         * only in the previous approved status string.
+         *
+         * @param record                 the record that was updated
+         * @param status                 the approval status ("approved" or "declined")
+         * @param datasetId              the ID of the dataset associated with the record
+         * @param previousApprovalStatus the approval status before the synchronous patch
+         * @throws RequestProcessingException if an error occurs during post-processing
+         */
+        void handleAfterRecordUpdate(Record record, String status, String datasetId, String previousApprovalStatus)
                         throws RequestProcessingException;
 
         /**

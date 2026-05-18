@@ -12,11 +12,18 @@ public class RecordUpdateResult {
     private final RecordStatus recordStatus;
     private final Record record;
     private final String datasetId;
+    private final String previousApprovalStatus;
 
     public RecordUpdateResult(RecordStatus recordStatus, Record record, String datasetId) {
+        this(recordStatus, record, datasetId, null);
+    }
+
+    public RecordUpdateResult(RecordStatus recordStatus, Record record, String datasetId,
+            String previousApprovalStatus) {
         this.recordStatus = recordStatus;
         this.record = record;
         this.datasetId = datasetId;
+        this.previousApprovalStatus = previousApprovalStatus;
     }
 
     public RecordStatus getRecordStatus() {
@@ -29,5 +36,9 @@ public class RecordUpdateResult {
 
     public String getDatasetId() {
         return datasetId;
+    }
+
+    public String getPreviousApprovalStatus() {
+        return previousApprovalStatus;
     }
 }
