@@ -388,10 +388,10 @@ public class RPARequestHandlerController {
                 LOGGER.debug("Token is validated");
             } catch (MissingRequiredClaimException e) {
                 String missingClaimName = e.getMissingClaimName();
-                LOGGER.debug("Missing required claim detected: " + missingClaimName);
+                LOGGER.warn("Missing required claim '{}' while updating record {}", missingClaimName, id);
                 throw new InvalidRequestException("JWT token invalid");
             } catch (JwtException e) {
-                LOGGER.debug("Token validation failed due to a JwtException: " + e.getMessage());
+                LOGGER.warn("Token validation failed while updating record {}: {}", id, e.getMessage());
                 throw new UnauthorizedException("JWT token validation failed");
             }
 
@@ -589,7 +589,7 @@ public class RPARequestHandlerController {
                 ex.getMessage());
         ErrorInfo errorInfo = new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(errorInfo);
     }
