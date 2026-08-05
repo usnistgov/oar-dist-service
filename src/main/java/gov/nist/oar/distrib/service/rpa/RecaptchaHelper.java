@@ -77,6 +77,7 @@ public class RecaptchaHelper {
                     .toString();
             ;
         } catch (URISyntaxException e) {
+            LOGGER.error("Failed to build reCAPTCHA verification URL: {}", e.getMessage(), e);
             throw new RuntimeException(e);
         }
 

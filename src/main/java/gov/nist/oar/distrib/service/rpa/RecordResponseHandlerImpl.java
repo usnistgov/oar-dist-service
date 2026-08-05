@@ -66,15 +66,18 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         LOGGER.debug("Record with ID=" + record.getId() + " created successfully! Now sending emails...");
         // If sending email was successful
         if (this.emailSender.sendConfirmationEmailToEndUser(record)) {
-            LOGGER.debug("Confirmation email sent to end user successfully! (RecordID=" + record.getId() + ")");
+            LOGGER.info("Confirmation email sent to end user successfully (RecordID={})", record.getId());
         } else {
+            LOGGER.error("Unable to send confirmation email to end user for record {}", record.getId());
             throw new RequestProcessingException("Unable to send confirmation email to end user");
         }
 
         // If sending email was successful
         if (this.emailSender.sendApprovalEmailToSME(record)) {
-            LOGGER.debug("Request approval email sent to SME successfully! (RecordID=" + record.getId() + ")");
+            LOGGER.info("Request approval email sent to SME successfully (RecordID={})", record.getId());
         } else {
+            LOGGER.error("Unable to send approval-request email to SME for record {}; SME will not be notified",
+                    record.getId());
             throw new RequestProcessingException("Unable to send request approval email to SME");
         }
     }
@@ -88,7 +91,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordCreationFailure(int statusCode) throws RequestProcessingException {
-        LOGGER.debug("Failed to create record, status_code=" + statusCode);
+        LOGGER.error("Failed to create record, status_code={}", statusCode);
         throw new RequestProcessingException("Failed to create record, status_code=" + statusCode);
     }
     
@@ -343,7 +346,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             try {
                 postPayload = new ObjectMapper().writeValueAsString(emailInfo);
             } catch (JsonProcessingException e) {
-                LOGGER.debug("Error while serializing user info: " + e.getMessage());
+                LOGGER.error("Error while serializing email payload: {}", e.getMessage(), e);
                 throw new RequestProcessingException("Error while serializing user info: " + e.getMessage());
             }
 
@@ -387,11 +390,11 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
 
             } catch (MalformedURLException e) {
                 // Handle the URL Malformed error
-                LOGGER.error("Invalid URL: " + e.getMessage());
+                LOGGER.error("Invalid email-service URL: {}", e.getMessage(), e);
                 throw new RequestProcessingException("Invalid URL: " + e.getMessage());
             } catch (IOException e) {
                 // Handle the I/O error
-                LOGGER.error("Error sending GET request: " + e.getMessage());
+                LOGGER.error("I/O error while sending email POST request to Salesforce: {}", e.getMessage(), e);
                 throw new RequestProcessingException("I/O error: " + e.getMessage());
             } finally {
                 // Close the connection

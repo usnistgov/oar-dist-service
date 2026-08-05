@@ -92,8 +92,9 @@ public class JwtTokenValidator {
             LOGGER.warn("Missing required claim detected: " + missingClaimName);
             throw e;
         } catch (JwtException ex) {
-            // If the token is expired or signature does not match, it will throw an Exception
-            LOGGER.debug("Token validation failed due to JwtException: ", ex);
+            // If the token is expired or signature does not match, it will throw an Exception.
+            // This is one of the causes of an approver being unable to open the review page.
+            LOGGER.warn("Token validation failed due to JwtException: {}", ex.getMessage(), ex);
             throw ex;
         }
     }
