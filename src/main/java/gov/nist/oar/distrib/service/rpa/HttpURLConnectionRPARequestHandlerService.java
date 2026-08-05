@@ -237,18 +237,21 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                 }
             } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
                 // Handle the error HTTP_NOT_FOUND response
+                LOGGER.warn("Record {} not found in Salesforce (HTTP 404)", recordId);
                 throw RecordNotFoundException.fromRecordId(recordId);
             } else {
                 // Handle any other error response
+                LOGGER.error("Unexpected response from Salesforce while retrieving record {}: HTTP {} {}",
+                        recordId, responseCode, connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from salesforce service: " + connection.getResponseMessage());
             }
         } catch (MalformedURLException e) {
             // Handle the URL Malformed error
-            LOGGER.debug("Invalid URL: " + e.getMessage());
+            LOGGER.error("Invalid URL while retrieving record {}: {}", recordId, e.getMessage(), e);
             throw new RequestProcessingException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
             // Handle the I/O error
-            LOGGER.debug("Error sending GET request: " + e.getMessage());
+            LOGGER.error("I/O error while retrieving record {} from Salesforce: {}", recordId, e.getMessage(), e);
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         } finally {
             // Close the connection
@@ -279,14 +282,18 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
         // 1. Blacklist validation
         String rejectionReason = evaluateBlacklistStatus(userInfoWrapper);
         if (!rejectionReason.isEmpty()) {
+            // User/dataset is blacklisted: mark the record as rejected rather than routing it for approval.
+            LOGGER.warn("Request for dataset {} rejected by blacklist: {}",
+                    userInfoWrapper.getUserInfo().getSubject(), rejectionReason);
+            markAsRejected(userInfoWrapper, rejectionReason);
+        } else {
             try {
                 updateApprovalStatus(userInfoWrapper);
             } catch (RequestProcessingException e) {
-                LOGGER.error("Metadata lookup failed: {}", e.getMessage());
+                LOGGER.error("Metadata lookup failed while setting approval status for dataset {}: {}",
+                        userInfoWrapper.getUserInfo().getSubject(), e.getMessage(), e);
                 throw e;  // Stop record creation
             }
-        } else {
-            updateApprovalStatus(userInfoWrapper);
         }
 
         // 2. Prepare POST payload
@@ -508,11 +515,13 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
                 }
             } else {
-                LOGGER.error("Salesforce returned error: " + connection.getResponseMessage());
+                LOGGER.error("Salesforce returned error on record creation: HTTP {} {}",
+                        responseCode, connection.getResponseMessage());
                 throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
             }
-    
+
         } catch (IOException e) {
+            LOGGER.error("I/O error during POST to Salesforce for record creation: {}", e.getMessage(), e);
             throw new RequestProcessingException("I/O error during POST to Salesforce: " + e.getMessage());
         } finally {
             if (connection != null) {
@@ -559,10 +568,11 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                     return new ObjectMapper().readTree(in);
                 }
             } else {
-                LOGGER.debug("Failed to retrieve metadata, HTTP response code: " + connection.getResponseCode());
+                LOGGER.warn("Failed to retrieve metadata from resolver at {}: HTTP {}",
+                        datasetUrl, connection.getResponseCode());
             }
         } catch (IOException e) {
-            LOGGER.debug("Error retrieving metadata: " + e.getMessage());
+            LOGGER.error("I/O error retrieving metadata from resolver at {}: {}", datasetUrl, e.getMessage(), e);
         } finally {
             if (connection != null) {
                 connection.disconnect(); // Close connection
@@ -717,16 +727,18 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                     recordStatus = new ObjectMapper().readValue(responseString, RecordStatus.class);
                 }
             } else if (statusCode == HttpStatus.SC_BAD_REQUEST) { // If bad request
-                LOGGER.debug("Invalid request: " + response.getStatusLine().getReasonPhrase());
+                LOGGER.warn("Invalid update request for record {}: {}", recordId, response.getStatusLine().getReasonPhrase());
                 throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
             } else {
                 // Handle any other error response
-                LOGGER.debug("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
+                LOGGER.error("Error response from Salesforce while updating record {}: HTTP {} {}",
+                        recordId, statusCode, response.getStatusLine().getReasonPhrase());
                 throw new RequestProcessingException("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
             }
         } catch (IOException e) {
             // Handle the I/O error
-            LOGGER.debug("Error sending GET request: " + e.getMessage());
+            LOGGER.error("I/O error while sending PATCH update for record {} to Salesforce: {}",
+                    recordId, e.getMessage(), e);
             throw new RequestProcessingException("I/O error: " + e.getMessage());
         }
 

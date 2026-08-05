@@ -327,8 +327,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_DoesNotSendEmails() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
+        // Note: a blacklisted request is short-circuited to "rejected" via markAsRejected and never
+        // performs a pre-approval metadata lookup, so isPreApprovedDataset is intentionally not stubbed here.
 
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
@@ -405,8 +405,8 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
 
     @Test
     public void testCreateRecord_withBlacklistedEmail_SetsStatusAndDescriptionCorrectly() throws Exception {
-        // Set up mock behavior for isPreApprovedDataset
-        doReturn(false).when(service).isPreApprovedDataset(anyString());
+        // Note: a blacklisted request is short-circuited to "rejected" via markAsRejected and never
+        // performs a pre-approval metadata lookup, so isPreApprovedDataset is intentionally not stubbed here.
 
         // Arrange
         RecordWrapper testRecordWrapper = getTestRecordWrapper("Some_random_status"
