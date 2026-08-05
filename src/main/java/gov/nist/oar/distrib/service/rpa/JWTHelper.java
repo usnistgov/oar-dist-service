@@ -120,7 +120,8 @@ public class JWTHelper {
                     "The URI may contain invalid characters or is not properly formatted.");
         }
 
-        LOGGER.debug("SEND_TOKEN_REQUEST_URL=" + url);
+        LOGGER.debug("SEND_TOKEN_REQUEST to {}/services/oauth2/token (assertion redacted)",
+                config.getSalesforceInstanceUrl());
 
         HttpURLConnection connection = null;
         try {
@@ -139,20 +140,21 @@ public class JWTHelper {
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
-                    LOGGER.debug("SEND_TOKEN_REQUEST_RESPONSE=" + response);
+                    LOGGER.debug("SEND_TOKEN_REQUEST succeeded (access token received, value redacted)");
                     // Unmarshall response
                     ObjectMapper mapper = new ObjectMapper();
                     return mapper.readValue(response.toString(), JWTToken.class);
                 }
             } else {
-                LOGGER.debug("Access token request is invalid: " + connection.getResponseMessage());
+                LOGGER.error("Salesforce OAuth token request failed: HTTP {} {}",
+                        responseCode, connection.getResponseMessage());
                 throw new InternalServerErrorException("Access token request is invalid: " + connection.getResponseMessage());
             }
         } catch (MalformedURLException e) {
-            LOGGER.debug("Invalid URL: " + e.getMessage());
+            LOGGER.error("Invalid Salesforce OAuth token URL: {}", e.getMessage(), e);
             throw new InternalServerErrorException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
-            LOGGER.debug("Error sending POST request: " + e.getMessage());
+            LOGGER.error("I/O error requesting Salesforce OAuth token: {}", e.getMessage(), e);
             throw new InternalServerErrorException("error sending POST request: " + e.getMessage());
         } finally {
             if (connection != null) {
