@@ -46,15 +46,24 @@ public class EmailInfoProvider {
     public EmailInfo getSMEApprovalEmailInfo(Record record) {
         String recordId = record.getId();
         String datasetId = record.getUserInfo().getSubject();
-        List<RPAConfiguration.Approver.ApproverData> approvers = rpaConfiguration.getApprovers().get(datasetId);
-        if (approvers == null) {
-            return null;
+        Map<String, List<RPAConfiguration.Approver.ApproverData>> approverMap = rpaConfiguration.getApprovers();
+        List<RPAConfiguration.Approver.ApproverData> approvers =
+                approverMap != null ? approverMap.get(datasetId) : null;
+
+        String smeEmailAddresses;
+        if (approvers == null || approvers.isEmpty()) {
+            // No dedicated approver is configured for this dataset: fall back to the support email
+            // so the approval request is still delivered rather than silently dropped.
+            smeEmailAddresses = rpaConfiguration.getSupportEmail();
+            if (smeEmailAddresses == null || smeEmailAddresses.isBlank()) {
+                return null;
+            }
+        } else {
+            // For multiple approvers, join their email addresses using ';'
+            smeEmailAddresses = approvers.stream()
+                    .map(RPAConfiguration.Approver.ApproverData::getEmail)
+                    .collect(Collectors.joining(";"));
         }
-        // For multiple approvers, we check if there are more than one approver
-        // then join their email addresses using ';'
-        String smeEmailAddresses = approvers.stream()
-                .map(RPAConfiguration.Approver.ApproverData::getEmail)
-                .collect(Collectors.joining(";"));
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = createEmailContent(record);
 
