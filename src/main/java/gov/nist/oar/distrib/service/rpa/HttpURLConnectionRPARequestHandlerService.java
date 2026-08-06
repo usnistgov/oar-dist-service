@@ -251,9 +251,11 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                 throw RecordNotFoundException.fromRecordId(recordId);
             } else {
                 // Handle any other error response
-                LOGGER.warn("RPA Salesforce record fetch failed reqId={} recordId={} statusCode={} message={}",
-                        RPALogContext.requestId(), recordId, responseCode, connection.getResponseMessage());
-                throw new RequestProcessingException("Error response from salesforce service: " + connection.getResponseMessage());
+                String errorBody = RPALogContext.errorBody(connection);
+                LOGGER.warn("RPA Salesforce record fetch failed reqId={} recordId={} statusCode={} message={} body={}",
+                        RPALogContext.requestId(), recordId, responseCode, connection.getResponseMessage(), errorBody);
+                throw new RequestProcessingException("Error response from salesforce service (HTTP " + responseCode
+                        + "): " + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
             }
         } catch (MalformedURLException e) {
             // Handle the URL Malformed error
@@ -550,9 +552,12 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
 
                 }
             } else {
-                LOGGER.error("RPA Salesforce record create failed reqId={} endpoint={} statusCode={} message={}",
-                        RPALogContext.requestId(), RPALogContext.safeUrl(url), responseCode, connection.getResponseMessage());
-                throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
+                String errorBody = RPALogContext.errorBody(connection);
+                LOGGER.error("RPA Salesforce record create failed reqId={} endpoint={} statusCode={} message={} body={}",
+                        RPALogContext.requestId(), RPALogContext.safeUrl(url), responseCode,
+                        connection.getResponseMessage(), errorBody);
+                throw new RequestProcessingException("Error response from Salesforce service (HTTP " + responseCode
+                        + "): " + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
             }
 
         } catch (IOException e) {
@@ -750,14 +755,20 @@ public class HttpURLConnectionRPARequestHandlerService implements RPARequestHand
                             RPALogContext.summarizeApprovalStatus(approvalStatus));
                 }
             } else if (statusCode == HttpStatus.SC_BAD_REQUEST) { // If bad request
-                LOGGER.warn("RPA record status update rejected reqId={} recordId={} statusCode={} message={}",
-                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase());
-                throw new InvalidRequestException("Invalid request: " + response.getStatusLine().getReasonPhrase());
+                String errorBody = RPALogContext.truncateBody(
+                        response.getEntity() != null ? EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8) : "");
+                LOGGER.warn("RPA record status update rejected reqId={} recordId={} statusCode={} message={} body={}",
+                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase(), errorBody);
+                throw new InvalidRequestException("Invalid request (HTTP " + statusCode + "): "
+                        + (errorBody.isEmpty() ? response.getStatusLine().getReasonPhrase() : errorBody));
             } else {
                 // Handle any other error response
-                LOGGER.error("RPA record status update failed reqId={} recordId={} statusCode={} message={}",
-                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase());
-                throw new RequestProcessingException("Error response from Salesforce service: " + response.getStatusLine().getReasonPhrase());
+                String errorBody = RPALogContext.truncateBody(
+                        response.getEntity() != null ? EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8) : "");
+                LOGGER.error("RPA record status update failed reqId={} recordId={} statusCode={} message={} body={}",
+                        RPALogContext.requestId(), recordId, statusCode, response.getStatusLine().getReasonPhrase(), errorBody);
+                throw new RequestProcessingException("Error response from Salesforce service (HTTP " + statusCode + "): "
+                        + (errorBody.isEmpty() ? response.getStatusLine().getReasonPhrase() : errorBody));
             }
         } catch (IOException e) {
             // Handle the I/O error

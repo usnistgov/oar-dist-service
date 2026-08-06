@@ -1,7 +1,11 @@
 package gov.nist.oar.distrib.service.rpa;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -110,6 +114,37 @@ public final class RPALogContext {
         } catch (URISyntaxException ex) {
             return url;
         }
+    }
+
+    /**
+     * Reads the error response body from a failed HttpURLConnection, if any.
+     * Returns a single-line, length-capped string safe for logging, or "" when there is no
+     * body. This is where a remote service (e.g. Salesforce) reports the real cause of a
+     * non-2xx response, such as "invalid_grant: ip restricted".
+     */
+    public static String errorBody(HttpURLConnection connection) {
+        if (connection == null) {
+            return "";
+        }
+        try (InputStream err = connection.getErrorStream()) {
+            if (err == null) {
+                return "";
+            }
+            return truncateBody(new String(err.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /**
+     * Collapses whitespace and caps the length of a response body so it stays readable in a log line.
+     */
+    public static String truncateBody(String body) {
+        if (isBlank(body)) {
+            return "";
+        }
+        String cleaned = body.trim().replaceAll("\\s+", " ");
+        return cleaned.length() > 500 ? cleaned.substring(0, 500) + "..." : cleaned;
     }
 
     public static String maskEmail(String email) {

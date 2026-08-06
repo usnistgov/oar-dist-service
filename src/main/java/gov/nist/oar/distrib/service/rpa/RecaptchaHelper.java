@@ -109,7 +109,11 @@ public class RecaptchaHelper {
                 }
             } else {
                 // Handle any other error response
-                throw new RecaptchaServerException("Error response from Google reCAPTCHA service: " + connection.getResponseMessage());
+                String errorBody = RPALogContext.errorBody(connection);
+                LOGGER.error("reCAPTCHA verification request failed statusCode={} message={} body={}",
+                        responseCode, connection.getResponseMessage(), errorBody);
+                throw new RecaptchaServerException("Error response from Google reCAPTCHA service (HTTP " + responseCode
+                        + "): " + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
             }
         } catch (IOException e) {
             throw new RecaptchaServerException("Error processing Google reCAPTCHA response: " + e.getMessage());

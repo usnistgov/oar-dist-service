@@ -224,7 +224,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             fail("Expected InternalServerErrorException to be thrown");
         } catch (RequestProcessingException e) {
             // Assert exception message is correct
-            assertEquals("Error response from salesforce service: Bad Request", e.getMessage());
+            assertEquals("Error response from salesforce service (HTTP 400): Bad Request", e.getMessage());
         }
 
         // Verify connection is closed
@@ -691,7 +691,7 @@ public class HttpURLConnectionRPARequestHandlerServiceTest {
             fail("Expected RequestProcessingException to be thrown");
         } catch (RequestProcessingException e) {
             // Assert
-            assertEquals("Error response from Salesforce service: Bad Request", e.getMessage());
+            assertEquals("Error response from Salesforce service (HTTP 400): Bad Request", e.getMessage());
         }
 
         // Verify connection is closed

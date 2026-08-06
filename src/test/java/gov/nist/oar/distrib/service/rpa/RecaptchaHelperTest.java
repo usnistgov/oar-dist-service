@@ -178,7 +178,7 @@ public class RecaptchaHelperTest {
             recaptchaHelper.verifyRecaptcha(RECAPTCHA_SECRET, RECAPTCHA_RESPONSE);
             fail("Expected InvalidRecaptchaException to be thrown");
         } catch (RecaptchaServerException e) {
-            assertEquals("Error response from Google reCAPTCHA service: Bad Request", e.getMessage());
+            assertEquals("Error response from Google reCAPTCHA service (HTTP 400): Bad Request", e.getMessage());
         }
 
         // Verify that the connection was closed

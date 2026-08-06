@@ -144,7 +144,29 @@ public class JWTHelperTest {
         when(mockConnection.getResponseMessage()).thenReturn("Bad Request");
 
         Exception exception = assertThrows(InternalServerErrorException.class, () -> jwtHelper.getToken());
-        assertEquals("Access token request is invalid: Bad Request", exception.getMessage());
+        assertEquals("Access token request failed (HTTP 400): Bad Request", exception.getMessage());
+
+        verify(mockConnection).disconnect();
+    }
+
+    @Test
+    public void testGetToken_badRequest_surfacesSalesforceErrorBody() throws Exception {
+        String testUrl = createTestUrl(createTestAssertion());
+        when(mockConnectionFactory.createHttpURLConnection(new URI(testUrl).toURL()))
+                .thenReturn(mockConnection);
+
+        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
+        when(mockConnection.getResponseMessage()).thenReturn("Bad Request");
+        // Salesforce reports the real cause in the error response body, not the status line.
+        when(mockConnection.getErrorStream()).thenReturn(new java.io.ByteArrayInputStream(
+                "{\"error\":\"invalid_grant\",\"error_description\":\"ip restricted\"}"
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+
+        Exception exception = assertThrows(InternalServerErrorException.class, () -> jwtHelper.getToken());
+        assertEquals(
+                "Access token request failed (HTTP 400): "
+                        + "{\"error\":\"invalid_grant\",\"error_description\":\"ip restricted\"}",
+                exception.getMessage());
 
         verify(mockConnection).disconnect();
     }

@@ -147,10 +147,13 @@ public class JWTHelper {
                     return token;
                 }
             } else {
-                LOGGER.warn("RPA auth token request failed reqId={} endpoint={} statusCode={} message={}",
+                String errorBody = RPALogContext.errorBody(connection);
+                LOGGER.warn("RPA auth token request failed reqId={} endpoint={} statusCode={} message={} body={}",
                         RPALogContext.requestId(), RPALogContext.safeUrl(url), responseCode,
-                        connection.getResponseMessage());
-                throw new InternalServerErrorException("Access token request is invalid: " + connection.getResponseMessage());
+                        connection.getResponseMessage(), errorBody);
+                String detail = errorBody.isEmpty() ? connection.getResponseMessage() : errorBody;
+                throw new InternalServerErrorException(
+                        "Access token request failed (HTTP " + responseCode + "): " + detail);
             }
         } catch (MalformedURLException e) {
             LOGGER.error("RPA auth token request failed reqId={} reason=invalid-url message={}",

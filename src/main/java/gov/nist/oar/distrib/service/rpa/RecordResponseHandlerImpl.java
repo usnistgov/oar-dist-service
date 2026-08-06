@@ -395,16 +395,20 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                                 RPALogContext.recipientCount(emailInfo.getRecipient()), responseCode);
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) { // If bad request
-                    LOGGER.warn("RPA email rejected reqId={} kind={} recordId={} statusCode={} message={}",
+                    String errorBody = RPALogContext.errorBody(connection);
+                    LOGGER.warn("RPA email rejected reqId={} kind={} recordId={} statusCode={} message={} body={}",
                             RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), responseCode,
-                            connection.getResponseMessage());
-                    throw new InvalidRequestException("Invalid request: " + connection.getResponseMessage());
+                            connection.getResponseMessage(), errorBody);
+                    throw new InvalidRequestException("Invalid request (HTTP " + responseCode + "): "
+                            + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
                 } else {
                     // Handle any other error response
-                    LOGGER.error("RPA email failed reqId={} kind={} recordId={} statusCode={} message={}",
+                    String errorBody = RPALogContext.errorBody(connection);
+                    LOGGER.error("RPA email failed reqId={} kind={} recordId={} statusCode={} message={} body={}",
                             RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), responseCode,
-                            connection.getResponseMessage());
-                    throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
+                            connection.getResponseMessage(), errorBody);
+                    throw new RequestProcessingException("Error response from Salesforce service (HTTP " + responseCode
+                            + "): " + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
                 }
 
             } catch (MalformedURLException e) {
