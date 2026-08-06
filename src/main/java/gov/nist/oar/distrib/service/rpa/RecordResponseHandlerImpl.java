@@ -260,6 +260,14 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendApprovalEmailToSME(Record record) throws InvalidRequestException,
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getSMEApprovalEmailInfo(record);
+            if (emailInfo == null) {
+                // getSMEApprovalEmailInfo returns null when no approver is configured for the dataset.
+                String datasetId = record.getUserInfo() != null ? record.getUserInfo().getSubject() : "unknown";
+                LOGGER.error("RPA SME approval email not sent reqId={} recordId={} dataset={} reason=no-approver-configured",
+                        RPALogContext.requestId(), record.getId(), datasetId);
+                throw new RequestProcessingException("No SME approver is configured for dataset " + datasetId
+                        + "; cannot send approval email for record " + record.getId());
+            }
             return this.send("sme-approval", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
@@ -336,6 +344,11 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
          * @throws RequestProcessingException if there is an error processing the email request
          */
         private int send(String emailKind, EmailInfo emailInfo) throws InvalidRequestException, RequestProcessingException {
+            if (emailInfo == null) {
+                // Defensive: an email builder returned no information (e.g. missing approver/recipient config).
+                throw new RequestProcessingException("Cannot send " + emailKind
+                        + " email: no email information was available");
+            }
             int responseCode;
             EmailInfoWrapper emailInfoWrapper = null;
             String sendEmailUri = this.rpaConfiguration.getSalesforceEndpoints().get(SEND_EMAIL_ENDPOINT_KEY);
