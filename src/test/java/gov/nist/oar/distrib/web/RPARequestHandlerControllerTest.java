@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -228,6 +229,23 @@ public class RPARequestHandlerControllerTest {
                 .andExpect(status().isOk())
                 .andDo(print())
                 .andExpect(jsonPath("$.record").exists());
+    }
+
+    @Test
+    void testCreateRecord_NotOperatingReturns503() throws Exception {
+        // Regression: with no cache manager engaged the handler service is null, so requests must
+        // return 503 (service unavailable), not 401 or 500.
+        RPAServiceProvider noServiceProvider = mock(RPAServiceProvider.class);
+        RPARequestHandlerController notOperating =
+                new RPARequestHandlerController(noServiceProvider, mockRPACachingService, mockAsyncExecutor);
+        MockMvc notOperatingMvc = MockMvcBuilders.standaloneSetup(notOperating).build();
+
+        notOperatingMvc.perform(post("/ds/rpa/request/form")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.message").value("RPA request handling is not in operation"));
     }
 
     @Test

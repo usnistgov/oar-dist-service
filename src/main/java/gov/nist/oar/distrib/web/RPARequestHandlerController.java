@@ -39,7 +39,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -526,7 +525,6 @@ public class RPARequestHandlerController {
      *         detailed error message.
      */
     @ExceptionHandler(RecordNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleRecordNotFoundException(RecordNotFoundException ex) {
         LOGGER.error("RecordNotFoundException encountered: {}", ex.getMessage());
@@ -555,7 +553,6 @@ public class RPARequestHandlerController {
      *         detailed error message.
      */
     @ExceptionHandler(InvalidRequestException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleInvalidRequestException(InvalidRequestException ex) {
         LOGGER.error("InvalidRequestException encountered: {}", ex.getMessage());
@@ -585,7 +582,6 @@ public class RPARequestHandlerController {
      *         detailed error message.
      */
     @ExceptionHandler(RecaptchaVerificationFailedException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleRecaptchaVerificationFailedException(
             RecaptchaVerificationFailedException ex) {
@@ -616,7 +612,6 @@ public class RPARequestHandlerController {
      */
     @ResponseBody
     @ExceptionHandler(RequestProcessingException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ErrorInfo> handleRequestProcessingException(RequestProcessingException ex) {
         LOGGER.error("RequestProcessingException encountered: {}", ex.getMessage());
         ErrorInfo errorInfo = new ErrorInfo(500, "internal server error: " + ex.getMessage());
@@ -645,7 +640,6 @@ public class RPARequestHandlerController {
      *         and the detailed error message.
      */
     @ExceptionHandler(UnauthorizedException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleUnauthorizedException(UnauthorizedException ex) {
         LOGGER.error("UnauthorizedException encountered: {}", ex.getMessage());
@@ -658,14 +652,12 @@ public class RPARequestHandlerController {
     }
 
     @ExceptionHandler(NotOperatingException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     @ResponseBody
     public ResponseEntity<ErrorInfo> handleNotOperatingException(NotOperatingException ex, HttpServletRequest req) {
-        LOGGER.warn("Request to non-engaged RPACachingService: " + req.getRequestURI() + "\n  " +
-                ex.getMessage());
+        LOGGER.warn("Request to non-engaged RPACachingService {}: {}", req.getRequestURI(), ex.getMessage());
         ErrorInfo errorInfo = new ErrorInfo(req.getRequestURI(), 503, "RPA request handling is not in operation");
         // Return ResponseEntity with the ErrorInfo and the appropriate HTTP status
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(errorInfo);
     }
