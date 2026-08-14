@@ -63,17 +63,22 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordCreationSuccess(Record record) throws InvalidRequestException, RequestProcessingException {
-        LOGGER.debug("Record with ID=" + record.getId() + " created successfully! Now sending emails...");
+        RPALogContext.updateFromRecord(record);
+        LOGGER.info("RPA post-create notifications started reqId={} recordId={} caseNum={} approvalStatus={}",
+                RPALogContext.requestId(), record.getId(), record.getCaseNum(),
+                RPALogContext.summarizeApprovalStatus(record.getUserInfo().getApprovalStatus()));
         // If sending email was successful
         if (this.emailSender.sendConfirmationEmailToEndUser(record)) {
-            LOGGER.debug("Confirmation email sent to end user successfully! (RecordID=" + record.getId() + ")");
+            LOGGER.debug("RPA confirmation email completed reqId={} recordId={}",
+                    RPALogContext.requestId(), record.getId());
         } else {
             throw new RequestProcessingException("Unable to send confirmation email to end user");
         }
 
         // If sending email was successful
         if (this.emailSender.sendApprovalEmailToSME(record)) {
-            LOGGER.debug("Request approval email sent to SME successfully! (RecordID=" + record.getId() + ")");
+            LOGGER.info("RPA SME approval notification completed reqId={} recordId={}",
+                    RPALogContext.requestId(), record.getId());
         } else {
             throw new RequestProcessingException("Unable to send request approval email to SME");
         }
@@ -88,7 +93,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordCreationFailure(int statusCode) throws RequestProcessingException {
-        LOGGER.debug("Failed to create record, status_code=" + statusCode);
+        LOGGER.error("RPA record creation failed reqId={} statusCode={}", RPALogContext.requestId(), statusCode);
         throw new RequestProcessingException("Failed to create record, status_code=" + statusCode);
     }
     
@@ -100,7 +105,9 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onPreApprovedRecordCreationSuccess(Record record, String randomId) throws RequestProcessingException {
-        LOGGER.debug("Handling success for pre-approved record with ID: " + record.getId());
+        RPALogContext.updateFromRecord(record);
+        LOGGER.info("RPA pre-approved request completed reqId={} recordId={} caseNum={}",
+                RPALogContext.requestId(), record.getId(), record.getCaseNum());
 
         // Generate the download URL
         String downloadUrl;
@@ -115,7 +122,8 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
 
         // Send combined email for pre-approved record
         if (this.emailSender.sendPreApprovedEmailToEndUser(record, downloadUrl)) {
-            LOGGER.debug("Pre-approved email sent successfully (RecordID=" + record.getId() + ")");
+            LOGGER.info("RPA pre-approved email completed reqId={} recordId={}",
+                    RPALogContext.requestId(), record.getId());
         } else {
             throw new RequestProcessingException("Failed to send pre-approved email");
         }
@@ -133,8 +141,10 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordUpdateApproved(Record record, String randomId) throws InvalidRequestException, RequestProcessingException {
-
-        LOGGER.info("Dataset was cached successfully. Sending email to user...");
+        RPALogContext.updateFromRecord(record);
+        LOGGER.info("RPA approval notification started reqId={} recordId={} caseNum={} finalStatus={}",
+                RPALogContext.requestId(), record.getId(), record.getCaseNum(),
+                RPALogContext.summarizeApprovalStatus(record.getUserInfo().getApprovalStatus()));
 
         // Build Download URL
         String downloadUrl;
@@ -158,7 +168,15 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onRecordUpdateDeclined(Record record) throws InvalidRequestException, RequestProcessingException {
-        LOGGER.debug("User was declined by SME");
+        RPALogContext.updateFromRecord(record);
+        LOGGER.info("RPA decline notification started reqId={} recordId={} caseNum={}",
+                RPALogContext.requestId(), record.getId(), record.getCaseNum());
+        if (this.emailSender.sendDeclinedEmailToEndUser(record)) {
+            LOGGER.info("RPA decline notification completed reqId={} recordId={}",
+                    RPALogContext.requestId(), record.getId());
+        } else {
+            throw new RequestProcessingException("Failed to send decline notification email to end user");
+        }
     }
 
     /**
@@ -171,12 +189,14 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
      */
     @Override
     public void onFailure(Record record) throws RequestProcessingException, InvalidRequestException {
-        LOGGER.warn("A processing failure occurred for Record ID=" + record.getId() +
-                "; notifying the user that their request could not be completed.");
+        RPALogContext.updateFromRecord(record);
+        LOGGER.warn("RPA processing failure notification started reqId={} recordId={} caseNum={}",
+                RPALogContext.requestId(), record.getId(), record.getCaseNum());
 
         boolean sent = this.emailSender.sendFailureNotificationEmailToEndUser(record);
         if (sent) {
-            LOGGER.debug("Failure notification email sent successfully to end user (RecordID=" + record.getId() + ")");
+            LOGGER.info("RPA processing failure notification completed reqId={} recordId={}",
+                    RPALogContext.requestId(), record.getId());
         } else {
             throw new RequestProcessingException("Failed to send failure notification email to end user");
         }
@@ -240,8 +260,15 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendApprovalEmailToSME(Record record) throws InvalidRequestException,
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getSMEApprovalEmailInfo(record);
-            LOGGER.debug("EMAIL_INFO=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            if (emailInfo == null) {
+                // getSMEApprovalEmailInfo returns null when no approver is configured for the dataset.
+                String datasetId = record.getUserInfo() != null ? record.getUserInfo().getSubject() : "unknown";
+                LOGGER.error("RPA SME approval email not sent reqId={} recordId={} dataset={} reason=no-approver-configured",
+                        RPALogContext.requestId(), record.getId(), datasetId);
+                throw new RequestProcessingException("No SME approver is configured for dataset " + datasetId
+                        + "; cannot send approval email for record " + record.getId());
+            }
+            return this.send("sme-approval", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
         /**
@@ -254,8 +281,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendConfirmationEmailToEndUser(Record record) throws InvalidRequestException,
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getEndUserConfirmationEmailInfo(record);
-            LOGGER.debug("EMAIL_INFO=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            return this.send("request-confirmation", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
         /**
@@ -268,8 +294,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendDownloadEmailToEndUser(Record record, String downloadUrl) throws InvalidRequestException,
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getEndUserApprovedEmailInfo(record, downloadUrl);
-            LOGGER.debug("EMAIL_INFO=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            return this.send("approved-download", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
         /**
@@ -281,8 +306,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
          */
         private boolean sendPreApprovedEmailToEndUser(Record record, String downloadUrl) throws InvalidRequestException, RequestProcessingException {
             EmailInfo emailInfo = EmailHelper.getEndUserPreApprovedEmailInfo(record, this.rpaConfiguration, downloadUrl);
-            LOGGER.debug("EMAIL_INFO=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            return this.send("pre-approved-download", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
 
@@ -295,8 +319,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendDeclinedEmailToEndUser(Record record) throws InvalidRequestException,
                 RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getEndUserDeclinedEmailInfo(record);
-            LOGGER.debug("EMAIL_INFO=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            return this.send("declined-notification", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
         /**
@@ -309,8 +332,7 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
         private boolean sendFailureNotificationEmailToEndUser(Record record)
                 throws InvalidRequestException, RequestProcessingException {
             EmailInfo emailInfo = this.emailInfoProvider.getEndUserFailureNotificationEmailInfo(record);
-            LOGGER.debug("EMAIL_INFO (processing failure)=" + emailInfo);
-            return this.send(emailInfo) == HttpURLConnection.HTTP_OK;
+            return this.send("processing-failure", emailInfo) == HttpURLConnection.HTTP_OK;
         }
 
         /**
@@ -321,7 +343,12 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
          * @throws InvalidRequestException    if the email request is invalid
          * @throws RequestProcessingException if there is an error processing the email request
          */
-        private int send(EmailInfo emailInfo) throws InvalidRequestException, RequestProcessingException {
+        private int send(String emailKind, EmailInfo emailInfo) throws InvalidRequestException, RequestProcessingException {
+            if (emailInfo == null) {
+                // Defensive: an email builder returned no information (e.g. missing approver/recipient config).
+                throw new RequestProcessingException("Cannot send " + emailKind
+                        + " email: no email information was available");
+            }
             int responseCode;
             EmailInfoWrapper emailInfoWrapper = null;
             String sendEmailUri = this.rpaConfiguration.getSalesforceEndpoints().get(SEND_EMAIL_ENDPOINT_KEY);
@@ -337,13 +364,16 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
             } catch (URISyntaxException e) {
                 throw new RequestProcessingException("Error building URI: " + e.getMessage());
             }
-            LOGGER.debug("SEND_EMAIL_URL=" + url);
+            LOGGER.debug("RPA email request prepared reqId={} kind={} endpoint={} recordId={} recipientCount={}",
+                    RPALogContext.requestId(), emailKind, RPALogContext.safeUrl(url), emailInfo.getRecordId(),
+                    RPALogContext.recipientCount(emailInfo.getRecipient()));
             // Create payload
             String postPayload;
             try {
                 postPayload = new ObjectMapper().writeValueAsString(emailInfo);
             } catch (JsonProcessingException e) {
-                LOGGER.debug("Error while serializing user info: " + e.getMessage());
+                LOGGER.error("RPA email serialization failed reqId={} kind={} recordId={}: {}",
+                        RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), e.getMessage());
                 throw new RequestProcessingException("Error while serializing user info: " + e.getMessage());
             }
 
@@ -362,7 +392,6 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                 os.write(payloadBytes);
                 os.flush();
                 os.close();
-                LOGGER.debug("SEND_EMAIL_PAYLOAD=" + postPayload);
                 responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) { // If created
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
@@ -372,26 +401,38 @@ public class RecordResponseHandlerImpl implements RecordResponseHandler {
                         while ((line = in.readLine()) != null) {
                             response.append(line);
                         }
-                        LOGGER.debug("SEND_EMAIL_RESPONSE=" + response);
                         // Handle the response
                         emailInfoWrapper = new ObjectMapper().readValue(response.toString(), EmailInfoWrapper.class);
+                        LOGGER.info("RPA email sent reqId={} kind={} recordId={} recipientCount={} statusCode={}",
+                                RPALogContext.requestId(), emailKind, emailInfo.getRecordId(),
+                                RPALogContext.recipientCount(emailInfo.getRecipient()), responseCode);
                     }
                 } else if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) { // If bad request
-                    LOGGER.error("Invalid request: " + connection.getResponseMessage());
-                    throw new InvalidRequestException("Invalid request: " + connection.getResponseMessage());
+                    String errorBody = RPALogContext.errorBody(connection);
+                    LOGGER.warn("RPA email rejected reqId={} kind={} recordId={} statusCode={} message={} body={}",
+                            RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), responseCode,
+                            connection.getResponseMessage(), errorBody);
+                    throw new InvalidRequestException("Invalid request (HTTP " + responseCode + "): "
+                            + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
                 } else {
                     // Handle any other error response
-                    LOGGER.error("Error response from Salesforce service: " + connection.getResponseMessage());
-                    throw new RequestProcessingException("Error response from Salesforce service: " + connection.getResponseMessage());
+                    String errorBody = RPALogContext.errorBody(connection);
+                    LOGGER.error("RPA email failed reqId={} kind={} recordId={} statusCode={} message={} body={}",
+                            RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), responseCode,
+                            connection.getResponseMessage(), errorBody);
+                    throw new RequestProcessingException("Error response from Salesforce service (HTTP " + responseCode
+                            + "): " + (errorBody.isEmpty() ? connection.getResponseMessage() : errorBody));
                 }
 
             } catch (MalformedURLException e) {
                 // Handle the URL Malformed error
-                LOGGER.error("Invalid URL: " + e.getMessage());
+                LOGGER.error("RPA email failed reqId={} kind={} recordId={} reason=invalid-url message={}",
+                        RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), e.getMessage());
                 throw new RequestProcessingException("Invalid URL: " + e.getMessage());
             } catch (IOException e) {
                 // Handle the I/O error
-                LOGGER.error("Error sending GET request: " + e.getMessage());
+                LOGGER.error("RPA email failed reqId={} kind={} recordId={} message={}",
+                        RPALogContext.requestId(), emailKind, emailInfo.getRecordId(), e.getMessage());
                 throw new RequestProcessingException("I/O error: " + e.getMessage());
             } finally {
                 // Close the connection

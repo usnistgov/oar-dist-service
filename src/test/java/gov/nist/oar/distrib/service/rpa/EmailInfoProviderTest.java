@@ -155,6 +155,18 @@ public class EmailInfoProviderTest {
     }
 
     @Test
+    public void testGetSMEApprovalEmailInfo_fallsBackToSupportEmailWhenNoApprover() {
+        // No approver configured for this dataset: the recipient falls back to the support email.
+        when(rpaConfiguration.getApprovers()).thenReturn(new HashMap<>());
+
+        EmailInfo emailInfo = emailInfoProvider.getSMEApprovalEmailInfo(record);
+
+        assertEquals("1", emailInfo.getRecordId());
+        assertEquals("rpa-support@nist.gov", emailInfo.getRecipient());
+        assertEquals("SME Email - Case: 12345", emailInfo.getSubject());
+    }
+
+    @Test
     public void testGetEndUserConfirmationEmailInfo() {
         EmailInfo emailInfo = emailInfoProvider.getEndUserConfirmationEmailInfo(record);
 

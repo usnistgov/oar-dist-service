@@ -54,18 +54,12 @@ public class DefaultRPADatasetCacher implements RPADatasetCacher {
     }
 
     /**
-     * Logs the specified exception to the debug log, along with its stack trace.
+     * Logs the specified exception at error level, including its stack trace.
      *
      * @param e the exception to log
      */
     private void logCachingException(Exception e) {
-        LOGGER.error("Unexpected failure while caching RPA dataset: " + e);
-        StringBuilder sb = new StringBuilder();
-        for (StackTraceElement element : e.getStackTrace()) {
-            sb.append(element.toString());
-            sb.append("\n");
-        }
-        LOGGER.error(sb.toString());
+        LOGGER.error("Unexpected failure while caching RPA dataset: {}", e.getMessage(), e);
     }
 
 }

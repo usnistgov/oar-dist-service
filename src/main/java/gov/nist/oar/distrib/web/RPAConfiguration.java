@@ -61,7 +61,7 @@ public class RPAConfiguration {
     private Map<String, BlacklistConfig> blacklists = new HashMap<>();
 
     @JsonProperty("expiresAfterMillis")
-    long expiresAfterMillis = 0L;
+    long expiresAfterMillis = 1209600000L;
 
     @JsonProperty("supportEmail")
     private String supportEmail;

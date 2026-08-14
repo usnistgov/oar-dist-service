@@ -4,6 +4,7 @@ import gov.nist.oar.distrib.service.rpa.exceptions.InvalidRequestException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecaptchaVerificationFailedException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RecordNotFoundException;
 import gov.nist.oar.distrib.service.rpa.exceptions.RequestProcessingException;
+import gov.nist.oar.distrib.service.rpa.model.Record;
 import gov.nist.oar.distrib.service.rpa.model.RecordStatus;
 import gov.nist.oar.distrib.service.rpa.model.RecordWrapper;
 import gov.nist.oar.distrib.service.rpa.model.UserInfoWrapper;
@@ -20,17 +21,56 @@ public interface RPARequestHandler {
 
         /**
          * Updates the status of a record by ID.
-         * 
+         *
+         * For approvals, this sets an interim "ApprovalPending" status and returns immediately.
+         * The actual caching and final status update happen asynchronously via
+         * {@link #handleAfterRecordUpdate(Record, String, String, String)}.
+         *
          * @param recordId the ID of the record to update
          * @param status   the new status for the record
-         * @return the updated record status
+         * @param smeId    the ID of the SME performing the update
+         * @return the update result containing record status, record data, and dataset ID
          * @throws RecordNotFoundException    if the record is not found
          * @throws InvalidRequestException    if the request payload is invalid
          * @throws RequestProcessingException if there is an error while processing the
          *                                    request
          */
-        RecordStatus updateRecord(String recordId, String status, String smeId)
+        RecordUpdateResult updateRecord(String recordId, String status, String smeId)
                         throws RecordNotFoundException, InvalidRequestException, RequestProcessingException;
+
+        /**
+         * Handles the post-processing of a record update (approval/decline).
+         *
+         * For approvals: caches the dataset, updates Salesforce with final status including
+         * the random ID, and sends success/failure email.
+         * For declines: sends decline notification email.
+         *
+         * @param record    the record that was updated
+         * @param status    the approval status ("approved" or "declined")
+         * @param datasetId the ID of the dataset associated with the record
+         * @throws RequestProcessingException if an error occurs during post-processing
+         */
+        default void handleAfterRecordUpdate(Record record, String status, String datasetId)
+                        throws RequestProcessingException {
+                String previousApprovalStatus = record != null && record.getUserInfo() != null
+                                ? record.getUserInfo().getApprovalStatus()
+                                : null;
+                handleAfterRecordUpdate(record, status, datasetId, previousApprovalStatus);
+        }
+
+        /**
+         * Handles post-processing with the record's status before the synchronous
+         * update. This is needed for decline cleanup because the random cart ID exists
+         * only in the previous approved status string.
+         *
+         * @param record                 the record that was updated
+         * @param status                 the approval status ("approved" or "declined")
+         * @param datasetId              the ID of the dataset associated with the record
+         * @param previousApprovalStatus the approval status before the synchronous patch
+         * @throws RequestProcessingException if an error occurs during post-processing
+         */
+        void handleAfterRecordUpdate(Record record, String status, String datasetId, String previousApprovalStatus)
+                        throws RequestProcessingException;
 
         /**
          * Gets a record by ID.

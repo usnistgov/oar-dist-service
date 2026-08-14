@@ -1,6 +1,7 @@
 package gov.nist.oar.distrib.web;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -82,18 +83,21 @@ public class JwtTokenValidator {
             tokenDetails.put("expiry", getClaimAsString(claims.get("exp"), "exp", false));
             tokenDetails.put("user_id", getClaimAsString(claims.getSubject(), "user_id", true));
 
-            LOGGER.debug("Token successfully validated and details extracted.");
-
             return tokenDetails;
 
         } catch (MissingRequiredClaimException e) {
             // Handle the specific case of a missing required claim
             String missingClaimName = e.getMissingClaimName();
-            LOGGER.warn("Missing required claim detected: " + missingClaimName);
+            LOGGER.warn("Missing required claim detected: {}", missingClaimName);
             throw e;
+        } catch (ExpiredJwtException ex) {
+            // Expired links are routine (a common cause of approvers unable to open the review
+            // page); log without a stack trace to avoid noise.
+            LOGGER.warn("RPA JWT expired: {}", ex.getMessage());
+            throw ex;
         } catch (JwtException ex) {
-            // If the token is expired or signature does not match, it will throw an Exception
-            LOGGER.debug("Token validation failed due to JwtException: ", ex);
+            // Signature mismatch or malformed token; keep the stack trace for investigation.
+            LOGGER.warn("RPA JWT validation failed: {}", ex.getMessage(), ex);
             throw ex;
         }
     }
