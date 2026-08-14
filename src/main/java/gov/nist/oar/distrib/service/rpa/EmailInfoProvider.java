@@ -7,6 +7,7 @@ import org.apache.commons.text.StringSubstitutor;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Locale;
@@ -21,7 +22,6 @@ import java.util.stream.Stream;
 public class EmailInfoProvider {
 
     private static final String DATE_PATTERN = "EEEE, MM/dd/yyyy 'at' hh:mm a z";
-    private static final int EXPIRATION_DAYS = 14;
     private final RPAConfiguration rpaConfiguration;
 
     /**
@@ -46,15 +46,24 @@ public class EmailInfoProvider {
     public EmailInfo getSMEApprovalEmailInfo(Record record) {
         String recordId = record.getId();
         String datasetId = record.getUserInfo().getSubject();
-        List<RPAConfiguration.Approver.ApproverData> approvers = rpaConfiguration.getApprovers().get(datasetId);
-        if (approvers == null) {
-            return null;
+        Map<String, List<RPAConfiguration.Approver.ApproverData>> approverMap = rpaConfiguration.getApprovers();
+        List<RPAConfiguration.Approver.ApproverData> approvers =
+                approverMap != null ? approverMap.get(datasetId) : null;
+
+        String smeEmailAddresses;
+        if (approvers == null || approvers.isEmpty()) {
+            // No dedicated approver is configured for this dataset: fall back to the support email
+            // so the approval request is still delivered rather than silently dropped.
+            smeEmailAddresses = rpaConfiguration.getSupportEmail();
+            if (smeEmailAddresses == null || smeEmailAddresses.isBlank()) {
+                return null;
+            }
+        } else {
+            // For multiple approvers, join their email addresses using ';'
+            smeEmailAddresses = approvers.stream()
+                    .map(RPAConfiguration.Approver.ApproverData::getEmail)
+                    .collect(Collectors.joining(";"));
         }
-        // For multiple approvers, we check if there are more than one approver
-        // then join their email addresses using ';'
-        String smeEmailAddresses = approvers.stream()
-                .map(RPAConfiguration.Approver.ApproverData::getEmail)
-                .collect(Collectors.joining(";"));
         String subject = rpaConfiguration.SMEApprovalEmail().getSubject() + record.getCaseNum();
         String content = createEmailContent(record);
 
@@ -208,7 +217,7 @@ public class EmailInfoProvider {
      */
     private String getExpirationDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_PATTERN, Locale.ENGLISH);
-        ZonedDateTime date = ZonedDateTime.now().plusDays(EXPIRATION_DAYS);
+        ZonedDateTime date = ZonedDateTime.now().plus(rpaConfiguration.getExpiresAfterMillis(), ChronoUnit.MILLIS);
         return formatter.format(date);
     }
 }

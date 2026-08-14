@@ -120,7 +120,8 @@ public class JWTHelper {
                     "The URI may contain invalid characters or is not properly formatted.");
         }
 
-        LOGGER.debug("SEND_TOKEN_REQUEST_URL=" + url);
+        LOGGER.debug("RPA auth token request started reqId={} endpoint={}",
+                RPALogContext.requestId(), RPALogContext.safeUrl(url));
 
         HttpURLConnection connection = null;
         try {
@@ -139,20 +140,28 @@ public class JWTHelper {
                     while ((line = in.readLine()) != null) {
                         response.append(line);
                     }
-                    LOGGER.debug("SEND_TOKEN_REQUEST_RESPONSE=" + response);
-                    // Unmarshall response
                     ObjectMapper mapper = new ObjectMapper();
-                    return mapper.readValue(response.toString(), JWTToken.class);
+                    JWTToken token = mapper.readValue(response.toString(), JWTToken.class);
+                    LOGGER.debug("RPA auth token request succeeded reqId={} endpoint={}",
+                            RPALogContext.requestId(), RPALogContext.safeUrl(url));
+                    return token;
                 }
             } else {
-                LOGGER.debug("Access token request is invalid: " + connection.getResponseMessage());
-                throw new InternalServerErrorException("Access token request is invalid: " + connection.getResponseMessage());
+                String errorBody = RPALogContext.errorBody(connection);
+                LOGGER.warn("RPA auth token request failed reqId={} endpoint={} statusCode={} message={} body={}",
+                        RPALogContext.requestId(), RPALogContext.safeUrl(url), responseCode,
+                        connection.getResponseMessage(), errorBody);
+                String detail = errorBody.isEmpty() ? connection.getResponseMessage() : errorBody;
+                throw new InternalServerErrorException(
+                        "Access token request failed (HTTP " + responseCode + "): " + detail);
             }
         } catch (MalformedURLException e) {
-            LOGGER.debug("Invalid URL: " + e.getMessage());
+            LOGGER.error("RPA auth token request failed reqId={} reason=invalid-url message={}",
+                    RPALogContext.requestId(), e.getMessage());
             throw new InternalServerErrorException("Invalid URL: " + e.getMessage());
         } catch (IOException e) {
-            LOGGER.debug("Error sending POST request: " + e.getMessage());
+            LOGGER.error("RPA auth token request failed reqId={} endpoint={} message={}",
+                    RPALogContext.requestId(), RPALogContext.safeUrl(url), e.getMessage());
             throw new InternalServerErrorException("error sending POST request: " + e.getMessage());
         } finally {
             if (connection != null) {

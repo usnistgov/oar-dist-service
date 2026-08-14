@@ -21,7 +21,7 @@ public class CacheExpiryCheck implements CacheObjectCheck {
     /**
      * Checks if a cache object is expired and removes it from the cache if it is.
      * The method uses the {@code expires} metadata field to determine the expiration status.
-     * The expiration time is calculated based on the {@code LastModified} time plus the {@code expires} duration.
+     * The expiration time is stored as an absolute epoch millisecond value.
      * If the current time is past the calculated expiry time, the object is removed from the inventory database.
      *
      * @param co The cache object to check for expiration.
@@ -36,17 +36,11 @@ public class CacheExpiryCheck implements CacheObjectCheck {
         }
 
         if (co.hasMetadatum("expires")) {
-            long expiresDuration = co.getMetadatumLong("expires", -1L);
-            if (expiresDuration == -1L) {
+            long expiryTime = co.getMetadatumLong("expires", -1L);
+            if (expiryTime == -1L) {
                 throw new IntegrityException("Invalid 'expires' metadata value");
             }
 
-            long lastModified = co.getLastModified();
-            if (lastModified == -1L) {
-                throw new IntegrityException("CacheObject 'lastModified' time not available");
-            }
-
-            long expiryTime = lastModified + expiresDuration;
             long currentTime = Instant.now().toEpochMilli();
 
             // Check if the object is expired
