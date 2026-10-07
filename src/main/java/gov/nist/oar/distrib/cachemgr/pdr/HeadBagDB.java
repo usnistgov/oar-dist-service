@@ -152,6 +152,11 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
     public static HeadBagDB createPostgresDB(String jdbcUrl) {
         String fullUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
 
+        // PostgreSQL may be queried by many concurrent requests, and by more than one service
+        // instance sharing the same inventory, so draw connections from a HikariCP pool rather
+        // than opening a new DriverManager connection per query the way the SQLite path does.
+        // The pool is kept small because inventory queries are short; raise the size if the cache
+        // is driven harder.
         HikariConfig hcfg = new HikariConfig();
         hcfg.setJdbcUrl(fullUrl);
         hcfg.setMaximumPoolSize(20);

@@ -145,18 +145,42 @@ public class NISTCacheManagerConfig {
     public String getRpaDburl() { return rpaDburl != null ? rpaDburl : dburl; }
     public void setRpaDburl(String url) { rpaDburl = url; }
 
+    /**
+     * Return the JDBC URL for the public headbag cache inventory, applying the PostgreSQL database
+     * separation rules documented on {@link #resolvePostgresAwareInventoryDburl}.
+     */
     String resolveHeadbagInventoryDburl() throws ConfigurationException {
         requireSupportedDatabaseType(dburl, "dburl");
         return resolvePostgresAwareInventoryDburl(headbagDburl, "headbagDburl", "headbag inventory",
                                                   rpaDburl, "rpaDburl");
     }
 
+    /**
+     * Return the JDBC URL for the restricted (RPA) headbag cache inventory, applying the PostgreSQL
+     * database separation rules documented on {@link #resolvePostgresAwareInventoryDburl}.
+     */
     String resolveRpaInventoryDburl() throws ConfigurationException {
         requireSupportedDatabaseType(dburl, "dburl");
         return resolvePostgresAwareInventoryDburl(rpaDburl, "rpaDburl", "RPA headbag inventory",
                                                   headbagDburl, "headbagDburl");
     }
 
+    /**
+     * Resolve the JDBC URL for an auxiliary cache inventory (the public headbag inventory or the
+     * restricted RPA headbag inventory) and enforce database separation when the backend is
+     * PostgreSQL.
+     *
+     * With SQLite each cache keeps its own inventory file, so the three caches (main data, public
+     * headbags, and restricted RPA headbags) are isolated by the filesystem. A shared PostgreSQL
+     * server has no such built in separation: pointing two caches at the same database makes them
+     * share the objects and volumes tables. Because both headbag caches register the same fixed
+     * volume names (cv0 and cv1), sharing one database would let one cache overwrite the other's
+     * volume capacity and would leak objects across caches. In particular, restricted RPA metadata
+     * could become visible through the public cache, which is a disclosure risk. To prevent this, a
+     * PostgreSQL deployment must give each inventory a distinct database (or schema): the url must
+     * be set explicitly and must differ from both dburl and the sibling inventory url. SQLite keeps
+     * its existing fall back to dburl because its file based layout already isolates the caches.
+     */
     private String resolvePostgresAwareInventoryDburl(String explicitUrl, String propertyName,
                                                       String inventoryName, String siblingUrl,
                                                       String siblingPropertyName)
