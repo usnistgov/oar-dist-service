@@ -205,7 +205,12 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             sql.append(" AND d.cached=true");
         sql.append(";");
 
-        return queryForObjects(sql.toString());
+        // lock access to the db in case a deletion plan is progress, unless the caller just
+        // wants information. 
+        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
+        synchronized (lock) {
+            return queryForObjects(sql.toString());
+        }
     }
 
     /**
@@ -497,7 +502,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         String fsql = find_sql_base + "AND d.cached=true AND v.name='" + volname + "' AND d.name='" + objname + "';";
         List<CacheObject> objs = null;
 
-        objs = queryForObjects(fsql);
+        // lock access to the db in case a deletion plan is progress, unless the caller just
+        // wants information. 
+        synchronized (this) {
+            objs = queryForObjects(fsql);
+        }
         if (objs.size() == 0) return null;
 
         return objs.get(0);
