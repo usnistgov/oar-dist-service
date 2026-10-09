@@ -13,8 +13,6 @@
 package gov.nist.oar.distrib.cachemgr.inventory;
 
 import gov.nist.oar.distrib.cachemgr.InventoryException;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * A <a href="https://www.postgresql.org/">PostgreSQL</a> implementation of a storage inventory database.
@@ -47,10 +45,5 @@ public class PostgresStorageInventoryDB extends JDBCStorageInventoryDB {
     public static void initializeDB(String jdbcUrl) throws InventoryException {
         PostgresBootstrapHelper.initializeSchema(jdbcUrl, PostgresStorageInventoryDB.class,
                                                  "res/postgres_create.sql", "storage-inventory-bootstrap");
-    }
-
-    @Override
-    protected Connection connect() throws SQLException {
-        return super.connect();
     }
 }

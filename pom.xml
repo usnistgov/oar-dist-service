@@ -128,6 +128,8 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.41.2.2</version>
         </dependency>
+        <!-- PostgreSQL support for the cache inventory: the JDBC driver, plus the HikariCP
+             connection pool used only on the PostgreSQL path (SQLite keeps a connection per query). -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -267,6 +269,8 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
+                    <!-- 0.8.12: the previous 0.7.x cannot instrument Java 21 bytecode. Do not
+                         downgrade without first confirming JDK 21 support. -->
                     <version>0.8.12</version>
                 </plugin>
                 <plugin>
@@ -297,8 +301,6 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
-                    <forkCount>1</forkCount>
-                    <reuseForks>true</reuseForks>
                     <systemPropertyVariables>
                         <basedir>${project.basedir}</basedir>
                     </systemPropertyVariables>
@@ -364,6 +366,9 @@
     </build>
 
     <profiles>
+        <!-- Opt-in profile to run ONLY the PostgreSQL integration tests (via Failsafe) and skip
+             the normal unit-test phase. Use "mvn verify -Ppostgres-integration" for a focused
+             local run; a plain "mvn verify" still runs the unit tests plus all *IT tests. -->
         <profile>
             <id>postgres-integration</id>
             <build>
