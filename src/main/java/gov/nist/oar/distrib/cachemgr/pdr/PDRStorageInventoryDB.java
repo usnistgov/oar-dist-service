@@ -151,9 +151,24 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
         return md.getString(name);
     }
 
+    /**
+     * run a SELECT that returns cache objects, binding the given values as query parameters.
+     * <p>
+     * The values are bound to a PreparedStatement rather than concatenated into the SQL string.
+     * That means a caller-supplied identifier cannot change the shape of the query (no SQL
+     * injection), and the one statement runs unchanged on both SQLite and PostgreSQL.
+     *
+     * @param objsql   the SELECT statement, with a '?' placeholder for each value in params
+     * @param purpose  why the caller wants the objects; a value of VOL_FOR_GET or higher means the
+     *                 result may drive a state change, so the read is serialized (see the lock below)
+     * @param params   the values to bind, in order, one per '?'; each is bound by its Java type
+     */
     protected List<CacheObject> queryForObjects(String objsql, int purpose, Object... params)
         throws InventoryException
     {
+        // Lock the database only when the caller may act on the result (a get, or building a
+        // deletion plan), so a concurrent deletion cannot change things underneath it. A caller
+        // that just wants information reads without locking, using a throwaway monitor.
         Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
         synchronized (lock) {
             Connection conn = null;
@@ -162,6 +177,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
             try {
                 conn = connect();
                 stmt = conn.prepareStatement(objsql);
+                // bind each value into its matching '?' placeholder, choosing the setter by type
                 for (int i = 0; i < params.length; i++) {
                     Object param = params[i];
                     int idx = i + 1;
@@ -502,6 +518,13 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONObject summarizeDataset(String aipid) throws InventoryException {
+        // This rolls up all cached files for one AIP into a single summary row. Every one of those
+        // files carries the same ediid and pdrid, but PostgreSQL requires each selected column to
+        // be either aggregated or named in a GROUP BY (see the GROUP BY Clause rule at
+        // https://www.postgresql.org/docs/current/sql-select.html#SQL-GROUPBY), so the
+        // single-valued columns are wrapped in min() to pick that one value. HAVING count(*) > 0
+        // keeps the row only when something is cached. SQLite accepts this form too, so the one
+        // query serves both backends.
         String qsel = "SELECT min(d.ediid) as ediid,min(d.pdrid) as pdrid,count(*) as count," +
                       "sum(d.size) as totsz,max(d.since) as newest,min(d.checked) as oldest " +
                       "FROM objects d, volumes v " +
@@ -541,6 +564,11 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONArray summarizeContents(String volname) throws InventoryException {
+        // One summary row per dataset (GROUP BY d.ediid). pdrid is single-valued within a dataset
+        // but is not the grouping column, so it is wrapped in min() because PostgreSQL requires
+        // every selected column to be aggregated or grouped (see the GROUP BY Clause rule at
+        // https://www.postgresql.org/docs/current/sql-select.html#SQL-GROUPBY). SQLite accepts
+        // this too.
         StringBuilder qsel = new StringBuilder();
         qsel.append("SELECT d.ediid,min(d.pdrid) as pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
             .append("min(d.checked) as oldest FROM objects d, volumes v ")

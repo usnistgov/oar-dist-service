@@ -65,6 +65,15 @@ import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
  *   <li>Corrupted space calculations (available space wrong for both caches)</li>
  *   <li>summarizeContents() merging data from both caches</li>
  * </ol>
+ *
+ * <h3>How to read this test</h3>
+ * Each assertion here is written to PASS when the collision happens: the messages are labeled
+ * "BUG" on purpose. The point of the test is to prove the hazard is real and so justify the
+ * startup guard in {@code NISTCacheManagerConfig.resolvePostgresAwareInventoryDburl} that refuses
+ * a shared PostgreSQL inventory. It is NOT asserting desired behavior. If the head-bag caches are
+ * ever changed to use distinct volume names or otherwise isolate their data, these assertions will
+ * start to fail; that would be expected, and the test should then be updated or removed rather than
+ * treated as a regression.
  */
 public class SharedDatabaseCollisionTest {
 

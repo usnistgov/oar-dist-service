@@ -20,7 +20,6 @@ import gov.nist.oar.distrib.service.RPACachingService;
 import gov.nist.oar.distrib.cachemgr.BasicCache;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.pdr.RestrictedDatasetRestorer;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagCacheManager;
 import gov.nist.oar.distrib.cachemgr.pdr.HeadBagDB;
@@ -121,6 +120,7 @@ public class RPACachingServiceProvider {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (rpaDburl or dburl) must be configured with format: jdbc:postgresql://...");
 
+            // mask the password in the URL so the database credentials are not written to the logs
             logger.info("Initializing RPA headbag inventory database from PostgreSQL URL: {}",
                         rpaDbUrl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL RPA headbag database");

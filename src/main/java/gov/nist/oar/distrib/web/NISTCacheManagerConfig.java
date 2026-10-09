@@ -16,7 +16,6 @@ import gov.nist.oar.distrib.cachemgr.CacheExpiryCheck;
 import gov.nist.oar.distrib.cachemgr.ConfigurableCache;
 import gov.nist.oar.distrib.cachemgr.CacheManagementException;
 import gov.nist.oar.distrib.cachemgr.CacheVolume;
-import gov.nist.oar.distrib.cachemgr.InventoryException;
 import gov.nist.oar.distrib.cachemgr.StorageInventoryDB;
 import gov.nist.oar.distrib.cachemgr.storage.AWSS3CacheVolume;
 import gov.nist.oar.distrib.cachemgr.storage.FilesystemCacheVolume;
@@ -240,6 +239,20 @@ public class NISTCacheManagerConfig {
         return jdbcUrl != null && jdbcUrl.startsWith("jdbc:sqlite:");
     }
 
+    /**
+     * return the database type ("postgres" or "sqlite") for a configured JDBC URL, rejecting
+     * anything we do not support.
+     * <p>
+     * A null URL returns null on purpose: it means the property was simply not set, which is a
+     * valid state (the caller decides whether a missing value matters). Only a URL that is present
+     * but does not start with a recognized prefix is treated as a configuration error. The
+     * separation guard relies on this distinction, so do not change null to throw here.
+     *
+     * @param jdbcUrl       the configured JDBC URL, or null if the property was not set
+     * @param propertyName  the config property name, used only to make the error message clear
+     * @return "postgres" or "sqlite", or null when jdbcUrl is null
+     * @throws ConfigurationException if jdbcUrl is non-null but not a supported JDBC URL
+     */
     static String requireSupportedDatabaseType(String jdbcUrl, String propertyName)
         throws ConfigurationException
     {
@@ -539,6 +552,7 @@ public class NISTCacheManagerConfig {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (dburl) must be configured with format: jdbc:postgresql://...");
 
+            // mask the password in the URL so the database credentials are not written to the logs
             logger.info("Initializing cache inventory database from PostgreSQL URL: {}",
                         dburl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL database");
@@ -620,6 +634,7 @@ public class NISTCacheManagerConfig {
             if (pgUrl == null || pgUrl.isEmpty())
                 throw new ConfigurationException("PostgreSQL database URL (headbagDburl or dburl) must be configured with format: jdbc:postgresql://...");
 
+            // mask the password in the URL so the database credentials are not written to the logs
             logger.info("Initializing headbag inventory database from PostgreSQL URL: {}",
                         hbDbUrl.replaceAll("password=[^&]*", "password=***"));
             logger.info("Using PostgreSQL headbag database");

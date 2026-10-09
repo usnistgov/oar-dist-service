@@ -352,6 +352,25 @@ public class NISTCacheManagerConfigTest {
     }
 
     @Test
+    public void testPostgresRpaUrlMustNotReuseHeadbagDburl() {
+        // dburl, headbagDburl, and rpaDburl are each a valid distinct-from-main URL, but the RPA
+        // url points at the SAME database as the headbag url. This exercises the sibling-collision
+        // branch of the guard, which the other tests do not reach.
+        String mainUrl = "jdbc:postgresql://localhost:5432/oar_cache?user=oar_app&password=test123";
+        String sharedAuxUrl = "jdbc:postgresql://localhost:5432/oar_aux_cache?user=oar_app&password=test123";
+        cfg.setDburl(mainUrl);
+        cfg.setHeadbagDburl(sharedAuxUrl);
+        cfg.setRpaDburl(sharedAuxUrl);
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.resolveRpaInventoryDburl();
+        });
+
+        assertTrue(ex.getMessage().contains("rpaDburl"));
+        assertTrue(ex.getMessage().contains("headbagDburl"));
+    }
+
+    @Test
     public void testExplicitThreeDatabasePostgresConfigIsAccepted() throws ConfigurationException {
         String mainUrl = "jdbc:postgresql://postgres:5432/oar_cache?user=oar_app&password=test123";
         String headbagUrl = "jdbc:postgresql://postgres:5432/oar_headbag_cache?user=oar_app&password=test123";
