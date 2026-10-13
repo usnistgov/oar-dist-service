@@ -21,7 +21,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 public abstract class PostgresIntegrationSupport {
 
     protected static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:16-alpine")
+        new PostgreSQLContainer<>("postgres:18-alpine")
             .withDatabaseName("oar_test")
             .withUsername("postgres")
             .withPassword("postgres");
