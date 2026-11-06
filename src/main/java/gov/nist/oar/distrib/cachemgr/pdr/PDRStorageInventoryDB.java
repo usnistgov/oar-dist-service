@@ -39,6 +39,10 @@ import gov.nist.oar.distrib.cachemgr.InventoryMetadataException;
 import gov.nist.oar.distrib.cachemgr.InventorySearchException;
 import gov.nist.oar.distrib.cachemgr.VolumeNotFoundException;
 import gov.nist.oar.distrib.cachemgr.inventory.JDBCStorageInventoryDB;
+import gov.nist.oar.distrib.cachemgr.inventory.PostgresBootstrapHelper;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 
 /**
@@ -145,6 +149,65 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
         if (! md.has(name))
             return defval;
         return md.getString(name);
+    }
+
+    /**
+     * run a SELECT that returns cache objects, binding the given values as query parameters.
+     * <p>
+     * The values are bound to a PreparedStatement rather than concatenated into the SQL string.
+     * That means a caller-supplied identifier cannot change the shape of the query (no SQL
+     * injection), and the one statement runs unchanged on both SQLite and PostgreSQL.
+     *
+     * @param objsql   the SELECT statement, with a '?' placeholder for each value in params
+     * @param purpose  why the caller wants the objects; a value of VOL_FOR_GET or higher means the
+     *                 result may drive a state change, so the read is serialized (see the lock below)
+     * @param params   the values to bind, in order, one per '?'; each is bound by its Java type
+     */
+    protected List<CacheObject> queryForObjects(String objsql, int purpose, Object... params)
+        throws InventoryException
+    {
+        // Lock the database only when the caller may act on the result (a get, or building a
+        // deletion plan), so a concurrent deletion cannot change things underneath it. A caller
+        // that just wants information reads without locking, using a throwaway monitor.
+        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
+        synchronized (lock) {
+            Connection conn = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+            try {
+                conn = connect();
+                stmt = conn.prepareStatement(objsql);
+                // bind each value into its matching '?' placeholder, choosing the setter by type
+                for (int i = 0; i < params.length; i++) {
+                    Object param = params[i];
+                    int idx = i + 1;
+                    if (param instanceof String)
+                        stmt.setString(idx, (String) param);
+                    else if (param instanceof Integer)
+                        stmt.setInt(idx, ((Integer) param).intValue());
+                    else if (param instanceof Long)
+                        stmt.setLong(idx, ((Long) param).longValue());
+                    else if (param instanceof Boolean)
+                        stmt.setBoolean(idx, ((Boolean) param).booleanValue());
+                    else
+                        stmt.setObject(idx, param);
+                }
+
+                rs = stmt.executeQuery();
+                List<CacheObject> out = new java.util.ArrayList<CacheObject>();
+                while (rs.next())
+                    out.add(extractObject(rs));
+                return out;
+            }
+            catch (SQLException ex) {
+                throw new InventorySearchException(ex);
+            }
+            finally {
+                try { if (rs != null) rs.close(); } catch (SQLException ex) { }
+                try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
+                quietDisconnect(conn);
+            }
+        }
     }
 
     /**
@@ -303,24 +366,20 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public List<CacheObject> selectObjectsByPDRID(String pdrid, int purpose) throws InventoryException {
-
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.pdrid='").append(pdrid).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.pdrid=? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, pdrid, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, pdrid, Integer.valueOf(purpose));
     }
 
     /**
      * return a list of cache objects having a given EDI (Enterprise Data Inventory) resource identifier
-     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized
      *                 values are defined in the {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} interface.
      * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
@@ -328,24 +387,21 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     public List<CacheObject> selectObjectsByEDIID(String ediid, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.ediid='").append(ediid).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.ediid=? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, ediid, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, ediid, Integer.valueOf(purpose));
     }
 
     /**
      * return a list of cache objects having cache identifiers matching a particular pattern
      * @param idpat    an SQL text pattern to look for.  This value should include '%' wildcard characters
      *                 as needed
-     * @param purpose  an integer indicating the purpose for locating the object.  Recognized 
+     * @param purpose  an integer indicating the purpose for locating the object.  Recognized
      *                 values are defined in the {@link gov.nist.oar.distrib.cachemgr.VolumeStatus} interface.
      * @return List<CacheObject>  the copies of the object in the cache.  Each element represents
      *                             a copy in a different cache volume.
@@ -353,17 +409,14 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      */
     protected List<CacheObject> selectObjectsLikeID(String idpat, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.objid LIKE '").append(idpat).append("' AND v.status >= ").append(purpose);
+        sql.append("AND d.objid LIKE ? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, idpat, Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, idpat, Integer.valueOf(purpose));
     }
 
     /**
@@ -395,7 +448,7 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
             throw new VolumeNotFoundException(volname);
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
@@ -409,9 +462,11 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
 
             // calculate totals for files having that volume ID
             String qsel = "SELECT count(*) as count,sum(size) as totsz,max(since) as newest," +
-                          "min(checked) as oldest FROM objects WHERE cached=1 AND volume=" +vid;
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel);
+                          "min(checked) as oldest FROM objects WHERE cached=? AND volume=?";
+            stmt = conn.prepareStatement(qsel);
+            stmt.setBoolean(1, true);
+            stmt.setInt(2, vid);
+            res = stmt.executeQuery();
 
             if (res.next() && res.getInt("count") > 0) {
                 out.put("filecount", res.getInt("count"));
@@ -463,20 +518,29 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONObject summarizeDataset(String aipid) throws InventoryException {
-        StringBuilder qsel = new StringBuilder();
-        qsel.append("SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
-            .append("min(d.checked) as oldest FROM objects d, volumes v ")
-            .append("WHERE d.volume=v.id AND d.cached=1 AND v.name!='old' AND d.objid LIKE '")
-            .append(aipid).append("/%' GROUP BY d.ediid");
+        // This rolls up all cached files for one AIP into a single summary row. Every one of those
+        // files carries the same ediid and pdrid, but PostgreSQL requires each selected column to
+        // be either aggregated or named in a GROUP BY (see the GROUP BY Clause rule at
+        // https://www.postgresql.org/docs/current/sql-select.html#SQL-GROUPBY), so the
+        // single-valued columns are wrapped in min() to pick that one value. HAVING count(*) > 0
+        // keeps the row only when something is cached. SQLite accepts this form too, so the one
+        // query serves both backends.
+        String qsel = "SELECT min(d.ediid) as ediid,min(d.pdrid) as pdrid,count(*) as count," +
+                      "sum(d.size) as totsz,max(d.since) as newest,min(d.checked) as oldest " +
+                      "FROM objects d, volumes v " +
+                      "WHERE d.volume=v.id AND d.cached=? AND v.name!='old' AND d.objid LIKE ? " +
+                      "HAVING count(*) > 0";
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
 
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel.toString());
+            stmt = conn.prepareStatement(qsel);
+            stmt.setBoolean(1, true);
+            stmt.setString(2, aipid + "/%");
+            res = stmt.executeQuery();
             if (! res.next())
                 return null;
             return extractDatasetInfo(res);
@@ -500,24 +564,34 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
      * @throws InventoryException   if there is an error accessing this database
      */
     public JSONArray summarizeContents(String volname) throws InventoryException {
-        String qsel = "SELECT d.ediid,d.pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest," +
-                      "min(d.checked) as oldest FROM objects d, volumes v WHERE d.volume=v.id AND d.cached=1";
-        if (volname != null) 
-            qsel += " AND v.name='" + volname + "'";
+        // One summary row per dataset (GROUP BY d.ediid). pdrid is single-valued within a dataset
+        // but is not the grouping column, so it is wrapped in min() because PostgreSQL requires
+        // every selected column to be aggregated or grouped (see the GROUP BY Clause rule at
+        // https://www.postgresql.org/docs/current/sql-select.html#SQL-GROUPBY). SQLite accepts
+        // this too.
+        StringBuilder qsel = new StringBuilder();
+        qsel.append("SELECT d.ediid,min(d.pdrid) as pdrid,count(*) as count,sum(d.size) as totsz,max(d.since) as newest,")
+            .append("min(d.checked) as oldest FROM objects d, volumes v ")
+            .append("WHERE d.volume=v.id AND d.cached=?");
+        if (volname != null)
+            qsel.append(" AND v.name=?");
         else
-            qsel += " AND v.name!='old'";
-        qsel += " GROUP BY d.ediid ORDER BY oldest";
+            qsel.append(" AND v.name!='old'");
+        qsel.append(" GROUP BY d.ediid ORDER BY oldest");
 
         Connection conn = null;
-        Statement stmt = null;
+        PreparedStatement stmt = null;
         ResultSet res = null;
         try {
             conn = connect();
             
             JSONArray out = new JSONArray();
             JSONObject row = null;
-            stmt = conn.createStatement();
-            res = stmt.executeQuery(qsel);
+            stmt = conn.prepareStatement(qsel.toString());
+            stmt.setBoolean(1, true);
+            if (volname != null)
+                stmt.setString(2, volname);
+            res = stmt.executeQuery();
             while (res.next()) {
                 row = extractDatasetInfo(res);
                 out.put(row);
@@ -637,5 +711,49 @@ public abstract class PDRStorageInventoryDB extends JDBCStorageInventoryDB imple
         finally {
             try { if (conn != null) conn.close(); } catch (SQLException ex) { }
         }
+    }
+
+    /**
+     * create an instance of this class connected to a PostgreSQL database
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database, in the format
+     *                 jdbc:postgresql://host:port/database?user=username&password=password
+     */
+    public static PDRStorageInventoryDB createPostgresDB(String jdbcUrl) {
+        String fullUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
+
+        // PostgreSQL may be queried by many concurrent requests, and by more than one service
+        // instance sharing the same inventory, so draw connections from a HikariCP pool rather
+        // than opening a new DriverManager connection per query the way the SQLite path does.
+        // The pool is kept small because inventory queries are short; raise the size if the cache
+        // is driven harder.
+        HikariConfig hcfg = new HikariConfig();
+        hcfg.setJdbcUrl(fullUrl);
+        hcfg.setMaximumPoolSize(20);
+        hcfg.setMinimumIdle(5);
+        hcfg.setConnectionTimeout(5000);
+        HikariDataSource pool = new HikariDataSource(hcfg);
+
+        class PostgresPDRSIDB extends PDRStorageInventoryDB {
+            private final HikariDataSource ds;
+            PostgresPDRSIDB(String url, HikariDataSource ds) {
+                super(url);
+                this.ds = ds;
+            }
+            @Override
+            protected Connection connect() throws SQLException {
+                return ds.getConnection();
+            }
+        }
+
+        return new PostgresPDRSIDB(fullUrl, pool);
+    }
+
+    /**
+     * initialize a PostgreSQL database with the PDR storage inventory schema
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database
+     */
+    public static void initializePostgresDB(String jdbcUrl) throws InventoryException {
+        PostgresBootstrapHelper.initializeSchema(jdbcUrl, PDRStorageInventoryDB.class,
+                                                 "res/pdr_postgres_create.sql", "pdr-storage-bootstrap");
     }
 }

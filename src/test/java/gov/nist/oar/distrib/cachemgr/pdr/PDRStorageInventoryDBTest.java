@@ -1038,6 +1038,8 @@ public class PDRStorageInventoryDBTest {
         md = map.get("1234");
         assertEquals(1000L, md.getLong("totalsize"));
         assertEquals(2L, md.getLong("filecount"));
+        assertEquals("ark:/88888/1234", md.getString("pdrid"));
+        assertEquals("1234", md.getString("ediid"));
         assertTrue(0 < md.getLong("since"));
         assertTrue(0 < md.getString("sinceDate").length());
         assertEquals(0L, md.getLong("checked"));
@@ -1047,6 +1049,8 @@ public class PDRStorageInventoryDBTest {
         md = map.get("2345");
         assertEquals(544L, md.getLong("totalsize"));
         assertEquals(1L, md.getLong("filecount"));
+        assertEquals("ark:/88888/2345", md.getString("pdrid"));
+        assertEquals("2345", md.getString("ediid"));
         assertTrue(0 < md.getLong("since"));
         assertTrue(0 < md.getString("sinceDate").length());
         assertEquals(0L, md.getLong("checked"));
@@ -1089,5 +1093,35 @@ public class PDRStorageInventoryDBTest {
         assertEquals(0L, md.getLong("checked"));
         assertEquals("(never)", md.getString("checkedDate"));
     }
-}
 
+    @Test
+    public void testQuotedIdentifiersRemainSearchable() throws InventoryException, IOException {
+        File dbf = new File(createDB());
+        assertTrue(dbf.exists());
+
+        PDRStorageInventoryDB sidb = PDRStorageInventoryDB.createSQLiteDB(dbf.getPath());
+        sidb.registerAlgorithm("sha256");
+        sidb.registerVolume("foobar", 450000, null);
+
+        JSONObject md = new JSONObject();
+        md.put("priority", 4);
+        md.put("size", 456L);
+        md.put("pdrid", "ark:/88888/o'reilly");
+        md.put("ediid", "edi'id");
+
+        sidb.addObject("set'o/files.json", "foobar", "quoted_file.json", md);
+
+        List<CacheObject> byPdr = sidb.selectObjectsByPDRID("ark:/88888/o'reilly", 0);
+        assertEquals(1, byPdr.size());
+        assertEquals("quoted_file.json", byPdr.get(0).name);
+
+        List<CacheObject> byEdi = sidb.selectObjectsByEDIID("edi'id", 0);
+        assertEquals(1, byEdi.size());
+        assertEquals("quoted_file.json", byEdi.get(0).name);
+
+        JSONObject summary = sidb.summarizeDataset("set'o");
+        assertNotNull(summary);
+        assertEquals(456L, summary.getLong("totalsize"));
+        assertEquals("ark:/88888/o'reilly", summary.getString("pdrid"));
+    }
+}

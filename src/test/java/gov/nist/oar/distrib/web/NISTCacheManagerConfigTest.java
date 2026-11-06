@@ -226,4 +226,188 @@ public class NISTCacheManagerConfigTest {
         assertEquals(0, vsum.getLong("totalsize"));
         assertEquals(0, vsum.getInt("filecount"));
     }
+
+    @Test
+    public void testDefaultDatabaseConfiguration() {
+        // Verify default database configuration (no JDBC URL means SQLite will be used)
+        assertNull(cfg.getDburl());
+        assertNull(cfg.getHeadbagDburl());
+        assertNull(cfg.getRpaDburl());
+    }
+
+    @Test
+    public void testSetPostgresConfiguration() {
+        // Test setting PostgreSQL JDBC URL configuration
+        cfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+        cfg.setHeadbagDburl("jdbc:postgresql://localhost:5432/test_headbag_db?user=test&password=test");
+        cfg.setRpaDburl("jdbc:postgresql://localhost:5432/test_rpa_db?user=test&password=test");
+
+        assertEquals("jdbc:postgresql://localhost:5432/test_db?user=test&password=test", cfg.getDburl());
+        assertEquals("jdbc:postgresql://localhost:5432/test_headbag_db?user=test&password=test", cfg.getHeadbagDburl());
+        assertEquals("jdbc:postgresql://localhost:5432/test_rpa_db?user=test&password=test", cfg.getRpaDburl());
+    }
+
+    @Test
+    public void testDatabaseTypeHelpers() throws ConfigurationException {
+        assertTrue(NISTCacheManagerConfig.isSqliteUrl("jdbc:sqlite:/tmp/test.sqlite"));
+        assertFalse(NISTCacheManagerConfig.isSqliteUrl("jdbc:postgresql://localhost:5432/test"));
+        assertTrue(NISTCacheManagerConfig.isPostgresUrl("jdbc:postgresql://localhost:5432/test"));
+        assertFalse(NISTCacheManagerConfig.isPostgresUrl("jdbc:sqlite:/tmp/test.sqlite"));
+        assertEquals("sqlite",
+                     NISTCacheManagerConfig.requireSupportedDatabaseType("jdbc:sqlite:/tmp/test.sqlite", "dburl"));
+        assertEquals("postgres",
+                     NISTCacheManagerConfig.requireSupportedDatabaseType("jdbc:postgresql://localhost:5432/test",
+                                                                        "dburl"));
+        assertNull(NISTCacheManagerConfig.requireSupportedDatabaseType(null, "dburl"));
+    }
+
+    @Test
+    public void testPostgresConfigMissingUrl() {
+        // Test that creating cache with PostgreSQL JDBC URL prefix but incomplete URL throws exception
+        cfg.setDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testMalformedPostgresUrlFailsFast() {
+        cfg.setDburl("jdbc:postgres://localhost:5432/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for dburl"));
+        assertTrue(ex.getMessage().contains("jdbc:postgresql:"));
+    }
+
+    @Test
+    public void testUnsupportedJdbcUrlFailsFast() {
+        cfg.setDburl("jdbc:mysql://localhost:3306/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for dburl"));
+        assertTrue(ex.getMessage().contains("jdbc:mysql://"));
+    }
+
+    @Test
+    public void testPostgresConfigMissingUrlForHeadBag() throws IOException {
+        // Test that creating headbag cache with PostgreSQL JDBC URL prefix but incomplete URL throws exception
+        cfg.setHeadbagDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testUnsupportedHeadbagJdbcUrlFailsFast() throws IOException {
+        cfg.setHeadbagDburl("jdbc:mysql://localhost:3306/headbag?user=test&password=test");
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for headbagDburl"));
+    }
+
+    @Test
+    public void testPostgresHeadbagUrlMustBeExplicitlySeparated() throws IOException {
+        cfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("headbagDburl"));
+        assertTrue(ex.getMessage().contains("separate"));
+    }
+
+    @Test
+    public void testPostgresHeadbagUrlMustNotReuseMainDburl() throws IOException {
+        String dbUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test";
+        cfg.setDburl(dbUrl);
+        cfg.setHeadbagDburl(dbUrl);
+        BagStorage bags = makeBagStorage();
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createHeadBagManager(bags);
+        });
+
+        assertTrue(ex.getMessage().contains("must not reuse dburl"));
+    }
+
+    @Test
+    public void testPostgresRpaUrlMustNotReuseHeadbagDburl() {
+        // dburl, headbagDburl, and rpaDburl are each a valid distinct-from-main URL, but the RPA
+        // url points at the SAME database as the headbag url. This exercises the sibling-collision
+        // branch of the guard, which the other tests do not reach.
+        String mainUrl = "jdbc:postgresql://localhost:5432/oar_cache?user=oar_app&password=test123";
+        String sharedAuxUrl = "jdbc:postgresql://localhost:5432/oar_aux_cache?user=oar_app&password=test123";
+        cfg.setDburl(mainUrl);
+        cfg.setHeadbagDburl(sharedAuxUrl);
+        cfg.setRpaDburl(sharedAuxUrl);
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.resolveRpaInventoryDburl();
+        });
+
+        assertTrue(ex.getMessage().contains("rpaDburl"));
+        assertTrue(ex.getMessage().contains("headbagDburl"));
+    }
+
+    @Test
+    public void testExplicitThreeDatabasePostgresConfigIsAccepted() throws ConfigurationException {
+        String mainUrl = "jdbc:postgresql://postgres:5432/oar_cache?user=oar_app&password=test123";
+        String headbagUrl = "jdbc:postgresql://postgres:5432/oar_headbag_cache?user=oar_app&password=test123";
+        String rpaUrl = "jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123";
+
+        cfg.setDburl(mainUrl);
+        cfg.setHeadbagDburl(headbagUrl);
+        cfg.setRpaDburl(rpaUrl);
+
+        assertEquals("postgres", NISTCacheManagerConfig.requireSupportedDatabaseType(cfg.getDburl(), "dburl"));
+        assertEquals(headbagUrl, cfg.resolveHeadbagInventoryDburl());
+        assertEquals(rpaUrl, cfg.resolveRpaInventoryDburl());
+    }
+
+    @Test
+    public void testPostgresConfigEmptyUrl() {
+        // Test that empty PostgreSQL URL is treated as missing
+        cfg.setDburl("jdbc:postgresql:");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            cfg.createDefaultCache(null);
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testSqliteWithJdbcUrl() throws ConfigurationException, IOException, CacheManagementException {
+        // Test that SQLite works with jdbc:sqlite: URL format
+        File sqliteDb = new File(rootdir, "test.sqlite");
+        cfg.setDburl("jdbc:sqlite:" + sqliteDb.getAbsolutePath());
+
+        // Should create SQLite database successfully
+        BasicCache cache = cfg.createDefaultCache(null);
+        assertNotNull(cache);
+
+        // Verify SQLite file was created at the specified location
+        assertTrue(sqliteDb.isFile());
+    }
 }
