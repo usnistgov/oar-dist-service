@@ -144,6 +144,50 @@ mvn -Dtest=VersionControllerTest test
 
 This generates the same reports as described above.  
 
+### Local PostgreSQL Integration Tests
+
+The PostgreSQL integration tests are local-only for now.  They use
+Testcontainers and require a working local Docker environment.  No
+remote CI workflow changes are required to run them.
+
+Docker requirement:
+
+* Docker must be installed and the daemon must be running.
+* If Docker is unavailable, the PostgreSQL integration tests skip
+  cleanly by assumption rather than failing the rest of the local test
+  run.
+
+Useful local commands:
+
+* Unit tests only:
+
+```
+mvn test
+```
+
+* PostgreSQL integration tests only:
+
+```
+mvn -Dtest=PostgresRuntimeStartupIT,PostgresPDRRuntimeIT,PostgresConcurrencyIT test
+```
+
+* Full local verification including PostgreSQL integration tests:
+
+```
+mvn verify -Ppostgres-integration
+```
+
+When the `postgres-integration` profile is enabled, Maven binds the
+PostgreSQL runtime checks through Failsafe and skips the normal
+Surefire unit-test phase for that invocation.  It runs only:
+
+* `PostgresRuntimeStartupIT`
+* `PostgresPDRRuntimeIT`
+* `PostgresConcurrencyIT`
+
+This keeps the PostgreSQL integration path opt-in and focused for
+local development while preserving the normal `mvn test` behavior.
+
 ### Testing with Docker
 
 If you do not have Java, Maven, and npm installed, but do have Docker,
@@ -224,4 +268,3 @@ interruption of operation. This software is not intended to be used in
 any situation where a failure could cause risk of injury or damage to
 property. The software developed by NIST employees is not subject to
 copyright protection within the United States. 
-

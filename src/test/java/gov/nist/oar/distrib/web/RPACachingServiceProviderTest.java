@@ -96,4 +96,100 @@ public class RPACachingServiceProviderTest {
         RestrictedDatasetRestorer rest = prov.createRPDatasetRestorer();
         assertEquals(1209600000L, rest.getExpiryTime());
     }
+
+    @Test
+    public void testDefaultDatabaseConfigForRPA() {
+        // Verify RPA uses default configuration (no JDBC URL means SQLite)
+        assertNull(cmcfg.getDburl());
+        assertNull(cmcfg.getRpaDburl());
+    }
+
+    @Test
+    public void testRPAPostgresConfigMissingUrl() {
+        // Test that RPA headbag creation with incomplete PostgreSQL JDBC URL throws exception
+        cmcfg.setRpaDburl("jdbc:postgresql:");
+        // Incomplete PostgreSQL URL
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testRPAPostgresConfigEmptyUrl() {
+        // Test that empty PostgreSQL URL is treated as missing for RPA headbag cache
+        cmcfg.setRpaDburl("jdbc:postgresql:");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("PostgreSQL database URL"));
+    }
+
+    @Test
+    public void testRPAPostgresUrlMustBeExplicitlySeparated() {
+        cmcfg.setDburl("jdbc:postgresql://localhost:5432/test_db?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("rpaDburl"));
+        assertTrue(ex.getMessage().contains("separate"));
+    }
+
+    @Test
+    public void testRPAPostgresUrlMustNotReuseMainDburl() {
+        String dbUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test";
+        cmcfg.setDburl(dbUrl);
+        cmcfg.setRpaDburl(dbUrl);
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("must not reuse dburl"));
+    }
+
+    @Test
+    public void testUnsupportedRpaJdbcUrlFailsFast() {
+        cmcfg.setRpaDburl("jdbc:mysql://localhost:3306/rpa_cache?user=test&password=test");
+
+        ConfigurationException ex = assertThrows(ConfigurationException.class, () -> {
+            prov.getHeadBagCacheManager();
+        });
+
+        assertTrue(ex.getMessage().contains("Unsupported database URL for rpaDburl"));
+    }
+
+    @Test
+    public void testExplicitThreeDatabasePostgresRpaConfigIsAccepted() throws ConfigurationException {
+        cmcfg.setDburl("jdbc:postgresql://postgres:5432/oar_cache?user=oar_app&password=test123");
+        cmcfg.setHeadbagDburl("jdbc:postgresql://postgres:5432/oar_headbag_cache?user=oar_app&password=test123");
+        cmcfg.setRpaDburl("jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123");
+
+        assertEquals("postgres", NISTCacheManagerConfig.requireSupportedDatabaseType(cmcfg.getDburl(), "dburl"));
+        assertEquals("jdbc:postgresql://postgres:5432/oar_rpa_cache?user=oar_app&password=test123",
+                     cmcfg.resolveRpaInventoryDburl());
+    }
+
+    @Test
+    public void testRPASqliteWithJdbcUrl()
+        throws ConfigurationException, IOException, CacheManagementException
+    {
+        // Test that RPA SQLite works with jdbc:sqlite: URL format
+        File rpahbdir = new File(root, "rpaHeadbags");
+        File sqliteDb = new File(rpahbdir, "test.sqlite");
+        cmcfg.setRpaDburl("jdbc:sqlite:" + sqliteDb.getAbsolutePath());
+
+        // Should create SQLite database successfully
+        HeadBagCacheManager hbcm = prov.getHeadBagCacheManager();
+        assertNotNull(hbcm);
+
+        // Verify SQLite file was created at the specified location
+        assertTrue(sqliteDb.isFile());
+    }
 }

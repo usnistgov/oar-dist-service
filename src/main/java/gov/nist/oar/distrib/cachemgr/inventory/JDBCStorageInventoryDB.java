@@ -85,25 +85,32 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         "d.priority as priority, d.since as since, d.metadata as metadata " +
         "FROM objects d, volumes v WHERE d.volume=v.id ";
 
-    static final String deletion_pSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    // Note on the "cached" column below: it is a boolean, and these queries use the boolean
+    // literals true/false (and extractObject reads it with ResultSet.getBoolean), not 1/0. That is
+    // deliberate for cross-engine support: PostgreSQL needs a real boolean here
+    // (https://www.postgresql.org/docs/current/datatype-boolean.html), and SQLite understands the
+    // true/false keywords as of version 3.23.0 as aliases for 1/0
+    // (https://www.sqlite.org/datatype3.html#boolean_datatype), so the one set of SQL works on
+    // both backends.
+    static final String deletion_pSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.priority DESC, d.since ASC";
 
-    static final String deletion_sSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    static final String deletion_sSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.priority DESC, d.size DESC, d.since ASC";
 
-    static final String deletion_dSelect = 
-        find_sql_base + "AND v.status>2 AND d.cached=1 AND d.priority>0 AND v.name=? "
+    static final String deletion_dSelect =
+        find_sql_base + "AND v.status>2 AND d.cached=true AND d.priority>0 AND v.name=? "
                       + "ORDER BY d.since ASC, d.priority DESC";
 
     static final String defaultDeletionPlanSelect = deletion_pSelect;
 
     static final String check_volumeSelect =
-        find_sql_base + "AND d.checked<? AND d.cached=1 AND v.name=? ORDER BY d.checked ASC";
+        find_sql_base + "AND d.checked<? AND d.cached=true AND v.name=? ORDER BY d.checked ASC";
 
     static final String check_Select =
-        find_sql_base + "AND d.checked<? AND d.cached=1 AND d.name NOT LIKE '<reserve#%' "
+        find_sql_base + "AND d.checked<? AND d.cached=true AND d.name NOT LIKE '<reserve#%' "
                       + "ORDER BY d.checked ASC";
 
     protected String _dburl = null;
@@ -202,7 +209,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         StringBuilder sql = new StringBuilder(find_sql_base);
         sql.append("AND d.objid='").append(id).append("' AND v.status >= ").append(purpose);
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=true");
         sql.append(";");
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
@@ -283,7 +290,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     protected CacheObject extractObject(ResultSet rs) throws SQLException, InventoryException {
         JSONObject md = metadataToJSON(rs);
         CacheObject co = new CacheObject(rs.getString("name"), md, (String) rs.getString("volume"));
-        co.cached = rs.getInt("cached") != 0;
+        co.cached = rs.getBoolean("cached");
         if (rs.getObject("id") != null)
             co.id = rs.getString("id");
         return co;
@@ -499,7 +506,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
      * @throws InventoryException  if there is an error accessing the underlying database.
      */
     public CacheObject findObject(String volname, String objname) throws InventoryException {
-        String fsql = find_sql_base + "AND d.cached=1 AND v.name='" + volname + "' AND d.name='" + objname + "';";
+        String fsql = find_sql_base + "AND d.cached=true AND v.name='" + volname + "' AND d.name='" + objname + "';";
         List<CacheObject> objs = null;
 
         // lock access to the db in case a deletion plan is progress, unless the caller just
@@ -885,7 +892,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         return out.intValue();
     }
 
-    String rm_sql = "UPDATE objects SET cached=0 WHERE volume=? AND name=?";
+    String rm_sql = "UPDATE objects SET cached=false WHERE volume=? AND name=?";
     String prg_sql = "DELETE FROM objects WHERE volume=? AND name=?";
         
     /**
@@ -986,6 +993,13 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
             loadAlgorithms();
         }
         catch (SQLException ex) {
+            // The insert can fail because another instance or thread registered this same
+            // algorithm first (the name is UNIQUE). That is not a real error: reload the
+            // table and, if the algorithm is now present, treat it as already-registered.
+            // Only a failure that leaves it genuinely absent is a real problem.
+            loadAlgorithms();
+            if (getAlgorithmID(algname) >= 0)
+                return;
             throw new InventoryException("Failed to register new algorithm into DB ("+algname+
                                          "): "+ex.getMessage(), ex);
         }
@@ -1053,17 +1067,29 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
                     stmt.setString(5, jmd);
 
                 stmt.executeUpdate();
+                loadVolumes();
+                return;
             }
             catch (SQLException ex) {
-                throw new InventoryException("Failed to register new volume in DB ("+name+
-                                             "): "+ex.getMessage(), ex);
+                // The insert can fail because another instance or thread registered this same
+                // volume first (the name is UNIQUE) - common when several service instances
+                // share one inventory and all register volumes cv0/cv1 at startup. Reload and
+                // look up the id: if it exists now, fall through to the update below instead of
+                // failing. Only a truly-absent volume (id still < 0) is a real error.
+                loadVolumes();
+                id = getVolumeID(name);
+                if (id < 0) {
+                    throw new InventoryException("Failed to register new volume in DB ("+name+
+                                                 "): "+ex.getMessage(), ex);
+                }
             }
             finally {
                 try { if (stmt != null) stmt.close(); } catch (SQLException ex) { }
                 quietDisconnect(conn);
             }
         }
-        else {
+
+        if (id >= 0) {
             try {
                 // was previously registered; update its information
                 // FYI: upd_vol_sql =
@@ -1208,7 +1234,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE v.name='"+volname+"' and d.volume=v.id and d.cached=true GROUP BY v.name";
         try {
             return _get_sum(sum_sql, new HashMap<String, Long>(1)).get(volname).longValue();
         }
@@ -1225,7 +1251,7 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
         Map<String, Long> out = getVolumeCapacities();
         String sum_sql =
             "SELECT v.name as volume, min(v.capacity)-sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=true GROUP BY v.name";
         return _get_sum(sum_sql, out);
     }
 
@@ -1245,11 +1271,11 @@ public class JDBCStorageInventoryDB implements StorageInventoryDB {
     public Map<String, Long> getUsedSpace() throws InventoryException {
         Collection<String> volnames = volumes();
         Map<String, Long> out = new HashMap<String, Long>(volnames.size());
-        for (String name : volnames) 
+        for (String name : volnames)
             out.put(name, new Long(0L));
         String sum_sql =
             "SELECT v.name as volume, sum(d.size) as size FROM objects d, volumes v "+
-            "WHERE d.volume=v.id and d.cached=1 GROUP BY v.name";
+            "WHERE d.volume=v.id and d.cached=true GROUP BY v.name";
         return _get_sum(sum_sql, out);
     }
 

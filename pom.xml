@@ -119,11 +119,6 @@
             <version>3.12.0</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.8.1</version>
-        </dependency>
-        <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>1</version>
@@ -132,6 +127,18 @@
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.41.2.2</version>
+        </dependency>
+        <!-- PostgreSQL support for the cache inventory: the JDBC driver, plus the HikariCP
+             connection pool used only on the PostgreSQL path (SQLite keeps a connection per query). -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
         </dependency>
 
         <!-- swagger docs -->
@@ -161,6 +168,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>1.19.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <version>1.19.4</version>
             <scope>test</scope>
         </dependency>
@@ -256,7 +269,9 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.7.6.201602180812</version>
+                    <!-- 0.8.12: the previous 0.7.x cannot instrument Java 21 bytecode. Do not
+                         downgrade without first confirming JDK 21 support. -->
+                    <version>0.8.12</version>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
@@ -349,5 +364,45 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Opt-in profile to run ONLY the PostgreSQL integration tests (via Failsafe) and skip
+             the normal unit-test phase. Use "mvn verify -Ppostgres-integration" for a focused
+             local run; a plain "mvn verify" still runs the unit tests plus all *IT tests. -->
+        <profile>
+            <id>postgres-integration</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>postgres-integration-tests</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/PostgresRuntimeStartupIT.java</include>
+                                        <include>**/PostgresPDRRuntimeIT.java</include>
+                                        <include>**/PostgresConcurrencyIT.java</include>
+                                    </includes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

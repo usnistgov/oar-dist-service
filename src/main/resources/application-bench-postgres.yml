@@ -1,0 +1,48 @@
+# Benchmark profile with PostgreSQL
+# Run with: mvn spring-boot:run -Dspring-boot.run.profiles=bench-postgres
+
+spring:
+  cloud:
+    config:
+      enabled: false
+
+server:
+  port: 8083
+  servlet:
+    context-path: /od
+  tomcat:
+    max-connections: 10000
+    max-threads: 200
+    min-spare-threads: 10
+    accept-count: 100
+
+distrib:
+  bagstore:
+    mode: local
+    location: /tmp/oar-bench/lts
+  baseurl: http://localhost:8083/od/ds
+  nerdm:
+    baseurl: "@null"
+
+  cachemgr:
+    admindir: /tmp/oar-bench/admindir
+    dburl: "jdbc:postgresql://localhost:5432/oarcache?user=postgres&password=bench"
+    smallSizeLimit: 50000000
+    headbagCacheSize: 100000000
+    triggerCache: false
+    monitorAutoStart: false
+    restapi:
+      accesstoken: BENCH_TOKEN
+    volumes[0]:
+      name: bench-vol
+      roles:
+        - small
+        - fast
+        - general
+        - large
+      location: "file:///tmp/oar-bench/cache-vol"
+      capacity: 2000000000
+
+logging:
+  level:
+    gov.nist.oar.distrib: WARN

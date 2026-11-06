@@ -24,6 +24,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import jakarta.servlet.Filter;
 
@@ -78,6 +79,9 @@ public class CacheSecurityConfig {
             })
             .headers(headers -> headers
                 .cacheControl(cache -> cache.disable())
+                // Spring Security 6 defaults X-XSS-Protection to "0"; send "1; mode=block" instead
+                .xssProtection(xss -> xss.headerValue(
+                    XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                 .addHeaderWriter((request, response) -> {
                     response.setHeader("Cache-Control",
                         "no-store, no-cache, no-transform, must-revalidate, proxy-revalidate, max-age=0");

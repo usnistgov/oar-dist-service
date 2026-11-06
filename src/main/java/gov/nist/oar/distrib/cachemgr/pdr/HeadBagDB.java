@@ -24,6 +24,9 @@ import gov.nist.oar.bags.preservation.BagUtils;
 import gov.nist.oar.distrib.cachemgr.CacheObject;
 import gov.nist.oar.distrib.cachemgr.InventoryException;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 /**
  * an extension of the {@link PDRStorageInventoryDB} class that adds specialized functionality to 
  * service a cache of head bags. 
@@ -67,17 +70,14 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
      */
     public List<CacheObject> selectObjectsByAIPID(String aipid, int purpose) throws InventoryException {
         StringBuilder sql = new StringBuilder(find_sql_base);
-        sql.append("AND d.objid LIKE '").append(aipid).append(".%' AND v.status >= ").append(purpose);
+        sql.append("AND d.objid LIKE ? AND v.status >= ?");
         if (purpose >= VOL_FOR_GET)
-            sql.append(" AND d.cached=1");
+            sql.append(" AND d.cached=?");
         sql.append(";");
 
-        // lock access to the db in case a deletion plan is progress, unless the caller just
-        // wants information. 
-        Object lock = (purpose >= VOL_FOR_GET) ? this : new Object();
-        synchronized (lock) {
-            return queryForObjects(sql.toString());
-        }
+        if (purpose >= VOL_FOR_GET)
+            return queryForObjects(sql.toString(), purpose, aipid + ".%", Integer.valueOf(purpose), Boolean.TRUE);
+        return queryForObjects(sql.toString(), purpose, aipid + ".%", Integer.valueOf(purpose));
     }
 
     /**
@@ -127,7 +127,7 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
         class SQLiteHeadBagDB extends HeadBagDB {
             protected File dbfile = null;
             SQLiteHeadBagDB(String filepath) {
-                // we're allowing the file path to include the jdbc URL prefix.
+                // allow the file path to include the jdbc URL prefix.
                 super( (filepath.startsWith("jdbc:sqlite:")) ? filepath : "jdbc:sqlite:"+filepath );
                 dbfile = new File((filepath.startsWith("jdbc:sqlite:"))
                                   ? filepath.substring("jdbc:sqlite:".length())
@@ -142,5 +142,40 @@ public abstract class HeadBagDB extends PDRStorageInventoryDB {
         }
 
         return new SQLiteHeadBagDB(filepath);
+    }
+
+    /**
+     * create an instance of this class connected to a PostgreSQL database
+     * @param jdbcUrl  the JDBC URL to connect to PostgreSQL database, in the format
+     *                 jdbc:postgresql://host:port/database?user=username&password=password
+     */
+    public static HeadBagDB createPostgresDB(String jdbcUrl) {
+        String fullUrl = jdbcUrl.startsWith("jdbc:postgresql:") ? jdbcUrl : "jdbc:postgresql:" + jdbcUrl;
+
+        // PostgreSQL may be queried by many concurrent requests, and by more than one service
+        // instance sharing the same inventory, so draw connections from a HikariCP pool rather
+        // than opening a new DriverManager connection per query the way the SQLite path does.
+        // The pool is kept small because inventory queries are short; raise the size if the cache
+        // is driven harder.
+        HikariConfig hcfg = new HikariConfig();
+        hcfg.setJdbcUrl(fullUrl);
+        hcfg.setMaximumPoolSize(20);
+        hcfg.setMinimumIdle(5);
+        hcfg.setConnectionTimeout(5000);
+        HikariDataSource pool = new HikariDataSource(hcfg);
+
+        class PostgresHeadBagDB extends HeadBagDB {
+            private final HikariDataSource ds;
+            PostgresHeadBagDB(String url, HikariDataSource ds) {
+                super(url);
+                this.ds = ds;
+            }
+            @Override
+            protected Connection connect() throws SQLException {
+                return ds.getConnection();
+            }
+        }
+
+        return new PostgresHeadBagDB(fullUrl, pool);
     }
 }
